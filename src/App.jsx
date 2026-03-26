@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react'
 import {
   Eye, EyeOff, Mail, Lock, LogIn,
-  Calendar, CheckCircle2, User, Loader2, AlertCircle
+  Calendar, CheckCircle2, Loader2, AlertCircle, User
 } from 'lucide-react'
 
 import { Button }   from '@/components/ui/button'
@@ -15,6 +15,10 @@ import {
 
 import { cn } from '@/lib/utils'
 import { authApi, regionsApi, tokenStorage } from '@/lib/api'
+
+// ── Post-login pages ──────────────────────────────────────────────────────────
+import SubscriptionPage  from '@/pages/SubscriptionPage'
+import PaymentSuccessPage from '@/pages/PaymentSuccessPage'
 
 // ─── SHARED UI ───────────────────────────────────────────────────────────────
 function IconInput({ icon: Icon, iconRight, className, ...props }) {
@@ -44,7 +48,6 @@ function Divider() {
   return <div className="flex items-center my-1"><div className="flex-1 h-px bg-border" /></div>
 }
 
-// Error alert — tampil jika ada error dari API
 function ErrorAlert({ message }) {
   if (!message) return null
   return (
@@ -94,7 +97,6 @@ function StepIndicator({ currentStep }) {
   )
 }
 
-// ─── LEFT PANEL ──────────────────────────────────────────────────────────────
 function LeftPanel() {
   return (
     <div className="hidden lg:flex w-[46%] bg-secondary grid-pattern relative flex-col items-center justify-center overflow-hidden">
@@ -131,7 +133,7 @@ function RightPanel({ children }) {
 }
 
 // ─── PAGE: LOGIN ─────────────────────────────────────────────────────────────
-function LoginPage({ onNavigate }) {
+function LoginPage({ onNavigate, onLoginSuccess }) {
   const [email, setEmail]       = useState('')
   const [password, setPassword] = useState('')
   const [showPass, setShowPass] = useState(false)
@@ -144,10 +146,9 @@ function LoginPage({ onNavigate }) {
     setError(''); setLoading(true)
     try {
       const data = await authApi.login(email, password)
-      // Simpan kedua token
       tokenStorage.setTokens(data.accessToken, data.refreshToken)
-      // Navigasi ke dashboard (untuk sekarang alert dulu)
-      alert(`Login berhasil! Token tersimpan.\naccess expires: ${data.expiresIn}`)
+      // Setelah login berhasil → arahkan ke subscription
+      onLoginSuccess({ email })
     } catch (e) {
       setError(e.message)
     } finally {
@@ -196,8 +197,7 @@ function LoginPage({ onNavigate }) {
               Ingatkan saya
             </Label>
           </div>
-          <button
-            onClick={() => onNavigate('forgot-password')}
+          <button onClick={() => onNavigate('forgot-password')}
             className="text-sm text-muted-foreground hover:text-foreground underline underline-offset-2 transition-colors">
             Lupa password?
           </button>
@@ -223,60 +223,36 @@ function LoginPage({ onNavigate }) {
   )
 }
 
-// ─── PAGE: SIGN UP (Step 1 — semua data sekaligus) ───────────────────────────
-// Sesuai API asli: register kirim email + password + name + birthdate
-// PLUS endpoint /training-regions untuk dropdown daerah
+// ─── PAGE: SIGN UP ────────────────────────────────────────────────────────────
 function SignUpPage({ onNavigate, onOtpToken }) {
-  const [email, setEmail]           = useState('')
-  const [password, setPassword]     = useState('')
-  const [confirm, setConfirm]       = useState('')
-  const [name, setName]             = useState('')
-  const [birthdate, setBirthdate]   = useState('')
-  const [regionId, setRegionId]     = useState('')
-  const [showPass, setShowPass]     = useState(false)
+  const [email, setEmail]             = useState('')
+  const [password, setPassword]       = useState('')
+  const [confirm, setConfirm]         = useState('')
+  const [name, setName]               = useState('')
+  const [birthdate, setBirthdate]     = useState('')
+  const [regionId, setRegionId]       = useState('')
+  const [showPass, setShowPass]       = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
-  const [loading, setLoading]       = useState(false)
-  const [error, setError]           = useState('')
-
-  // Fetch training regions dari API
-  const [regions, setRegions]       = useState([])
+  const [loading, setLoading]         = useState(false)
+  const [error, setError]             = useState('')
+  const [regions, setRegions]         = useState([])
   const [regionsLoading, setRegionsLoading] = useState(true)
 
   useEffect(() => {
     regionsApi.list()
-      .then(data => {
-        // Normalise: bisa array langsung atau { data: [...] }
-        setRegions(Array.isArray(data) ? data : (data.data || []))
-      })
+      .then(data => setRegions(Array.isArray(data) ? data : (data.data || [])))
       .catch(() => setRegions([]))
       .finally(() => setRegionsLoading(false))
   }, [])
 
   const handleRegister = async () => {
     setError('')
-    if (!email || !password || !name || !birthdate) {
-      setError('Semua field wajib diisi'); return
-    }
-    if (password !== confirm) {
-      setError('Konfirmasi password tidak cocok'); return
-    }
-    if (password.length < 8) {
-      setError('Password minimal 8 karakter'); return
-    }
-
+    if (!email || !password || !name || !birthdate) { setError('Semua field wajib diisi'); return }
+    if (password !== confirm) { setError('Konfirmasi password tidak cocok'); return }
+    if (password.length < 8) { setError('Password minimal 8 karakter'); return }
     setLoading(true)
     try {
-      // POST /auth/register → backend kirim OTP ke email
-      // Response berisi token JWT (bukan access token — ini OTP token)
-      const data = await authApi.register({
-        email,
-        password,
-        name,
-        birthdate, // format: "1980-05-22"
-      })
-
-      // Simpan OTP token untuk dipakai di halaman berikutnya
-      // token ini berbeda dari accessToken — type: "otp" di payload JWT
+      const data = await authApi.register({ email, password, name, birthdate })
       onOtpToken(data.token, email)
       onNavigate('signup-otp')
     } catch (e) {
@@ -289,7 +265,6 @@ function SignUpPage({ onNavigate, onOtpToken }) {
   return (
     <RightPanel>
       <StepIndicator currentStep={1} />
-
       <div className="animate-fade-in-up delay-100">
         <h1 className="text-2xl font-bold text-foreground mb-1">Daftar Akun Baru</h1>
         <p className="text-sm text-muted-foreground mb-6">Silakan isi data di bawah ini untuk buat akun.</p>
@@ -297,65 +272,54 @@ function SignUpPage({ onNavigate, onOtpToken }) {
 
       <div className="space-y-4 animate-fade-in-up delay-200">
         <ErrorAlert message={error} />
-
         <div className="space-y-1.5">
-          <Label htmlFor="reg-name">Nama Lengkap</Label>
-          <IconInput id="reg-name" icon={User} placeholder="Masukkan nama lengkap"
+          <Label>Nama Lengkap</Label>
+          <IconInput icon={User} placeholder="Masukkan nama lengkap"
             value={name} onChange={e => setName(e.target.value)} />
         </div>
-
         <div className="space-y-1.5">
-          <Label htmlFor="reg-email">Email</Label>
-          <IconInput id="reg-email" icon={Mail} type="email" placeholder="Masukkan email"
+          <Label>Email</Label>
+          <IconInput icon={Mail} type="email" placeholder="Masukkan email"
             value={email} onChange={e => setEmail(e.target.value)} />
         </div>
-
         <div className="space-y-1.5">
-          <Label htmlFor="reg-birthdate">Tanggal Lahir</Label>
-          <IconInput id="reg-birthdate" icon={Calendar} type="date"
+          <Label>Tanggal Lahir</Label>
+          <IconInput icon={Calendar} type="date"
             value={birthdate} onChange={e => setBirthdate(e.target.value)} />
         </div>
-
-        {/* Dropdown daerah dari API /training-regions */}
         <div className="space-y-1.5">
           <Label>Daerah Pelatihan GASING</Label>
           <Select value={regionId} onValueChange={setRegionId} disabled={regionsLoading}>
             <SelectTrigger>
-              <SelectValue placeholder={regionsLoading ? 'Memuat daerah...' : 'Pilih daerah'} />
+              <SelectValue placeholder={regionsLoading ? 'Memuat...' : 'Pilih daerah'} />
             </SelectTrigger>
             <SelectContent>
               {regions.map(r => (
-                <SelectItem key={r.id} value={r.id}>
-                  {r.regionName || r.name}
-                </SelectItem>
+                <SelectItem key={r.id} value={r.id}>{r.regionName || r.name}</SelectItem>
               ))}
             </SelectContent>
           </Select>
         </div>
-
         <div className="space-y-1.5">
-          <Label htmlFor="reg-pass">Password</Label>
-          <IconInput id="reg-pass" icon={Lock} type={showPass ? 'text' : 'password'}
+          <Label>Password</Label>
+          <IconInput icon={Lock} type={showPass ? 'text' : 'password'}
             placeholder="Minimal 8 karakter" value={password}
             onChange={e => setPassword(e.target.value)}
             iconRight={<TogglePassword show={showPass} onToggle={() => setShowPass(v => !v)} />} />
         </div>
-
         <div className="space-y-1.5">
-          <Label htmlFor="reg-confirm">Konfirmasi Password</Label>
-          <IconInput id="reg-confirm" icon={Lock} type={showConfirm ? 'text' : 'password'}
+          <Label>Konfirmasi Password</Label>
+          <IconInput icon={Lock} type={showConfirm ? 'text' : 'password'}
             placeholder="Ulangi password" value={confirm}
             onChange={e => setConfirm(e.target.value)}
             iconRight={<TogglePassword show={showConfirm} onToggle={() => setShowConfirm(v => !v)} />} />
         </div>
-
         <Button className="w-full" onClick={handleRegister} disabled={loading}>
           {loading ? <><Loader2 size={16} className="animate-spin" /> Mendaftarkan...</> : 'Lanjutkan'}
         </Button>
       </div>
 
       <Divider />
-
       <div className="animate-fade-in-up delay-300 space-y-3">
         <p className="text-xs text-muted-foreground text-center">
           Dengan mendaftar, Anda menyetujui{' '}
@@ -385,20 +349,13 @@ function OtpInput({ onComplete, disabled }) {
   }
   const handleKeyDown = (i, e) => {
     if (e.key === 'Backspace') {
-      if (values[i]) {
-        const next = [...values]; next[i] = ''; setValues(next)
-      } else if (i > 0) {
-        refs.current[i - 1]?.focus()
-      }
+      if (values[i]) { const n = [...values]; n[i] = ''; setValues(n) }
+      else if (i > 0) refs.current[i - 1]?.focus()
     }
   }
   const handlePaste = (e) => {
     const paste = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6)
-    if (paste.length === 6) {
-      setValues(paste.split(''))
-      refs.current[5]?.focus()
-      onComplete?.(paste)
-    }
+    if (paste.length === 6) { setValues(paste.split('')); refs.current[5]?.focus(); onComplete?.(paste) }
     e.preventDefault()
   }
 
@@ -409,44 +366,37 @@ function OtpInput({ onComplete, disabled }) {
           type="text" inputMode="numeric" maxLength={1} value={v}
           disabled={disabled}
           onChange={e => handleChange(i, e.target.value)}
-          onKeyDown={e => handleKeyDown(i, e)}
-          onPaste={handlePaste}
+          onKeyDown={e => handleKeyDown(i, e)} onPaste={handlePaste}
           className={cn('otp-input', v && 'filled', disabled && 'opacity-50 cursor-not-allowed')} />
       ))}
     </div>
   )
 }
 
-function useCountdown(seconds) {
-  const [remaining, setRemaining] = useState(seconds)
+function useCountdown(s) {
+  const [r, setR] = useState(s)
   useEffect(() => {
-    if (remaining <= 0) return
-    const t = setTimeout(() => setRemaining(r => r - 1), 1000)
+    if (r <= 0) return
+    const t = setTimeout(() => setR(x => x - 1), 1000)
     return () => clearTimeout(t)
-  }, [remaining])
-  const mm = String(Math.floor(remaining / 60)).padStart(2, '0')
-  const ss = String(remaining % 60).padStart(2, '0')
-  return { display: `${mm}:${ss}`, expired: remaining === 0, reset: () => setRemaining(seconds) }
+  }, [r])
+  const mm = String(Math.floor(r / 60)).padStart(2, '0')
+  const ss = String(r % 60).padStart(2, '0')
+  return { display: `${mm}:${ss}`, expired: r === 0, reset: () => setR(s) }
 }
 
-// ─── PAGE: OTP (Step 2) ───────────────────────────────────────────────────────
-// Sesuai API: POST /auth/confirm-email dengan { token (JWT OTP), otp (6 digit) }
+// ─── PAGE: OTP ────────────────────────────────────────────────────────────────
 function SignUpOtpPage({ onNavigate, otpToken, email }) {
   const { display, expired, reset } = useCountdown(600)
   const [otpCode, setOtpCode]       = useState('')
   const [loading, setLoading]       = useState(false)
   const [error, setError]           = useState('')
-
-  const maskedEmail = email
-    ? email.replace(/(.{3}).*(@.*)/, '$1*****$2')
-    : 'email Anda'
+  const maskedEmail = email ? email.replace(/(.{3}).*(@.*)/, '$1*****$2') : 'email Anda'
 
   const handleVerify = async () => {
     if (otpCode.length !== 6) { setError('Masukkan 6 digit OTP'); return }
     setError(''); setLoading(true)
     try {
-      // POST /auth/confirm-email
-      // Butuh: token (JWT dari register response) + otp (6 digit input user)
       await authApi.confirmEmail(otpToken, otpCode)
       onNavigate('signup-review')
     } catch (e) {
@@ -459,65 +409,43 @@ function SignUpOtpPage({ onNavigate, otpToken, email }) {
   return (
     <RightPanel>
       <StepIndicator currentStep={2} />
-
       <div className="animate-fade-in-up delay-100 text-center">
         <h1 className="text-2xl font-bold text-foreground mb-1">Verifikasi Email</h1>
         <p className="text-sm text-muted-foreground mb-1">Masukkan kode yang kami kirimkan ke</p>
         <p className="text-sm font-semibold text-foreground mb-8">{maskedEmail}</p>
       </div>
-
       <div className="animate-fade-in-up delay-200 space-y-6">
         <ErrorAlert message={error} />
-
-        <OtpInput
-          disabled={loading}
-          onComplete={(code) => { setOtpCode(code); setError('') }}
-        />
-
+        <OtpInput disabled={loading} onComplete={code => { setOtpCode(code); setError('') }} />
         <Button className="w-full" disabled={loading || otpCode.length !== 6} onClick={handleVerify}>
-          {loading
-            ? <><Loader2 size={16} className="animate-spin" /> Memverifikasi...</>
-            : 'Verifikasi Kode OTP'}
+          {loading ? <><Loader2 size={16} className="animate-spin" /> Memverifikasi...</> : 'Verifikasi Kode OTP'}
         </Button>
-
         <div className="text-center">
-          {expired ? (
-            <button onClick={reset}
-              className="text-sm text-foreground font-medium underline underline-offset-2">
-              Kirim ulang kode
-            </button>
-          ) : (
-            <p className="text-sm text-muted-foreground">
-              Kode kedaluwarsa dalam <span className="font-bold text-foreground">{display}</span>
-            </p>
-          )}
+          {expired
+            ? <button onClick={reset} className="text-sm text-foreground font-medium underline underline-offset-2">Kirim ulang kode</button>
+            : <p className="text-sm text-muted-foreground">Kode kedaluwarsa dalam <span className="font-bold text-foreground">{display}</span></p>
+          }
         </div>
       </div>
     </RightPanel>
   )
 }
 
-// ─── PAGE: REVIEW (Step 3) ────────────────────────────────────────────────────
+// ─── PAGE: REVIEW ─────────────────────────────────────────────────────────────
 function SignUpReviewPage({ onNavigate }) {
   return (
     <RightPanel>
       <StepIndicator currentStep={3} />
-
       <div className="animate-fade-in-up delay-100 text-center">
         <div className="w-16 h-16 rounded-full bg-primary flex items-center justify-center mx-auto mb-6">
           <CheckCircle2 size={32} className="text-primary-foreground" />
         </div>
         <h1 className="text-2xl font-bold text-foreground mb-6">Terima Kasih Telah Mendaftar</h1>
       </div>
-
       <div className="animate-fade-in-up delay-200 space-y-4 text-center mb-8">
         <div className="bg-secondary rounded-xl p-4 border border-border">
-          <p className="text-sm font-semibold text-foreground mb-1">
-            Akun Anda sedang kami review maks. 1×24 jam
-          </p>
-          <p className="text-sm text-muted-foreground">
-            untuk memastikan Anda sudah terdaftar secara official sebagai Trainer Guru di GASING Academy.
-          </p>
+          <p className="text-sm font-semibold text-foreground mb-1">Akun Anda sedang kami review maks. 1×24 jam</p>
+          <p className="text-sm text-muted-foreground">untuk memastikan Anda sudah terdaftar secara official sebagai Trainer Guru di GASING Academy.</p>
         </div>
         <div className="bg-secondary rounded-xl p-4 border border-border">
           <p className="text-sm text-foreground/80">
@@ -526,7 +454,6 @@ function SignUpReviewPage({ onNavigate }) {
           </p>
         </div>
       </div>
-
       <div className="animate-fade-in-up delay-300">
         <Button className="w-full" onClick={() => onNavigate('login')}>
           <LogIn size={16} /> Back To Login
@@ -538,10 +465,10 @@ function SignUpReviewPage({ onNavigate }) {
 
 // ─── PAGE: FORGOT PASSWORD ────────────────────────────────────────────────────
 function ForgotPasswordPage({ onNavigate }) {
-  const [email, setEmail]   = useState('')
+  const [email, setEmail]     = useState('')
   const [loading, setLoading] = useState(false)
-  const [error, setError]   = useState('')
-  const [sent, setSent]     = useState(false)
+  const [error, setError]     = useState('')
+  const [sent, setSent]       = useState(false)
 
   const handleSend = async () => {
     if (!email) { setError('Email wajib diisi'); return }
@@ -577,27 +504,21 @@ function ForgotPasswordPage({ onNavigate }) {
     <RightPanel>
       <div className="animate-fade-in-up delay-100">
         <h1 className="text-2xl font-bold text-foreground mb-1">Lupa Password</h1>
-        <p className="text-sm text-muted-foreground mb-8">
-          Masukkan email Anda dan kami akan kirimkan link untuk reset password.
-        </p>
+        <p className="text-sm text-muted-foreground mb-8">Masukkan email Anda dan kami akan kirimkan link untuk reset password.</p>
       </div>
-
       <div className="space-y-4 animate-fade-in-up delay-200">
         <ErrorAlert message={error} />
         <div className="space-y-1.5">
-          <Label htmlFor="forgot-email">Email</Label>
-          <IconInput id="forgot-email" icon={Mail} type="email"
-            placeholder="Masukkan email terdaftar" value={email}
-            onChange={e => setEmail(e.target.value)}
+          <Label>Email</Label>
+          <IconInput icon={Mail} type="email" placeholder="Masukkan email terdaftar"
+            value={email} onChange={e => setEmail(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && handleSend()} />
         </div>
         <Button className="w-full" onClick={handleSend} disabled={loading}>
           {loading ? <><Loader2 size={16} className="animate-spin" /> Mengirim...</> : 'Kirim Link Reset'}
         </Button>
       </div>
-
       <Divider />
-
       <div className="text-center">
         <button onClick={() => onNavigate('login')}
           className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mx-auto">
@@ -610,28 +531,75 @@ function ForgotPasswordPage({ onNavigate }) {
 
 // ─── MAIN APP ─────────────────────────────────────────────────────────────────
 export default function App() {
-  const [page, setPage]       = useState('login')
-  // Simpan OTP JWT token + email antar halaman register → otp
-  const [otpToken, setOtpToken] = useState('')
-  const [regEmail, setRegEmail] = useState('')
+  const [page, setPage]             = useState('login')
+  const [otpToken, setOtpToken]     = useState('')
+  const [regEmail, setRegEmail]     = useState('')
+  const [currentUser, setCurrentUser] = useState(null)
+  const [activePlanName, setActivePlanName] = useState('')
+
+  // Cek query param ?payment=success dari Midtrans redirect
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const paymentStatus = params.get('payment')
+    const planName = params.get('plan') // opsional, kalau backend kirim nama plan di redirect URL
+
+    if (paymentStatus === 'success') {
+      if (planName) setActivePlanName(decodeURIComponent(planName))
+      setPage('payment-success')
+      // Bersihkan URL
+      window.history.replaceState({}, '', window.location.pathname)
+    }
+  }, [])
 
   const handleOtpToken = (token, email) => {
     setOtpToken(token)
     setRegEmail(email)
   }
 
-  const pages = {
-    'login':         <LoginPage onNavigate={setPage} />,
-    'signup':        <SignUpPage onNavigate={setPage} onOtpToken={handleOtpToken} />,
-    'signup-otp':    <SignUpOtpPage onNavigate={setPage} otpToken={otpToken} email={regEmail} />,
-    'signup-review': <SignUpReviewPage onNavigate={setPage} />,
+  const handleLoginSuccess = (user) => {
+    setCurrentUser(user)
+    setPage('subscription')
+  }
+
+  const handleSignOut = () => {
+    tokenStorage.clear()
+    setCurrentUser(null)
+    setPage('login')
+  }
+
+  // ── Halaman post-login (full screen, tanpa LeftPanel) ──────────────────────
+  if (page === 'subscription') {
+    return (
+      <SubscriptionPage
+        user={currentUser}
+        onSignOut={handleSignOut}
+      />
+    )
+  }
+
+  if (page === 'payment-success') {
+    return (
+      <PaymentSuccessPage
+        user={currentUser}
+        onSignOut={handleSignOut}
+        activePlanName={activePlanName}
+      />
+    )
+  }
+
+  // ── Halaman auth (split layout dengan LeftPanel) ───────────────────────────
+  const authPages = {
+    'login':           <LoginPage onNavigate={setPage} onLoginSuccess={handleLoginSuccess} />,
+    'signup':          <SignUpPage onNavigate={setPage} onOtpToken={handleOtpToken} />,
+    'signup-otp':      <SignUpOtpPage onNavigate={setPage} otpToken={otpToken} email={regEmail} />,
+    'signup-review':   <SignUpReviewPage onNavigate={setPage} />,
     'forgot-password': <ForgotPasswordPage onNavigate={setPage} />,
   }
 
   return (
     <div className="flex min-h-screen">
       <LeftPanel />
-      {pages[page] ?? pages['login']}
+      {authPages[page] ?? authPages['login']}
     </div>
   )
 }

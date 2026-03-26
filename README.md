@@ -1,6 +1,6 @@
-# GASING CIRCLE — Authentication SPA (shadcn/ui)
+# GASING CIRCLE — Frontend SPA
 
-> **Versi:** 1.1.0 · **Tanggal:** 18 Maret 2026 · **Stack:** React 18 + Vite + Tailwind CSS + shadcn/ui
+> **Versi:** 2.0.0 · **Tanggal:** 26 Maret 2026 · **Stack:** React 18 + Vite + Tailwind CSS + shadcn/ui
 
 ---
 
@@ -9,502 +9,459 @@
 1. [Overview](#1-overview)
 2. [Tech Stack](#2-tech-stack)
 3. [Struktur Folder](#3-struktur-folder)
-4. [Komponen shadcn/ui](#4-komponen-shadcnui)
-5. [Halaman & Alur Navigasi](#5-halaman--alur-navigasi)
-6. [Instalasi & Menjalankan](#6-instalasi--menjalankan)
-7. [Fitur Utama](#7-fitur-utama)
-8. [Arsitektur Komponen](#8-arsitektur-komponen)
-9. [Kustomisasi](#9-kustomisasi)
-10. [Panduan Integrasi Backend](#10-panduan-integrasi-backend)
-11. [Referensi Scripts](#11-referensi-scripts)
-12. [Changelog](#12-changelog)
+4. [Alur Halaman](#4-alur-halaman)
+5. [Instalasi & Menjalankan](#5-instalasi--menjalankan)
+6. [Konfigurasi Environment](#6-konfigurasi-environment)
+7. [Vite Proxy](#7-vite-proxy)
+8. [Komponen & Arsitektur](#8-komponen--arsitektur)
+9. [API Layer](#9-api-layer)
+10. [Integrasi Midtrans](#10-integrasi-midtrans)
+11. [Kustomisasi](#11-kustomisasi)
+12. [Referensi Scripts](#12-referensi-scripts)
+13. [Changelog](#13-changelog)
 
 ---
 
 ## 1. Overview
 
-Gasing Circle Auth SPA versi **1.1.0** adalah versi yang telah diperbarui menggunakan **shadcn/ui** sebagai design system utama. Aplikasi ini menyediakan alur autentikasi lengkap untuk platform komunitas Gasing Circle, mencakup halaman Login dan alur Sign Up 3 langkah untuk Trainer Guru GASING Academy.
+Gasing Circle Frontend SPA adalah aplikasi **Single Page Application** berbasis React yang mencakup:
 
-Dibandingkan versi sebelumnya (v1.0.0), versi ini mengganti komponen UI primitif custom dengan komponen shadcn/ui yang dibangun di atas **Radix UI** — memberikan aksesibilitas, keyboard navigation, dan konsistensi desain yang lebih baik secara out-of-the-box.
+- Alur autentikasi lengkap (Register, OTP, Login, Forgot Password)
+- Halaman pemilihan paket berlangganan
+- Integrasi pembayaran via **Midtrans Snap Redirect**
+- Halaman konfirmasi pembayaran berhasil dengan link ke komunitas Discourse
+
+Aplikasi terhubung ke backend **Express.js + Prisma + PostgreSQL** melalui Vite proxy untuk menghindari CORS, sehingga bisa diakses dari komputer lain dalam jaringan yang sama.
 
 ---
 
 ## 2. Tech Stack
 
-| Teknologi                    | Versi        | Kegunaan                                |
-| ---------------------------- | ------------ | --------------------------------------- |
-| React                        | 18.2.0       | UI Library — core framework SPA         |
-| Vite                         | 5.2.0        | Build tool & dev server dengan HMR      |
-| Tailwind CSS                 | 3.4.3        | Utility-first CSS framework             |
-| **shadcn/ui**                | manual copy  | Design system berbasis Radix UI         |
-| **Radix UI**                 | latest       | Headless UI primitives (aksesibel)      |
-| **class-variance-authority** | latest       | Variant styling untuk shadcn components |
-| **@radix-ui/react-slot**     | latest       | Polymorphic component support           |
-| **@radix-ui/react-label**    | latest       | Accessible label primitive              |
-| **@radix-ui/react-checkbox** | latest       | Accessible checkbox primitive           |
-| **@radix-ui/react-select**   | latest       | Accessible select/dropdown primitive    |
-| Lucide React                 | 0.383.0      | Icon library                            |
-| clsx                         | 2.1.0        | Utility untuk conditional className     |
-| DM Sans                      | Google Fonts | Font utama body text                    |
-| Playfair Display             | Google Fonts | Font display / branding                 |
+| Teknologi                | Versi        | Kegunaan                                               |
+| ------------------------ | ------------ | ------------------------------------------------------ |
+| React                    | 18.2.0       | UI Library                                             |
+| Vite                     | 5.2.0        | Build tool + dev server + proxy                        |
+| Tailwind CSS             | 3.4.3        | Utility-first CSS                                      |
+| shadcn/ui                | manual       | Design system (Button, Input, Label, Checkbox, Select) |
+| Radix UI                 | latest       | Headless UI primitives                                 |
+| class-variance-authority | latest       | Variant styling                                        |
+| Lucide React             | 0.383.0      | Icon library                                           |
+| clsx                     | 2.1.0        | Conditional className                                  |
+| DM Sans                  | Google Fonts | Font utama                                             |
+| Playfair Display         | Google Fonts | Font branding                                          |
 
 ---
 
 ## 3. Struktur Folder
 
 ```
-gasing-auth-shadcn/
+gasing-auth-v2/
+├── .env.example            ← template environment variables
 ├── index.html
 ├── package.json
-├── vite.config.js          # Path alias @ → ./src
-├── tailwind.config.js      # Shadcn CSS variables + color tokens
+├── vite.config.js          ← path alias + Vite proxy config
+├── tailwind.config.js
 ├── postcss.config.js
 └── src/
-    ├── main.jsx            # Entry point React
-    ├── App.jsx             # Semua halaman & logika navigasi
-    ├── index.css           # Global styles + CSS variables shadcn
+    ├── main.jsx            ← entry point React
+    ├── App.jsx             ← router utama + semua halaman auth
+    ├── index.css           ← global styles + CSS variables shadcn
     ├── lib/
-    │   └── utils.js        # Helper cn() untuk merge class names
-    └── components/
-        └── ui/             # Shadcn UI components (manual install)
-            ├── button.jsx
-            ├── input.jsx
-            ├── label.jsx
-            ├── checkbox.jsx
-            └── select.jsx
-```
-
-> **Catatan:** Berbeda dengan npm package biasa, shadcn/ui di-_copy_ langsung ke `src/components/ui/` sehingga bisa dikustomisasi penuh sesuai kebutuhan project.
-
----
-
-## 4. Komponen shadcn/ui
-
-Berikut daftar komponen shadcn yang digunakan beserta penjelasan perubahannya dari versi sebelumnya.
-
-### 4.1 Button — `components/ui/button.jsx`
-
-Menggunakan **class-variance-authority (CVA)** untuk variant styling dan **Radix Slot** untuk polymorphic rendering.
-
-```jsx
-import { Button } from '@/components/ui/button'
-
-// Variant default (hitam)
-<Button onClick={handleSubmit}>Masuk ke Komunitas</Button>
-
-// Variant outline
-<Button variant="outline">Batal</Button>
-
-// Disabled — styling opacity otomatis
-<Button disabled>Lanjutkan</Button>
-
-// Dengan icon
-<Button><LogIn size={16} /> Back To Login</Button>
-```
-
-**Variants yang tersedia:**
-
-| Variant   | Tampilan                               |
-| --------- | -------------------------------------- |
-| `default` | Background hitam, teks putih (primary) |
-| `outline` | Border tipis, background transparan    |
-| `ghost`   | Transparan, hover dengan accent        |
-| `link`    | Tampil seperti hyperlink               |
-
-**Sizes yang tersedia:** `default` (h-11), `sm` (h-9), `lg` (h-12), `icon` (h-10 w-10)
-
----
-
-### 4.2 Input — `components/ui/input.jsx`
-
-Input standar dengan styling konsisten dari design system shadcn.
-
-```jsx
-import { Input } from '@/components/ui/input'
-
-<Input type="email" placeholder="Masukkan email" />
-<Input type="password" placeholder="Masukkan password" />
-<Input type="date" />
-```
-
-> **Catatan:** Untuk input dengan ikon, digunakan wrapper `<IconInput />` di `App.jsx` yang membungkus `<Input>` shadcn dengan ikon Lucide di posisi kiri/kanan.
-
----
-
-### 4.3 Label — `components/ui/label.jsx`
-
-Label aksesibel menggunakan **Radix Label primitive** yang secara otomatis terhubung ke input via `htmlFor`.
-
-```jsx
-import { Label } from '@/components/ui/label'
-
-<Label htmlFor="email">Email</Label>
-<Input id="email" type="email" />
+    │   ├── api.js          ← semua HTTP calls ke backend
+    │   └── utils.js        ← helper cn()
+    ├── context/
+    │   └── AuthContext.jsx ← global auth state (opsional)
+    ├── components/
+    │   └── ui/             ← shadcn/ui components
+    │       ├── button.jsx
+    │       ├── input.jsx
+    │       ├── label.jsx
+    │       ├── checkbox.jsx
+    │       └── select.jsx
+    └── pages/
+        ├── SubscriptionPage.jsx   ← halaman pilih paket
+        └── PaymentSuccessPage.jsx ← halaman pembayaran berhasil
 ```
 
 ---
 
-### 4.4 Checkbox — `components/ui/checkbox.jsx`
+## 4. Alur Halaman
 
-Checkbox aksesibel menggunakan **Radix Checkbox primitive**. Menggantikan custom `div` checkbox pada versi v1.0.0.
-
-```jsx
-import { Checkbox } from '@/components/ui/checkbox'
-
-<Checkbox
-  id="remember"
-  checked={remember}
-  onCheckedChange={setRemember}   // bukan onChange biasa
-/>
-<Label htmlFor="remember">Ingatkan saya</Label>
+```
+┌─────────────┐
+│    Login    │──────────────────────────────────────┐
+└─────────────┘                                      │
+       │ Belum punya akun                            │ Login berhasil
+       ▼                                             ▼
+┌─────────────────┐                      ┌──────────────────────┐
+│ Sign Up Step 1  │                      │   Subscription Page  │
+│ (Buat Akun)     │                      │  (Pilih paket)       │
+└─────────────────┘                      └──────────────────────┘
+       │                                             │ Klik Berlangganan
+       ▼                                             ▼
+┌─────────────────┐                      ┌──────────────────────┐
+│ Sign Up Step 2  │                      │  Midtrans Payment    │
+│ (Verifikasi OTP)│                      │  (redirect external) │
+└─────────────────┘                      └──────────────────────┘
+       │                                             │ Bayar berhasil
+       ▼                                             ▼
+┌─────────────────┐                      ┌──────────────────────┐
+│ Sign Up Step 3  │                      │  Payment Success     │
+│ (Review/Selesai)│                      │  (konfirmasi)        │
+└─────────────────┘                      └──────────────────────┘
+       │
+       ▼
+┌─────────────────┐
+│ Forgot Password │
+│ (opsional)      │
+└─────────────────┘
 ```
 
-> **Perhatian:** Gunakan `onCheckedChange` (bukan `onChange`) untuk menangkap perubahan nilai.
+### Route Keys (dikelola via `useState` di App.jsx)
+
+| Route Key           | Halaman                         |
+| ------------------- | ------------------------------- |
+| `'login'`           | Halaman login                   |
+| `'signup'`          | Sign Up Step 1 — buat akun      |
+| `'signup-otp'`      | Sign Up Step 2 — verifikasi OTP |
+| `'signup-review'`   | Sign Up Step 3 — review selesai |
+| `'forgot-password'` | Lupa password                   |
+| `'subscription'`    | Pilih paket berlangganan        |
+| `'payment-success'` | Pembayaran berhasil             |
 
 ---
 
-### 4.5 Select — `components/ui/select.jsx`
-
-Dropdown aksesibel menggunakan **Radix Select primitive**. Menggantikan custom dropdown daerah pada versi v1.0.0. Mendukung keyboard navigation, screen reader, dan portal rendering otomatis.
-
-```jsx
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-
-<Select value={daerah} onValueChange={setDaerah}>
-  <SelectTrigger>
-    <SelectValue placeholder="Pilih Daerah" />
-  </SelectTrigger>
-  <SelectContent>
-    <SelectItem value="Jakarta">Jakarta</SelectItem>
-    <SelectItem value="Bandung">Bandung</SelectItem>
-  </SelectContent>
-</Select>;
-```
-
----
-
-## 5. Halaman & Alur Navigasi
-
-| Halaman         | Route Key                  | Deskripsi                                                            |
-| --------------- | -------------------------- | -------------------------------------------------------------------- |
-| Login           | `'login'`                  | Halaman masuk dengan email & password                                |
-| Daftar — Step 1 | `'signup-buat-akun'`       | Buat akun: email, password, konfirmasi password                      |
-| Daftar — Step 2 | `'signup-verifikasi-data'` | Verifikasi data diri: nama, username, tanggal lahir, daerah, sekolah |
-| OTP             | `'signup-otp'`             | Input 6-digit OTP dari email dengan countdown 10 menit               |
-| Review          | `'signup-review'`          | Konfirmasi pendaftaran berhasil, menunggu review admin               |
-
-### Alur Sign Up
-
-```
-Login → Daftar Akun Baru → Verifikasi Data → OTP → Review (selesai)
-```
-
----
-
-## 6. Instalasi & Menjalankan
+## 5. Instalasi & Menjalankan
 
 ### Prasyarat
 
-- **Node.js** versi 18 ke atas
-- **npm** versi 9 ke atas
+- **Node.js** versi 18+
+- **npm** versi 9+
 
-### Langkah Instalasi
-
-**Step 1** — Ekstrak zip dan masuk ke folder project:
+### Langkah
 
 ```bash
-cd gasing-auth-shadcn
-```
+# 1. Masuk ke folder project
+cd gasing-auth-v2
 
-**Step 2** — Install dependensi (termasuk Radix UI packages):
-
-```bash
+# 2. Install dependencies
 npm install
-```
 
-**Step 3** — Jalankan development server:
+# 3. Buat file .env dari template
+cp .env.example .env
 
-```bash
+# 4. Isi .env (lihat bagian Konfigurasi Environment)
+
+# 5. Jalankan dev server
 npm run dev
 ```
 
-Buka browser dan akses **http://localhost:5173**
+Buka **http://localhost:5173** di browser.
 
-### Build untuk Produksi
+Untuk akses dari komputer lain di jaringan yang sama, gunakan URL Network yang muncul di terminal:
 
-```bash
-npm run build
+```
+➜  Local:   http://localhost:5173/
+➜  Network: http://192.168.1.x:5173/   ← bagikan URL ini
 ```
 
-Hasil build tersimpan di folder `dist/` dan siap di-deploy ke hosting.
+---
+
+## 6. Konfigurasi Environment
+
+Buat file `.env` di root folder (sejajar dengan `package.json`):
+
+```env
+# Kosongkan — request ke backend ditangani Vite proxy
+VITE_API_URL=
+
+# URL komunitas Discourse
+VITE_DISCOURSE_URL=https://komunitas.gasingcircle.id
+
+# Nomor WhatsApp perusahaan (format internasional tanpa + dan spasi)
+VITE_WA_NUMBER=628123456789
+```
+
+> **Penting:** Setelah mengubah `.env`, selalu restart dev server (`Ctrl+C` lalu `npm run dev`).
 
 ---
 
-## 7. Fitur Utama
+## 7. Vite Proxy
 
-### 7.1 Navigasi SPA
+Semua request ke `/api/*` otomatis diteruskan ke backend oleh Vite, sehingga tidak ada CORS error baik dari `localhost` maupun dari IP jaringan lokal.
 
-- Berpindah halaman tanpa reload menggunakan `useState` React
-- Tidak membutuhkan react-router
-- Navigasi dua arah: maju (next) dan kembali ke Login
-
-### 7.2 Step Indicator
-
-- Progress bar 3 langkah animasi di halaman Sign Up
-- Step selesai ditandai ikon centang (`CheckCircle2`)
-- Garis penghubung berubah warna sesuai progress
-
-### 7.3 OTP Input (custom)
-
-- 6 kotak input terpisah dengan auto-focus otomatis
-- Mendukung paste 6 digit sekaligus dari clipboard
-- Navigasi mundur dengan tombol Backspace
-- Tombol Verifikasi aktif (`disabled={false}`) hanya setelah semua digit terisi
-
-### 7.4 Countdown Timer (custom)
-
-- Timer 10 menit berjalan real-time di halaman OTP
-- Setelah expired, muncul tombol "Kirim ulang kode"
-- Timer dapat di-reset
-
-### 7.5 Aksesibilitas (peningkatan dari v1.0.0)
-
-- Semua komponen shadcn dibangun di atas Radix UI yang **WAI-ARIA compliant**
-- Checkbox dan Select mendukung **keyboard navigation** penuh
-- Label terhubung ke input via `htmlFor` / `id`
-- Focus ring konsisten di semua elemen interaktif
-- Select menggunakan **portal rendering** — tidak terpotong overflow container
-
-### 7.6 Animasi
-
-- Animasi `fadeInUp` per halaman saat pertama tampil
-- Elemen muncul bertahap dengan delay 0.1s
-- Transisi halus pada semua interaksi
-
----
-
-## 8. Arsitektur Komponen
-
-### 8.1 Komponen shadcn/ui (baru di v1.1.0)
-
-| Komponen     | File              | Menggantikan                              |
-| ------------ | ----------------- | ----------------------------------------- |
-| `<Button>`   | `ui/button.jsx`   | Custom `<Button />` dengan manual variant |
-| `<Input>`    | `ui/input.jsx`    | Custom `<Input />`                        |
-| `<Label>`    | `ui/label.jsx`    | Custom `<Label />`                        |
-| `<Checkbox>` | `ui/checkbox.jsx` | Custom `div` checkbox                     |
-| `<Select>`   | `ui/select.jsx`   | Custom dropdown dengan `useState`         |
-
-### 8.2 Komponen Custom (tetap)
-
-| Komponen            | Deskripsi                                                 |
-| ------------------- | --------------------------------------------------------- |
-| `<IconInput />`     | Wrapper `<Input>` shadcn dengan ikon Lucide di kiri/kanan |
-| `<StepIndicator />` | Progress bar 3 langkah — tidak ada padanan di shadcn      |
-| `<LeftPanel />`     | Panel dekoratif kiri dengan grid pattern                  |
-| `<RightPanel />`    | Wrapper panel kanan dengan footer copyright               |
-| `<OtpInput />`      | 6-kotak OTP — tidak ada padanan di shadcn                 |
-
-### 8.3 Custom Hook
-
-**`useCountdown(seconds)`** — hook countdown timer:
-
-| Return    | Tipe       | Keterangan                  |
-| --------- | ---------- | --------------------------- |
-| `display` | `string`   | Format MM:SS                |
-| `expired` | `boolean`  | `true` jika timer habis     |
-| `reset()` | `function` | Restart timer ke nilai awal |
-
-### 8.4 Helper
-
-**`src/lib/utils.js`** — fungsi `cn()` untuk menggabungkan class names Tailwind secara kondisional:
+Konfigurasi ada di `vite.config.js`:
 
 ```js
-import { cn } from "@/lib/utils";
-
-cn("base-class", condition && "conditional-class", "another-class");
-```
-
----
-
-## 9. Kustomisasi
-
-### 9.1 Mengganti Tema Warna
-
-Semua warna shadcn dikontrol lewat **CSS variables** di `src/index.css`. Cukup ubah nilai HSL untuk mengganti seluruh tema sekaligus:
-
-```css
-:root {
-  --primary: 0 0% 9%; /* hitam — ganti ke misal 221 83% 53% untuk biru */
-  --primary-foreground: 0 0% 98%;
-  --accent: 0 0% 96.1%;
-  --border: 0 0% 89.8%;
+server: {
+  host: true,        // izinkan akses dari jaringan lokal
+  port: 5173,
+  proxy: {
+    '/api': {
+      target: 'https://dev-dge-comunity.baka.work',
+      changeOrigin: true,
+      secure: true,
+    }
+  }
 }
 ```
 
-Contoh tema biru:
+Seluruh request di `src/lib/api.js` menggunakan prefix `/api/v1/reg` tanpa domain:
 
-```css
-:root {
-  --primary: 221 83% 53%;
-  --primary-foreground: 0 0% 100%;
-  --ring: 221 83% 53%;
+```js
+const BASE_PATH = "/api/v1/reg";
+```
+
+Sehingga bekerja dari komputer mana pun yang mengakses app ini.
+
+---
+
+## 8. Komponen & Arsitektur
+
+### 8.1 Halaman (Pages)
+
+| File                           | Halaman                                      | Keterangan                                   |
+| ------------------------------ | -------------------------------------------- | -------------------------------------------- |
+| `App.jsx`                      | Login, Sign Up, OTP, Review, Forgot Password | Semua halaman auth dalam satu file           |
+| `pages/SubscriptionPage.jsx`   | Subscription                                 | Pilih paket Tahunan / Bulanan                |
+| `pages/PaymentSuccessPage.jsx` | Payment Success                              | Konfirmasi bayar + link Discourse + WhatsApp |
+
+### 8.2 Komponen shadcn/ui
+
+| Komponen     | File              | Kegunaan                                        |
+| ------------ | ----------------- | ----------------------------------------------- |
+| `<Button>`   | `ui/button.jsx`   | Tombol dengan variant (default, outline, ghost) |
+| `<Input>`    | `ui/input.jsx`    | Input field                                     |
+| `<Label>`    | `ui/label.jsx`    | Label form aksesibel                            |
+| `<Checkbox>` | `ui/checkbox.jsx` | Checkbox "Ingatkan saya"                        |
+| `<Select>`   | `ui/select.jsx`   | Dropdown daerah pelatihan GASING                |
+
+### 8.3 Komponen Custom (tetap)
+
+| Komponen            | Deskripsi                                       |
+| ------------------- | ----------------------------------------------- |
+| `<IconInput />`     | Wrapper `<Input>` dengan ikon kiri/kanan        |
+| `<StepIndicator />` | Progress bar 3 langkah Sign Up                  |
+| `<OtpInput />`      | 6-kotak OTP dengan auto-focus dan paste support |
+| `<PlanCard />`      | Card pilihan paket di SubscriptionPage          |
+| `<Avatar />`        | Avatar initials user di navbar                  |
+| `<ErrorAlert />`    | Alert merah untuk error dari API                |
+
+### 8.4 Custom Hook
+
+**`useCountdown(seconds)`**
+
+| Return    | Tipe       | Keterangan              |
+| --------- | ---------- | ----------------------- |
+| `display` | `string`   | Format MM:SS            |
+| `expired` | `boolean`  | `true` jika timer habis |
+| `reset()` | `function` | Restart timer           |
+
+---
+
+## 9. API Layer
+
+Semua HTTP call terpusat di `src/lib/api.js`.
+
+### Token Management
+
+```js
+tokenStorage.getAccess(); // ambil access token
+tokenStorage.getRefresh(); // ambil refresh token
+tokenStorage.setTokens(a, r); // simpan kedua token
+tokenStorage.clear(); // hapus semua token (logout)
+```
+
+Token disimpan di `localStorage`. Request otomatis attach `Authorization: Bearer <token>` di setiap call. Jika response `401`, otomatis coba refresh token sebelum logout.
+
+### Endpoint Summary
+
+| Grup         | Method | Path                      | Keterangan                                   |
+| ------------ | ------ | ------------------------- | -------------------------------------------- |
+| Auth         | POST   | `/auth/register`          | Daftar akun baru                             |
+| Auth         | POST   | `/auth/confirm-email`     | Verifikasi OTP                               |
+| Auth         | POST   | `/auth/login`             | Login → dapat `accessToken` + `refreshToken` |
+| Auth         | POST   | `/auth/logout`            | Logout                                       |
+| Auth         | POST   | `/auth/refresh`           | Refresh access token                         |
+| Auth         | POST   | `/auth/forgot-password`   | Kirim email reset password                   |
+| Auth         | POST   | `/auth/reset-password`    | Reset password dengan token                  |
+| Profile      | GET    | `/profile/me`             | Ambil data profil                            |
+| Profile      | PATCH  | `/profile`                | Update profil                                |
+| Profile      | PATCH  | `/profile/password`       | Ganti password                               |
+| Regions      | GET    | `/training-regions`       | List daerah pelatihan (public)               |
+| Subscription | GET    | `/subscriptions/plans`    | List paket (belum aktif)                     |
+| Subscription | POST   | `/subscriptions/checkout` | Buat transaksi Midtrans                      |
+| Subscription | GET    | `/subscriptions/status`   | Status langganan aktif                       |
+
+### JWT Token
+
+Login menghasilkan dua token:
+
+```json
+{
+  "accessToken": "...", // expires: 2 jam
+  "refreshToken": "...", // expires: ~60 hari
+  "tokenType": "Bearer",
+  "expiresIn": "2h"
 }
 ```
 
-### 9.2 Menambah Variant Button
+---
 
-Edit `src/components/ui/button.jsx`, tambahkan variant baru di dalam objek `variants`:
+## 10. Integrasi Midtrans
+
+Metode yang digunakan: **Snap Redirect** (user diarahkan ke halaman Midtrans, bukan popup).
+
+### Flow
+
+```
+1. User pilih paket → klik "Berlangganan"
+2. Frontend: POST /subscriptions/checkout { planId }
+3. Backend: buat transaksi Midtrans → return { redirectUrl }
+4. Frontend: window.location.href = redirectUrl
+5. User bayar di halaman Midtrans
+6. Midtrans redirect balik ke app: /?payment=success&plan=Annual+Visionary
+7. App.jsx deteksi query param → tampilkan PaymentSuccessPage
+```
+
+### Menyesuaikan Endpoint Checkout
+
+Saat ini endpoint masih dummy. Setelah backend siap, update di `src/lib/api.js`:
 
 ```js
-const buttonVariants = cva("...", {
-  variants: {
-    variant: {
-      default: "bg-primary text-primary-foreground ...",
-      // tambahkan variant baru:
-      danger: "bg-red-600 text-white hover:bg-red-700",
-    },
-  },
+// Sesuaikan path dan field body dengan backend kamu
+checkout: (planId) => request('/subscriptions/checkout', {
+  method: 'POST',
+  body: { planId },   // ← ganti field sesuai kebutuhan backend
+}),
+```
+
+### Bypass Sementara (Development)
+
+Selama endpoint belum siap, ada bypass di `src/pages/SubscriptionPage.jsx` yang mensimulasikan redirect Midtrans:
+
+```js
+// ⚠️ BYPASS SEMENTARA — hapus block ini kalau endpoint sudah siap
+const params = new URLSearchParams({
+  payment: "success",
+  plan: encodeURIComponent(activePlan?.planLabel || ""),
 });
+window.location.href = `${window.location.pathname}?${params.toString()}`;
+return;
+// ⚠️ END BYPASS
 ```
 
-Lalu gunakan:
+Hapus 4 baris di atas saat endpoint sudah tersedia.
 
-```jsx
-<Button variant="danger">Hapus Akun</Button>
+### Redirect URL untuk Midtrans
+
+Daftarkan URL ini di dashboard Midtrans sebagai **Finish Redirect URL**:
+
+```
+https://domain-kamu.com/?payment=success&plan={PLAN_NAME}
 ```
 
-### 9.3 Menambah Pilihan Daerah
+Untuk development:
 
-Edit array `DAERAH_OPTIONS` di `App.jsx`:
+```
+http://localhost:5173/?payment=success
+```
+
+---
+
+## 11. Kustomisasi
+
+### 11.1 Mengganti Data Paket
+
+Edit array `DUMMY_PLANS` di `src/pages/SubscriptionPage.jsx`:
 
 ```js
-const DAERAH_OPTIONS = [
-  "Jakarta",
-  "Bandung",
-  // tambahkan daerah baru:
-  "Manado",
-  "Kupang",
+const DUMMY_PLANS = [
+  {
+    id: "annual",
+    name: "Tahunan",
+    priceMonthly: 33000,
+    priceTotal: 400000,
+    originalPrice: 39900,
+    discount: 20,
+    label: "Kamu Hemat 20%",
+    planLabel: "Annual Visionary", // ← nama yang tampil di PaymentSuccess
+    recommended: true,
+  },
+  // tambah paket lain di sini
 ];
 ```
 
-### 9.4 Mengubah Durasi OTP
+Atau uncomment fetch dari API di `useEffect` dalam `SubscriptionPage.jsx` kalau backend sudah siap.
 
-```js
-// Default 600 detik (10 menit)
-const { display, expired, reset } = useCountdown(600);
+### 11.2 Mengganti Nomor WhatsApp
 
-// Ubah ke 5 menit
-const { display, expired, reset } = useCountdown(300);
+Update `.env`:
+
+```
+VITE_WA_NUMBER=628111222333
 ```
 
-### 9.5 Menambah Komponen shadcn Baru
+### 11.3 Mengganti URL Discourse
 
-Karena shadcn di-copy manual, untuk menambah komponen baru (misal `Toast`, `Dialog`, `Popover`):
+Update `.env`:
 
-1. Kunjungi [ui.shadcn.com](https://ui.shadcn.com)
-2. Pilih komponen yang dibutuhkan
-3. Copy kode ke file baru di `src/components/ui/`
-4. Install Radix dependency-nya jika belum ada:
-
-```bash
-npm install @radix-ui/react-toast
 ```
+VITE_DISCOURSE_URL=https://dev-komunitas.gasingacademy.org
+```
+
+### 11.4 Mengganti Tema Warna
+
+Ubah CSS variables di `src/index.css`:
+
+```css
+:root {
+  --primary: 0 0% 9%; /* hitam → ganti ke warna lain */
+  --primary-foreground: 0 0% 98%;
+}
+```
+
+Untuk SubscriptionPage dan PaymentSuccessPage yang pakai warna biru langsung (Tailwind class `bg-blue-600`), cari dan ganti `blue-600` dengan warna yang diinginkan.
 
 ---
 
-## 10. Panduan Integrasi Backend
+## 12. Referensi Scripts
 
-### 10.1 Login
-
-```js
-const handleLogin = async () => {
-  const res = await fetch("/api/auth/login", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email, password }),
-  });
-  const data = await res.json();
-  if (data.token) {
-    localStorage.setItem("token", data.token);
-    // redirect ke dashboard
-  }
-};
-```
-
-### 10.2 Registrasi & Kirim OTP
-
-```js
-const handleSubmitData = async () => {
-  await fetch("/api/auth/register", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      email,
-      password,
-      nama,
-      username,
-      tgl,
-      daerah,
-      sekolah,
-    }),
-  });
-  onNavigate("signup-otp");
-};
-```
-
-### 10.3 Verifikasi OTP
-
-```js
-const handleOtpComplete = async (otpCode) => {
-  const res = await fetch("/api/auth/verify-otp", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email, otp: otpCode }),
-  });
-  const data = await res.json();
-  if (data.success) onNavigate("signup-review");
-};
-```
+| Command           | Fungsi                                            |
+| ----------------- | ------------------------------------------------- |
+| `npm install`     | Install semua dependencies                        |
+| `npm run dev`     | Dev server di `localhost:5173` dengan HMR + proxy |
+| `npm run build`   | Build produksi ke folder `dist/`                  |
+| `npm run preview` | Preview hasil build secara lokal                  |
 
 ---
 
-## 11. Referensi Scripts
+## 13. Changelog
 
-| Command           | Fungsi                                                     |
-| ----------------- | ---------------------------------------------------------- |
-| `npm install`     | Install semua dependensi termasuk Radix UI packages        |
-| `npm run dev`     | Jalankan development server di `localhost:5173` dengan HMR |
-| `npm run build`   | Build untuk produksi (output ke `dist/`)                   |
-| `npm run preview` | Preview hasil build secara lokal                           |
+### v2.0.0 — 26 Maret 2026
 
----
-
-## 12. Changelog
+- ✅ Tambah `SubscriptionPage` — pilih paket Tahunan / Bulanan
+- ✅ Integrasi Midtrans Snap Redirect
+- ✅ Tambah `PaymentSuccessPage` — konfirmasi bayar + link Discourse + WhatsApp
+- ✅ Bypass mode untuk development sebelum endpoint subscription siap
+- ✅ Tambah `VITE_DISCOURSE_URL` dan `VITE_WA_NUMBER` di environment
+- ✅ Post-login flow: Login → Subscription → Midtrans → Payment Success
+- ✅ Deteksi query param `?payment=success` dari Midtrans redirect
 
 ### v1.1.0 — 18 Maret 2026
 
-- ✅ Migrasi ke **shadcn/ui** design system
-- ✅ `<Button>` menggunakan CVA + Radix Slot
-- ✅ `<Input>` menggunakan shadcn Input primitive
-- ✅ `<Label>` menggunakan Radix Label (aksesibel)
-- ✅ Custom `div` checkbox → **shadcn `<Checkbox>`** (Radix, WAI-ARIA)
-- ✅ Custom dropdown daerah → **shadcn `<Select>`** (Radix, keyboard nav, portal)
-- ✅ Tambah `src/lib/utils.js` dengan helper `cn()`
-- ✅ Tambah path alias `@` → `./src` di `vite.config.js`
-- ✅ Update `tailwind.config.js` dengan shadcn color tokens
+- ✅ Migrasi ke shadcn/ui (Button, Input, Label, Checkbox, Select)
+- ✅ Path alias `@` → `./src`
+- ✅ shadcn CSS color tokens di Tailwind config
 
 ### v1.0.0 — 17 Maret 2026
 
-- ✅ Initial release dengan komponen UI custom
-- ✅ 5 halaman auth: Login, Sign Up Step 1–3, OTP
-- ✅ Animasi fadeInUp, countdown timer, OTP input
+- ✅ Initial release
+- ✅ Auth flow: Login, Register, OTP, Forgot Password
+- ✅ Vite proxy untuk bypass CORS
+- ✅ Dropdown daerah dari API `/training-regions`
+- ✅ Dual JWT (access + refresh token)
+- ✅ Auto retry dengan refresh token saat `401`
 
 ---
 
