@@ -31,7 +31,7 @@ Gasing Circle Frontend SPA adalah aplikasi **Single Page Application** berbasis 
 - Integrasi pembayaran via **Midtrans Snap Redirect**
 - Halaman konfirmasi pembayaran berhasil dengan link ke komunitas Discourse
 
-Aplikasi terhubung ke backend **Express.js + Prisma + PostgreSQL** melalui Vite proxy untuk menghindari CORS, sehingga bisa diakses dari komputer lain dalam jaringan yang sama.
+Aplikasi terhubung ke backend **Express.js + Prisma + PostgreSQL** melalui Vite proxy untuk menghindari CORS, sehingga bisa diakses dari komputer lain dalam jaringan yang sama (DEV-MODE ONLY).
 
 ---
 
