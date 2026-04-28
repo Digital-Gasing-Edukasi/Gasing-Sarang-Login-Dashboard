@@ -55,7 +55,7 @@ Aplikasi terhubung ke backend **Express.js + Prisma + PostgreSQL** melalui Vite 
 ## 3. Struktur Folder
 
 ```
-gasing-auth-v2/
+Dev-Gasing-Circle-AuthPage/
 ├── .env.example            ← template environment variables
 ├── index.html
 ├── package.json
@@ -142,7 +142,7 @@ gasing-auth-v2/
 
 ```bash
 # 1. Masuk ke folder project
-cd gasing-auth-v2
+cd Dev-Gasing-Circle-AuthPage
 
 # 2. Install dependencies
 npm install

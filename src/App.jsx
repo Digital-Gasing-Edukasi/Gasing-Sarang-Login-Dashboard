@@ -99,21 +99,40 @@ function StepIndicator({ currentStep }) {
 
 function LeftPanel() {
   return (
-    <div className="hidden lg:flex w-[46%] bg-secondary grid-pattern relative flex-col items-center justify-center overflow-hidden">
-      <div className="relative flex items-center justify-center">
-        <div className="w-72 h-72 rounded-full border border-border absolute" />
-        <div className="w-48 h-48 rounded-full border border-border absolute" />
-        <div className="absolute w-px h-80 bg-border" />
-        <div className="absolute h-px w-80 bg-border" />
-        <div className="w-16 h-16 bg-background border border-border rounded-2xl flex items-center justify-center shadow-sm z-10">
-          <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-            <span className="text-primary-foreground font-bold text-sm">G</span>
-          </div>
+    <div
+      className="hidden lg:flex w-[46%] sticky top-0 h-screen flex-col overflow-hidden shrink-0"
+      style={{ background: 'radial-gradient(ellipse at 72% 42%, #7C3AED 0%, #5B21B6 22%, #3B0764 52%, #0D0B2E 100%)' }}
+    >
+      {/* Heading */}
+      <div className="px-24 pt-36 relative z-10">
+        <div className="relative inline-block">
+          <h1 className="text-[3.6rem] font-bold text-white leading-snug">Bertumbuh</h1>
+          {/* Curved arrow decoration */}
+          <svg className="absolute -top-3 left-[215px]" width="58" height="42" viewBox="0 0 58 42" fill="none">
+            <path d="M6 36 C 12 8 40 2 52 20" stroke="#4ADE80" strokeWidth="2.5" strokeLinecap="round" fill="none"/>
+            <path d="M46 13 L52 20 L44 22" stroke="#4ADE80" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+          </svg>
         </div>
+        <h1 className="text-[3.6rem] font-bold text-white leading-snug">Bersama Dengan</h1>
+        <h1 className="text-[3.6rem] font-bold text-[#4ADE80] leading-snug">Gasing Circle!</h1>
+        {/* Hand-drawn underline */}
+        <svg className="mt-2" width="238" height="14" viewBox="0 0 238 14" fill="none">
+          <path d="M2 10 Q 60 2 119 8 Q 178 13 236 7" stroke="#4ADE80" strokeWidth="3" strokeLinecap="round" fill="none"/>
+        </svg>
       </div>
-      <div className="absolute bottom-8 text-center">
-        <p className="text-xs text-muted-foreground font-medium tracking-widest uppercase">Gasing Circle</p>
-        <p className="text-xs text-muted-foreground mt-1">Platform Komunitas Guru GASING</p>
+
+      {/* Illustration */}
+      <div className="relative flex-1 flex items-end mt-12">
+        {/* Tick decoration */}
+        <svg className="absolute left-8 bottom-[46%] z-10" width="28" height="48" viewBox="0 0 28 48" fill="none">
+          <line x1="5" y1="44" x2="11" y2="4" stroke="#4ADE80" strokeWidth="3.5" strokeLinecap="round"/>
+          <line x1="17" y1="44" x2="23" y2="4" stroke="#4ADE80" strokeWidth="3.5" strokeLinecap="round"/>
+        </svg>
+        <img
+          src="/illustration.png"
+          alt="Gasing Circle Community"
+          className="w-full object-contain object-bottom select-none"
+        />
       </div>
     </div>
   )
@@ -121,7 +140,7 @@ function LeftPanel() {
 
 function RightPanel({ children }) {
   return (
-    <div className="flex-1 flex flex-col min-h-screen bg-background">
+    <div className="flex-1 flex flex-col min-h-screen bg-background overflow-y-auto">
       <div className="flex-1 flex flex-col justify-center px-10 lg:px-16 py-12 max-w-md w-full mx-auto">
         {children}
       </div>
@@ -139,18 +158,26 @@ function LoginPage({ onNavigate, onLoginSuccess }) {
   const [showPass, setShowPass] = useState(false)
   const [remember, setRemember] = useState(false)
   const [loading, setLoading]   = useState(false)
-  const [error, setError]       = useState('')
+  const [errors, setErrors]     = useState({})
+
+  const clearFieldError = (field) =>
+    setErrors(prev => ({ ...prev, [field]: '' }))
 
   const handleLogin = async () => {
-    if (!email || !password) { setError('Email dan password wajib diisi'); return }
-    setError(''); setLoading(true)
+    const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+    const next = {}
+    if (!email)          next.email    = 'Pastikan email tidak kosong.'
+    else if (!emailValid) next.email   = 'Format email tidak valid.'
+    if (!password)       next.password = 'Pastikan password tidak kosong.'
+    if (Object.keys(next).length) { setErrors(next); return }
+
+    setErrors({}); setLoading(true)
     try {
       const data = await authApi.login(email, password)
       tokenStorage.setTokens(data.accessToken, data.refreshToken)
-      // Setelah login berhasil → arahkan ke subscription
       onLoginSuccess({ email })
     } catch (e) {
-      setError(e.message)
+      setErrors({ general: e.message })
     } finally {
       setLoading(false)
     }
@@ -158,36 +185,42 @@ function LoginPage({ onNavigate, onLoginSuccess }) {
 
   return (
     <RightPanel>
-      <div className="flex items-center gap-2.5 mb-10 animate-fade-in-up">
-        <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center">
-          <span className="text-primary-foreground font-bold text-base">G</span>
-        </div>
-        <span className="font-semibold text-foreground text-base">Gasing Circle</span>
+      {/* Logo */}
+      <div className="flex items-center justify-center gap-2.5 mb-8 animate-fade-in-up">
+        <img src="/Logo.png" alt="Logo" className="h-10 w-auto object-contain" />
+        <span className="font-semibold text-foreground text-base">Logo</span>
       </div>
 
-      <div className="animate-fade-in-up delay-100">
-        <h1 className="text-2xl font-bold text-foreground mb-1">Selamat Datang Kembali</h1>
-        <p className="text-sm text-muted-foreground mb-8">Masukkan detail Anda untuk masuk ke akun.</p>
+      <div className="animate-fade-in-up delay-100 text-center">
+        <h1 className="text-2xl font-bold text-foreground mb-8">Selamat Datang Kembali</h1>
       </div>
 
       <div className="space-y-4 animate-fade-in-up delay-200">
-        <ErrorAlert message={error} />
+        <ErrorAlert message={errors.general} />
 
-        <div className="space-y-1.5">
+        <div className="space-y-1">
           <Label htmlFor="login-email">Email</Label>
           <IconInput id="login-email" icon={Mail} type="email"
             placeholder="Masukkan email Anda" value={email}
-            onChange={e => setEmail(e.target.value)}
+            className={errors.email ? 'border-red-500 focus-visible:ring-red-200' : ''}
+            onChange={e => { setEmail(e.target.value); clearFieldError('email') }}
             onKeyDown={e => e.key === 'Enter' && handleLogin()} />
+          {errors.email && (
+            <p className="text-xs text-red-500">{errors.email}</p>
+          )}
         </div>
 
-        <div className="space-y-1.5">
+        <div className="space-y-1">
           <Label htmlFor="login-pass">Password</Label>
           <IconInput id="login-pass" icon={Lock} type={showPass ? 'text' : 'password'}
             placeholder="Masukkan password Anda" value={password}
-            onChange={e => setPassword(e.target.value)}
+            className={errors.password ? 'border-red-500 focus-visible:ring-red-200' : ''}
+            onChange={e => { setPassword(e.target.value); clearFieldError('password') }}
             onKeyDown={e => e.key === 'Enter' && handleLogin()}
             iconRight={<TogglePassword show={showPass} onToggle={() => setShowPass(v => !v)} />} />
+          {errors.password && (
+            <p className="text-xs text-red-500">{errors.password}</p>
+          )}
         </div>
 
         <div className="flex items-center justify-between">
@@ -198,13 +231,13 @@ function LoginPage({ onNavigate, onLoginSuccess }) {
             </Label>
           </div>
           <button onClick={() => onNavigate('forgot-password')}
-            className="text-sm text-muted-foreground hover:text-foreground underline underline-offset-2 transition-colors">
-            Lupa password?
+            className="text-sm text-primary font-medium hover:underline underline-offset-2 transition-colors">
+            Lupa Password?
           </button>
         </div>
 
         <Button className="w-full" onClick={handleLogin} disabled={loading}>
-          {loading ? <><Loader2 size={16} className="animate-spin" /> Memproses...</> : 'Masuk ke Komunitas'}
+          {loading ? <><Loader2 size={16} className="animate-spin" /> Memproses...</> : 'Login'}
         </Button>
       </div>
 
@@ -214,7 +247,7 @@ function LoginPage({ onNavigate, onLoginSuccess }) {
         <p className="text-sm text-muted-foreground">
           Belum punya akun?{' '}
           <button onClick={() => onNavigate('signup')}
-            className="font-semibold text-foreground hover:underline underline-offset-2">
+            className="font-semibold text-primary hover:underline underline-offset-2">
             Daftar Sekarang
           </button>
         </p>
@@ -597,7 +630,7 @@ export default function App() {
   }
 
   return (
-    <div className="flex min-h-screen">
+    <div className="flex h-screen overflow-hidden">
       <LeftPanel />
       {authPages[page] ?? authPages['login']}
     </div>
