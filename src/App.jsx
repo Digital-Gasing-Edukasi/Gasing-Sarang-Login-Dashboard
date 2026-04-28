@@ -164,11 +164,9 @@ function LoginPage({ onNavigate, onLoginSuccess }) {
     setErrors(prev => ({ ...prev, [field]: '' }))
 
   const handleLogin = async () => {
-    const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
     const next = {}
-    if (!email)          next.email    = 'Pastikan email tidak kosong.'
-    else if (!emailValid) next.email   = 'Format email tidak valid.'
-    if (!password)       next.password = 'Pastikan password tidak kosong.'
+    if (!email)    next.email    = 'Pastikan email tidak kosong.'
+    if (!password) next.password = 'Pastikan password tidak kosong.'
     if (Object.keys(next).length) { setErrors(next); return }
 
     setErrors({}); setLoading(true)
@@ -187,7 +185,9 @@ function LoginPage({ onNavigate, onLoginSuccess }) {
     <RightPanel>
       {/* Logo */}
       <div className="flex items-center justify-center gap-2.5 mb-8 animate-fade-in-up">
-        <img src="/Logo.png" alt="Logo" className="h-10 w-auto object-contain" />
+      {/* Jika Logo Nya sudah ada, Un-Commment Bagian ini 
+        <img src="/Logo.png" alt="Logo" className="h-10 w-auto object-contain" /> */}
+      <div className="w-10 h-10 rounded-full bg-gray-200 shrink-0" />
         <span className="font-semibold text-foreground text-base">Logo</span>
       </div>
 
