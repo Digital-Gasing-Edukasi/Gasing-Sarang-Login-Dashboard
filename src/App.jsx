@@ -16,7 +16,6 @@ import {
 import { cn } from '@/lib/utils'
 import { authApi, regionsApi, tokenStorage } from '@/lib/api'
 
-// ── Post-login pages ──────────────────────────────────────────────────────────
 import SubscriptionPage  from '@/pages/SubscriptionPage'
 import PaymentSuccessPage from '@/pages/PaymentSuccessPage'
 
@@ -103,11 +102,9 @@ function LeftPanel() {
       className="hidden lg:flex w-[46%] sticky top-0 h-screen flex-col overflow-hidden shrink-0"
       style={{ background: 'radial-gradient(ellipse at 72% 42%, #7C3AED 0%, #5B21B6 22%, #3B0764 52%, #0D0B2E 100%)' }}
     >
-      {/* Heading */}
       <div className="px-24 pt-36 relative z-10">
         <div className="relative inline-block">
           <h1 className="text-[3.6rem] font-bold text-white leading-snug">Bertumbuh</h1>
-          {/* Curved arrow decoration */}
           <svg className="absolute -top-3 left-[215px]" width="58" height="42" viewBox="0 0 58 42" fill="none">
             <path d="M6 36 C 12 8 40 2 52 20" stroke="#4ADE80" strokeWidth="2.5" strokeLinecap="round" fill="none"/>
             <path d="M46 13 L52 20 L44 22" stroke="#4ADE80" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
@@ -115,15 +112,11 @@ function LeftPanel() {
         </div>
         <h1 className="text-[3.6rem] font-bold text-white leading-snug">Bersama Dengan</h1>
         <h1 className="text-[3.6rem] font-bold text-[#4ADE80] leading-snug">Gasing Circle!</h1>
-        {/* Hand-drawn underline */}
         <svg className="mt-2" width="238" height="14" viewBox="0 0 238 14" fill="none">
           <path d="M2 10 Q 60 2 119 8 Q 178 13 236 7" stroke="#4ADE80" strokeWidth="3" strokeLinecap="round" fill="none"/>
         </svg>
       </div>
-
-      {/* Illustration */}
       <div className="relative flex-1 flex items-end mt-12">
-        {/* Tick decoration */}
         <svg className="absolute left-8 bottom-[46%] z-10" width="28" height="48" viewBox="0 0 28 48" fill="none">
           <line x1="5" y1="44" x2="11" y2="4" stroke="#4ADE80" strokeWidth="3.5" strokeLinecap="round"/>
           <line x1="17" y1="44" x2="23" y2="4" stroke="#4ADE80" strokeWidth="3.5" strokeLinecap="round"/>
@@ -183,14 +176,10 @@ function LoginPage({ onNavigate, onLoginSuccess }) {
 
   return (
     <RightPanel>
-      {/* Logo */}
       <div className="flex items-center justify-center gap-2.5 mb-8 animate-fade-in-up">
-      {/* Jika Logo Nya sudah ada, Un-Commment Bagian ini 
-        <img src="/Logo.png" alt="Logo" className="h-10 w-auto object-contain" /> */}
-      <div className="w-10 h-10 rounded-full bg-gray-200 shrink-0" />
+        <div className="w-10 h-10 rounded-full bg-gray-200 shrink-0" />
         <span className="font-semibold text-foreground text-base">Logo</span>
       </div>
-
       <div className="animate-fade-in-up delay-100 text-center">
         <h1 className="text-2xl font-bold text-foreground mb-8">Selamat Datang Kembali</h1>
       </div>
@@ -496,19 +485,125 @@ function SignUpReviewPage({ onNavigate }) {
   )
 }
 
-// ─── PAGE: FORGOT PASSWORD ────────────────────────────────────────────────────
-function ForgotPasswordPage({ onNavigate }) {
+// ─── ILLUSTRATIONS ────────────────────────────────────────────────────────────
+
+function EnvelopeCluster({ flip = false, className = '' }) {
+  return (
+    <svg
+      viewBox="0 0 240 220"
+      fill="none"
+      aria-hidden="true"
+      className={className}
+      style={flip ? { transform: 'scaleX(-1)' } : {}}
+    >
+      {/* Main envelope (bottom-left, slightly rotated) */}
+      <g transform="translate(10,90) rotate(-14,55,40)">
+        <rect x="0" y="0" width="110" height="76" rx="7" fill="white" stroke="#0F172A" strokeWidth="2.5"/>
+        <path d="M0 0 L55 40 L110 0" stroke="#0F172A" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+      </g>
+
+      {/* Green plant / leaf elements */}
+      <path d="M2 195 C -8 168 18 145 38 156 C 22 172 6 188 2 195 Z" fill="#4ADE80"/>
+      <path d="M-4 215 C -18 185 12 158 35 172 C 16 190 -1 210 -4 215 Z" fill="#4ADE80"/>
+      <path d="M42 210 C 28 188 38 165 58 168 C 52 186 44 205 42 210 Z" fill="#4ADE80"/>
+
+      {/* Smaller envelope (upper-right, different angle) */}
+      <g transform="translate(128,14) rotate(12,38,28)">
+        <rect x="0" y="0" width="76" height="54" rx="6" fill="white" stroke="#0F172A" strokeWidth="2"/>
+        <path d="M0 0 L38 28 L76 0" stroke="#0F172A" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+      </g>
+
+      {/* Tiny envelope (middle) */}
+      <g transform="translate(155,105) rotate(-6,28,20)">
+        <rect x="0" y="0" width="56" height="40" rx="5" fill="white" stroke="#0F172A" strokeWidth="1.5"/>
+        <path d="M0 0 L28 20 L56 0" stroke="#0F172A" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+      </g>
+
+      {/* Green plant top-right */}
+      <path d="M218 65 C 232 42 248 52 242 70 C 232 72 220 68 218 65 Z" fill="#4ADE80"/>
+      <path d="M230 82 C 248 60 262 74 254 92 C 242 92 228 86 230 82 Z" fill="#4ADE80"/>
+
+      {/* Vine / stem lines */}
+      <path d="M10 200 Q 30 170 55 160" stroke="#22C55E" strokeWidth="1.5" strokeLinecap="round" fill="none"/>
+      <path d="M225 70 Q 235 90 230 115" stroke="#22C55E" strokeWidth="1.5" strokeLinecap="round" fill="none"/>
+    </svg>
+  )
+}
+
+// ─── FULL-WIDTH LAYOUT (for forgot password flow) ─────────────────────────────
+function AuthFullLayout({ children, illustration = 'robot' }) {
+  return (
+    <div className="min-h-screen flex flex-col bg-white">
+      {/* Header */}
+      <header className="flex items-center gap-2.5 px-8 py-5 shrink-0">
+        <div className="w-10 h-10 rounded-full bg-gray-200 shrink-0" />
+        <span className="font-semibold text-foreground">Gasing Circle</span>
+      </header>
+      <div className="h-px bg-border shrink-0" />
+
+      {/* Main area */}
+      <div className="flex-1 relative overflow-hidden flex flex-col">
+        {/* Corner illustrations */}
+        {illustration === 'forgotPassword' ? (
+          <>
+            <div className="absolute bottom-0 left-0 w-64 sm:w-80 lg:w-96 translate-y-8 pointer-events-none select-none">
+              <img src="/illustrasi_forgotPassword.png" alt="" draggable="false" className="w-full h-full" />
+            </div>
+            <div className="absolute bottom-0 right-0 w-64 sm:w-80 lg:w-96 translate-y-8 pointer-events-none select-none">
+              <img src="/illustrasi_forgotPassword.png" alt="" draggable="false" className="w-full h-full" style={{ transform: 'scaleX(-1)' }} />
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="absolute bottom-0 left-0 w-44 sm:w-56 lg:w-64 pointer-events-none select-none">
+              <EnvelopeCluster />
+            </div>
+            <div className="absolute bottom-0 right-0 w-44 sm:w-56 lg:w-64 pointer-events-none select-none">
+              <EnvelopeCluster flip />
+            </div>
+          </>
+        )}
+
+        {/* Page content */}
+        <div className="flex-1 flex items-center justify-center px-6 py-12">
+          <div className="w-full max-w-[420px] relative z-10">
+            {children}
+          </div>
+        </div>
+      </div>
+
+      {/* Footer */}
+      <div className="pb-6 shrink-0">
+        <p className="text-xs text-muted-foreground text-center">©2026 Gasing Circle. All rights reserved.</p>
+      </div>
+    </div>
+  )
+}
+
+// ─── SUCCESS TOAST ────────────────────────────────────────────────────────────
+function SuccessToast({ message }) {
+  return (
+    <div className="fixed top-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 bg-gray-900 text-white px-5 py-3 rounded-full shadow-xl animate-fade-in whitespace-nowrap">
+      <span className="text-sm font-medium">{message}</span>
+      <div className="w-6 h-6 rounded-full bg-green-500 flex items-center justify-center shrink-0">
+        <CheckCircle2 size={14} className="text-white" />
+      </div>
+    </div>
+  )
+}
+
+// ─── PAGE: LUPA PASSWORD ──────────────────────────────────────────────────────
+function ForgotPasswordPage({ onNavigate, onEmailSent }) {
   const [email, setEmail]     = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError]     = useState('')
-  const [sent, setSent]       = useState(false)
 
   const handleSend = async () => {
     if (!email) { setError('Email wajib diisi'); return }
     setError(''); setLoading(true)
     try {
       await authApi.forgotPassword(email)
-      setSent(true)
+      onEmailSent(email)
     } catch (e) {
       setError(e.message)
     } finally {
@@ -516,49 +611,189 @@ function ForgotPasswordPage({ onNavigate }) {
     }
   }
 
-  if (sent) return (
-    <RightPanel>
-      <div className="animate-fade-in-up text-center space-y-4">
-        <div className="w-16 h-16 rounded-full bg-primary flex items-center justify-center mx-auto">
-          <Mail size={28} className="text-primary-foreground" />
-        </div>
-        <h1 className="text-2xl font-bold text-foreground">Cek Email Anda</h1>
-        <p className="text-sm text-muted-foreground">
-          Jika email terdaftar, link reset password telah dikirim ke <strong>{email}</strong>.
-        </p>
-        <Button className="w-full" onClick={() => onNavigate('login')}>
-          <LogIn size={16} /> Kembali ke Login
-        </Button>
-      </div>
-    </RightPanel>
-  )
-
   return (
-    <RightPanel>
-      <div className="animate-fade-in-up delay-100">
-        <h1 className="text-2xl font-bold text-foreground mb-1">Lupa Password</h1>
-        <p className="text-sm text-muted-foreground mb-8">Masukkan email Anda dan kami akan kirimkan link untuk reset password.</p>
+    <AuthFullLayout illustration="forgotPassword">
+      <div className="animate-fade-in-up">
+        <h1 className="text-3xl font-bold text-foreground mb-3">Lupa Password?</h1>
+        <p className="text-sm text-muted-foreground mb-8">
+          Masukkan email Anda dan kami akan mengirimkan tautan untuk mengatur ulang kata sandi Anda.
+        </p>
       </div>
-      <div className="space-y-4 animate-fade-in-up delay-200">
+
+      <div className="space-y-4 animate-fade-in-up delay-100">
         <ErrorAlert message={error} />
         <div className="space-y-1.5">
           <Label>Email</Label>
-          <IconInput icon={Mail} type="email" placeholder="Masukkan email terdaftar"
-            value={email} onChange={e => setEmail(e.target.value)}
+          <IconInput icon={Mail} type="email" placeholder="Masukkan email Anda"
+            value={email}
+            onChange={e => { setEmail(e.target.value); setError('') }}
             onKeyDown={e => e.key === 'Enter' && handleSend()} />
         </div>
         <Button className="w-full" onClick={handleSend} disabled={loading}>
-          {loading ? <><Loader2 size={16} className="animate-spin" /> Mengirim...</> : 'Kirim Link Reset'}
+          {loading ? <><Loader2 size={16} className="animate-spin" /> Mengirim...</> : 'Kirim Tautan'}
         </Button>
       </div>
+
       <Divider />
+
+      <div className="text-center">
+        <button onClick={() => onNavigate('login')}
+          className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mx-auto">
+          <LogIn size={15} /> Kembali Ke login
+        </button>
+      </div>
+    </AuthFullLayout>
+  )
+}
+
+// ─── PAGE: CEK EMAIL ──────────────────────────────────────────────────────────
+function CheckEmailPage({ email, onNavigate }) {
+  const [loading, setLoading] = useState(false)
+  const [error, setError]     = useState('')
+  const [seconds, setSeconds] = useState(30)
+  const canResend = seconds === 0
+
+  useEffect(() => {
+    if (seconds <= 0) return
+    const t = setTimeout(() => setSeconds(s => s - 1), 1000)
+    return () => clearTimeout(t)
+  }, [seconds])
+
+  const handleResend = async () => {
+    if (!canResend || loading) return
+    setError(''); setLoading(true)
+    try {
+      await authApi.forgotPassword(email)
+      setSeconds(30)
+    } catch (e) {
+      setError(e.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <AuthFullLayout illustration="envelope">
+      <div className="text-center animate-fade-in-up">
+        {/* Dashed icon circle */}
+        <div className="w-20 h-20 rounded-full border-2 border-dashed border-green-300 bg-green-50 flex items-center justify-center mx-auto mb-6">
+          <Mail size={30} className="text-green-500" />
+        </div>
+        <h1 className="text-3xl font-bold text-foreground mb-4">Cek Email Anda</h1>
+        <p className="text-sm text-muted-foreground">
+          Kami telah mengirimkan tautan pemulihan ke email
+        </p>
+        <p className="text-sm font-bold text-foreground mt-1 mb-2">{email}</p>
+        <p className="text-sm text-muted-foreground mb-8">
+          Jika Anda belum menerima email tersebut, periksa folder spam.
+        </p>
+      </div>
+
+      <div className="space-y-2 animate-fade-in-up delay-100">
+        <ErrorAlert message={error} />
+        <button
+          onClick={handleResend}
+          disabled={!canResend || loading}
+          className={cn(
+            'w-full border rounded-full py-3 px-4 text-sm font-medium transition-colors',
+            canResend && !loading
+              ? 'border-border text-foreground hover:bg-muted cursor-pointer'
+              : 'border-border text-muted-foreground cursor-not-allowed'
+          )}
+        >
+          {loading
+            ? <span className="flex items-center justify-center gap-2"><Loader2 size={14} className="animate-spin" /> Mengirim...</span>
+            : <>Kirim Ulang Link{!canResend && <span className="text-orange-500"> ({seconds})</span>}</>
+          }
+        </button>
+      </div>
+
+      <Divider />
+
       <div className="text-center">
         <button onClick={() => onNavigate('login')}
           className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mx-auto">
           <LogIn size={15} /> Kembali ke Login
         </button>
       </div>
-    </RightPanel>
+    </AuthFullLayout>
+  )
+}
+
+// ─── PAGE: UBAH PASSWORD ──────────────────────────────────────────────────────
+function ResetPasswordPage({ token, email, onNavigate }) {
+  const [password, setPassword]       = useState('')
+  const [confirm, setConfirm]         = useState('')
+  const [showPass, setShowPass]       = useState(false)
+  const [showConfirm, setShowConfirm] = useState(false)
+  const [loading, setLoading]         = useState(false)
+  const [error, setError]             = useState('')
+  const [success, setSuccess]         = useState(false)
+  const [redirectSecs, setRedirectSecs] = useState(10)
+
+  useEffect(() => {
+    if (!success) return
+    if (redirectSecs <= 0) { onNavigate('login'); return }
+    const t = setTimeout(() => setRedirectSecs(s => s - 1), 1000)
+    return () => clearTimeout(t)
+  }, [success, redirectSecs])
+
+  const handleReset = async () => {
+    setError('')
+    if (!password)          { setError('Password baru wajib diisi'); return }
+    if (password.length < 8){ setError('Password minimal 8 karakter'); return }
+    if (password !== confirm){ setError('Konfirmasi password tidak cocok'); return }
+    setLoading(true)
+    try {
+      await authApi.resetPassword(token, email, password)
+      setSuccess(true)
+    } catch (e) {
+      setError(e.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <>
+      {success && <SuccessToast message="Berhasil ubah password baru" />}
+      {success && <div className="fixed inset-0 bg-white/50 z-40 pointer-events-none" />}
+      <AuthFullLayout illustration="forgotPassword">
+        <div className={cn('transition-opacity duration-300', success && 'opacity-50')}>
+          <div className="animate-fade-in-up mb-8">
+            <h1 className="text-3xl font-bold text-foreground">Ubah Password</h1>
+          </div>
+
+          <div className="space-y-4 animate-fade-in-up delay-100">
+            <ErrorAlert message={error} />
+            <div className="space-y-1.5">
+              <Label>Password Baru</Label>
+              <IconInput icon={Lock} type={showPass ? 'text' : 'password'}
+                placeholder="Masukkan password baru" value={password}
+                onChange={e => setPassword(e.target.value)}
+                iconRight={<TogglePassword show={showPass} onToggle={() => setShowPass(v => !v)} />} />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Konfirmasi Password Baru</Label>
+              <IconInput icon={Lock} type={showConfirm ? 'text' : 'password'}
+                placeholder="Ulangi password baru" value={confirm}
+                onChange={e => setConfirm(e.target.value)}
+                iconRight={<TogglePassword show={showConfirm} onToggle={() => setShowConfirm(v => !v)} />} />
+            </div>
+            <Button className="w-full" onClick={handleReset} disabled={loading || success}>
+              {loading ? <><Loader2 size={16} className="animate-spin" /> Memproses...</> : 'Ubah Password'}
+            </Button>
+          </div>
+        </div>
+
+        {success && (
+          <p className="text-center text-sm text-muted-foreground mt-6 animate-fade-in">
+            Mengalihkan ke halaman login dalam{' '}
+            <span className="font-semibold text-foreground">{redirectSecs}</span> detik...
+          </p>
+        )}
+      </AuthFullLayout>
+    </>
   )
 }
 
@@ -567,19 +802,27 @@ export default function App() {
   const [page, setPage]             = useState('login')
   const [otpToken, setOtpToken]     = useState('')
   const [regEmail, setRegEmail]     = useState('')
+  const [fpEmail, setFpEmail]       = useState('')
+  const [resetToken, setResetToken] = useState('')
+  const [resetEmail, setResetEmail] = useState('')
   const [currentUser, setCurrentUser] = useState(null)
   const [activePlanName, setActivePlanName] = useState('')
 
-  // Cek query param ?payment=success dari Midtrans redirect
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     const paymentStatus = params.get('payment')
-    const planName = params.get('plan') // opsional, kalau backend kirim nama plan di redirect URL
+    const token = params.get('token')
+    const emailParam = params.get('email')
 
     if (paymentStatus === 'success') {
+      const planName = params.get('plan')
       if (planName) setActivePlanName(decodeURIComponent(planName))
       setPage('payment-success')
-      // Bersihkan URL
+      window.history.replaceState({}, '', window.location.pathname)
+    } else if (token) {
+      setResetToken(token)
+      if (emailParam) setResetEmail(decodeURIComponent(emailParam))
+      setPage('reset-password')
       window.history.replaceState({}, '', window.location.pathname)
     }
   }, [])
@@ -600,33 +843,34 @@ export default function App() {
     setPage('login')
   }
 
-  // ── Halaman post-login (full screen, tanpa LeftPanel) ──────────────────────
+  const handleEmailSent = (email) => {
+    setFpEmail(email)
+    setPage('check-email')
+  }
+
+  // ── Full-screen pages (no split layout) ───────────────────────────────────
   if (page === 'subscription') {
-    return (
-      <SubscriptionPage
-        user={currentUser}
-        onSignOut={handleSignOut}
-      />
-    )
+    return <SubscriptionPage user={currentUser} onSignOut={handleSignOut} />
   }
-
   if (page === 'payment-success') {
-    return (
-      <PaymentSuccessPage
-        user={currentUser}
-        onSignOut={handleSignOut}
-        activePlanName={activePlanName}
-      />
-    )
+    return <PaymentSuccessPage user={currentUser} onSignOut={handleSignOut} activePlanName={activePlanName} />
+  }
+  if (page === 'forgot-password') {
+    return <ForgotPasswordPage onNavigate={setPage} onEmailSent={handleEmailSent} />
+  }
+  if (page === 'check-email') {
+    return <CheckEmailPage email={fpEmail} onNavigate={setPage} />
+  }
+  if (page === 'reset-password') {
+    return <ResetPasswordPage token={resetToken} email={resetEmail} onNavigate={setPage} />
   }
 
-  // ── Halaman auth (split layout dengan LeftPanel) ───────────────────────────
+  // ── Split layout pages (login / signup) ───────────────────────────────────
   const authPages = {
-    'login':           <LoginPage onNavigate={setPage} onLoginSuccess={handleLoginSuccess} />,
-    'signup':          <SignUpPage onNavigate={setPage} onOtpToken={handleOtpToken} />,
-    'signup-otp':      <SignUpOtpPage onNavigate={setPage} otpToken={otpToken} email={regEmail} />,
-    'signup-review':   <SignUpReviewPage onNavigate={setPage} />,
-    'forgot-password': <ForgotPasswordPage onNavigate={setPage} />,
+    'login':         <LoginPage onNavigate={setPage} onLoginSuccess={handleLoginSuccess} />,
+    'signup':        <SignUpPage onNavigate={setPage} onOtpToken={handleOtpToken} />,
+    'signup-otp':    <SignUpOtpPage onNavigate={setPage} otpToken={otpToken} email={regEmail} />,
+    'signup-review': <SignUpReviewPage onNavigate={setPage} />,
   }
 
   return (
