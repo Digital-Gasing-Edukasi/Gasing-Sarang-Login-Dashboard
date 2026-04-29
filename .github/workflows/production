@@ -1,0 +1,55 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches:
+      - production
+
+env:
+  PROJECT_ID: sacred-octagon
+  ZONE: asia-southeast2-a
+  # Nama instance GCE untuk production (akan diisi dari GitHub Secrets)
+  GCE_INSTANCE: ${{ secrets.GCE_INSTANCE_PRODUCTION }}
+  TARGET_DIR: /var/www/gasingcircle.com
+
+jobs:
+  build-and-deploy:
+    name: Build and Deploy (Production)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Build Application
+        run: npm run build
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: '${{ secrets.GCP_CREDENTIALS_PRODUCTION }}'
+
+      - name: Setup Google Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ env.PROJECT_ID }}
+
+      - name: Transfer Build to GCE Production
+        run: |
+          gcloud compute ssh ${{ secrets.GCE_USER }}@${{ env.GCE_INSTANCE }} \
+            --zone ${{ env.ZONE }} \
+            --project ${{ env.PROJECT_ID }} \
+            --command "sudo mkdir -p ${{ env.TARGET_DIR }} && sudo chown -R ${{ secrets.GCE_USER }}:${{ secrets.GCE_USER }} ${{ env.TARGET_DIR }}"
+          
+          gcloud compute scp --recurse dist/* ${{ secrets.GCE_USER }}@${{ env.GCE_INSTANCE }}:${{ env.TARGET_DIR }} \
+            --zone ${{ env.ZONE }} \
+            --project ${{ env.PROJECT_ID }}
