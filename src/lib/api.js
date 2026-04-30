@@ -1,6 +1,6 @@
 // src/lib/api.js
 // ─── Base config ─────────────────────────────────────────────────────────────
-const BASE_URL = import.meta.env.VITE_API_URL + "/api/v1/reg";
+const BASE_URL = import.meta.env.VITE_API_URL;
 
 // ─── Token helpers ────────────────────────────────────────────────────────────
 export const tokenStorage = {
@@ -183,20 +183,13 @@ export const regionsApi = {
 
 // ─── SUBSCRIPTION & PAYMENT endpoints ────────────────────────────────────────
 export const subscriptionApi = {
-  // GET /subscriptions/plans — ambil daftar paket
-  // Response contoh: [{ id, name, price, priceMonthly, billingCycle, discount, ... }]
-  getPlans: () => request("/subscriptions/plans"),
+  getPlans: () => request("/packages"),
 
-  // POST /subscriptions/checkout — buat transaksi Midtrans
-  // Body: { planId }
-  // Response: { redirectUrl } — URL Midtrans Snap untuk redirect
-  // ⚠️ Ganti endpoint + body sesuai backend asli kamu
-  checkout: (planId) =>
-    request("/subscriptions/checkout", {
+  checkout: (packageId) =>
+    request("/subscription/checkout", {
       method: "POST",
-      body: { planId },
+      body: { packageId },
     }),
 
-  // GET /subscriptions/status — cek status langganan user
-  getStatus: () => request("/subscriptions/status"),
+  getStatus: () => request("/subscription/me"),
 };

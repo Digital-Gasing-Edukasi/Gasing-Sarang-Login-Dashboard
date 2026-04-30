@@ -18,6 +18,7 @@ import { authApi, regionsApi, tokenStorage } from '@/lib/api'
 
 import SubscriptionPage  from '@/pages/SubscriptionPage'
 import PaymentSuccessPage from '@/pages/PaymentSuccessPage'
+import AdminDashboardPage from '@/pages/AdminDashboardPage'
 
 // ─── SHARED UI ───────────────────────────────────────────────────────────────
 function IconInput({ icon: Icon, iconRight, className, ...props }) {
@@ -61,7 +62,7 @@ function ErrorAlert({ message }) {
 function StepIndicator({ currentStep }) {
   const steps = [
     { n: 1, label: 'Buat Akun' },
-    { n: 2, label: 'Verifikasi OTP' },
+    { n: 2, label: 'Verifikasi Data' },
     { n: 3, label: 'Review' },
   ]
   return (
@@ -247,12 +248,14 @@ function LoginPage({ onNavigate, onLoginSuccess }) {
 
 // ─── PAGE: SIGN UP ────────────────────────────────────────────────────────────
 function SignUpPage({ onNavigate, onOtpToken }) {
+  const [step, setStep]               = useState(1)
   const [email, setEmail]             = useState('')
   const [password, setPassword]       = useState('')
   const [confirm, setConfirm]         = useState('')
   const [name, setName]               = useState('')
   const [birthdate, setBirthdate]     = useState('')
   const [regionId, setRegionId]       = useState('')
+  const [schoolName, setSchoolName]   = useState('')
   const [showPass, setShowPass]       = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
   const [loading, setLoading]         = useState(false)
@@ -267,14 +270,20 @@ function SignUpPage({ onNavigate, onOtpToken }) {
       .finally(() => setRegionsLoading(false))
   }, [])
 
-  const handleRegister = async () => {
+  const handleNextToData = () => {
     setError('')
-    if (!email || !password || !name || !birthdate) { setError('Semua field wajib diisi'); return }
+    if (!email || !password || !confirm) { setError('Semua field wajib diisi'); return }
     if (password !== confirm) { setError('Konfirmasi password tidak cocok'); return }
     if (password.length < 8) { setError('Password minimal 8 karakter'); return }
+    setStep(2)
+  }
+
+  const handleRegister = async () => {
+    setError('')
+    if (!name || !birthdate || !regionId || !schoolName) { setError('Semua field wajib diisi'); return }
     setLoading(true)
     try {
-      const data = await authApi.register({ email, password, name, birthdate })
+      const data = await authApi.register({ email, password, name, birthdate, trainingRegionId: regionId, schoolName })
       onOtpToken(data.token, email)
       onNavigate('signup-otp')
     } catch (e) {
@@ -286,74 +295,111 @@ function SignUpPage({ onNavigate, onOtpToken }) {
 
   return (
     <RightPanel>
-      <StepIndicator currentStep={1} />
-      <div className="animate-fade-in-up delay-100">
-        <h1 className="text-2xl font-bold text-foreground mb-1">Daftar Akun Baru</h1>
-        <p className="text-sm text-muted-foreground mb-6">Silakan isi data di bawah ini untuk buat akun.</p>
-      </div>
+      <StepIndicator currentStep={step === 1 ? 1 : 2} />
+      
+      {step === 1 ? (
+        <>
+          <div className="animate-fade-in-up delay-100">
+            <h1 className="text-2xl font-bold text-foreground mb-1">Daftar Akun Baru</h1>
+            <p className="text-sm text-muted-foreground mb-6">Silakan isi data di bawah ini untuk buat akun.</p>
+          </div>
 
-      <div className="space-y-4 animate-fade-in-up delay-200">
-        <ErrorAlert message={error} />
-        <div className="space-y-1.5">
-          <Label>Nama Lengkap</Label>
-          <IconInput icon={User} placeholder="Masukkan nama lengkap"
-            value={name} onChange={e => setName(e.target.value)} />
-        </div>
-        <div className="space-y-1.5">
-          <Label>Email</Label>
-          <IconInput icon={Mail} type="email" placeholder="Masukkan email"
-            value={email} onChange={e => setEmail(e.target.value)} />
-        </div>
-        <div className="space-y-1.5">
-          <Label>Tanggal Lahir</Label>
-          <IconInput icon={Calendar} type="date"
-            value={birthdate} onChange={e => setBirthdate(e.target.value)} />
-        </div>
-        <div className="space-y-1.5">
-          <Label>Daerah Pelatihan GASING</Label>
-          <Select value={regionId} onValueChange={setRegionId} disabled={regionsLoading}>
-            <SelectTrigger>
-              <SelectValue placeholder={regionsLoading ? 'Memuat...' : 'Pilih daerah'} />
-            </SelectTrigger>
-            <SelectContent>
-              {regions.map(r => (
-                <SelectItem key={r.id} value={r.id}>{r.regionName || r.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="space-y-1.5">
-          <Label>Password</Label>
-          <IconInput icon={Lock} type={showPass ? 'text' : 'password'}
-            placeholder="Minimal 8 karakter" value={password}
-            onChange={e => setPassword(e.target.value)}
-            iconRight={<TogglePassword show={showPass} onToggle={() => setShowPass(v => !v)} />} />
-        </div>
-        <div className="space-y-1.5">
-          <Label>Konfirmasi Password</Label>
-          <IconInput icon={Lock} type={showConfirm ? 'text' : 'password'}
-            placeholder="Ulangi password" value={confirm}
-            onChange={e => setConfirm(e.target.value)}
-            iconRight={<TogglePassword show={showConfirm} onToggle={() => setShowConfirm(v => !v)} />} />
-        </div>
-        <Button className="w-full" onClick={handleRegister} disabled={loading}>
-          {loading ? <><Loader2 size={16} className="animate-spin" /> Mendaftarkan...</> : 'Lanjutkan'}
-        </Button>
-      </div>
+          <div className="space-y-4 animate-fade-in-up delay-200">
+            <ErrorAlert message={error} />
+            <div className="space-y-1.5">
+              <Label>Email</Label>
+              <IconInput icon={Mail} type="email" placeholder="Masukkan email"
+                value={email} onChange={e => setEmail(e.target.value)} />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Password</Label>
+              <IconInput icon={Lock} type={showPass ? 'text' : 'password'}
+                placeholder="Minimal 8 karakter" value={password}
+                onChange={e => setPassword(e.target.value)}
+                iconRight={<TogglePassword show={showPass} onToggle={() => setShowPass(v => !v)} />} />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Konfirmasi Password</Label>
+              <IconInput icon={Lock} type={showConfirm ? 'text' : 'password'}
+                placeholder="Ulangi password" value={confirm}
+                onChange={e => setConfirm(e.target.value)}
+                iconRight={<TogglePassword show={showConfirm} onToggle={() => setShowConfirm(v => !v)} />} />
+            </div>
+            <Button className="w-full" onClick={handleNextToData}>
+              Lanjutkan
+            </Button>
+          </div>
 
-      <Divider />
-      <div className="animate-fade-in-up delay-300 space-y-3">
-        <p className="text-xs text-muted-foreground text-center">
-          Dengan mendaftar, Anda menyetujui{' '}
-          <a href="#" className="underline text-foreground/70 hover:text-foreground">Ketentuan Layanan</a>
-          {' '}dan{' '}
-          <a href="#" className="underline text-foreground/70 hover:text-foreground">Kebijakan Privasi</a> kami.
-        </p>
-        <button onClick={() => onNavigate('login')}
-          className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mx-auto">
-          <LogIn size={15} /> Sudah punya akun? Login
-        </button>
-      </div>
+          <Divider />
+          <div className="animate-fade-in-up delay-300 space-y-3">
+            <p className="text-xs text-muted-foreground text-center">
+              Dengan mendaftar, Anda menyetujui{' '}
+              <a href="#" className="underline text-foreground/70 hover:text-foreground">Ketentuan Layanan</a>
+              {' '}dan{' '}
+              <a href="#" className="underline text-foreground/70 hover:text-foreground">Kebijakan Privasi</a> kami.
+            </p>
+            <button onClick={() => onNavigate('login')}
+              className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mx-auto">
+              <LogIn size={15} /> Sudah punya akun? Login
+            </button>
+          </div>
+        </>
+      ) : (
+        <>
+          <div className="animate-fade-in-up delay-100 relative">
+            <button onClick={() => setStep(1)} className="absolute -top-8 left-0 text-sm text-muted-foreground hover:text-foreground">
+              &larr; Kembali
+            </button>
+            <h1 className="text-2xl font-bold text-foreground mb-1">Verifikasi Data</h1>
+            <p className="text-sm text-muted-foreground mb-6">Silakan masukkan verifikasi data diri yang sesuai.</p>
+          </div>
+
+          <div className="space-y-4 animate-fade-in-up delay-200">
+            <ErrorAlert message={error} />
+            <div className="space-y-1.5">
+              <Label>Nama Lengkap</Label>
+              <Input placeholder="Masukkan nama lengkap" value={name} onChange={e => setName(e.target.value)} />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Tanggal Lahir</Label>
+              <IconInput icon={Calendar} type="date" value={birthdate} onChange={e => setBirthdate(e.target.value)} />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Dimana kamu mendapat pelatihan Gasing pertama?</Label>
+              <Select value={regionId} onValueChange={setRegionId} disabled={regionsLoading}>
+                <SelectTrigger>
+                  <SelectValue placeholder={regionsLoading ? 'Memuat...' : 'Pilih'} />
+                </SelectTrigger>
+                <SelectContent>
+                  {regions.map(r => (
+                    <SelectItem key={r.id} value={r.id}>{r.regionName || r.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Nama Sekolah</Label>
+              <Input placeholder="Masukkan nama sekolah" value={schoolName} onChange={e => setSchoolName(e.target.value)} />
+            </div>
+            <Button className="w-full" onClick={handleRegister} disabled={loading}>
+              {loading ? <><Loader2 size={16} className="animate-spin" /> Mendaftarkan...</> : 'Lanjutkan'}
+            </Button>
+          </div>
+
+          <div className="animate-fade-in-up delay-300 mt-6 space-y-3">
+            <p className="text-xs text-muted-foreground text-center">
+              Dengan mengklik lanjutkan, Anda menyetujui{' '}
+              <a href="#" className="underline text-blue-500 hover:text-blue-600">Ketentuan Layanan</a>
+              {' '}dan{' '}
+              <a href="#" className="underline text-blue-500 hover:text-blue-600">Kebijakan Privasi</a> kami.
+            </p>
+            <button onClick={() => onNavigate('login')}
+              className="flex items-center gap-1.5 text-sm text-foreground font-semibold hover:text-foreground/80 transition-colors mx-auto mt-4">
+              <LogIn size={15} /> Login
+            </button>
+          </div>
+        </>
+      )}
     </RightPanel>
   )
 }
@@ -813,8 +859,12 @@ export default function App() {
     const paymentStatus = params.get('payment')
     const token = params.get('token')
     const emailParam = params.get('email')
+    const adminParam = params.get('admin')
 
-    if (paymentStatus === 'success') {
+    if (adminParam === 'true') {
+      setPage('admin-dashboard')
+      window.history.replaceState({}, '', window.location.pathname)
+    } else if (paymentStatus === 'success') {
       const planName = params.get('plan')
       if (planName) setActivePlanName(decodeURIComponent(planName))
       setPage('payment-success')
@@ -863,6 +913,9 @@ export default function App() {
   }
   if (page === 'reset-password') {
     return <ResetPasswordPage token={resetToken} email={resetEmail} onNavigate={setPage} />
+  }
+  if (page === 'admin-dashboard') {
+    return <AdminDashboardPage user={currentUser} onSignOut={handleSignOut} />
   }
 
   // ── Split layout pages (login / signup) ───────────────────────────────────
