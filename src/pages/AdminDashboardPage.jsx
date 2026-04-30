@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import {
   User, Users, LogOut, Search, Download,
-  ArrowDownUp, Check, X, ChevronDown, UserX, UserCheck
+  ArrowDownUp, Check, X, ChevronDown, UserX, UserCheck, Copy, Filter
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -15,9 +15,22 @@ const INITIAL_USERS = [
   { id: 6, name: 'Ahmad Hidayat Muslimin', username: '@ahmadhid', email: 'ahmadhidm@gmail.com', status: 'Review', birthdate: '02 Feb 1997', training: 'Ambon', year: '2019', school: 'SD Negeri 1 Pattimura', role: '' },
 ]
 
+const INITIAL_MANAGEMENT_USERS = [
+  { id: 1, name: 'Achmad Fauzi', username: '@achfauzi', email: 'achfauzi@gmail.com', isNew: true, accountStatus: 'Pending', voucher: 'GASI99999', birthdate: '12 Mar 1995', training: 'Bolaang Mongondow', year: '2021', school: 'Sekolah Model Terpadu (SMT) Bojonegoro', role: 'Trainer Utama', subscription: 'Active', plan: 'Paket Tahunan', endDate: '22 Feb 2026', action: 'Konfirmasi' },
+  { id: 2, name: 'Ade Irma', username: '@adeirma', email: 'adeirma@gmail.com', isNew: false, accountStatus: 'Rejected', voucher: '', birthdate: '05 Jul 1998', training: 'Ilugwa Mamberamo Tengah', year: '2022', school: 'SMK Negeri 1 Tenggarong Seberang Kutai Kartagneg...', role: '', subscription: 'Not Active', plan: 'Tidak Terdaftar', endDate: '', action: '-' },
+  { id: 3, name: 'Adelia Putri Anjayani', username: '@adelputri', email: 'adelputrianjayani@gmail.com', isNew: false, accountStatus: 'Approved', voucher: 'GASI99888', birthdate: '22 Nov 1999', training: 'MI Pondok Pinang Jakarta', year: '2022', school: 'SMA Negeri 1 Cikarang Utara Kabupaten Bekasi', role: 'Trainer Kelas', subscription: 'Active', plan: 'Paket Tahunan', endDate: '22 Feb 2026', action: 'Sudah Disalin' },
+  { id: 4, name: 'Aditya Pratama', username: '@aditprat', email: 'aditprat@gmail.com', isNew: false, accountStatus: 'Approved', voucher: 'GASI99777', birthdate: '30 Jan 1994', training: 'Soe, Timor Tengah Selatan', year: '2017', school: 'SD Inpres Soe', role: 'Trainer Aula', subscription: 'Expired', plan: 'Sudah Berakhir', endDate: '', action: 'Sudah Disalin' },
+  { id: 5, name: 'Agus Setiawan', username: '@agusset', email: 'agusset@gmail.com', isNew: false, accountStatus: 'Pending', voucher: 'GASI99555', birthdate: '15 Aug 1992', training: 'Tapanuli Utara', year: '2024', school: 'SMP Negeri 1 Tarutung', role: 'Trainer Utama', subscription: 'Active', plan: 'Paket Tahunan', endDate: '22 Feb 2026', action: 'Sudah Disalin' },
+  { id: 6, name: 'Ahmad Hidayat Muslimin', username: '@ahmadhid', email: 'ahmadhidm@gmail.com', isNew: true, accountStatus: 'Approved', voucher: 'GASI99656', birthdate: '02 Feb 1997', training: 'Ambon', year: '2019', school: 'SD Negeri 1 Pattimura', role: 'Guru', subscription: 'Active', plan: 'Paket Tahunan', endDate: '22 Feb 2026', action: 'Konfirmasi' },
+  { id: 7, name: 'Bianka Nadine Sitomorang', username: '@biankans', email: 'biankandsitomorang@gmail.com', isNew: false, accountStatus: 'Rejected', voucher: '', birthdate: '18 Sep 2001', training: 'Fakfak', year: '2023', school: 'SMP Negeri 1 Fakfak', role: '', subscription: 'Not Active', plan: 'Tidak Terdaftar', endDate: '', action: '-' },
+  { id: 8, name: 'Budi Cahyono', username: '@budicah', email: 'budicah@gmail.com', isNew: false, accountStatus: 'Approved', voucher: 'GASI99444', birthdate: '29 Jun 1994', training: 'Kupang', year: '2020', school: 'SD Negeri 2 Nusa Cendana', role: 'Trainer Aula', subscription: 'Active', plan: 'Paket Tahunan', endDate: '22 Feb 2026', action: 'Sudah Disalin' },
+  { id: 9, name: 'Cahyo Utomo', username: '@cahyouto', email: 'cahyouto@gmail.com', isNew: false, accountStatus: 'Approved', voucher: '', birthdate: '04 May 1997', training: 'Kota Pontianak', year: '2019', school: 'SD Negeri 10 Tanjungpura', role: 'Trainer Utama', subscription: 'Expired', plan: 'Sudah Berakhir', endDate: '', action: '-' },
+]
+
 export default function AdminDashboardPage({ onSignOut }) {
   const [activeTab, setActiveTab] = useState('verifikasi')
   const [users, setUsers] = useState(INITIAL_USERS)
+  const [managementUsers, setManagementUsers] = useState(INITIAL_MANAGEMENT_USERS)
   const [searchQuery, setSearchQuery] = useState('')
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' })
   const [roleErrors, setRoleErrors] = useState({})
@@ -25,6 +38,14 @@ export default function AdminDashboardPage({ onSignOut }) {
   const [approveCandidate, setApproveCandidate] = useState(null)
   const [toast, setToast] = useState(null)
   const [toastTimeoutId, setToastTimeoutId] = useState(null)
+  const [activeFilter, setActiveFilter] = useState('Semua')
+
+  const handleTabChange = (tab) => {
+    setActiveTab(tab)
+    setSearchQuery('')
+    setSortConfig({ key: null, direction: 'asc' })
+    setActiveFilter('Semua')
+  }
 
   // Handlers for action buttons
   const handleVerify = (id) => {
@@ -59,7 +80,11 @@ export default function AdminDashboardPage({ onSignOut }) {
   }
 
   const handleRoleChange = (id, newRole) => {
-    setUsers(users.map(u => u.id === id ? { ...u, role: newRole } : u))
+    if (activeTab === 'verifikasi') {
+      setUsers(users.map(u => u.id === id ? { ...u, role: newRole } : u))
+    } else {
+      setManagementUsers(managementUsers.map(u => u.id === id ? { ...u, role: newRole } : u))
+    }
     if (newRole) {
       setRoleErrors(prev => ({ ...prev, [id]: false }))
     }
@@ -100,7 +125,13 @@ export default function AdminDashboardPage({ onSignOut }) {
   }
 
   // --- Search & Sort Logic ---
-  const filteredUsers = users.filter(user => {
+  const currentData = activeTab === 'verifikasi' ? users : managementUsers;
+
+  const filteredUsers = currentData.filter(user => {
+    if (activeTab === 'manajemen' && activeFilter !== 'Semua') {
+      if (user.accountStatus !== activeFilter) return false;
+    }
+
     if (!searchQuery) return true
     const q = searchQuery.toLowerCase()
     return (
@@ -108,7 +139,8 @@ export default function AdminDashboardPage({ onSignOut }) {
       (user.username || '').toLowerCase().includes(q) ||
       (user.email || '').toLowerCase().includes(q) ||
       (user.training || '').toLowerCase().includes(q) ||
-      (user.school || '').toLowerCase().includes(q)
+      (user.school || '').toLowerCase().includes(q) ||
+      (user.voucher || '').toLowerCase().includes(q)
     )
   })
 
@@ -125,9 +157,9 @@ export default function AdminDashboardPage({ onSignOut }) {
     let valA = a[sortConfig.key] || ''
     let valB = b[sortConfig.key] || ''
     
-    if (sortConfig.key === 'birthdate') {
-      valA = new Date(valA).getTime() || 0
-      valB = new Date(valB).getTime() || 0
+    if (sortConfig.key === 'birthdate' || sortConfig.key === 'endDate') {
+      valA = valA ? new Date(valA).getTime() : 0
+      valB = valB ? new Date(valB).getTime() : 0
     } else if (typeof valA === 'string') {
       valA = valA.toLowerCase()
       valB = valB.toLowerCase()
@@ -139,27 +171,46 @@ export default function AdminDashboardPage({ onSignOut }) {
   })
 
   const handleExport = () => {
-    const headers = ['Nama Pengguna', 'Email', 'Status', 'Tgl.Lahir', 'Alumni Pelatihan', 'Tahun', 'Asal Sekolah', 'Role Pengguna']
-    
-    const escapeCsv = (val) => {
-      if (val == null) return '""'
-      const str = String(val)
-      if (str.includes(',') || str.includes('"') || str.includes('\n')) {
-        return `"${str.replace(/"/g, '""')}"`
+    const escapeCsv = (str) => {
+      if (str === null || str === undefined) return '';
+      const stringStr = String(str);
+      if (stringStr.includes(',') || stringStr.includes('"') || stringStr.includes('\n')) {
+        return `"${stringStr.replace(/"/g, '""')}"`;
       }
-      return str
-    }
+      return stringStr;
+    };
 
-    const rows = sortedUsers.map(user => [
-      user.name,
-      user.email,
-      user.status,
-      user.birthdate,
-      user.training,
-      user.year,
-      user.school,
-      user.role || 'Pilih Role'
-    ])
+    let headers = []
+    let rows = []
+
+    if (activeTab === 'verifikasi') {
+      headers = ['Nama Pengguna', 'Email', 'Status', 'Tgl.Lahir', 'Alumni Pelatihan', 'Tahun', 'Asal Sekolah', 'Role Pengguna']
+      rows = sortedUsers.map(user => [
+        user.name,
+        user.email,
+        user.status,
+        user.birthdate,
+        user.training,
+        user.year,
+        user.school,
+        user.role || 'Pilih Role'
+      ])
+    } else {
+      headers = ['Nama Pengguna', 'Email', 'Status Akun', 'Kode Voucher', 'Tgl.Lahir', 'Alumni Pelatihan', 'Tahun', 'Asal Sekolah', 'Role Pengguna', 'Berlangganan', 'Tgl Berakhir']
+      rows = sortedUsers.map(user => [
+        user.name,
+        user.email,
+        user.accountStatus || '-',
+        user.voucher || '-',
+        user.birthdate || '-',
+        user.training || '-',
+        user.year || '-',
+        user.school || '-',
+        user.role || 'Pilih Role',
+        user.subscription || '-',
+        user.plan || '-'
+      ])
+    }
 
     const csvContent = [
       headers.join(','),
@@ -170,17 +221,17 @@ export default function AdminDashboardPage({ onSignOut }) {
     const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
     link.setAttribute('href', url)
-    link.setAttribute('download', 'verifikasi_akun-Export data.csv')
+    link.setAttribute('download', activeTab === 'verifikasi' ? 'verifikasi_akun-Export data.csv' : 'manajemen_akun-Export data.csv')
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
   }
 
   return (
-    <div className="min-h-screen bg-white flex font-sans">
+    <div className="h-screen bg-white flex font-sans overflow-hidden">
       
       {/* ─── SIDEBAR ─── */}
-      <aside className="w-[260px] bg-[#0A1128] text-white flex flex-col shrink-0">
+      <aside className="w-[260px] min-w-[260px] max-w-[260px] flex-none bg-[#0A1128] text-white flex flex-col h-full">
         <div className="p-8 flex items-center gap-4">
           <div className="w-10 h-10 rounded-full bg-white shrink-0"></div>
           <span className="text-xl font-bold tracking-wide">Logo</span>
@@ -188,7 +239,7 @@ export default function AdminDashboardPage({ onSignOut }) {
 
         <nav className="flex-1 px-4 mt-4 space-y-2">
           <button
-            onClick={() => setActiveTab('verifikasi')}
+            onClick={() => handleTabChange('verifikasi')}
             className={cn(
               "w-full flex items-center gap-4 px-5 py-3.5 rounded-full transition-colors text-sm font-medium",
               activeTab === 'verifikasi' ? "bg-white/10" : "text-gray-400 hover:text-white hover:bg-white/5"
@@ -199,7 +250,7 @@ export default function AdminDashboardPage({ onSignOut }) {
           </button>
           
           <button
-            onClick={() => setActiveTab('manajemen')}
+            onClick={() => handleTabChange('manajemen')}
             className={cn(
               "w-full flex items-center gap-4 px-5 py-3.5 rounded-full transition-colors text-sm font-medium",
               activeTab === 'manajemen' ? "bg-white/10" : "text-gray-400 hover:text-white hover:bg-white/5"
@@ -232,170 +283,415 @@ export default function AdminDashboardPage({ onSignOut }) {
         
         {/* Header Title */}
         <header className="px-10 py-8 border-b border-gray-100 shrink-0">
-          <h1 className="text-2xl font-bold text-[#0A1128]">Verifikasi Akun</h1>
+          <h1 className="text-2xl font-bold text-[#0A1128]">
+            {activeTab === 'verifikasi' ? 'Verifikasi Akun' : 'Manajemen Akun'}
+          </h1>
         </header>
 
         {/* Content Area */}
         <div className="flex-1 overflow-auto p-10 bg-white">
           
           {/* Table Controls */}
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-3">
-              <span className="text-sm font-semibold text-[#0A1128]">Total:</span>
-              <div className="flex items-center gap-2 bg-[#FDF4FF] px-3 py-1.5 rounded-full">
-                <span className="w-6 h-6 rounded-full bg-[#D946EF] text-white text-xs flex items-center justify-center font-bold">
-                  {sortedUsers.length}
-                </span>
-                <span className="text-sm font-bold text-[#D946EF]">Review</span>
+          {activeTab === 'verifikasi' ? (
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-3">
+                <span className="text-sm font-semibold text-[#0A1128]">Total:</span>
+                <div className="flex items-center gap-2 bg-[#FDF4FF] px-3 py-1.5 rounded-full">
+                  <span className="w-6 h-6 rounded-full bg-[#D946EF] text-white text-xs flex items-center justify-center font-bold">
+                    {sortedUsers.length}
+                  </span>
+                  <span className="text-sm font-bold text-[#D946EF]">Review</span>
+                </div>
               </div>
-            </div>
 
-            <div className="flex items-center gap-4">
-              <div className="relative w-[300px]">
-                <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
-                <input 
-                  type="text" 
-                  placeholder="Cari user..." 
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-10 py-2.5 bg-white border border-gray-200 rounded-full text-sm outline-none focus:border-[#D946EF] focus:ring-1 focus:ring-[#D946EF] transition-all"
-                />
-                {searchQuery && (
-                  <button 
-                    onClick={() => setSearchQuery('')}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                  >
-                    <X size={14} />
-                  </button>
-                )}
+              <div className="flex items-center gap-4">
+                <div className="relative w-[300px]">
+                  <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+                  <input 
+                    type="text" 
+                    placeholder="Cari user..." 
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full pl-10 pr-10 py-2.5 bg-white border border-gray-200 rounded-full text-sm outline-none focus:border-[#D946EF] focus:ring-1 focus:ring-[#D946EF] transition-all"
+                  />
+                  {searchQuery && (
+                    <button 
+                      onClick={() => setSearchQuery('')}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    >
+                      <X size={14} />
+                    </button>
+                  )}
+                </div>
+                <button 
+                  onClick={handleExport}
+                  className="flex items-center gap-2 bg-[#0A1128] hover:bg-[#0A1128]/90 text-white px-5 py-2.5 rounded-full text-sm font-medium transition-colors"
+                >
+                  <Download size={16} />
+                  Export List
+                </button>
               </div>
-              <button 
-                onClick={handleExport}
-                className="flex items-center gap-2 bg-[#0A1128] hover:bg-[#0A1128]/90 text-white px-5 py-2.5 rounded-full text-sm font-medium transition-colors"
-              >
-                <Download size={16} />
-                Export List
-              </button>
             </div>
-          </div>
+          ) : (
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-2 bg-gray-50/50 border border-gray-100 p-1.5 rounded-full">
+                {['Semua', 'Approved', 'Pending', 'Rejected'].map(status => {
+                  const isSelected = activeFilter === status;
+                  return (
+                    <button 
+                      key={status}
+                      onClick={() => setActiveFilter(status)}
+                      className={cn(
+                        "flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-colors",
+                        isSelected ? "bg-[#0A1128] text-white shadow-sm" : "text-gray-500 hover:text-[#0A1128] bg-transparent"
+                      )}
+                    >
+                      <div className={cn(
+                        "w-4 h-4 rounded flex items-center justify-center border",
+                        isSelected ? "border-blue-600 bg-blue-600" : "border-gray-300 bg-white"
+                      )}>
+                        {isSelected && <Check size={12} className="text-white" strokeWidth={3} />}
+                      </div>
+                      {status}
+                    </button>
+                  )
+                })}
+              </div>
+
+              <div className="flex items-center gap-3">
+                <button className="w-[42px] h-[42px] rounded-full border border-gray-200 flex items-center justify-center text-[#0A1128] hover:bg-gray-50 transition-colors shrink-0 shadow-sm">
+                  <Filter size={18} strokeWidth={2} />
+                </button>
+                <div className="relative w-[280px]">
+                  <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+                  <input 
+                    type="text" 
+                    placeholder="Cari user..." 
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full pl-10 pr-10 py-2.5 bg-white border border-gray-200 rounded-full text-sm outline-none focus:border-[#D946EF] focus:ring-1 focus:ring-[#D946EF] transition-all"
+                  />
+                  {searchQuery && (
+                    <button 
+                      onClick={() => setSearchQuery('')}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    >
+                      <X size={14} />
+                    </button>
+                  )}
+                </div>
+                <button 
+                  onClick={handleExport}
+                  className="flex items-center gap-2 bg-[#0A1128] hover:bg-[#0A1128]/90 text-white px-5 py-2.5 rounded-full text-sm font-medium transition-colors shadow-sm"
+                >
+                  <Download size={16} />
+                  Export List
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Table */}
           <div className="border border-gray-200 rounded-2xl overflow-hidden shadow-sm">
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm whitespace-nowrap">
-                <thead className="bg-[#0A1128] text-white">
-                  <tr>
-                    <th className="px-4 py-4 w-12 text-center sticky left-0 z-20 bg-[#0A1128]">
-                      <div className="w-4 h-4 rounded border border-white/30 mx-auto"></div>
-                    </th>
-                    <th className="px-4 py-4 font-medium sticky left-[48px] z-20 bg-[#0A1128] shadow-[4px_0_10px_-4px_rgba(0,0,0,0.3)]">
-                      <div className="flex items-center gap-2 cursor-pointer hover:text-white transition-colors select-none" onClick={() => handleSort('name')}>
-                        Nama Pengguna <ArrowDownUp size={14} className={sortConfig.key === 'name' ? "text-white" : "text-white/50"} />
-                      </div>
-                    </th>
-                    <th className="px-4 py-4 font-medium">
-                      <div className="flex items-center gap-2 cursor-pointer hover:text-white transition-colors select-none" onClick={() => handleSort('email')}>
-                        Email <ArrowDownUp size={14} className={sortConfig.key === 'email' ? "text-white" : "text-white/50"} />
-                      </div>
-                    </th>
-                    <th className="px-4 py-4 font-medium">Status</th>
-                    <th className="px-4 py-4 font-medium">
-                      <div className="flex items-center gap-2 cursor-pointer hover:text-white transition-colors select-none" onClick={() => handleSort('birthdate')}>
-                        Tgl.Lahir <ArrowDownUp size={14} className={sortConfig.key === 'birthdate' ? "text-white" : "text-white/50"} />
-                      </div>
-                    </th>
-                    <th className="px-4 py-4 font-medium">
-                      <div className="flex items-center gap-2 cursor-pointer hover:text-white transition-colors select-none" onClick={() => handleSort('training')}>
-                        Alumni Pelatihan <ArrowDownUp size={14} className={sortConfig.key === 'training' ? "text-white" : "text-white/50"} />
-                      </div>
-                    </th>
-                    <th className="px-4 py-4 font-medium">
-                      <div className="flex items-center gap-2 cursor-pointer hover:text-white transition-colors select-none" onClick={() => handleSort('year')}>
-                        Tahun <ArrowDownUp size={14} className={sortConfig.key === 'year' ? "text-white" : "text-white/50"} />
-                      </div>
-                    </th>
-                    <th className="px-4 py-4 font-medium">
-                      <div className="flex items-center gap-2 cursor-pointer hover:text-white transition-colors select-none" onClick={() => handleSort('school')}>
-                        Asal Sekolah asas <ArrowDownUp size={14} className={sortConfig.key === 'school' ? "text-white" : "text-white/50"} />
-                      </div>
-                    </th>
-                    <th className="px-4 py-4 font-medium">Role Pengguna</th>
-                    <th className="px-4 py-4 font-medium text-center">Action</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {sortedUsers.length > 0 ? (
-                    sortedUsers.map((user, idx) => (
-                      <tr key={user.id} className="group hover:bg-[#F9FAFB] transition-colors">
-                        <td className="px-4 py-4 text-center sticky left-0 z-10 bg-white group-hover:bg-[#F9FAFB] transition-colors">
-                          <div className="w-4 h-4 rounded border border-gray-300 bg-gray-50 mx-auto"></div>
-                        </td>
-                        <td className="px-4 py-4 sticky left-[48px] z-10 bg-white group-hover:bg-[#F9FAFB] transition-colors shadow-[4px_0_10px_-4px_rgba(0,0,0,0.05)]">
-                          <div className="font-bold text-[#0A1128]">{user.name}</div>
-                          <div className="text-xs text-gray-400 mt-0.5">{user.username}</div>
-                        </td>
-                      <td className="px-4 py-4 text-[#0A1128] font-medium">{user.email}</td>
-                      <td className="px-4 py-4">
-                        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-[#FDF4FF] text-[#D946EF]">
-                          {user.status}
-                        </span>
-                      </td>
-                      <td className="px-4 py-4 text-[#0A1128] font-medium">{user.birthdate}</td>
-                      <td className="px-4 py-4 text-[#0A1128] font-medium max-w-[200px] truncate" title={user.training}>
-                        {user.training}
-                      </td>
-                      <td className="px-4 py-4 text-[#0A1128] font-medium">{user.year}</td>
-                      <td className="px-4 py-4 text-[#0A1128] font-medium max-w-[250px] truncate" title={user.school}>
-                        {user.school}
-                      </td>
-                      <td className="px-4 py-4">
-                        <div className="relative w-36">
-                          <select 
-                            className={cn(
-                              "w-full appearance-none bg-white border rounded-full py-1.5 pl-4 pr-8 text-sm font-medium outline-none transition-all duration-300",
-                              roleErrors[user.id] 
-                                ? "border-red-500 ring-[3px] ring-red-500/20 text-red-600" 
-                                : "border-gray-200 focus:border-[#0A1128] text-[#0A1128]"
-                            )}
-                            value={user.role || ""}
-                            onChange={(e) => handleRoleChange(user.id, e.target.value)}
-                          >
-                            <option value="" disabled>Pilih Role</option>
-                            <option value="Trainer Utama">Trainer Utama</option>
-                            <option value="Trainer Kelas">Trainer Kelas</option>
-                            <option value="Guru">Guru</option>
-                            <option value="Trainer Aula">Trainer Aula</option>
-                          </select>
-                          <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+              {activeTab === 'verifikasi' ? (
+                <table className="w-full text-left text-sm whitespace-nowrap">
+                  <thead className="bg-[#0A1128] text-white">
+                    <tr>
+                      <th className="px-4 py-4 w-12 text-center sticky left-0 z-20 bg-[#0A1128]">
+                        <div className="w-4 h-4 rounded border border-white/30 mx-auto"></div>
+                      </th>
+                      <th className="px-4 py-4 font-medium sticky left-[48px] z-20 bg-[#0A1128] shadow-[4px_0_10px_-4px_rgba(0,0,0,0.3)]">
+                        <div className="flex items-center gap-2 cursor-pointer hover:text-white transition-colors select-none" onClick={() => handleSort('name')}>
+                          Nama Pengguna <ArrowDownUp size={14} className={sortConfig.key === 'name' ? "text-white" : "text-white/50"} />
                         </div>
-                      </td>
-                      <td className="px-4 py-4">
-                        <div className="flex items-center justify-center gap-2">
-                          <button 
-                            onClick={() => handleVerify(user.id)}
-                            className="w-8 h-8 rounded-full bg-blue-600 hover:bg-blue-700 flex items-center justify-center text-white transition-colors"
-                          >
-                            <Check size={16} strokeWidth={3} />
-                          </button>
-                          <button 
-                            onClick={() => handleRejectClick(user)}
-                            className="w-8 h-8 rounded-full bg-white border border-gray-200 hover:bg-gray-50 flex items-center justify-center text-gray-500 transition-colors"
-                          >
-                            <X size={16} strokeWidth={2} />
-                          </button>
+                      </th>
+                      <th className="px-4 py-4 font-medium">
+                        <div className="flex items-center gap-2 cursor-pointer hover:text-white transition-colors select-none" onClick={() => handleSort('email')}>
+                          Email <ArrowDownUp size={14} className={sortConfig.key === 'email' ? "text-white" : "text-white/50"} />
                         </div>
+                      </th>
+                      <th className="px-4 py-4 font-medium">Status</th>
+                      <th className="px-4 py-4 font-medium">
+                        <div className="flex items-center gap-2 cursor-pointer hover:text-white transition-colors select-none" onClick={() => handleSort('birthdate')}>
+                          Tgl.Lahir <ArrowDownUp size={14} className={sortConfig.key === 'birthdate' ? "text-white" : "text-white/50"} />
+                        </div>
+                      </th>
+                      <th className="px-4 py-4 font-medium">
+                        <div className="flex items-center gap-2 cursor-pointer hover:text-white transition-colors select-none" onClick={() => handleSort('training')}>
+                          Alumni Pelatihan <ArrowDownUp size={14} className={sortConfig.key === 'training' ? "text-white" : "text-white/50"} />
+                        </div>
+                      </th>
+                      <th className="px-4 py-4 font-medium">
+                        <div className="flex items-center gap-2 cursor-pointer hover:text-white transition-colors select-none" onClick={() => handleSort('year')}>
+                          Tahun <ArrowDownUp size={14} className={sortConfig.key === 'year' ? "text-white" : "text-white/50"} />
+                        </div>
+                      </th>
+                      <th className="px-4 py-4 font-medium">
+                        <div className="flex items-center gap-2 cursor-pointer hover:text-white transition-colors select-none" onClick={() => handleSort('school')}>
+                          Asal Sekolah asas <ArrowDownUp size={14} className={sortConfig.key === 'school' ? "text-white" : "text-white/50"} />
+                        </div>
+                      </th>
+                      <th className="px-4 py-4 font-medium">Role Pengguna</th>
+                      <th className="px-4 py-4 font-medium text-center">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {sortedUsers.length > 0 ? (
+                      sortedUsers.map((user, idx) => (
+                        <tr key={user.id} className="group hover:bg-[#F9FAFB] transition-colors">
+                          <td className="px-4 py-4 text-center sticky left-0 z-10 bg-white group-hover:bg-[#F9FAFB] transition-colors">
+                            <div className="w-4 h-4 rounded border border-gray-300 bg-gray-50 mx-auto"></div>
+                          </td>
+                          <td className="px-4 py-4 sticky left-[48px] z-10 bg-white group-hover:bg-[#F9FAFB] transition-colors shadow-[4px_0_10px_-4px_rgba(0,0,0,0.05)]">
+                            <div className="font-bold text-[#0A1128]">{user.name}</div>
+                            <div className="text-xs text-gray-400 mt-0.5">{user.username}</div>
+                          </td>
+                        <td className="px-4 py-4 text-[#0A1128] font-medium">{user.email}</td>
+                        <td className="px-4 py-4">
+                          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-[#FDF4FF] text-[#D946EF]">
+                            {user.status}
+                          </span>
+                        </td>
+                        <td className="px-4 py-4 text-[#0A1128] font-medium">{user.birthdate}</td>
+                        <td className="px-4 py-4 text-[#0A1128] font-medium max-w-[200px] truncate" title={user.training}>
+                          {user.training}
+                        </td>
+                        <td className="px-4 py-4 text-[#0A1128] font-medium">{user.year}</td>
+                        <td className="px-4 py-4 text-[#0A1128] font-medium max-w-[250px] truncate" title={user.school}>
+                          {user.school}
+                        </td>
+                        <td className="px-4 py-4">
+                          <div className="relative w-36">
+                            <select 
+                              className={cn(
+                                "w-full appearance-none bg-white border rounded-full py-1.5 pl-4 pr-8 text-sm font-medium outline-none transition-all duration-300",
+                                roleErrors[user.id] 
+                                  ? "border-red-500 ring-[3px] ring-red-500/20 text-red-600" 
+                                  : "border-gray-200 focus:border-[#0A1128] text-[#0A1128]"
+                              )}
+                              value={user.role || ""}
+                              onChange={(e) => handleRoleChange(user.id, e.target.value)}
+                            >
+                              <option value="" disabled>Pilih Role</option>
+                              <option value="Trainer Utama">Trainer Utama</option>
+                              <option value="Trainer Kelas">Trainer Kelas</option>
+                              <option value="Guru">Guru</option>
+                              <option value="Trainer Aula">Trainer Aula</option>
+                            </select>
+                            <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                          </div>
+                        </td>
+                        <td className="px-4 py-4">
+                          <div className="flex items-center justify-center gap-2">
+                            <button 
+                              onClick={() => handleVerify(user.id)}
+                              className="w-8 h-8 rounded-full bg-blue-600 hover:bg-blue-700 flex items-center justify-center text-white transition-colors"
+                            >
+                              <Check size={16} strokeWidth={3} />
+                            </button>
+                            <button 
+                              onClick={() => handleRejectClick(user)}
+                              className="w-8 h-8 rounded-full bg-white border border-gray-200 hover:bg-gray-50 flex items-center justify-center text-gray-500 transition-colors"
+                            >
+                              <X size={16} strokeWidth={2} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan="10" className="px-4 py-12 text-center text-gray-500">
+                        Tidak ada data yang cocok dengan pencarian <span className="font-semibold">"{searchQuery}"</span>
                       </td>
                     </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan="10" className="px-4 py-12 text-center text-gray-500">
-                      Tidak ada data yang cocok dengan pencarian <span className="font-semibold">"{searchQuery}"</span>
-                    </td>
-                  </tr>
-                )}
-                </tbody>
-              </table>
+                  )}
+                  </tbody>
+                </table>
+              ) : (
+                <table className="w-full text-left text-sm whitespace-nowrap">
+                  <thead className="bg-[#0A1128] text-white">
+                    <tr>
+                      <th className="px-4 py-4 w-12 text-center sticky left-0 z-20 bg-[#0A1128]">
+                        <div className="w-4 h-4 rounded border border-white/30 mx-auto"></div>
+                      </th>
+                      <th className="px-4 py-4 font-medium sticky left-[48px] z-20 bg-[#0A1128] shadow-[4px_0_10px_-4px_rgba(0,0,0,0.3)]">
+                        <div className="flex items-center gap-2 cursor-pointer hover:text-white transition-colors select-none" onClick={() => handleSort('name')}>
+                          Nama Pengguna <ArrowDownUp size={14} className={sortConfig.key === 'name' ? "text-white" : "text-white/50"} />
+                        </div>
+                      </th>
+                      <th className="px-4 py-4 font-medium">
+                        <div className="flex items-center gap-2 cursor-pointer hover:text-white transition-colors select-none" onClick={() => handleSort('email')}>
+                          Email <ArrowDownUp size={14} className={sortConfig.key === 'email' ? "text-white" : "text-white/50"} />
+                        </div>
+                      </th>
+                      <th className="px-4 py-4 font-medium">
+                        <div className="flex items-center gap-2 cursor-pointer hover:text-white transition-colors select-none" onClick={() => handleSort('accountStatus')}>
+                          Status Akun <ArrowDownUp size={14} className={sortConfig.key === 'accountStatus' ? "text-white" : "text-white/50"} />
+                        </div>
+                      </th>
+                      <th className="px-4 py-4 font-medium">Kode Voucher</th>
+                      <th className="px-4 py-4 font-medium">
+                        <div className="flex items-center gap-2 cursor-pointer hover:text-white transition-colors select-none" onClick={() => handleSort('birthdate')}>
+                          Tgl.Lahir <ArrowDownUp size={14} className={sortConfig.key === 'birthdate' ? "text-white" : "text-white/50"} />
+                        </div>
+                      </th>
+                      <th className="px-4 py-4 font-medium">
+                        <div className="flex items-center gap-2 cursor-pointer hover:text-white transition-colors select-none" onClick={() => handleSort('training')}>
+                          Alumni Pelatihan <ArrowDownUp size={14} className={sortConfig.key === 'training' ? "text-white" : "text-white/50"} />
+                        </div>
+                      </th>
+                      <th className="px-4 py-4 font-medium">
+                        <div className="flex items-center gap-2 cursor-pointer hover:text-white transition-colors select-none" onClick={() => handleSort('year')}>
+                          Tahun <ArrowDownUp size={14} className={sortConfig.key === 'year' ? "text-white" : "text-white/50"} />
+                        </div>
+                      </th>
+                      <th className="px-4 py-4 font-medium">
+                        <div className="flex items-center gap-2 cursor-pointer hover:text-white transition-colors select-none" onClick={() => handleSort('school')}>
+                          Asal Sekolah asas <ArrowDownUp size={14} className={sortConfig.key === 'school' ? "text-white" : "text-white/50"} />
+                        </div>
+                      </th>
+                      <th className="px-4 py-4 font-medium">
+                        <div className="flex items-center gap-2 cursor-pointer hover:text-white transition-colors select-none" onClick={() => handleSort('role')}>
+                          Role <ArrowDownUp size={14} className={sortConfig.key === 'role' ? "text-white" : "text-white/50"} />
+                        </div>
+                      </th>
+                      <th className="px-4 py-4 font-medium">
+                        <div className="flex items-center gap-2 cursor-pointer hover:text-white transition-colors select-none" onClick={() => handleSort('subscription')}>
+                          Berlangganan <ArrowDownUp size={14} className={sortConfig.key === 'subscription' ? "text-white" : "text-white/50"} />
+                        </div>
+                      </th>
+                      <th className="px-4 py-4 font-medium">
+                        <div className="flex items-center gap-2 cursor-pointer hover:text-white transition-colors select-none" onClick={() => handleSort('plan')}>
+                          Tgl. Berakhir <ArrowDownUp size={14} className={sortConfig.key === 'plan' ? "text-white" : "text-white/50"} />
+                        </div>
+                      </th>
+                      <th className="px-4 py-4 font-medium text-center">
+                        <div className="flex items-center justify-center gap-2 cursor-pointer hover:text-white transition-colors select-none" onClick={() => handleSort('action')}>
+                          Action Voucher <ArrowDownUp size={14} className={sortConfig.key === 'action' ? "text-white" : "text-white/50"} />
+                        </div>
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {sortedUsers.length > 0 ? (
+                      sortedUsers.map((user, idx) => (
+                        <tr key={user.id} className="group hover:bg-[#F9FAFB] transition-colors">
+                          <td className="px-4 py-4 text-center sticky left-0 z-10 bg-white group-hover:bg-[#F9FAFB] transition-colors">
+                            <div className="w-4 h-4 rounded border border-gray-300 bg-gray-50 mx-auto"></div>
+                          </td>
+                          <td className="px-4 py-4 sticky left-[48px] z-10 bg-white group-hover:bg-[#F9FAFB] transition-colors shadow-[4px_0_10px_-4px_rgba(0,0,0,0.05)]">
+                            <div className="flex flex-col">
+                              <div className="font-bold text-[#0A1128] flex items-center">
+                                {user.name}
+                                {user.isNew && (
+                                  <span className="bg-blue-600 text-white text-[10px] px-2 py-0.5 rounded-full font-bold ml-2">New</span>
+                                )}
+                              </div>
+                              <div className="text-xs text-gray-400 mt-0.5">{user.username}</div>
+                            </div>
+                          </td>
+                          <td className="px-4 py-4 text-[#0A1128] font-medium">{user.email}</td>
+                          <td className="px-4 py-4">
+                            <span className={cn(
+                              "inline-flex items-center px-3 py-1 rounded-full text-xs font-bold",
+                              user.accountStatus === 'Pending' ? "bg-orange-50 text-orange-500" :
+                              user.accountStatus === 'Rejected' ? "bg-red-50 text-red-500" :
+                              user.accountStatus === 'Approved' ? "bg-green-50 text-green-500" : ""
+                            )}>
+                              {user.accountStatus}
+                            </span>
+                          </td>
+                          <td className="px-4 py-4">
+                            <div className={cn(
+                              "flex items-center gap-2 px-3 py-1.5 rounded-full text-xs border w-[150px] justify-between",
+                              user.voucher ? "border-gray-200 bg-white" : "border-gray-100 bg-gray-50 opacity-50"
+                            )}>
+                              <div className="flex items-center gap-1">
+                                <span className="text-gray-500">Voucher:</span>
+                                {user.voucher && <span className="font-bold text-blue-600">{user.voucher}</span>}
+                              </div>
+                              <Copy size={12} className={user.voucher ? "text-gray-400 cursor-pointer hover:text-gray-600" : "text-gray-300"} />
+                            </div>
+                          </td>
+                          <td className="px-4 py-4 text-[#0A1128] font-medium">{user.birthdate}</td>
+                          <td className="px-4 py-4 text-[#0A1128] font-medium max-w-[200px] truncate" title={user.training}>
+                            {user.training}
+                          </td>
+                          <td className="px-4 py-4 text-[#0A1128] font-medium">{user.year}</td>
+                          <td className="px-4 py-4 text-[#0A1128] font-medium max-w-[250px] truncate" title={user.school}>
+                            {user.school}
+                          </td>
+                          <td className="px-4 py-4">
+                            <div className="relative w-36">
+                              <select 
+                                className={cn(
+                                  "w-full appearance-none border rounded-full py-1.5 pl-4 pr-8 text-sm font-medium outline-none transition-all duration-300",
+                                  !user.role || user.accountStatus === 'Rejected' ? "bg-gray-50 text-gray-400 border-gray-100" : "bg-white border-gray-200 focus:border-[#0A1128] text-[#0A1128]"
+                                )}
+                                value={user.role || ""}
+                                onChange={(e) => handleRoleChange(user.id, e.target.value)}
+                                disabled={user.accountStatus === 'Rejected'}
+                              >
+                                <option value="" disabled>Pilih Role</option>
+                                <option value="Trainer Utama">Trainer Utama</option>
+                                <option value="Trainer Kelas">Trainer Kelas</option>
+                                <option value="Guru">Guru</option>
+                                <option value="Trainer Aula">Trainer Aula</option>
+                              </select>
+                              <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                            </div>
+                          </td>
+                          <td className="px-4 py-4">
+                            <span className={cn(
+                              "inline-flex items-center px-3 py-1 rounded-full text-xs font-bold",
+                              user.subscription === 'Active' ? "bg-green-50 text-green-600" :
+                              user.subscription === 'Not Active' ? "bg-gray-100 text-gray-600" :
+                              user.subscription === 'Expired' ? "bg-red-50 text-red-500" : ""
+                            )}>
+                              {user.subscription}
+                            </span>
+                          </td>
+                          <td className="px-4 py-4">
+                            <div className="flex flex-col">
+                              <span className={cn(
+                                "font-medium",
+                                user.subscription === 'Not Active' ? "text-gray-400" :
+                                user.subscription === 'Expired' ? "text-red-500" : "text-[#0A1128]"
+                              )}>{user.plan}</span>
+                              {user.endDate && (
+                                <span className="text-[10px] text-gray-400 mt-0.5">Berakhir: {user.endDate}</span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="px-4 py-4 text-center">
+                            {user.action === 'Konfirmasi' && (
+                              <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-1.5 rounded-full text-xs font-bold transition-colors">
+                                Konfirmasi
+                              </button>
+                            )}
+                            {user.action === 'Sudah Disalin' && (
+                              <span className="bg-green-50 text-green-600 px-4 py-1.5 rounded-full text-xs font-bold">
+                                Sudah Disalin
+                              </span>
+                            )}
+                            {user.action === '-' && (
+                              <span className="text-gray-400 font-bold">-</span>
+                            )}
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan="13" className="px-4 py-12 text-center text-gray-500">
+                          Tidak ada data yang cocok dengan pencarian <span className="font-semibold">"{searchQuery}"</span>
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              )}
             </div>
           </div>
 
