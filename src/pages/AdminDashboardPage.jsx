@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import {
   User, Users, LogOut, Search, Download,
   ArrowDownUp, Check, X, ChevronDown, UserX, UserCheck, Copy, Filter
@@ -39,12 +39,29 @@ export default function AdminDashboardPage({ onSignOut }) {
   const [toast, setToast] = useState(null)
   const [toastTimeoutId, setToastTimeoutId] = useState(null)
   const [activeFilter, setActiveFilter] = useState('Semua')
+  const [isFilterOpen, setIsFilterOpen] = useState(false)
+  const [selectedRoles, setSelectedRoles] = useState([])
+  const [selectedSubscriptions, setSelectedSubscriptions] = useState([])
+  const filterRef = useRef(null)
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (filterRef.current && !filterRef.current.contains(event.target)) {
+        setIsFilterOpen(false)
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => document.removeEventListener("mousedown", handleClickOutside)
+  }, [])
 
   const handleTabChange = (tab) => {
     setActiveTab(tab)
     setSearchQuery('')
     setSortConfig({ key: null, direction: 'asc' })
     setActiveFilter('Semua')
+    setIsFilterOpen(false)
+    setSelectedRoles([])
+    setSelectedSubscriptions([])
   }
 
   // Handlers for action buttons
@@ -128,8 +145,10 @@ export default function AdminDashboardPage({ onSignOut }) {
   const currentData = activeTab === 'verifikasi' ? users : managementUsers;
 
   const filteredUsers = currentData.filter(user => {
-    if (activeTab === 'manajemen' && activeFilter !== 'Semua') {
-      if (user.accountStatus !== activeFilter) return false;
+    if (activeTab === 'manajemen') {
+      if (activeFilter !== 'Semua' && user.accountStatus !== activeFilter) return false;
+      if (selectedRoles.length > 0 && !selectedRoles.includes(user.role)) return false;
+      if (selectedSubscriptions.length > 0 && !selectedSubscriptions.includes(user.subscription)) return false;
     }
 
     if (!searchQuery) return true
@@ -358,10 +377,98 @@ export default function AdminDashboardPage({ onSignOut }) {
                 })}
               </div>
 
-              <div className="flex items-center gap-3">
-                <button className="w-[42px] h-[42px] rounded-full border border-gray-200 flex items-center justify-center text-[#0A1128] hover:bg-gray-50 transition-colors shrink-0 shadow-sm">
+              <div className="flex items-center gap-3 relative" ref={filterRef}>
+                <button 
+                  onClick={() => setIsFilterOpen(!isFilterOpen)}
+                  className={cn(
+                    "w-[42px] h-[42px] rounded-full border flex items-center justify-center transition-colors shrink-0 shadow-sm",
+                    isFilterOpen ? "border-blue-600 text-blue-600 bg-blue-50" : "border-gray-200 text-[#0A1128] hover:bg-gray-50"
+                  )}
+                >
                   <Filter size={18} strokeWidth={2} />
                 </button>
+
+                {/* Filter Popover */}
+                {isFilterOpen && (
+                  <div className="absolute top-14 left-0 w-[320px] bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-gray-100 p-6 z-50">
+                    
+                    {/* Role Section */}
+                    <div className="mb-6">
+                      <div className="flex items-center gap-2 mb-3">
+                        <div 
+                          className={cn(
+                            "w-4 h-4 rounded border flex items-center justify-center cursor-pointer",
+                            selectedRoles.length === 4 ? "border-blue-600 bg-blue-600" : "border-gray-300 bg-white"
+                          )} 
+                          onClick={() => {
+                            if (selectedRoles.length === 4) setSelectedRoles([])
+                            else setSelectedRoles(['Trainer Utama', 'Trainer Aula', 'Trainer Kelas', 'Guru'])
+                          }}
+                        >
+                          {selectedRoles.length === 4 && <Check size={12} className="text-white" strokeWidth={3} />}
+                        </div>
+                        <span className="font-bold text-[#0A1128]">Role</span>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {['Trainer Utama', 'Trainer Aula', 'Trainer Kelas', 'Guru'].map(role => (
+                          <button
+                            key={role}
+                            onClick={() => {
+                              if (selectedRoles.includes(role)) setSelectedRoles(selectedRoles.filter(r => r !== role))
+                              else setSelectedRoles([...selectedRoles, role])
+                            }}
+                            className={cn(
+                              "px-4 py-1.5 rounded-full text-sm transition-colors border",
+                              selectedRoles.includes(role) 
+                                ? "border-blue-600 text-blue-600 bg-blue-50 font-medium" 
+                                : "border-gray-200 text-gray-600 hover:border-gray-300"
+                            )}
+                          >
+                            {role}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Berlangganan Section */}
+                    <div>
+                      <div className="flex items-center gap-2 mb-3">
+                        <div 
+                          className={cn(
+                            "w-4 h-4 rounded border flex items-center justify-center cursor-pointer",
+                            selectedSubscriptions.length === 3 ? "border-blue-600 bg-blue-600" : "border-gray-300 bg-white"
+                          )} 
+                          onClick={() => {
+                            if (selectedSubscriptions.length === 3) setSelectedSubscriptions([])
+                            else setSelectedSubscriptions(['Not Active', 'Active', 'Expired'])
+                          }}
+                        >
+                          {selectedSubscriptions.length === 3 && <Check size={12} className="text-white" strokeWidth={3} />}
+                        </div>
+                        <span className="font-bold text-[#0A1128]">Berlangganan</span>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {['Not Active', 'Active', 'Expired'].map(sub => (
+                          <button
+                            key={sub}
+                            onClick={() => {
+                              if (selectedSubscriptions.includes(sub)) setSelectedSubscriptions(selectedSubscriptions.filter(s => s !== sub))
+                              else setSelectedSubscriptions([...selectedSubscriptions, sub])
+                            }}
+                            className={cn(
+                              "px-4 py-1.5 rounded-full text-sm transition-colors border",
+                              selectedSubscriptions.includes(sub) 
+                                ? "border-blue-600 text-blue-600 bg-blue-50 font-medium" 
+                                : "border-gray-200 text-gray-600 hover:border-gray-300"
+                            )}
+                          >
+                            {sub}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
                 <div className="relative w-[280px]">
                   <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
                   <input 
