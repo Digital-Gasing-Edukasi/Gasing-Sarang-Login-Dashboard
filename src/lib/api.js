@@ -1,12 +1,11 @@
 // src/lib/api.js
-// ─── Base config ─────────────────────────────────────────────────────────────
 const BASE_URL = import.meta.env.VITE_API_URL;
 
 // ─── Token helpers ────────────────────────────────────────────────────────────
 export const tokenStorage = {
-  getAccess: () => localStorage.getItem("accessToken"),
+  getAccess:  () => localStorage.getItem("accessToken"),
   getRefresh: () => localStorage.getItem("refreshToken"),
-  setTokens: (a, r) => {
+  setTokens:  (a, r) => {
     localStorage.setItem("accessToken", a);
     if (r) localStorage.setItem("refreshToken", r);
   },
@@ -24,7 +23,6 @@ async function request(endpoint, options = {}) {
     ...options.headers,
   };
 
-  // Attach access token jika ada
   const token = tokenStorage.getAccess();
   if (token) headers["Authorization"] = `Bearer ${token}`;
 
@@ -34,11 +32,9 @@ async function request(endpoint, options = {}) {
     body: options.body ? JSON.stringify(options.body) : undefined,
   });
 
-  // Jika 401 dan ada refresh token → coba refresh dulu
   if (res.status === 401 && tokenStorage.getRefresh()) {
     const refreshed = await tryRefreshToken();
     if (refreshed) {
-      // Retry request dengan token baru
       headers["Authorization"] = `Bearer ${tokenStorage.getAccess()}`;
       const retryRes = await fetch(`${BASE_URL}${endpoint}`, {
         ...options,
@@ -47,7 +43,6 @@ async function request(endpoint, options = {}) {
       });
       return handleResponse(retryRes);
     } else {
-      // Refresh gagal → logout
       tokenStorage.clear();
       window.location.href = "/";
       return;
@@ -57,10 +52,23 @@ async function request(endpoint, options = {}) {
   return handleResponse(res);
 }
 
+// Multipart (file upload) wrapper
+async function requestMultipart(endpoint, formData) {
+  const token = tokenStorage.getAccess();
+  const headers = { Accept: "application/json" };
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+
+  const res = await fetch(`${BASE_URL}${endpoint}`, {
+    method: "POST",
+    headers,
+    body: formData,
+  });
+  return handleResponse(res);
+}
+
 async function handleResponse(res) {
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
-    // Lempar error dengan message dari backend
     const message = data.message || `Error ${res.status}`;
     throw new Error(Array.isArray(message) ? message.join(", ") : message);
   }
@@ -76,62 +84,48 @@ async function tryRefreshToken() {
     });
     if (!res.ok) return false;
     const data = await res.json();
-    tokenStorage.setTokens(data.accessToken, null); // refresh hanya dapat accessToken baru
+    tokenStorage.setTokens(data.accessToken, data.refreshToken || null);
     return true;
   } catch {
     return false;
   }
 }
 
-// ─── AUTH endpoints ───────────────────────────────────────────────────────────
+function buildQuery(params) {
+  const q = new URLSearchParams();
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== "") {
+      q.append(key, value);
+    }
+  });
+  return q.toString();
+}
+
+// ─── AUTH ─────────────────────────────────────────────────────────────────────
 export const authApi = {
-  // POST /auth/register
-  // Body: { email, password, name, birthdate }
-  // Response: { token (JWT OTP), message }
   register: (data) =>
-    request("/auth/register", {
-      method: "POST",
-      body: data,
-    }),
+    request("/auth/register", { method: "POST", body: data }),
 
-  // POST /auth/confirm-email
-  // Body: { token (JWT dari register response), otp (6 digit) }
   confirmEmail: (token, otp) =>
-    request("/auth/confirm-email", {
-      method: "POST",
-      body: { token, otp },
-    }),
+    request("/auth/confirm-email", { method: "POST", body: { token, otp } }),
 
-  // POST /auth/login
-  // Response: { accessToken, refreshToken, tokenType, expiresIn }
   login: (email, password) =>
-    request("/auth/login", {
-      method: "POST",
-      body: { email, password },
-    }),
+    request("/auth/login", { method: "POST", body: { email, password } }),
 
-  // POST /auth/logout
   logout: () => request("/auth/logout", { method: "POST" }),
 
-  // POST /auth/refresh
-  // Body: { refreshToken }
+  logoutAll: () => request("/auth/logout-all", { method: "POST" }),
+
   refresh: (refreshToken) =>
     request("/auth/refresh", {
       method: "POST",
       body: { refreshToken },
-      headers: {}, // no auth header untuk refresh
+      headers: {},
     }),
 
-  // POST /auth/forgot-password
-  // Body: { email }
   forgotPassword: (email) =>
-    request("/auth/forgot-password", {
-      method: "POST",
-      body: { email },
-    }),
+    request("/auth/forgot-password", { method: "POST", body: { email } }),
 
-  // POST /auth/reset-password
-  // Body: { token, email, newPassword }
   resetPassword: (token, email, newPassword) =>
     request("/auth/reset-password", {
       method: "POST",
@@ -139,57 +133,195 @@ export const authApi = {
     }),
 };
 
-// ─── PROFILE endpoints ────────────────────────────────────────────────────────
+// ─── PROFILE ──────────────────────────────────────────────────────────────────
 export const profileApi = {
-  // GET /profile/me
   getMe: () => request("/profile/me"),
 
-  // PATCH /profile
-  // Body: { name, email, birthdate, timezone, currentPassword }
-  update: (data) =>
-    request("/profile", {
-      method: "PATCH",
-      body: data,
-    }),
+  update: (data) => request("/profile", { method: "PATCH", body: data }),
 
-  // PATCH /profile/password
-  // Body: { currentPassword, newPassword }
   changePassword: (currentPassword, newPassword) =>
     request("/profile/password", {
       method: "PATCH",
       body: { currentPassword, newPassword },
     }),
 
-  // POST /profile/confirm-email
-  // Body: { token }
+  updatePicture: (fileId) =>
+    request("/profile/picture", { method: "PATCH", body: { fileId } }),
+
   confirmEmailChange: (token) =>
-    request("/profile/confirm-email", {
-      method: "POST",
-      body: { token },
-    }),
+    request("/profile/confirm-email", { method: "POST", body: { token } }),
 };
 
-// ─── TRAINING REGIONS endpoints ───────────────────────────────────────────────
+// ─── TRAINING REGIONS ─────────────────────────────────────────────────────────
 export const regionsApi = {
-  // GET /training-regions — public, tidak butuh token
   list: () =>
-    fetch(`${BASE_URL}/training-regions`, {
-      headers: { Accept: "application/json" },
-    }).then((r) => r.json()),
+    fetch(`${BASE_URL}/training-regions`, { headers: { Accept: "application/json" } })
+      .then((r) => r.json()),
 
-  // GET /training-regions/:id
   get: (id) => request(`/training-regions/${id}`),
+
+  getByAreaId: (areaId) => request(`/training-regions/by-area/${areaId}`),
 };
 
-// ─── SUBSCRIPTION & PAYMENT endpoints ────────────────────────────────────────
-export const subscriptionApi = {
-  getPlans: () => request("/packages"),
+// ─── TIMEZONE ─────────────────────────────────────────────────────────────────
+export const timezoneApi = {
+  list: () =>
+    fetch(`${BASE_URL}/timezones`, { headers: { Accept: "application/json" } })
+      .then((r) => r.json()),
+};
 
-  checkout: (packageId) =>
-    request("/subscription/checkout", {
-      method: "POST",
-      body: { packageId },
-    }),
+// ─── SUBSCRIPTION & PAYMENT ───────────────────────────────────────────────────
+export const subscriptionApi = {
+  getPlans: () =>
+    fetch(`${BASE_URL}/packages`, { headers: { Accept: "application/json" } })
+      .then((r) => r.json()),
 
   getStatus: () => request("/subscription/me"),
+
+  checkout: (packageId) =>
+    request("/subscription/checkout", { method: "POST", body: { packageId } }),
+
+  subscribe: (packageId) =>
+    request("/subscription/subscribe", { method: "POST", body: { packageId } }),
+
+  cancel: () => request("/subscription/cancel", { method: "POST" }),
+
+  paymentHistory: (page = 1, limit = 20) =>
+    request(`/subscription/history?page=${page}&limit=${limit}`),
+};
+
+// ─── VOUCHERS ─────────────────────────────────────────────────────────────────
+export const voucherApi = {
+  list: (params = {}) => {
+    const q = buildQuery({ page: 1, limit: 20, ...params });
+    return request(`/vouchers${q ? "?" + q : ""}`);
+  },
+
+  validate: (code) =>
+    request("/vouchers/validate", { method: "POST", body: { code } }),
+
+  redeem: (code) =>
+    request("/vouchers/redeem", { method: "POST", body: { code } }),
+};
+
+// ─── DISCOURSE & SSO ──────────────────────────────────────────────────────────
+export const discourseApi = {
+  getGroups: () => request("/discourse/groups"),
+
+  // Initiates SSO login flow (redirects to Discourse)
+  ssoLogin: (returnPath) =>
+    request(
+      `/discourse/sso-login${returnPath ? `?return_path=${encodeURIComponent(returnPath)}` : ""}`
+    ),
+
+  // SSO gateway: verifies sso+sig params from Discourse callback
+  gateway: (sso, sig) =>
+    request("/discourse/gateway", { method: "POST", body: { sso, sig } }),
+};
+
+// ─── FILE MANAGER ─────────────────────────────────────────────────────────────
+export const fileManagerApi = {
+  upload: (file, isPublic = true) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("isPublic", isPublic ? "1" : "0");
+    return requestMultipart("/file-manager/upload", formData);
+  },
+
+  commit: (fileId) =>
+    request(`/file-manager/commit/${fileId}`, { method: "PATCH" }),
+
+  getDownloadUrl: (fileId) => `${BASE_URL}/file-manager/download/${fileId}`,
+};
+
+// ─── ADMIN ────────────────────────────────────────────────────────────────────
+export const adminApi = {
+  // ── Users ──
+  getUsers: (params = {}) => {
+    const q = buildQuery({ page: 1, limit: 100, ...params });
+    return request(`/admin/users${q ? "?" + q : ""}`);
+  },
+
+  getUser: (userId) => request(`/admin/users/${userId}`),
+
+  updateUser: (userId, data) =>
+    request(`/admin/users/${userId}`, { method: "PATCH", body: data }),
+
+  setUserPassword: (userId, newPassword) =>
+    request(`/admin/users/${userId}/password`, {
+      method: "PATCH",
+      body: { newPassword },
+    }),
+
+  verifyUser: (userId, data) =>
+    request(`/admin/users/${userId}/verify`, { method: "PATCH", body: data }),
+
+  updateDiscourseGroup: (userId, discourseGroupId) =>
+    request(`/admin/users/${userId}/discourse-group`, {
+      method: "PATCH",
+      body: { discourseGroupId },
+    }),
+
+  // ── Packages ──
+  getPackages: () => request("/admin/packages"),
+
+  getPackage: (id) => request(`/admin/packages/${id}`),
+
+  createPackage: (data) =>
+    request("/admin/packages", { method: "POST", body: data }),
+
+  updatePackage: (id, data) =>
+    request(`/admin/packages/${id}`, { method: "PATCH", body: data }),
+
+  deactivatePackage: (id) =>
+    request(`/admin/packages/${id}`, { method: "DELETE" }),
+
+  // ── Subscriptions ──
+  getSubscriptions: (params = {}) => {
+    const q = buildQuery({ page: 1, limit: 20, ...params });
+    return request(`/admin/subscriptions${q ? "?" + q : ""}`);
+  },
+
+  getSubscription: (id) => request(`/admin/subscriptions/${id}`),
+
+  syncSubscriptions: () =>
+    request("/admin/subscriptions/sync", { method: "POST" }),
+
+  // ── Payments ──
+  getPayments: (params = {}) => {
+    const q = buildQuery({ page: 1, limit: 20, ...params });
+    return request(`/admin/payments${q ? "?" + q : ""}`);
+  },
+
+  // ── Training Regions ──
+  createTrainingRegion: (data) =>
+    request("/admin/training-regions", { method: "POST", body: data }),
+
+  updateTrainingRegion: (id, data) =>
+    request(`/admin/training-regions/${id}`, { method: "PATCH", body: data }),
+
+  deleteTrainingRegion: (id) =>
+    request(`/admin/training-regions/${id}`, { method: "DELETE" }),
+
+  // ── Vouchers ──
+  getVouchers: (params = {}) => {
+    const q = buildQuery({ page: 1, limit: 20, ...params });
+    return request(`/admin/vouchers${q ? "?" + q : ""}`);
+  },
+
+  getVoucher: (code) => request(`/admin/vouchers/${code}`),
+
+  getVoucherUsage: (code, params = {}) => {
+    const q = buildQuery({ page: 1, limit: 20, ...params });
+    return request(`/admin/vouchers/${code}/usage${q ? "?" + q : ""}`);
+  },
+
+  createPoolVoucher: (data) =>
+    request("/admin/vouchers/pool", { method: "POST", body: data }),
+
+  grantPersonalVoucher: (data) =>
+    request("/admin/vouchers/personal", { method: "POST", body: data }),
+
+  revokeVoucher: (id) =>
+    request(`/admin/vouchers/${id}/revoke`, { method: "PATCH" }),
 };

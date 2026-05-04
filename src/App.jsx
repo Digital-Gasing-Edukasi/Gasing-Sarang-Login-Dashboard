@@ -14,11 +14,12 @@ import {
 } from '@/components/ui/select'
 
 import { cn } from '@/lib/utils'
-import { authApi, regionsApi, tokenStorage } from '@/lib/api'
+import { authApi, regionsApi, discourseApi, tokenStorage } from '@/lib/api'
 
-import SubscriptionPage  from '@/pages/SubscriptionPage'
-import PaymentSuccessPage from '@/pages/PaymentSuccessPage'
-import AdminDashboardPage from '@/pages/AdminDashboardPage'
+import SubscriptionPage    from '@/pages/SubscriptionPage'
+import PaymentSuccessPage  from '@/pages/PaymentSuccessPage'
+import AdminDashboardPage  from '@/pages/AdminDashboardPage'
+import MidtransTestPage    from '@/pages/MidtransTestPage'
 
 // ─── SHARED UI ───────────────────────────────────────────────────────────────
 function IconInput({ icon: Icon, iconRight, className, ...props }) {
@@ -843,6 +844,46 @@ function ResetPasswordPage({ token, email, onNavigate }) {
   )
 }
 
+// ─── PAGE: SSO CALLBACK ───────────────────────────────────────────────────────
+function SsoCallbackPage({ sso, sig, onLoginSuccess, onNavigate }) {
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    // Gunakan discourseApi.gateway() sesuai endpoint POST /discourse/gateway di backend
+    discourseApi.gateway(sso, sig)
+      .then(data => {
+        tokenStorage.setTokens(data.accessToken, data.refreshToken)
+        onLoginSuccess(data.user || { email: 'user@discourse.sso' })
+      })
+      .catch(e => setError(e.message || 'Gagal verifikasi SSO'))
+  }, [sso, sig, onLoginSuccess])
+
+  return (
+    <RightPanel>
+      <div className="flex flex-col items-center justify-center text-center space-y-4 animate-fade-in-up">
+        {error ? (
+          <>
+            <div className="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center mb-4">
+              <AlertCircle size={32} className="text-red-500" />
+            </div>
+            <h1 className="text-2xl font-bold text-foreground">Verifikasi Gagal</h1>
+            <p className="text-sm text-muted-foreground">{error}</p>
+            <Button className="mt-4" onClick={() => onNavigate('login')}>
+              Kembali ke Login
+            </Button>
+          </>
+        ) : (
+          <>
+            <Loader2 size={48} className="animate-spin text-primary mb-4" />
+            <h1 className="text-2xl font-bold text-foreground">Memverifikasi Akun...</h1>
+            <p className="text-sm text-muted-foreground">Mohon tunggu sebentar, kami sedang menghubungkan akun Anda.</p>
+          </>
+        )}
+      </div>
+    </RightPanel>
+  )
+}
+
 // ─── MAIN APP ─────────────────────────────────────────────────────────────────
 export default function App() {
   const [page, setPage]             = useState('login')
@@ -851,6 +892,7 @@ export default function App() {
   const [fpEmail, setFpEmail]       = useState('')
   const [resetToken, setResetToken] = useState('')
   const [resetEmail, setResetEmail] = useState('')
+  const [ssoParams, setSsoParams]   = useState(null)
   const [currentUser, setCurrentUser] = useState(null)
   const [activePlanName, setActivePlanName] = useState('')
 
@@ -860,8 +902,19 @@ export default function App() {
     const token = params.get('token')
     const emailParam = params.get('email')
     const adminParam = params.get('admin')
+    const midtransTest = params.get('midtrans-test')
 
-    if (adminParam === 'true') {
+    const ssoParam = params.get('sso')
+    const sigParam = params.get('sig')
+
+    if (midtransTest === 'true') {
+      setPage('midtrans-test')
+      // Tidak replace URL agar bisa refresh kembali ke halaman test
+    } else if (ssoParam && sigParam) {
+      setSsoParams({ sso: ssoParam, sig: sigParam })
+      setPage('sso-callback')
+      window.history.replaceState({}, '', window.location.pathname)
+    } else if (adminParam === 'true') {
       setPage('admin-dashboard')
       window.history.replaceState({}, '', window.location.pathname)
     } else if (paymentStatus === 'success') {
@@ -898,9 +951,29 @@ export default function App() {
     setPage('check-email')
   }
 
+  const handlePaymentSuccess = (planName) => {
+    if (planName) setActivePlanName(planName)
+    setPage('payment-success')
+  }
+
+  const handlePaymentPending = () => {
+    // Pembayaran pending → arahkan ke admin dashboard untuk lihat status
+    setPage('admin-dashboard')
+  }
+
   // ── Full-screen pages (no split layout) ───────────────────────────────────
+  if (page === 'midtrans-test') {
+    return <MidtransTestPage />
+  }
   if (page === 'subscription') {
-    return <SubscriptionPage user={currentUser} onSignOut={handleSignOut} />
+    return (
+      <SubscriptionPage
+        user={currentUser}
+        onSignOut={handleSignOut}
+        onPaymentSuccess={handlePaymentSuccess}
+        onPaymentPending={handlePaymentPending}
+      />
+    )
   }
   if (page === 'payment-success') {
     return <PaymentSuccessPage user={currentUser} onSignOut={handleSignOut} activePlanName={activePlanName} />
@@ -924,6 +997,7 @@ export default function App() {
     'signup':        <SignUpPage onNavigate={setPage} onOtpToken={handleOtpToken} />,
     'signup-otp':    <SignUpOtpPage onNavigate={setPage} otpToken={otpToken} email={regEmail} />,
     'signup-review': <SignUpReviewPage onNavigate={setPage} />,
+    'sso-callback':  ssoParams && <SsoCallbackPage sso={ssoParams.sso} sig={ssoParams.sig} onLoginSuccess={handleLoginSuccess} onNavigate={setPage} />
   }
 
   return (

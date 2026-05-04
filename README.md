@@ -1,6 +1,6 @@
 # GASING CIRCLE — Frontend SPA
 
-> **Versi:** 2.0.0 · **Tanggal:** 26 Maret 2026 · **Stack:** React 18 + Vite + Tailwind CSS + shadcn/ui
+> **Versi:** 2.2.0 · **Tanggal:** 4 Mei 2026 · **Stack:** React 18 + Vite + Tailwind CSS + shadcn/ui
 
 ---
 
@@ -16,9 +16,11 @@
 8. [Komponen & Arsitektur](#8-komponen--arsitektur)
 9. [API Layer](#9-api-layer)
 10. [Integrasi Midtrans](#10-integrasi-midtrans)
-11. [Kustomisasi](#11-kustomisasi)
-12. [Referensi Scripts](#12-referensi-scripts)
-13. [Changelog](#13-changelog)
+11. [Halaman Test Midtrans](#11-halaman-test-midtrans)
+12. [Discourse SSO](#12-discourse-sso)
+13. [Kustomisasi](#13-kustomisasi)
+14. [Referensi Scripts](#14-referensi-scripts)
+15. [Changelog](#15-changelog)
 
 ---
 
@@ -26,12 +28,15 @@
 
 Gasing Circle Frontend SPA adalah aplikasi **Single Page Application** berbasis React yang mencakup:
 
-- Alur autentikasi lengkap (Register, OTP, Login, Forgot Password)
-- Halaman pemilihan paket berlangganan
-- Integrasi pembayaran via **Midtrans Snap Redirect**
+- Alur autentikasi lengkap (Register, OTP, Login, Forgot Password, Reset Password)
+- Halaman pemilihan paket berlangganan (data dari API, fallback ke dummy)
+- Integrasi pembayaran via **Midtrans Snap** (popup mode)
 - Halaman konfirmasi pembayaran berhasil dengan link ke komunitas Discourse
+- Dashboard Admin untuk Verifikasi Akun dan Manajemen Pengguna
+- **Discourse SSO** — login via Discourse langsung terhubung ke akun app
+- **MidtransTestPage** — halaman developer untuk verifikasi konfigurasi Midtrans Sandbox
 
-Aplikasi terhubung ke backend **Express.js + Prisma + PostgreSQL** melalui Vite proxy untuk menghindari CORS, sehingga bisa diakses dari komputer lain dalam jaringan yang sama (DEV-MODE ONLY).
+Aplikasi terhubung ke backend **NestJS + Prisma + PostgreSQL** melalui `VITE_API_URL`. Vite proxy tersedia sebagai opsional untuk dev lokal.
 
 ---
 
@@ -55,13 +60,15 @@ Aplikasi terhubung ke backend **Express.js + Prisma + PostgreSQL** melalui Vite 
 ## 3. Struktur Folder
 
 ```
-Dev-Gasing-Circle-AuthPage/
-├── .env.example            ← template environment variables
-├── index.html
+Login page/
+├── .env                    ← variabel environment lokal (buat dari template di bawah)
+├── .env.staging            ← variabel environment untuk build staging
+├── index.html              ← entry HTML + Midtrans Snap script
 ├── package.json
 ├── vite.config.js          ← path alias + Vite proxy config
 ├── tailwind.config.js
 ├── postcss.config.js
+├── Reference/              ← dokumen referensi / Postman collection (diabaikan git)
 └── src/
     ├── main.jsx            ← entry point React
     ├── App.jsx             ← router utama + semua halaman auth
@@ -79,8 +86,10 @@ Dev-Gasing-Circle-AuthPage/
     │       ├── checkbox.jsx
     │       └── select.jsx
     └── pages/
-        ├── SubscriptionPage.jsx   ← halaman pilih paket
-        └── PaymentSuccessPage.jsx ← halaman pembayaran berhasil
+        ├── AdminDashboardPage.jsx  ← dashboard admin (Verifikasi & Manajemen)
+        ├── SubscriptionPage.jsx    ← halaman pilih paket
+        ├── PaymentSuccessPage.jsx  ← halaman pembayaran berhasil
+        └── MidtransTestPage.jsx    ← halaman test konfigurasi Midtrans (dev only)
 ```
 
 ---
@@ -89,45 +98,69 @@ Dev-Gasing-Circle-AuthPage/
 
 ```
 ┌─────────────┐
-│    Login    │──────────────────────────────────────┐
-└─────────────┘                                      │
-       │ Belum punya akun                            │ Login berhasil
-       ▼                                             ▼
-┌─────────────────┐                      ┌──────────────────────┐
-│ Sign Up Step 1  │                      │   Subscription Page  │
-│ (Buat Akun)     │                      │  (Pilih paket)       │
-└─────────────────┘                      └──────────────────────┘
-       │                                             │ Klik Berlangganan
-       ▼                                             ▼
-┌─────────────────┐                      ┌──────────────────────┐
-│ Sign Up Step 2  │                      │  Midtrans Payment    │
-│ (Verifikasi OTP)│                      │  (redirect external) │
-└─────────────────┘                      └──────────────────────┘
-       │                                             │ Bayar berhasil
-       ▼                                             ▼
-┌─────────────────┐                      ┌──────────────────────┐
-│ Sign Up Step 3  │                      │  Payment Success     │
-│ (Review/Selesai)│                      │  (konfirmasi)        │
-└─────────────────┘                      └──────────────────────┘
+│    Login    │──────────────────────────────────────────────┐
+└─────────────┘                                              │
+       │ Belum punya akun                                    │ Login berhasil
+       ▼                                                     ▼
+┌─────────────────┐                            ┌──────────────────────┐
+│ Sign Up Step 1  │                            │   Subscription Page  │
+│ (Buat Akun)     │                            │  (Pilih paket)       │
+└─────────────────┘                            └──────────────────────┘
+       │                                                     │ Klik Berlangganan
+       ▼                                                     ▼
+┌─────────────────┐                            ┌──────────────────────┐
+│ Sign Up Step 2  │                            │  Midtrans Snap Popup │
+│ (Verifikasi OTP)│                            │                      │
+└─────────────────┘                            └──────────────────────┘
+       │                                                     │ Bayar berhasil
+       ▼                                                     ▼
+┌─────────────────┐                            ┌──────────────────────┐
+│ Sign Up Step 3  │                            │  Payment Success     │
+│ (Review/Selesai)│                            │  (konfirmasi)        │
+└─────────────────┘                            └──────────────────────┘
        │
        ▼
-┌─────────────────┐
-│ Forgot Password │
-│ (opsional)      │
-└─────────────────┘
+┌─────────────────┐       ┌──────────────────┐
+│ Forgot Password │──────▶│   Check Email    │
+└─────────────────┘       └──────────────────┘
+                                   │ Klik link di email
+                                   ▼
+                          ┌──────────────────┐
+                          │  Reset Password  │
+                          └──────────────────┘
+
+Discourse SSO:
+/?sso=...&sig=... ──▶ SSO Callback ──▶ Subscription Page
 ```
 
 ### Route Keys (dikelola via `useState` di App.jsx)
 
-| Route Key           | Halaman                         |
-| ------------------- | ------------------------------- |
-| `'login'`           | Halaman login                   |
-| `'signup'`          | Sign Up Step 1 — buat akun      |
-| `'signup-otp'`      | Sign Up Step 2 — verifikasi OTP |
-| `'signup-review'`   | Sign Up Step 3 — review selesai |
-| `'forgot-password'` | Lupa password                   |
-| `'subscription'`    | Pilih paket berlangganan        |
-| `'payment-success'` | Pembayaran berhasil             |
+| Route Key           | Halaman                                        |
+| ------------------- | ---------------------------------------------- |
+| `'login'`           | Halaman login                                  |
+| `'signup'`          | Sign Up Step 1 — buat akun                    |
+| `'signup-otp'`      | Sign Up Step 2 — verifikasi OTP                |
+| `'signup-review'`   | Sign Up Step 3 — review selesai                |
+| `'forgot-password'` | Lupa password                                  |
+| `'check-email'`     | Cek email — instruksi setelah kirim reset link |
+| `'reset-password'`  | Reset password — form ubah password baru       |
+| `'subscription'`    | Pilih paket berlangganan                       |
+| `'payment-success'` | Pembayaran berhasil                            |
+| `'admin-dashboard'` | Dashboard Admin (Verifikasi & Manajemen Akun)  |
+| `'sso-callback'`    | Proses verifikasi SSO dari Discourse           |
+| `'midtrans-test'`   | Halaman test Midtrans (dev only)               |
+
+### Query Params yang Dideteksi App.jsx
+
+| Query Param       | Nilai      | Efek                                               |
+| ----------------- | ---------- | -------------------------------------------------- |
+| `?payment=success`| —          | Tampilkan PaymentSuccessPage                       |
+| `?plan=`          | nama paket | Nama paket ditampilkan di PaymentSuccessPage       |
+| `?token=`         | reset token| Buka ResetPasswordPage                             |
+| `?email=`         | email      | Prefill email di ResetPasswordPage                 |
+| `?admin=true`     | —          | Langsung buka AdminDashboardPage                   |
+| `?sso=&sig=`      | —          | Proses SSO Callback dari Discourse                 |
+| `?midtrans-test=true` | —      | Buka MidtransTestPage (halaman test dev)           |
 
 ---
 
@@ -142,13 +175,13 @@ Dev-Gasing-Circle-AuthPage/
 
 ```bash
 # 1. Masuk ke folder project
-cd Dev-Gasing-Circle-AuthPage
+cd "Login page"
 
 # 2. Install dependencies
 npm install
 
-# 3. Buat file .env dari template
-cp .env.example .env
+# 3. Buat file .env
+cp .env.staging .env   # lalu sesuaikan nilainya
 
 # 4. Isi .env (lihat bagian Konfigurasi Environment)
 
@@ -158,13 +191,6 @@ npm run dev
 
 Buka **http://localhost:5173** di browser.
 
-Untuk akses dari komputer lain di jaringan yang sama, gunakan URL Network yang muncul di terminal:
-
-```
-➜  Local:   http://localhost:5173/
-➜  Network: http://192.168.1.x:5173/   ← bagikan URL ini
-```
-
 ---
 
 ## 6. Konfigurasi Environment
@@ -172,30 +198,43 @@ Untuk akses dari komputer lain di jaringan yang sama, gunakan URL Network yang m
 Buat file `.env` di root folder (sejajar dengan `package.json`):
 
 ```env
-# Kosongkan — request ke backend ditangani Vite proxy
-VITE_API_URL=
+# URL backend API (langsung, tanpa trailing slash)
+VITE_API_URL=http://localhost:3000
 
 # URL komunitas Discourse
-VITE_DISCOURSE_URL=https://komunitas.gasingcircle.id
+VITE_DISCOURSE_URL=https://dev-komunitas.gasingacademy.org
 
 # Nomor WhatsApp perusahaan (format internasional tanpa + dan spasi)
-VITE_WA_NUMBER=628123456789
+VITE_WA_NUMBER=6287788000305
+
+# ─── Midtrans (Sandbox) ───────────────────────────────────────────────────────
+# Client Key → untuk frontend (Snap script di index.html)
+# Format: SB-Mid-client-...
+VITE_MIDTRANS_CLIENT_KEY=SB-Mid-client-xxxxxxxxxxxxxxxx
+
+# Server Key → HANYA untuk MidtransTestPage (halaman test dev lokal).
+# JANGAN gunakan di production. Format: SB-Mid-server-...
+VITE_MIDTRANS_SERVER_KEY=SB-Mid-server-xxxxxxxxxxxxxxxx
 ```
 
 > **Penting:** Setelah mengubah `.env`, selalu restart dev server (`Ctrl+C` lalu `npm run dev`).
+
+### File .env.staging
+
+Tersedia `.env.staging` untuk build ke environment staging:
+
+```bash
+npm run build:staging
+```
 
 ---
 
 ## 7. Vite Proxy
 
-Semua request ke `/api/*` otomatis diteruskan ke backend oleh Vite, sehingga tidak ada CORS error baik dari `localhost` maupun dari IP jaringan lokal.
-
-Konfigurasi ada di `vite.config.js`:
+Vite proxy dikonfigurasi di `vite.config.js` sebagai bantuan dev lokal (menghindari CORS saat backend belum support CORS ke localhost):
 
 ```js
 server: {
-  host: true,        // izinkan akses dari jaringan lokal
-  port: 5173,
   proxy: {
     '/api': {
       target: 'https://dev-dge-comunity.baka.work',
@@ -206,13 +245,7 @@ server: {
 }
 ```
 
-Seluruh request di `src/lib/api.js` menggunakan prefix `/api/v1/reg` tanpa domain:
-
-```js
-const BASE_PATH = "/api/v1/reg";
-```
-
-Sehingga bekerja dari komputer mana pun yang mengakses app ini.
+> Catatan: `src/lib/api.js` menggunakan `VITE_API_URL` secara langsung — bukan prefix `/api/`. Proxy ini hanya aktif jika `VITE_API_URL` mengarah ke path yang diawali `/api`.
 
 ---
 
@@ -222,9 +255,11 @@ Sehingga bekerja dari komputer mana pun yang mengakses app ini.
 
 | File                           | Halaman                                      | Keterangan                                   |
 | ------------------------------ | -------------------------------------------- | -------------------------------------------- |
-| `App.jsx`                      | Login, Sign Up, OTP, Review, Forgot Password | Semua halaman auth dalam satu file           |
-| `pages/SubscriptionPage.jsx`   | Subscription                                 | Pilih paket Tahunan / Bulanan                |
+| `App.jsx`                      | Login, Sign Up, OTP, Review, Forgot Password, Check Email, Reset Password, SSO Callback | Semua halaman auth + routing utama |
+| `pages/SubscriptionPage.jsx`   | Subscription                                 | Pilih paket Tahunan / Bulanan (data API + fallback dummy) |
 | `pages/PaymentSuccessPage.jsx` | Payment Success                              | Konfirmasi bayar + link Discourse + WhatsApp |
+| `pages/AdminDashboardPage.jsx` | Admin Dashboard                              | Verifikasi & Manajemen Akun pengguna         |
+| `pages/MidtransTestPage.jsx`   | Midtrans Test                                | Tool verifikasi Midtrans Sandbox (dev only)  |
 
 ### 8.2 Komponen shadcn/ui
 
@@ -246,6 +281,9 @@ Sehingga bekerja dari komputer mana pun yang mengakses app ini.
 | `<PlanCard />`      | Card pilihan paket di SubscriptionPage          |
 | `<Avatar />`        | Avatar initials user di navbar                  |
 | `<ErrorAlert />`    | Alert merah untuk error dari API                |
+| `<EnvelopeCluster />` | Ilustrasi SVG dekoratif di halaman forgot password |
+| `<AuthFullLayout />` | Layout full-width untuk halaman forgot/reset password |
+| `<SuccessToast />`  | Toast notifikasi hijau (auto-dismiss)           |
 
 ### 8.4 Custom Hook
 
@@ -261,37 +299,148 @@ Sehingga bekerja dari komputer mana pun yang mengakses app ini.
 
 ## 9. API Layer
 
-Semua HTTP call terpusat di `src/lib/api.js`.
+Semua HTTP call terpusat di `src/lib/api.js`. Base URL diambil dari `VITE_API_URL`.
 
 ### Token Management
 
 ```js
-tokenStorage.getAccess(); // ambil access token
-tokenStorage.getRefresh(); // ambil refresh token
-tokenStorage.setTokens(a, r); // simpan kedua token
-tokenStorage.clear(); // hapus semua token (logout)
+tokenStorage.getAccess();       // ambil access token
+tokenStorage.getRefresh();      // ambil refresh token
+tokenStorage.setTokens(a, r);  // simpan kedua token
+tokenStorage.clear();           // hapus semua token (logout)
 ```
 
-Token disimpan di `localStorage`. Request otomatis attach `Authorization: Bearer <token>` di setiap call. Jika response `401`, otomatis coba refresh token sebelum logout.
+Token disimpan di `localStorage`. Request otomatis attach `Authorization: Bearer <token>`. Jika response `401`, otomatis coba refresh token sebelum logout.
 
 ### Endpoint Summary
 
-| Grup         | Method | Path                      | Keterangan                                   |
-| ------------ | ------ | ------------------------- | -------------------------------------------- |
-| Auth         | POST   | `/auth/register`          | Daftar akun baru                             |
-| Auth         | POST   | `/auth/confirm-email`     | Verifikasi OTP                               |
-| Auth         | POST   | `/auth/login`             | Login → dapat `accessToken` + `refreshToken` |
-| Auth         | POST   | `/auth/logout`            | Logout                                       |
-| Auth         | POST   | `/auth/refresh`           | Refresh access token                         |
-| Auth         | POST   | `/auth/forgot-password`   | Kirim email reset password                   |
-| Auth         | POST   | `/auth/reset-password`    | Reset password dengan token                  |
-| Profile      | GET    | `/profile/me`             | Ambil data profil                            |
-| Profile      | PATCH  | `/profile`                | Update profil                                |
-| Profile      | PATCH  | `/profile/password`       | Ganti password                               |
-| Regions      | GET    | `/training-regions`       | List daerah pelatihan (public)               |
-| Subscription | GET    | `/subscriptions/plans`    | List paket (belum aktif)                     |
-| Subscription | POST   | `/subscriptions/checkout` | Buat transaksi Midtrans                      |
-| Subscription | GET    | `/subscriptions/status`   | Status langganan aktif                       |
+#### Auth (`authApi`)
+
+| Method | Path                      | Keterangan                                   |
+| ------ | ------------------------- | -------------------------------------------- |
+| POST   | `/auth/register`          | Daftar akun baru                             |
+| POST   | `/auth/confirm-email`     | Verifikasi OTP                               |
+| POST   | `/auth/login`             | Login → dapat `accessToken` + `refreshToken` |
+| POST   | `/auth/logout`            | Logout sesi ini                              |
+| POST   | `/auth/logout-all`        | Logout semua sesi                            |
+| POST   | `/auth/refresh`           | Refresh access token                         |
+| POST   | `/auth/forgot-password`   | Kirim email reset password                   |
+| POST   | `/auth/reset-password`    | Reset password dengan token                  |
+
+#### Profile (`profileApi`)
+
+| Method | Path                      | Keterangan                                   |
+| ------ | ------------------------- | -------------------------------------------- |
+| GET    | `/profile/me`             | Ambil data profil                            |
+| PATCH  | `/profile`                | Update profil                                |
+| PATCH  | `/profile/password`       | Ganti password                               |
+| PATCH  | `/profile/picture`        | Update foto profil (via fileId)              |
+| POST   | `/profile/confirm-email`  | Konfirmasi perubahan email                   |
+
+#### Training Regions (`regionsApi`)
+
+| Method | Path                              | Keterangan               |
+| ------ | --------------------------------- | ------------------------ |
+| GET    | `/training-regions`               | List semua daerah (public)|
+| GET    | `/training-regions/:id`           | Detail satu daerah       |
+| GET    | `/training-regions/by-area/:id`   | Filter by area ID        |
+
+#### Timezone (`timezoneApi`)
+
+| Method | Path         | Keterangan        |
+| ------ | ------------ | ----------------- |
+| GET    | `/timezones` | List semua timezone (public) |
+
+#### Subscription & Payment (`subscriptionApi`)
+
+| Method | Path                       | Keterangan                         |
+| ------ | -------------------------- | ---------------------------------- |
+| GET    | `/packages`                | List paket tersedia (public)       |
+| GET    | `/subscription/me`         | Status langganan aktif user        |
+| POST   | `/subscription/checkout`   | Buat transaksi Midtrans            |
+| POST   | `/subscription/subscribe`  | Subscribe paket (tanpa Midtrans)   |
+| POST   | `/subscription/cancel`     | Batalkan langganan aktif           |
+| GET    | `/subscription/history`    | Riwayat pembayaran                 |
+
+#### Voucher (`voucherApi`)
+
+| Method | Path                | Keterangan                    |
+| ------ | ------------------- | ----------------------------- |
+| GET    | `/vouchers`         | List voucher user             |
+| POST   | `/vouchers/validate`| Validasi kode voucher         |
+| POST   | `/vouchers/redeem`  | Redeem kode voucher           |
+
+#### Discourse & SSO (`discourseApi`)
+
+| Method | Path                 | Keterangan                              |
+| ------ | -------------------- | --------------------------------------- |
+| GET    | `/discourse/groups`  | List Discourse groups                   |
+| GET    | `/discourse/sso-login` | Inisiasi alur SSO login ke Discourse  |
+| POST   | `/discourse/gateway` | Verifikasi `sso` + `sig` dari callback  |
+
+#### File Manager (`fileManagerApi`)
+
+| Method | Path                            | Keterangan                    |
+| ------ | ------------------------------- | ----------------------------- |
+| POST   | `/file-manager/upload`          | Upload file (multipart)       |
+| PATCH  | `/file-manager/commit/:fileId`  | Commit file yang diupload     |
+| GET    | `/file-manager/download/:fileId`| URL download file             |
+
+#### Admin (`adminApi`)
+
+**Users**
+
+| Method | Path                              | Keterangan                          |
+| ------ | --------------------------------- | ----------------------------------- |
+| GET    | `/admin/users`                    | Daftar pengguna (support filter)    |
+| GET    | `/admin/users/:id`                | Detail satu pengguna                |
+| PATCH  | `/admin/users/:id`                | Update data pengguna                |
+| PATCH  | `/admin/users/:id/password`       | Set password pengguna               |
+| PATCH  | `/admin/users/:id/verify`         | Approve / Reject akun               |
+| PATCH  | `/admin/users/:id/discourse-group`| Ubah role (Discourse Group)         |
+
+**Packages**
+
+| Method | Path                  | Keterangan                   |
+| ------ | --------------------- | ---------------------------- |
+| GET    | `/admin/packages`     | List semua paket             |
+| GET    | `/admin/packages/:id` | Detail paket                 |
+| POST   | `/admin/packages`     | Buat paket baru              |
+| PATCH  | `/admin/packages/:id` | Update paket                 |
+| DELETE | `/admin/packages/:id` | Nonaktifkan paket            |
+
+**Subscriptions**
+
+| Method | Path                            | Keterangan                     |
+| ------ | ------------------------------- | ------------------------------ |
+| GET    | `/admin/subscriptions`          | List semua langganan           |
+| GET    | `/admin/subscriptions/:id`      | Detail langganan               |
+| POST   | `/admin/subscriptions/sync`     | Sinkronisasi status Midtrans   |
+
+**Payments**
+
+| Method | Path              | Keterangan              |
+| ------ | ----------------- | ----------------------- |
+| GET    | `/admin/payments` | List semua transaksi    |
+
+**Training Regions**
+
+| Method | Path                          | Keterangan             |
+| ------ | ----------------------------- | ---------------------- |
+| POST   | `/admin/training-regions`     | Tambah daerah baru     |
+| PATCH  | `/admin/training-regions/:id` | Update daerah          |
+| DELETE | `/admin/training-regions/:id` | Hapus daerah           |
+
+**Vouchers**
+
+| Method | Path                               | Keterangan                     |
+| ------ | ---------------------------------- | ------------------------------ |
+| GET    | `/admin/vouchers`                  | List semua voucher             |
+| GET    | `/admin/vouchers/:code`            | Detail voucher                 |
+| GET    | `/admin/vouchers/:code/usage`      | Riwayat pemakaian voucher      |
+| POST   | `/admin/vouchers/pool`             | Buat pool voucher              |
+| POST   | `/admin/vouchers/personal`         | Grant voucher personal         |
+| PATCH  | `/admin/vouchers/:id/revoke`       | Cabut voucher                  |
 
 ### JWT Token
 
@@ -299,10 +448,10 @@ Login menghasilkan dua token:
 
 ```json
 {
-  "accessToken": "...", // expires: 2 jam
-  "refreshToken": "...", // expires: ~60 hari
-  "tokenType": "Bearer",
-  "expiresIn": "2h"
+  "accessToken":  "...",
+  "refreshToken": "...",
+  "tokenType":    "Bearer",
+  "expiresIn":    "2h"
 }
 ```
 
@@ -310,91 +459,125 @@ Login menghasilkan dua token:
 
 ## 10. Integrasi Midtrans
 
-Metode yang digunakan: **Snap Redirect** (user diarahkan ke halaman Midtrans, bukan popup).
+Metode yang digunakan: **Snap Popup** — popup Midtrans muncul di atas halaman (bukan redirect ke halaman lain).
+
+### Konfigurasi index.html
+
+Script Midtrans Snap dimuat dari `index.html`:
+
+```html
+<!-- Gunakan app.midtrans.com/snap/snap.js untuk Production -->
+<script type="text/javascript"
+        src="https://app.sandbox.midtrans.com/snap/snap.js"
+        data-client-key="%VITE_MIDTRANS_CLIENT_KEY%">
+</script>
+```
+
+Ganti URL script saat deploy ke production:
+
+```
+https://app.midtrans.com/snap/snap.js
+```
 
 ### Flow
 
 ```
 1. User pilih paket → klik "Berlangganan"
-2. Frontend: POST /subscriptions/checkout { planId }
-3. Backend: buat transaksi Midtrans → return { redirectUrl }
-4. Frontend: window.location.href = redirectUrl
-5. User bayar di halaman Midtrans
-6. Midtrans redirect balik ke app: /?payment=success&plan=Annual+Visionary
-7. App.jsx deteksi query param → tampilkan PaymentSuccessPage
+2. Frontend: POST /subscription/checkout { packageId }
+3. Backend: buat transaksi Midtrans → return { snapToken }
+4. Frontend: window.snap.pay(snapToken, { onSuccess, onPending, onError })
+5. User bayar via popup Midtrans
+6. onSuccess → navigasi ke PaymentSuccessPage
+7. onPending → navigasi ke AdminDashboard (lihat status)
 ```
 
-### Menyesuaikan Endpoint Checkout
+### Endpoint Checkout
 
-Saat ini endpoint masih dummy. Setelah backend siap, update di `src/lib/api.js`:
+Di `src/lib/api.js`:
 
 ```js
-// Sesuaikan path dan field body dengan backend kamu
-checkout: (planId) => request('/subscriptions/checkout', {
-  method: 'POST',
-  body: { planId },   // ← ganti field sesuai kebutuhan backend
-}),
-```
-
-### Bypass Sementara (Development)
-
-Selama endpoint belum siap, ada bypass di `src/pages/SubscriptionPage.jsx` yang mensimulasikan redirect Midtrans:
-
-```js
-// ⚠️ BYPASS SEMENTARA — hapus block ini kalau endpoint sudah siap
-const params = new URLSearchParams({
-  payment: "success",
-  plan: encodeURIComponent(activePlan?.planLabel || ""),
-});
-window.location.href = `${window.location.pathname}?${params.toString()}`;
-return;
-// ⚠️ END BYPASS
-```
-
-Hapus 4 baris di atas saat endpoint sudah tersedia.
-
-### Redirect URL untuk Midtrans
-
-Daftarkan URL ini di dashboard Midtrans sebagai **Finish Redirect URL**:
-
-```
-https://domain-kamu.com/?payment=success&plan={PLAN_NAME}
-```
-
-Untuk development:
-
-```
-http://localhost:5173/?payment=success
+checkout: (packageId) =>
+  request('/subscription/checkout', { method: 'POST', body: { packageId } }),
 ```
 
 ---
 
-## 11. Kustomisasi
+## 11. Halaman Test Midtrans
 
-### 11.1 Mengganti Data Paket
+Akses via: **`http://localhost:5173/?midtrans-test=true`**
 
-Edit array `DUMMY_PLANS` di `src/pages/SubscriptionPage.jsx`:
+Halaman khusus developer untuk memverifikasi konfigurasi Midtrans Sandbox **tanpa backend**. Tidak perlu deploy atau jalankan server backend.
+
+### Fitur
+
+| Fitur                      | Keterangan                                               |
+| -------------------------- | -------------------------------------------------------- |
+| Status Check               | Cek `window.snap`, Client Key, dan Server Key            |
+| **Cara 1 — Direct Test**   | Generate token langsung ke Midtrans Sandbox API, lalu buka popup otomatis |
+| **Cara 2 — Manual Token**  | Paste Snap Token dari Postman / backend, lalu buka popup |
+| Hasil popup                | Tampilkan status: success / pending / error / closed     |
+| Kartu simulasi             | Informasi nomor kartu kredit simulasi Sandbox            |
+
+### Requirement
+
+```env
+VITE_MIDTRANS_CLIENT_KEY=SB-Mid-client-...   # wajib (untuk window.snap)
+VITE_MIDTRANS_SERVER_KEY=SB-Mid-server-...   # wajib untuk Cara 1 (Direct Test)
+```
+
+> **Perhatian:** `VITE_MIDTRANS_SERVER_KEY` hanya boleh ada di `.env` lokal. Jangan commit ke repository atau deploy ke production.
+
+---
+
+## 12. Discourse SSO
+
+Aplikasi mendukung login melalui Discourse SSO. Saat user login di Discourse dan diarahkan kembali ke app:
+
+```
+/?sso=<payload>&sig=<signature>
+```
+
+App.jsx mendeteksi param tersebut, memproses melalui `discourseApi.gateway()`, menyimpan token, dan mengarahkan user ke SubscriptionPage.
+
+### Flow
+
+```
+1. User klik "Login with Discourse" di Discourse
+2. Discourse redirect ke app: /?sso=...&sig=...
+3. App.jsx deteksi param → tampilkan SsoCallbackPage (loading)
+4. discourseApi.gateway(sso, sig) → POST /discourse/gateway
+5. Backend verifikasi → return { accessToken, refreshToken, user }
+6. Token disimpan → navigasi ke Subscription
+```
+
+---
+
+## 13. Kustomisasi
+
+### 13.1 Mengganti Data Paket
+
+Paket diambil dari API `/packages`. Jika API tidak tersedia, fallback ke `DUMMY_PLANS` di `src/pages/SubscriptionPage.jsx`.
+
+Untuk mengubah data dummy:
 
 ```js
 const DUMMY_PLANS = [
   {
-    id: "annual",
+    id: "dummy-annual",
     name: "Tahunan",
     priceMonthly: 33000,
     priceTotal: 400000,
     originalPrice: 39900,
     discount: 20,
     label: "Kamu Hemat 20%",
-    planLabel: "Annual Visionary", // ← nama yang tampil di PaymentSuccess
     recommended: true,
+    planLabel: "Tahunan",
   },
   // tambah paket lain di sini
 ];
 ```
 
-Atau uncomment fetch dari API di `useEffect` dalam `SubscriptionPage.jsx` kalau backend sudah siap.
-
-### 11.2 Mengganti Nomor WhatsApp
+### 13.2 Mengganti Nomor WhatsApp
 
 Update `.env`:
 
@@ -402,15 +585,15 @@ Update `.env`:
 VITE_WA_NUMBER=628111222333
 ```
 
-### 11.3 Mengganti URL Discourse
+### 13.3 Mengganti URL Discourse
 
 Update `.env`:
 
 ```
-VITE_DISCOURSE_URL=https://dev-komunitas.gasingacademy.org
+VITE_DISCOURSE_URL=https://komunitas.gasingcircle.id
 ```
 
-### 11.4 Mengganti Tema Warna
+### 13.4 Mengganti Tema Warna
 
 Ubah CSS variables di `src/index.css`:
 
@@ -421,22 +604,85 @@ Ubah CSS variables di `src/index.css`:
 }
 ```
 
-Untuk SubscriptionPage dan PaymentSuccessPage yang pakai warna biru langsung (Tailwind class `bg-blue-600`), cari dan ganti `blue-600` dengan warna yang diinginkan.
+### 13.5 Midtrans Production
+
+1. Ganti script di `index.html`:
+   ```
+   https://app.midtrans.com/snap/snap.js
+   ```
+2. Ganti Client Key di `.env` ke Production key (tanpa prefix `SB-`).
+3. Hapus `VITE_MIDTRANS_SERVER_KEY` dari `.env`.
 
 ---
 
-## 12. Referensi Scripts
+## 14. Referensi Scripts
 
-| Command           | Fungsi                                            |
-| ----------------- | ------------------------------------------------- |
-| `npm install`     | Install semua dependencies                        |
-| `npm run dev`     | Dev server di `localhost:5173` dengan HMR + proxy |
-| `npm run build`   | Build produksi ke folder `dist/`                  |
-| `npm run preview` | Preview hasil build secara lokal                  |
+| Command                | Fungsi                                            |
+| ---------------------- | ------------------------------------------------- |
+| `npm install`          | Install semua dependencies                        |
+| `npm run dev`          | Dev server di `localhost:5173` dengan HMR + proxy |
+| `npm run build`        | Build produksi ke folder `dist/`                  |
+| `npm run build:staging`| Build dengan mode staging (pakai `.env.staging`)  |
+| `npm run preview`      | Preview hasil build secara lokal                  |
 
 ---
 
-## 13. Changelog
+## 15. Changelog
+
+### v2.2.1 — 4 Mei 2026 *(Staging Build Preparation)*
+
+Sesi ini berfokus pada perbaikan bug dan konfigurasi agar project siap dinaikkan ke environment **Staging**.
+
+**🐛 Bug Fix**
+
+- **[App.jsx]** Halaman awal (`useState`) dikembalikan dari `'subscription'` (sisa testing) ke `'login'` (production-ready)
+- **[SubscriptionPage.jsx]** Perbaikan redirect setelah pembayaran Midtrans — `window.location.href` diganti dengan callback props karena app menggunakan state-based router (bukan URL router):
+  - `onSuccess` → memanggil `onPaymentSuccess(planLabel)` → navigasi ke `PaymentSuccessPage`
+  - `onPending` → memanggil `onPaymentPending()` → navigasi ke `AdminDashboardPage`
+- **[App.jsx]** Perbaikan endpoint SSO — `authApi.ssoVerify()` (endpoint tidak ada) diganti `discourseApi.gateway()` sesuai spesifikasi backend (`POST /discourse/gateway`)
+- **[App.jsx]** Import `discourseApi` ditambahkan ke baris import `api.js`
+
+**⚙️ Konfigurasi Staging**
+
+- Tambah file `.env.staging` dengan variabel khusus environment staging
+- Tambah script `build:staging` di `package.json` → menjalankan `vite build --mode staging`
+- Dokumentasi URL yang perlu didaftarkan ke Backend/Discourse/Midtrans:
+  - **SSO Callback URL:** `https://dev-komunitas.gasingacademy.org/register`
+  - **Midtrans Finish URL:** `https://dev-komunitas.gasingacademy.org/register?payment=success`
+
+**📋 Yang Masih Ditunggu (Belum Bisa Dijalankan)**
+- Konfigurasi SSO di sisi Discourse — menunggu tim Backend mendaftarkan Callback URL
+
+---
+
+### v2.2.0 — 4 Mei 2026
+
+- ✅ Tambah `MidtransTestPage` — tool verifikasi Midtrans Sandbox tanpa backend (`/?midtrans-test=true`)
+- ✅ Discourse SSO — `SsoCallbackPage` + `discourseApi.gateway()` untuk login via Discourse
+- ✅ Halaman `CheckEmailPage` & `ResetPasswordPage` — flow Forgot Password kini lengkap end-to-end
+- ✅ Query param `?admin=true` untuk akses langsung AdminDashboardPage
+- ✅ API layer (`api.js`) diperluas besar-besaran:
+  - Tambah `timezoneApi` (list timezone)
+  - Tambah `voucherApi` (validate, redeem)
+  - Tambah `discourseApi` (groups, ssoLogin, gateway)
+  - Tambah `fileManagerApi` (upload, commit, download)
+  - `subscriptionApi` diperbarui — endpoint `/packages`, `/subscription/me`, `subscribe`, `cancel`, `paymentHistory`
+  - `adminApi` diperluas — manajemen package, subscription, payment, training region, dan voucher
+- ✅ Midtrans mode berubah dari **Snap Redirect** ke **Snap Popup** (`window.snap.pay`)
+- ✅ Tambah `VITE_MIDTRANS_CLIENT_KEY` & `VITE_MIDTRANS_SERVER_KEY` di environment
+- ✅ `index.html` — Midtrans Snap script dengan `data-client-key` dari env
+- ✅ Tambah `.env.staging` + script `build:staging` di `package.json`
+- ✅ `SubscriptionPage` — paket diambil dari API `/packages`, `DUMMY_PLANS` sebagai fallback
+- ✅ `AdminDashboardPage` — UX approve/reject: undo toast 5 detik + modal konfirmasi
+
+### v2.1.0 — 30 April 2026
+
+- ✅ Tambah `AdminDashboardPage` — Interface utama admin
+- ✅ Dual Tab Sistem — Mendukung navigasi antara *Verifikasi Akun* dan *Manajemen Akun*
+- ✅ Custom Filter Popover — Filter interaktif berdasarkan Role dan Status Berlangganan
+- ✅ Export Data CSV — Fitur export terpisah sesuai dengan struktur kolom tab yang aktif
+- ✅ Sticky Column & Layout Fixed — Sidebar tidak bergeser saat scrolling pada tabel data
+- ✅ Persiapan `adminApi` — Ekstraksi API endpoints dari Postman ke `api.js`
 
 ### v2.0.0 — 26 Maret 2026
 

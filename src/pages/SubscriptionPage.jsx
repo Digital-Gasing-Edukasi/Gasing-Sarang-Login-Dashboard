@@ -1,27 +1,61 @@
 // src/pages/SubscriptionPage.jsx
 import React, { useState, useEffect } from "react";
-import { CheckCircle2, LogOut, Loader2, AlertCircle } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { LogOut, Loader2, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { subscriptionApi, tokenStorage } from "@/lib/api";
+import { subscriptionApi } from "@/lib/api";
 
-// ─── DATA DUMMY ───────────────────────────────────────────────────────────────
-// Nanti diganti dengan data dari API /subscriptions/plans
+// Transform API package response → UI plan format
+function transformPlan(pkg) {
+  const isAnnual =
+    pkg.durationUnit === "year" ||
+    (pkg.durationUnit === "month" && pkg.duration >= 12);
+  const months =
+    pkg.durationUnit === "year" ? pkg.duration * 12 : pkg.duration || 1;
+
+  if (isAnnual) {
+    return {
+      id: pkg.id,
+      name: pkg.name,
+      billingCycle: "annual",
+      priceMonthly: Math.round(pkg.price / months),
+      priceTotal: pkg.price,
+      originalPrice: null,
+      discount: null,
+      label: null,
+      recommended: true,
+      planLabel: pkg.name,
+    };
+  }
+  return {
+    id: pkg.id,
+    name: pkg.name,
+    billingCycle: "monthly",
+    priceMonthly: pkg.price,
+    priceTotal: null,
+    originalPrice: null,
+    discount: null,
+    label: null,
+    recommended: false,
+    planLabel: pkg.name,
+  };
+}
+
+// ─── DATA DUMMY (fallback jika API tidak tersedia) ────────────────────────────
 const DUMMY_PLANS = [
   {
-    id: "annual",
+    id: "dummy-annual",
     name: "Tahunan",
     billingCycle: "annual",
-    priceMonthly: 33000, // harga per bulan yang ditampilkan
-    priceTotal: 400000, // total tagihan per tahun
-    originalPrice: 39900, // harga coret (harga bulanan tanpa diskon)
-    discount: 20, // persen hemat
+    priceMonthly: 33000,
+    priceTotal: 400000,
+    originalPrice: 39900,
+    discount: 20,
     label: "Kamu Hemat 20%",
     recommended: true,
-    planLabel: "Annual Visionary",
+    planLabel: "Tahunan",
   },
   {
-    id: "monthly",
+    id: "dummy-monthly",
     name: "Bulanan",
     billingCycle: "monthly",
     priceMonthly: 39900,
@@ -30,7 +64,7 @@ const DUMMY_PLANS = [
     discount: null,
     label: null,
     recommended: false,
-    planLabel: "Monthly Visionary",
+    planLabel: "Bulanan",
   },
 ];
 
@@ -54,7 +88,7 @@ function Avatar({ name = "" }) {
     .slice(0, 2)
     .toUpperCase();
   return (
-    <div className="w-9 h-9 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-sm font-semibold">
+    <div className="w-9 h-9 rounded-full bg-[#fce4e4] text-red-500 flex items-center justify-center text-sm font-semibold">
       {initials || "U"}
     </div>
   );
@@ -66,16 +100,16 @@ function PlanCard({ plan, selected, onSelect }) {
     <div
       onClick={() => onSelect(plan.id)}
       className={cn(
-        "relative rounded-2xl border-2 p-5 cursor-pointer transition-all duration-200 bg-white",
+        "relative rounded-[24px] border-2 p-8 cursor-pointer transition-all duration-300 bg-white",
         selected
-          ? "border-blue-500 shadow-md shadow-blue-100"
-          : "border-gray-200 hover:border-gray-300",
+          ? "border-blue-600 shadow-[0_0_40px_rgba(59,130,246,0.15)]"
+          : "border-gray-200 hover:border-gray-300"
       )}
     >
       {/* Badge hemat */}
       {plan.label && (
-        <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
-          <span className="bg-cyan-400 text-white text-xs font-semibold px-3 py-1 rounded-full whitespace-nowrap">
+        <div className="absolute -top-3.5 right-6 z-10">
+          <span className="bg-[#48b2ff] text-white text-xs font-medium px-4 py-1.5 rounded-full whitespace-nowrap shadow-sm">
             {plan.label}
           </span>
         </div>
@@ -84,58 +118,51 @@ function PlanCard({ plan, selected, onSelect }) {
       <div className="flex items-center justify-between">
         <div>
           {/* Nama paket */}
-          <p
-            className={cn(
-              "text-base font-semibold mb-1",
-              selected ? "text-blue-600" : "text-gray-700",
-            )}
-          >
+          <p className="text-gray-500 text-[15px] font-semibold mb-3">
             {plan.name}
           </p>
 
           {/* Harga */}
-          <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-bold text-gray-900">
+          <div className="flex items-baseline gap-2 mb-2">
+            <span className="text-[32px] font-bold text-gray-900 leading-none">
               Rp{formatRp(plan.priceMonthly)}
             </span>
-            <span className="text-sm text-gray-500">/bln</span>
+            <span className="text-sm font-medium text-gray-900">/bln</span>
             {plan.originalPrice && (
-              <span className="text-sm text-red-400 line-through">
+              <span className="text-sm font-medium text-red-400 line-through ml-1">
                 Rp{formatRp(plan.originalPrice)}
               </span>
             )}
           </div>
 
           {/* Tagihan tahunan */}
-          {plan.priceTotal && (
-            <p className="text-xs text-gray-400 mt-1">
-              Tagihan per-tahun Rp{formatRp(plan.priceTotal)}
-            </p>
-          )}
+          <div className="min-h-[20px]">
+            {plan.priceTotal && (
+              <p className="text-xs font-medium text-gray-400">
+                Tagihan per-tahun Rp{formatRp(plan.priceTotal)}
+              </p>
+            )}
+          </div>
         </div>
 
         {/* Checkbox */}
         <div
           className={cn(
-            "w-6 h-6 rounded flex items-center justify-center border-2 transition-all shrink-0",
+            "w-7 h-7 rounded-md flex items-center justify-center border-[2px] transition-all shrink-0 ml-4",
             selected
               ? "bg-blue-600 border-blue-600"
-              : "border-gray-300 bg-white",
+              : "border-gray-200 bg-white"
           )}
         >
           {selected && (
             <svg
-              className="w-3.5 h-3.5 text-white"
+              className="w-4 h-4 text-white"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
-              strokeWidth={3}
+              strokeWidth={3.5}
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M5 13l4 4L19 7"
-              />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
             </svg>
           )}
         </div>
@@ -144,42 +171,94 @@ function PlanCard({ plan, selected, onSelect }) {
   );
 }
 
+// ─── BACKGROUND DECORATIONS ──────────────────────────────────────────────────
+function Decorations() {
+  return (
+    <>
+      {/* Background gradient & blobs */}
+      <div className="absolute inset-0 bg-gradient-to-br from-[#f0f6ff] via-[#f7fafe] to-[#f0f6ff] pointer-events-none -z-20" />
+      
+      {/* Dark Navy Wave Background */}
+      <svg className="absolute bottom-0 left-0 w-full text-[#0a1128] pointer-events-none -z-10" viewBox="0 0 1440 320" preserveAspectRatio="none" style={{height: '40vh', minHeight: '320px'}}>
+        <path fill="currentColor" fillOpacity="1" d="M0,256L48,229.3C96,203,192,149,288,144C384,139,480,181,576,192C672,203,768,181,864,154.7C960,128,1056,96,1152,106.7C1248,117,1344,171,1392,197.3L1440,224L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"></path>
+      </svg>
+    </>
+  );
+}
+
 // ─── MAIN PAGE ────────────────────────────────────────────────────────────────
-export default function SubscriptionPage({ user, onSignOut }) {
-  const [selectedPlan, setSelectedPlan] = useState("annual"); // default tahunan
-  const [plans, setPlans] = useState(DUMMY_PLANS);
+export default function SubscriptionPage({ user, onSignOut, onPaymentSuccess, onPaymentPending }) {
+  const [selectedPlan, setSelectedPlan] = useState(null);
+  const [plans, setPlans] = useState([]);
+  const [loadingPlans, setLoadingPlans] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // Uncomment ini kalau backend sudah siap untuk fetch plans
-  // useEffect(() => {
-  //   subscriptionApi.getPlans()
-  //     .then(data => setPlans(data))
-  //     .catch(() => {}) // fallback ke dummy jika gagal
-  // }, [])
+  useEffect(() => {
+    subscriptionApi.getPlans()
+      .then((data) => {
+        const pkgs = Array.isArray(data) ? data : (data.data || []);
+        const mapped = pkgs.filter((p) => p.isActive !== false).map(transformPlan);
+
+        // Jika API berhasil tapi tidak mengembalikan data, gunakan dummy
+        const finalPlans = mapped.length > 0 ? mapped : DUMMY_PLANS;
+        setPlans(finalPlans);
+        const recommended = finalPlans.find((p) => p.recommended) || finalPlans[0];
+        if (recommended) setSelectedPlan(recommended.id);
+      })
+      .catch(() => {
+        // Jika API tidak bisa diakses (backend tidak jalan), gunakan data dummy
+        setPlans(DUMMY_PLANS);
+        const recommended = DUMMY_PLANS.find((p) => p.recommended) || DUMMY_PLANS[0];
+        if (recommended) setSelectedPlan(recommended.id);
+      })
+      .finally(() => setLoadingPlans(false));
+  }, []);
 
   const handleCheckout = async () => {
-    // ⚠️ BYPASS SEMENTARA — hapus block ini kalau endpoint sudah siap
-    const params = new URLSearchParams({
-      payment: "success",
-      plan: encodeURIComponent(activePlan?.planLabel || activePlan?.name || ""),
-    });
-    window.location.href = `${window.location.pathname}?${params.toString()}`;
-    return;
-    // ⚠️ END BYPASS
-
+    if (!selectedPlan) return;
     setError("");
     setLoading(true);
     try {
-      // POST /subscriptions/checkout
-      // ⚠️ Ganti planId sesuai field yang diharapkan backend
       const data = await subscriptionApi.checkout(selectedPlan);
 
-      // Backend return redirectUrl → arahkan ke Midtrans
-      if (data.redirectUrl) {
+      // Prioritaskan metode Midtrans Snap Popup jika token/snapToken tersedia dari API
+      if (data.token || data.snapToken) {
+        const snapToken = data.token || data.snapToken;
+        const currentPlan = plans.find((p) => p.id === selectedPlan);
+        const planLabel = currentPlan?.planLabel || currentPlan?.name || '';
+
+        // Memastikan script window.snap sudah ter-load dari index.html
+        if (window.snap) {
+          window.snap.pay(snapToken, {
+            onSuccess: function (result) {
+              console.log("Pembayaran sukses!", result);
+              // Navigasi via state-based router, bukan window.location.href
+              onPaymentSuccess?.(planLabel);
+            },
+            onPending: function (result) {
+              console.log("Menunggu pembayaran!", result);
+              // Navigasi ke admin dashboard untuk lihat status
+              onPaymentPending?.();
+            },
+            onError: function (result) {
+              console.log("Pembayaran gagal!", result);
+              setError("Pembayaran gagal atau kedaluwarsa. Silakan coba lagi.");
+            },
+            onClose: function () {
+              console.log("Popup ditutup tanpa menyelesaikan pembayaran");
+              setError("Pembayaran belum diselesaikan.");
+            }
+          });
+        } else {
+          throw new Error("Midtrans script belum siap.");
+        }
+      }
+      // Fallback jika API mengembalikan redirect URL langsung (Snap Redirect)
+      else if (data.redirectUrl) {
         window.location.href = data.redirectUrl;
       } else {
-        throw new Error("URL pembayaran tidak ditemukan");
+        throw new Error("Data pembayaran tidak valid dari server");
       }
     } catch (e) {
       setError(e.message || "Gagal memproses pembayaran, coba lagi");
@@ -188,144 +267,120 @@ export default function SubscriptionPage({ user, onSignOut }) {
     }
   };
 
-  const activePlan = plans.find((p) => p.id === selectedPlan);
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-sky-50 to-cyan-100 relative overflow-hidden">
-      {/* Decorative dashed lines background */}
-      <svg
-        className="absolute inset-0 w-full h-full pointer-events-none opacity-30"
-        xmlns="http://www.w3.org/2000/svg"
-      >
-        <defs>
-          <pattern
-            id="dashed"
-            width="40"
-            height="40"
-            patternUnits="userSpaceOnUse"
-          >
-            <path
-              d="M 40 0 L 0 0 0 40"
-              fill="none"
-              stroke="#93c5fd"
-              strokeWidth="0.5"
-              strokeDasharray="4 4"
-            />
-          </pattern>
-        </defs>
-        <rect width="100%" height="100%" fill="url(#dashed)" />
-      </svg>
-
-      {/* Curved bottom */}
-      <div className="absolute bottom-0 left-0 right-0 h-48 bg-gradient-to-r from-cyan-400 to-blue-500 rounded-t-[60px]" />
+    <div className="min-h-screen relative overflow-hidden font-sans z-0">
+      <Decorations />
 
       {/* ── NAVBAR ── */}
-      <nav className="relative z-10 flex items-center justify-between px-8 py-4 bg-white/80 backdrop-blur border-b border-gray-100">
-        <div className="flex items-center gap-2.5">
+      <nav className="relative z-10 flex items-center justify-between px-8 py-5">
+        <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center">
             <span className="text-white font-bold text-sm">G</span>
           </div>
-          <span className="font-semibold text-gray-900">Gasing Circle</span>
+          <span className="font-bold text-gray-900 text-lg tracking-tight">Gasing Circle</span>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-4">
           <button
             onClick={onSignOut}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition-colors"
+            className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-gray-50 border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors"
           >
-            <LogOut size={15} />
+            <LogOut size={16} />
             Sign Out
           </button>
-          <Avatar name={user?.name || user?.profile?.namaLengkap || ""} />
+          <Avatar name={user?.name || user?.profile?.namaLengkap || "HK"} />
         </div>
       </nav>
 
       {/* ── CONTENT ── */}
-      <div className="relative z-10 max-w-6xl mx-auto px-8 pt-16 pb-32 grid lg:grid-cols-2 gap-16 items-center">
+      <div className="relative z-10 max-w-[1100px] mx-auto px-6 pt-16 pb-32 grid lg:grid-cols-2 gap-20 items-center">
         {/* Kiri — copywriting */}
-        <div className="animate-fade-in-up">
-          <span className="inline-block border border-blue-300 text-blue-600 text-xs font-medium px-3 py-1 rounded-full mb-6 bg-white/60">
+        <div className="animate-fade-in-up pr-4">
+          <span className="inline-block border border-[#7db3ff] text-blue-600 text-[13px] font-medium px-4 py-1.5 rounded-full mb-8 bg-white/50">
             Satu Akses, Semua Benefit
           </span>
-          <h1 className="text-4xl lg:text-5xl font-bold text-gray-900 leading-tight mb-8">
+          <h1 className="text-[44px] lg:text-[52px] font-medium text-[#111827] leading-[1.1] mb-10 tracking-tight">
             Berkembang Lebih
             <br />
             Cepat Bersama
             <br />
-            Gasing Circle
+            <span className="font-bold relative inline-block mt-1">
+              Gasing Circle
+              {/* Green underline SVG */}
+              <svg className="absolute w-full h-3 -bottom-1 left-0 text-[#22c55e]" viewBox="0 0 100 10" preserveAspectRatio="none">
+                <path d="M0 5 Q 50 10 100 5" stroke="currentColor" strokeWidth="6" fill="transparent" strokeLinecap="round" />
+              </svg>
+            </span>
           </h1>
-          <ul className="space-y-4">
+          <ul className="space-y-5">
             {BENEFITS.map((b, i) => (
-              <li key={i} className="flex items-start gap-3">
-                <div className="w-6 h-6 rounded-full bg-green-500 flex items-center justify-center shrink-0 mt-0.5">
-                  <svg
-                    className="w-3.5 h-3.5 text-white"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    strokeWidth={3}
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M5 13l4 4L19 7"
-                    />
+              <li key={i} className="flex items-start gap-4">
+                <div className="w-6 h-6 rounded-full bg-[#22c55e] flex items-center justify-center shrink-0 mt-0.5">
+                  <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                   </svg>
                 </div>
-                <p className="text-gray-700 text-sm leading-relaxed">{b}</p>
+                <p className="text-gray-600 text-[15px] leading-relaxed font-medium">{b}</p>
               </li>
             ))}
           </ul>
         </div>
 
         {/* Kanan — plan cards */}
-        <div className="animate-fade-in-up delay-200 space-y-4">
-          {plans.map((plan) => (
-            <PlanCard
-              key={plan.id}
-              plan={plan}
-              selected={selectedPlan === plan.id}
-              onSelect={setSelectedPlan}
-            />
-          ))}
+        <div className="animate-fade-in-up delay-200 space-y-6 relative">
+
+          <div className="space-y-5">
+            {loadingPlans ? (
+              <div className="flex items-center justify-center py-12 text-gray-400">
+                <Loader2 size={28} className="animate-spin" />
+              </div>
+            ) : plans.length === 0 ? (
+              <div className="text-center py-12 text-gray-400 text-sm">
+                Paket langganan tidak tersedia saat ini.
+              </div>
+            ) : (
+              plans.map((plan) => (
+                <PlanCard
+                  key={plan.id}
+                  plan={plan}
+                  selected={selectedPlan === plan.id}
+                  onSelect={setSelectedPlan}
+                />
+              ))
+            )}
+          </div>
 
           {/* Error */}
           {error && (
-            <div className="flex items-start gap-2 rounded-lg bg-red-50 border border-red-200 px-3.5 py-3 text-sm text-red-700">
+            <div className="flex items-start gap-2 rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
               <AlertCircle size={16} className="mt-0.5 shrink-0" />
               <span>{error}</span>
             </div>
           )}
 
           {/* CTA Button */}
-          <button
-            onClick={handleCheckout}
-            disabled={loading}
-            className={cn(
-              "w-full py-3.5 rounded-xl font-semibold text-white text-sm transition-all duration-200",
-              "bg-blue-600 hover:bg-blue-700 active:scale-[0.98]",
-              "disabled:opacity-60 disabled:cursor-not-allowed",
-              "flex items-center justify-center gap-2",
-            )}
-          >
-            {loading ? (
-              <>
-                <Loader2 size={16} className="animate-spin" /> Memproses...
-              </>
-            ) : (
-              `Berlangganan ${activePlan?.name || ""} — Rp${formatRp(activePlan?.priceMonthly || 0)}/bln`
-            )}
-          </button>
-
-          <p className="text-xs text-center text-gray-400">
-            Pembayaran aman diproses oleh Midtrans
-          </p>
+          <div className="pt-2">
+            <button
+              onClick={handleCheckout}
+              disabled={loading}
+              className={cn(
+                "w-full py-4 rounded-[16px] font-bold text-white text-base transition-all duration-200",
+                "bg-[#7a9cfb] hover:bg-[#688ff8] active:scale-[0.98]",
+                "disabled:opacity-60 disabled:cursor-not-allowed",
+                "flex items-center justify-center gap-2 shadow-sm"
+              )}
+            >
+              {loading ? (
+                <>
+                  <Loader2 size={18} className="animate-spin" /> Memproses...
+                </>
+              ) : (
+                "Mulai Berlangganan"
+              )}
+            </button>
+          </div>
         </div>
       </div>
-
-      {/* Floating avatars dekoratif */}
-      <div className="absolute top-32 right-16 w-12 h-12 rounded-full bg-gradient-to-br from-pink-300 to-rose-400 opacity-80 hidden lg:block" />
-      <div className="absolute top-64 left-8 w-10 h-10 rounded-full bg-gradient-to-br from-amber-300 to-orange-400 opacity-80 hidden lg:block" />
-      <div className="absolute bottom-40 right-8 w-11 h-11 rounded-full bg-gradient-to-br from-green-300 to-teal-400 opacity-80 hidden lg:block" />
     </div>
   );
 }
+
