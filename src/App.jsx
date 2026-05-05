@@ -147,7 +147,7 @@ function RightPanel({ children }) {
 }
 
 // ─── PAGE: LOGIN ─────────────────────────────────────────────────────────────
-function LoginPage({ onNavigate, onLoginSuccess }) {
+function LoginPage({ onNavigate, onLoginSuccess, isSsoMode = false }) {
   const [email, setEmail]       = useState('')
   const [password, setPassword] = useState('')
   const [showPass, setShowPass] = useState(false)
@@ -185,6 +185,12 @@ function LoginPage({ onNavigate, onLoginSuccess }) {
       <div className="animate-fade-in-up delay-100 text-center">
         <h1 className="text-2xl font-bold text-foreground mb-8">Selamat Datang Kembali</h1>
       </div>
+
+      {isSsoMode && (
+        <div className="animate-fade-in-up rounded-lg bg-blue-50 border border-blue-200 px-3.5 py-3 text-sm text-blue-700 text-center">
+          Login untuk melanjutkan ke Komunitas Gasing Circle.
+        </div>
+      )}
 
       <div className="space-y-4 animate-fade-in-up delay-200">
         <ErrorAlert message={errors.general} />
@@ -845,18 +851,20 @@ function ResetPasswordPage({ token, email, onNavigate }) {
 }
 
 // ─── PAGE: SSO CALLBACK ───────────────────────────────────────────────────────
-function SsoCallbackPage({ sso, sig, onLoginSuccess, onNavigate }) {
+function SsoCallbackPage({ sso, sig, onNavigate }) {
   const [error, setError] = useState('')
 
   useEffect(() => {
-    // Gunakan discourseApi.gateway() sesuai endpoint POST /discourse/gateway di backend
     discourseApi.gateway(sso, sig)
       .then(data => {
-        tokenStorage.setTokens(data.accessToken, data.refreshToken)
-        onLoginSuccess(data.user || { email: 'user@discourse.sso' })
+        if (data.redirectUrl) {
+          window.location.href = data.redirectUrl
+        } else {
+          setError('Respons SSO tidak valid dari server.')
+        }
       })
       .catch(e => setError(e.message || 'Gagal verifikasi SSO'))
-  }, [sso, sig, onLoginSuccess])
+  }, [sso, sig])
 
   return (
     <RightPanel>
@@ -912,7 +920,7 @@ export default function App() {
       // Tidak replace URL agar bisa refresh kembali ke halaman test
     } else if (ssoParam && sigParam) {
       setSsoParams({ sso: ssoParam, sig: sigParam })
-      setPage('sso-callback')
+      setPage('login')
       window.history.replaceState({}, '', window.location.pathname)
     } else if (adminParam === 'true') {
       setPage('admin-dashboard')
@@ -937,7 +945,11 @@ export default function App() {
 
   const handleLoginSuccess = (user) => {
     setCurrentUser(user)
-    setPage('subscription')
+    if (ssoParams) {
+      setPage('sso-callback')
+    } else {
+      setPage('subscription')
+    }
   }
 
   const handleSignOut = () => {
@@ -993,11 +1005,11 @@ export default function App() {
 
   // ── Split layout pages (login / signup) ───────────────────────────────────
   const authPages = {
-    'login':         <LoginPage onNavigate={setPage} onLoginSuccess={handleLoginSuccess} />,
+    'login':         <LoginPage onNavigate={setPage} onLoginSuccess={handleLoginSuccess} isSsoMode={!!ssoParams} />,
     'signup':        <SignUpPage onNavigate={setPage} onOtpToken={handleOtpToken} />,
     'signup-otp':    <SignUpOtpPage onNavigate={setPage} otpToken={otpToken} email={regEmail} />,
     'signup-review': <SignUpReviewPage onNavigate={setPage} />,
-    'sso-callback':  ssoParams && <SsoCallbackPage sso={ssoParams.sso} sig={ssoParams.sig} onLoginSuccess={handleLoginSuccess} onNavigate={setPage} />
+    'sso-callback':  ssoParams && <SsoCallbackPage sso={ssoParams.sso} sig={ssoParams.sig} onNavigate={setPage} />
   }
 
   return (

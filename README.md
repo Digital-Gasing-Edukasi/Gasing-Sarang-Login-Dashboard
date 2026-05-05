@@ -1,6 +1,6 @@
 # GASING CIRCLE — Frontend SPA
 
-> **Versi:** 2.2.0 · **Tanggal:** 4 Mei 2026 · **Stack:** React 18 + Vite + Tailwind CSS + shadcn/ui
+> **Versi:** 2.3.0 · **Tanggal:** 5 Mei 2026 · **Stack:** React 18 + Vite + Tailwind CSS + shadcn/ui
 
 ---
 
@@ -18,9 +18,11 @@
 10. [Integrasi Midtrans](#10-integrasi-midtrans)
 11. [Halaman Test Midtrans](#11-halaman-test-midtrans)
 12. [Discourse SSO](#12-discourse-sso)
-13. [Kustomisasi](#13-kustomisasi)
-14. [Referensi Scripts](#14-referensi-scripts)
-15. [Changelog](#15-changelog)
+13. [Deployment & Infrastruktur](#13-deployment--infrastruktur)
+14. [CI/CD — GitHub Actions](#14-cicd--github-actions)
+15. [Kustomisasi](#15-kustomisasi)
+16. [Referensi Scripts](#16-referensi-scripts)
+17. [Changelog](#17-changelog)
 
 ---
 
@@ -207,14 +209,15 @@ VITE_DISCOURSE_URL=https://dev-komunitas.gasingacademy.org
 # Nomor WhatsApp perusahaan (format internasional tanpa + dan spasi)
 VITE_WA_NUMBER=6287788000305
 
-# ─── Midtrans (Sandbox) ───────────────────────────────────────────────────────
+# ─── Midtrans ─────────────────────────────────────────────────────────────────
 # Client Key → untuk frontend (Snap script di index.html)
-# Format: SB-Mid-client-...
-VITE_MIDTRANS_CLIENT_KEY=SB-Mid-client-xxxxxxxxxxxxxxxx
+# Sandbox: Mid-client-... | Production: Mid-client-...
+VITE_MIDTRANS_CLIENT_KEY=Mid-client-xxxxxxxxxxxxxxxx
 
 # Server Key → HANYA untuk MidtransTestPage (halaman test dev lokal).
-# JANGAN gunakan di production. Format: SB-Mid-server-...
-VITE_MIDTRANS_SERVER_KEY=SB-Mid-server-xxxxxxxxxxxxxxxx
+# JANGAN gunakan di production.
+# Sandbox: Mid-server-... | Production: Mid-server-...
+VITE_MIDTRANS_SERVER_KEY=Mid-server-xxxxxxxxxxxxxxxx
 ```
 
 > **Penting:** Setelah mengubah `.env`, selalu restart dev server (`Ctrl+C` lalu `npm run dev`).
@@ -521,8 +524,8 @@ Halaman khusus developer untuk memverifikasi konfigurasi Midtrans Sandbox **tanp
 ### Requirement
 
 ```env
-VITE_MIDTRANS_CLIENT_KEY=SB-Mid-client-...   # wajib (untuk window.snap)
-VITE_MIDTRANS_SERVER_KEY=SB-Mid-server-...   # wajib untuk Cara 1 (Direct Test)
+VITE_MIDTRANS_CLIENT_KEY=Mid-client-...   # wajib (untuk window.snap)
+VITE_MIDTRANS_SERVER_KEY=Mid-server-...   # wajib untuk Cara 1 (Direct Test)
 ```
 
 > **Perhatian:** `VITE_MIDTRANS_SERVER_KEY` hanya boleh ada di `.env` lokal. Jangan commit ke repository atau deploy ke production.
@@ -534,16 +537,23 @@ VITE_MIDTRANS_SERVER_KEY=SB-Mid-server-...   # wajib untuk Cara 1 (Direct Test)
 Aplikasi mendukung login melalui Discourse SSO. Saat user login di Discourse dan diarahkan kembali ke app:
 
 ```
-/?sso=<payload>&sig=<signature>
+/register?sso=<payload>&sig=<signature>
 ```
 
 App.jsx mendeteksi param tersebut, memproses melalui `discourseApi.gateway()`, menyimpan token, dan mengarahkan user ke SubscriptionPage.
+
+### URL yang perlu didaftarkan ke Discourse / Backend
+
+| Keperluan | URL |
+| --- | --- |
+| **SSO Callback URL** | `https://dev-komunitas.gasingacademy.org/register` |
+| **Midtrans Finish URL** | `https://dev-komunitas.gasingacademy.org/register?payment=success` |
 
 ### Flow
 
 ```
 1. User klik "Login with Discourse" di Discourse
-2. Discourse redirect ke app: /?sso=...&sig=...
+2. Discourse redirect ke app: /register?sso=...&sig=...
 3. App.jsx deteksi param → tampilkan SsoCallbackPage (loading)
 4. discourseApi.gateway(sso, sig) → POST /discourse/gateway
 5. Backend verifikasi → return { accessToken, refreshToken, user }
@@ -552,7 +562,114 @@ App.jsx mendeteksi param tersebut, memproses melalui `discourseApi.gateway()`, m
 
 ---
 
-## 13. Kustomisasi
+## 13. Deployment & Infrastruktur
+
+### URL yang Aktif
+
+| Environment | URL | Status |
+| --- | --- | --- |
+| **Staging (domain)** | `https://dev-komunitas.gasingacademy.org/register/` | ✅ Live |
+| **Staging (IP)** | `http://34.101.34.59` | ✅ Live |
+| **Lokal** | `http://localhost:5173` | via `npm run dev` |
+
+### Infrastruktur GCE
+
+| Komponen | Detail |
+| --- | --- |
+| **GCP Project** | `sacred-octagon` |
+| **VM Instance** | `discourse-01` |
+| **Zone** | `asia-southeast2-a` (Jakarta) |
+| **IP Publik** | `34.101.34.59` |
+| **OS** | Ubuntu 24.04 LTS |
+| **Machine Type** | `e2-medium` (2 vCPU, 4GB RAM) |
+| **Web Server** | Nginx |
+| **File Lokasi** | `/var/www/gasing-auth/` |
+
+### Nginx Config
+
+App di-serve melalui dua Nginx config:
+
+**1. `gasing-auth`** — akses via IP langsung (port 80)
+```nginx
+server {
+    listen 80;
+    server_name 34.101.34.59;
+    root /var/www/gasing-auth;
+    index index.html;
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+}
+```
+
+**2. `dev-komunitas`** — akses via domain Discourse (port 443 HTTPS)
+```nginx
+# Tambahkan di dalam server block dev-komunitas, SEBELUM location /
+location /register {
+    alias /var/www/gasing-auth;
+    index index.html;
+    try_files $uri $uri/ /register/index.html;
+}
+```
+
+### Cara Deploy / Update
+
+Untuk update build ke staging secara manual:
+
+```powershell
+# 1. Build di lokal
+npm run build:staging
+
+# 2. Upload ke VM
+scp -r "dist\*" ksatriagaberdevelopment@34.101.34.59:/tmp/gasing-upload/
+```
+
+```bash
+# 3. Di SSH VM — deploy file
+sudo rm -rf /var/www/gasing-auth/*
+sudo cp -r /tmp/gasing-upload/* /var/www/gasing-auth/
+sudo chown -R www-data:www-data /var/www/gasing-auth
+# Tidak perlu restart Nginx
+```
+
+> 📘 Panduan lengkap ada di `DEPLOYMENT_GUIDE.md` (tersimpan di brain/scratch).
+
+---
+
+## 14. CI/CD — GitHub Actions
+
+Tersedia workflow otomatis di `.github/workflows/production.yml`.
+
+### Trigger
+
+```
+Push ke branch: production
+```
+
+### Steps
+
+| Step | Keterangan |
+| --- | --- |
+| Checkout | Clone repository |
+| Setup Node.js 20 | Install runtime dengan cache npm |
+| `npm ci` | Install dependencies secara deterministik |
+| `npm run build` | Build production ke `dist/` |
+| GCP Auth | Autentikasi ke Google Cloud via `GCP_CREDENTIALS_PRODUCTION` |
+| SCP ke GCE | Transfer `dist/*` ke `/var/www/gasingcircle.com` di VM production |
+
+### GitHub Secrets yang Diperlukan
+
+| Secret | Keterangan |
+| --- | --- |
+| `GCP_CREDENTIALS_PRODUCTION` | Service account JSON GCP |
+| `GCE_INSTANCE_PRODUCTION` | Nama instance VM production |
+| `GCE_USER` | Username SSH ke VM |
+
+> ⚠️ Workflow ini untuk **production** (bukan staging). Staging masih deploy manual via SCP.
+
+---
+
+## 15. Kustomisasi
 
 ### 13.1 Mengganti Data Paket
 
@@ -615,7 +732,7 @@ Ubah CSS variables di `src/index.css`:
 
 ---
 
-## 14. Referensi Scripts
+## 16. Referensi Scripts
 
 | Command                | Fungsi                                            |
 | ---------------------- | ------------------------------------------------- |
@@ -627,7 +744,39 @@ Ubah CSS variables di `src/index.css`:
 
 ---
 
-## 15. Changelog
+## 17. Changelog
+
+### v2.3.0 — 5 Mei 2026 *(Staging Deployment Live)*
+
+Sesi ini berfokus pada penyelesaian deployment ke environment staging di GCE dan memastikan app dapat diakses publik via domain Discourse.
+
+**🚀 Deployment**
+
+- App **berhasil live** di `https://dev-komunitas.gasingacademy.org/register/` ✅
+- App juga dapat diakses via IP langsung: `http://34.101.34.59` ✅
+- VM: `discourse-01` · Zone: `asia-southeast2-a` · Project: `sacred-octagon`
+- File di-serve dari `/var/www/gasing-auth/` via Nginx
+
+**⚙️ Konfigurasi Nginx**
+
+- Tambah Nginx config `gasing-auth` untuk serve app via IP publik (port 80)
+- Tambah `location /register` di config `dev-komunitas` untuk serve app di path `/register` domain Discourse (port 443 HTTPS)
+- Fix: Hapus `location /register/assets/` yang terpisah (konflik dengan `alias`) — cukup satu block `location /register`
+- Fix `try_files`: `=404` diganti `/register/index.html` agar React Router berfungsi
+
+**🔧 Perbaikan Konfigurasi**
+
+- **[MidtransTestPage.jsx]** Validasi prefix key diperbarui:
+  - Client Key: `SB-Mid-client-` → `Mid-client-` (mendukung key non-sandbox)
+  - Server Key: `SB-Mid-server-` → `Mid-server-` (mendukung key non-sandbox)
+- **[vite.config.js]** `base: '/register'` dikonfirmasi — assets di-build ke path `/register/assets/...`
+
+**📋 Yang Masih Perlu Dilakukan**
+- CORS backend: izinkan origin `https://dev-komunitas.gasingacademy.org` dan `http://34.101.34.59`
+- Konfigurasi SSO Discourse: daftarkan `https://dev-komunitas.gasingacademy.org/register` sebagai callback URL
+- Upload gambar ilustrasi (`illustration.png`, `illustrasi_forgotPassword.png`) ke `/var/www/gasing-auth/` jika belum ada
+
+---
 
 ### v2.2.1 — 4 Mei 2026 *(Staging Build Preparation)*
 
@@ -649,9 +798,6 @@ Sesi ini berfokus pada perbaikan bug dan konfigurasi agar project siap dinaikkan
 - Dokumentasi URL yang perlu didaftarkan ke Backend/Discourse/Midtrans:
   - **SSO Callback URL:** `https://dev-komunitas.gasingacademy.org/register`
   - **Midtrans Finish URL:** `https://dev-komunitas.gasingacademy.org/register?payment=success`
-
-**📋 Yang Masih Ditunggu (Belum Bisa Dijalankan)**
-- Konfigurasi SSO di sisi Discourse — menunggu tim Backend mendaftarkan Callback URL
 
 ---
 

@@ -52,12 +52,12 @@ export default function MidtransTestPage() {
 
     setClientKeyOk(
       CLIENT_KEY.length > 0 &&
-      CLIENT_KEY.startsWith("SB-Mid-client-") &&
+      CLIENT_KEY.startsWith("Mid-client-") &&
       !CLIENT_KEY.includes("xxxx")
     );
     setServerKeyOk(
       SERVER_KEY.length > 0 &&
-      SERVER_KEY.startsWith("SB-Mid-server-") &&
+      SERVER_KEY.startsWith("Mid-server-") &&
       !SERVER_KEY.includes("xxxx")
     );
 
