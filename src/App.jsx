@@ -169,7 +169,7 @@ function LoginPage({ onNavigate, onLoginSuccess, isSsoMode = false }) {
     setErrors({}); setLoading(true)
     try {
       const data = await authApi.login(email, password)
-      tokenStorage.setTokens(data.accessToken, data.refreshToken)
+      tokenStorage.setTokens(data.accessToken, data.refreshToken, remember)
       onLoginSuccess({ email })
     } catch (e) {
       setErrors({ general: e.message })

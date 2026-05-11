@@ -3,15 +3,18 @@ const BASE_URL = import.meta.env.VITE_API_URL;
 
 // ─── Token helpers ────────────────────────────────────────────────────────────
 export const tokenStorage = {
-  getAccess:  () => localStorage.getItem("accessToken"),
-  getRefresh: () => localStorage.getItem("refreshToken"),
-  setTokens:  (a, r) => {
-    localStorage.setItem("accessToken", a);
-    if (r) localStorage.setItem("refreshToken", r);
+  getAccess:  () => localStorage.getItem("accessToken") || sessionStorage.getItem("accessToken"),
+  getRefresh: () => localStorage.getItem("refreshToken") || sessionStorage.getItem("refreshToken"),
+  setTokens:  (a, r, persistent = false) => {
+    const storage = persistent ? localStorage : sessionStorage;
+    storage.setItem("accessToken", a);
+    if (r) storage.setItem("refreshToken", r);
   },
   clear: () => {
     localStorage.removeItem("accessToken");
     localStorage.removeItem("refreshToken");
+    sessionStorage.removeItem("accessToken");
+    sessionStorage.removeItem("refreshToken");
   },
 };
 
