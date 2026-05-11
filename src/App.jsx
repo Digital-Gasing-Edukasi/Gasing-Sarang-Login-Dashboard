@@ -868,17 +868,28 @@ function ResetPasswordPage({ token, email, onNavigate }) {
 // ─── PAGE: SSO CALLBACK ───────────────────────────────────────────────────────
 function SsoCallbackPage({ sso, sig, onNavigate }) {
   const [error, setError] = useState('')
+  const calledRef = useRef(false)
 
   useEffect(() => {
+    if (calledRef.current) return
+    calledRef.current = true
+
+    console.log('[SSO] Mengirim gateway request', { sso, sig })
     discourseApi.gateway(sso, sig)
       .then(data => {
-        if (data.redirectUrl) {
-          window.location.href = data.redirectUrl
+        console.log('[SSO] Full response:', JSON.stringify(data))
+        const redirectUrl = data.redirectUrl || data.redirect_url || data.url || data.ssoUrl
+        if (redirectUrl) {
+          window.location.href = redirectUrl
         } else {
+          console.error('[SSO] redirectUrl tidak ditemukan dalam response:', JSON.stringify(data))
           setError('Respons SSO tidak valid dari server.')
         }
       })
-      .catch(e => setError(e.message || 'Gagal verifikasi SSO'))
+      .catch(e => {
+        console.error('[SSO] Gateway error:', e.message)
+        setError(e.message || 'Gagal verifikasi SSO')
+      })
   }, [sso, sig])
 
   return (
@@ -928,15 +939,20 @@ export default function App() {
     const midtransTest = params.get('midtrans-test')
 
     const ssoParam = params.get('sso')
-    const sigParam = params.get('sig')
+    const sigParam  = params.get('sig')
 
     if (midtransTest === 'true') {
       setPage('midtrans-test')
       // Tidak replace URL agar bisa refresh kembali ke halaman test
     } else if (ssoParam && sigParam) {
       setSsoParams({ sso: ssoParam, sig: sigParam })
-      setPage('login')
       window.history.replaceState({}, '', window.location.pathname)
+      // Kalau sudah punya token, skip login langsung ke SSO callback
+      if (tokenStorage.getAccess()) {
+        setPage('sso-callback')
+      } else {
+        setPage('login')
+      }
     } else if (adminParam === 'true') {
       setPage('admin-dashboard')
       window.history.replaceState({}, '', window.location.pathname)
@@ -1026,7 +1042,7 @@ export default function App() {
     'signup':        <SignUpPage onNavigate={setPage} onOtpToken={handleOtpToken} />,
     'signup-otp':    <SignUpOtpPage onNavigate={setPage} otpToken={otpToken} email={regEmail} />,
     'signup-review': <SignUpReviewPage onNavigate={setPage} />,
-    'sso-callback':  ssoParams && <SsoCallbackPage sso={ssoParams.sso} sig={ssoParams.sig} onNavigate={setPage} />
+    'sso-callback':  ssoParams ? <SsoCallbackPage sso={ssoParams.sso} sig={ssoParams.sig} onNavigate={setPage} /> : null
   }
 
   return (

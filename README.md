@@ -105,21 +105,21 @@ Login page/
        │ Belum punya akun                                    │ Login berhasil
        ▼                                                     ▼
 ┌─────────────────┐                            ┌──────────────────────┐
-│ Sign Up Step 1  │                            │   Subscription Page  │
-│ (Buat Akun)     │                            │  (Pilih paket)       │
+│ Sign Up Step 1  │                            │ Redirect ke Discourse│
+│ (Buat Akun)     │                            │ (VITE_DISCOURSE_URL) │
 └─────────────────┘                            └──────────────────────┘
-       │                                                     │ Klik Berlangganan
-       ▼                                                     ▼
-┌─────────────────┐                            ┌──────────────────────┐
-│ Sign Up Step 2  │                            │  Midtrans Snap Popup │
-│ (Verifikasi OTP)│                            │                      │
-└─────────────────┘                            └──────────────────────┘
-       │                                                     │ Bayar berhasil
-       ▼                                                     ▼
-┌─────────────────┐                            ┌──────────────────────┐
-│ Sign Up Step 3  │                            │  Payment Success     │
-│ (Review/Selesai)│                            │  (konfirmasi)        │
-└─────────────────┘                            └──────────────────────┘
+       │
+       ▼
+┌─────────────────┐                            
+│ Sign Up Step 2  │                            
+│ (Verifikasi OTP)│                            
+└─────────────────┘                            
+       │                                       
+       ▼                                       
+┌─────────────────┐                            
+│ Sign Up Step 3  │                            
+│ (Review/Selesai)│                            
+└─────────────────┘                            
        │
        ▼
 ┌─────────────────┐       ┌──────────────────┐
@@ -131,8 +131,8 @@ Login page/
                           │  Reset Password  │
                           └──────────────────┘
 
-Discourse SSO:
-/?sso=...&sig=... ──▶ SSO Callback ──▶ Subscription Page
+Alur Discourse SSO & Pembayaran:
+/register?sso=...&sig=... ──▶ SSO Callback ──▶ Subscription Page ──▶ Midtrans Popup ──▶ Payment Success
 ```
 
 ### Route Keys (dikelola via `useState` di App.jsx)
@@ -753,6 +753,9 @@ Ubah CSS variables di `src/index.css`:
 
 - ✅ Update Nginx configuration guidelines di `DEPLOYMENT_GUIDE.md` dan `README.md` untuk sepenuhnya mendukung React Router dengan `base: '/register'`.
 - ✅ Penambahan input field Username pada flow pendaftaran (`SignUpPage`).
+- ✅ **Perbaikan Asset:** Pindah file `illustration.png` dan `illustrasi_forgotPassword.png` dari `public/` ke `src/assets/` agar path build Vite bisa resolve dengan benar (`/register/assets/...`).
+- ✅ **Perubahan Alur (Flow):** Setelah login berhasil, pengguna kini **langsung dialihkan (redirect)** ke url komunitas (`VITE_DISCOURSE_URL`), melewati halaman Subscription (yang kini dikhususkan untuk alur SSO Callback).
+- ✅ **Perbaikan API:** `discourseApi.ssoLogin` di `api.js` kini secara otomatis melakukan *redirect* ketika API me-return `redirectUrl`.
 
 ### v2.3.0 — 5 Mei 2026 *(Staging Deployment Live)*
 
