@@ -20,6 +20,8 @@ import SubscriptionPage    from '@/pages/SubscriptionPage'
 import PaymentSuccessPage  from '@/pages/PaymentSuccessPage'
 import AdminDashboardPage  from '@/pages/AdminDashboardPage'
 import MidtransTestPage    from '@/pages/MidtransTestPage'
+import illustrationImg     from '@/assets/illustration.png'
+import illustrationForgotImg from '@/assets/illustrasi_forgotPassword.png'
 
 // ─── SHARED UI ───────────────────────────────────────────────────────────────
 function IconInput({ icon: Icon, iconRight, className, ...props }) {
@@ -124,7 +126,7 @@ function LeftPanel() {
           <line x1="17" y1="44" x2="23" y2="4" stroke="#4ADE80" strokeWidth="3.5" strokeLinecap="round"/>
         </svg>
         <img
-          src="/illustration.png"
+          src={illustrationImg}
           alt="Gasing Circle Community"
           className="w-full object-contain object-bottom select-none"
         />
@@ -256,6 +258,7 @@ function LoginPage({ onNavigate, onLoginSuccess, isSsoMode = false }) {
 // ─── PAGE: SIGN UP ────────────────────────────────────────────────────────────
 function SignUpPage({ onNavigate, onOtpToken }) {
   const [step, setStep]               = useState(1)
+  const [username, setUsername]       = useState('')
   const [email, setEmail]             = useState('')
   const [password, setPassword]       = useState('')
   const [confirm, setConfirm]         = useState('')
@@ -272,14 +275,21 @@ function SignUpPage({ onNavigate, onOtpToken }) {
 
   useEffect(() => {
     regionsApi.list()
-      .then(data => setRegions(Array.isArray(data) ? data : (data.data || [])))
-      .catch(() => setRegions([]))
+      .then(data => {
+        const list = Array.isArray(data) ? data : (data.data || data.items || [])
+        console.log('[regionsApi] response:', data, '→ list:', list)
+        setRegions(list)
+      })
+      .catch(err => {
+        console.error('[regionsApi] gagal memuat training regions:', err)
+        setRegions([])
+      })
       .finally(() => setRegionsLoading(false))
   }, [])
 
   const handleNextToData = () => {
     setError('')
-    if (!email || !password || !confirm) { setError('Semua field wajib diisi'); return }
+    if (!username || !email || !password || !confirm) { setError('Semua field wajib diisi'); return }
     if (password !== confirm) { setError('Konfirmasi password tidak cocok'); return }
     if (password.length < 8) { setError('Password minimal 8 karakter'); return }
     setStep(2)
@@ -290,7 +300,7 @@ function SignUpPage({ onNavigate, onOtpToken }) {
     if (!name || !birthdate || !regionId || !schoolName) { setError('Semua field wajib diisi'); return }
     setLoading(true)
     try {
-      const data = await authApi.register({ email, password, name, birthdate, trainingRegionId: regionId, schoolName })
+      const data = await authApi.register({ username, email, password, name, birthdate, trainingRegionId: regionId, schoolName })
       onOtpToken(data.token, email)
       onNavigate('signup-otp')
     } catch (e) {
@@ -314,6 +324,11 @@ function SignUpPage({ onNavigate, onOtpToken }) {
           <div className="space-y-4 animate-fade-in-up delay-200">
             <ErrorAlert message={error} />
             <div className="space-y-1.5">
+              <Label>Username</Label>
+              <Input type="text" placeholder="Masukkan username"
+                value={username} onChange={e => setUsername(e.target.value)} />
+            </div>
+            <div className="space-y-1.5">
               <Label>Email</Label>
               <IconInput icon={Mail} type="email" placeholder="Masukkan email"
                 value={email} onChange={e => setEmail(e.target.value)} />
@@ -321,14 +336,14 @@ function SignUpPage({ onNavigate, onOtpToken }) {
             <div className="space-y-1.5">
               <Label>Password</Label>
               <IconInput icon={Lock} type={showPass ? 'text' : 'password'}
-                placeholder="Minimal 8 karakter" value={password}
+                placeholder="Masukkan password" value={password}
                 onChange={e => setPassword(e.target.value)}
                 iconRight={<TogglePassword show={showPass} onToggle={() => setShowPass(v => !v)} />} />
             </div>
             <div className="space-y-1.5">
               <Label>Konfirmasi Password</Label>
               <IconInput icon={Lock} type={showConfirm ? 'text' : 'password'}
-                placeholder="Ulangi password" value={confirm}
+                placeholder="Konfirmasi password" value={confirm}
                 onChange={e => setConfirm(e.target.value)}
                 iconRight={<TogglePassword show={showConfirm} onToggle={() => setShowConfirm(v => !v)} />} />
             </div>
@@ -600,10 +615,10 @@ function AuthFullLayout({ children, illustration = 'robot' }) {
         {illustration === 'forgotPassword' ? (
           <>
             <div className="absolute bottom-0 left-0 w-64 sm:w-80 lg:w-96 translate-y-8 pointer-events-none select-none">
-              <img src="/illustrasi_forgotPassword.png" alt="" draggable="false" className="w-full h-full" />
+              <img src={illustrationForgotImg} alt="" draggable="false" className="w-full h-full" />
             </div>
             <div className="absolute bottom-0 right-0 w-64 sm:w-80 lg:w-96 translate-y-8 pointer-events-none select-none">
-              <img src="/illustrasi_forgotPassword.png" alt="" draggable="false" className="w-full h-full" style={{ transform: 'scaleX(-1)' }} />
+              <img src={illustrationForgotImg} alt="" draggable="false" className="w-full h-full" style={{ transform: 'scaleX(-1)' }} />
             </div>
           </>
         ) : (
@@ -948,7 +963,9 @@ export default function App() {
     if (ssoParams) {
       setPage('sso-callback')
     } else {
-      setPage('subscription')
+      // setPage('subscription')setPage('subscription')
+      // Lewati halaman subscription dan langsung masuk ke Discourse
+      window.location.href = import.meta.env.VITE_DISCOURSE_URL
     }
   }
 

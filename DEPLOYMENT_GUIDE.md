@@ -210,19 +210,16 @@ server {
     listen 80;
     server_name <IP_SERVER_ATAU_DOMAIN>;
 
-    # Folder tempat file React disimpan
-    root /var/www/gasing-auth;
-    index index.html;
-
-    # WAJIB untuk React SPA: semua request diarahkan ke index.html
-    location / {
-        try_files $uri $uri/ /index.html;
+    # Redirect dari root ke /register
+    location = / {
+        return 301 /register;
     }
 
-    # Cache untuk asset statis (opsional tapi bagus untuk performa)
-    location /assets/ {
-        expires 1y;
-        add_header Cache-Control "public, immutable";
+    # WAJIB untuk React SPA yang di-build dengan base '/register'
+    location /register {
+        alias /var/www/gasing-auth;
+        index index.html;
+        try_files $uri $uri/ /register/index.html;
     }
 }
 ```
@@ -271,7 +268,7 @@ Pastikan statusnya `active (running)` berwarna hijau.
 
 Buka browser dan akses:
 ```
-http://<IP_SERVER_GCE>/
+http://<IP_SERVER_GCE>/register
 ```
 
 Kamu seharusnya melihat **halaman Login Gasing Circle**.
@@ -361,4 +358,4 @@ Dan bagikan ke sini untuk dianalisis lebih lanjut.
 
 ---
 
-*Dibuat: 5 Mei 2026 — Gasing Circle Staging Deployment*
+*Dibuat: 11 Mei 2026 — Gasing Circle Staging Deployment*

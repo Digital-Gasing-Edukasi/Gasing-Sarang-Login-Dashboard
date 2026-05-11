@@ -208,11 +208,13 @@ export const voucherApi = {
 export const discourseApi = {
   getGroups: () => request("/discourse/groups"),
 
-  // Initiates SSO login flow (redirects to Discourse)
+  // Initiates SSO login flow — redirects browser to Discourse
   ssoLogin: (returnPath) =>
     request(
       `/discourse/sso-login${returnPath ? `?return_path=${encodeURIComponent(returnPath)}` : ""}`
-    ),
+    ).then(data => {
+      if (data.redirectUrl) window.location.href = data.redirectUrl
+    }),
 
   // SSO gateway: verifies sso+sig params from Discourse callback
   gateway: (sso, sig) =>

@@ -1,6 +1,6 @@
 # GASING CIRCLE — Frontend SPA
 
-> **Versi:** 2.3.0 · **Tanggal:** 5 Mei 2026 · **Stack:** React 18 + Vite + Tailwind CSS + shadcn/ui
+> **Versi:** 2.4.0 · **Tanggal:** 11 Mei 2026 · **Stack:** React 18 + Vite + Tailwind CSS + shadcn/ui
 
 ---
 
@@ -569,7 +569,7 @@ App.jsx mendeteksi param tersebut, memproses melalui `discourseApi.gateway()`, m
 | Environment | URL | Status |
 | --- | --- | --- |
 | **Staging (domain)** | `https://dev-komunitas.gasingacademy.org/register/` | ✅ Live |
-| **Staging (IP)** | `http://34.101.34.59` | ✅ Live |
+| **Staging (IP)** | `http://34.101.34.59/register` | ✅ Live |
 | **Lokal** | `http://localhost:5173` | via `npm run dev` |
 
 ### Infrastruktur GCE
@@ -594,10 +594,13 @@ App di-serve melalui dua Nginx config:
 server {
     listen 80;
     server_name 34.101.34.59;
-    root /var/www/gasing-auth;
-    index index.html;
-    location / {
-        try_files $uri $uri/ /index.html;
+    location = / {
+        return 301 /register;
+    }
+    location /register {
+        alias /var/www/gasing-auth;
+        index index.html;
+        try_files $uri $uri/ /register/index.html;
     }
 }
 ```
@@ -745,6 +748,11 @@ Ubah CSS variables di `src/index.css`:
 ---
 
 ## 17. Changelog
+
+### v2.4.0 — 11 Mei 2026
+
+- ✅ Update Nginx configuration guidelines di `DEPLOYMENT_GUIDE.md` dan `README.md` untuk sepenuhnya mendukung React Router dengan `base: '/register'`.
+- ✅ Penambahan input field Username pada flow pendaftaran (`SignUpPage`).
 
 ### v2.3.0 — 5 Mei 2026 *(Staging Deployment Live)*
 
