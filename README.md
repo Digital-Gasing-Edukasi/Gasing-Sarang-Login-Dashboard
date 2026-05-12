@@ -1,6 +1,6 @@
 # GASING CIRCLE — Frontend SPA
 
-> **Versi:** 2.4.0 · **Tanggal:** 11 Mei 2026 · **Stack:** React 18 + Vite + Tailwind CSS + shadcn/ui
+> **Versi:** 2.5.0 · **Tanggal:** 12 Mei 2026 · **Stack:** React 18 + Vite + Tailwind CSS + shadcn/ui
 
 ---
 
@@ -63,35 +63,63 @@ Aplikasi terhubung ke backend **NestJS + Prisma + PostgreSQL** melalui `VITE_API
 
 ```
 Login page/
-├── .env                    ← variabel environment lokal (buat dari template di bawah)
+├── .env                    ← variabel environment lokal
 ├── .env.staging            ← variabel environment untuk build staging
 ├── index.html              ← entry HTML + Midtrans Snap script
 ├── package.json
 ├── vite.config.js          ← path alias + Vite proxy config
 ├── tailwind.config.js
 ├── postcss.config.js
-├── Reference/              ← dokumen referensi / Postman collection (diabaikan git)
 └── src/
     ├── main.jsx            ← entry point React
-    ├── App.jsx             ← router utama + semua halaman auth
+    ├── App.jsx             ← router utama (state-based, ~100 baris)
     ├── index.css           ← global styles + CSS variables shadcn
     ├── lib/
     │   ├── api.js          ← semua HTTP calls ke backend
     │   └── utils.js        ← helper cn()
+    ├── hooks/
+    │   └── useCountdown.js ← countdown timer hook (OTP & resend)
     ├── context/
     │   └── AuthContext.jsx ← global auth state (opsional)
     ├── components/
-    │   └── ui/             ← shadcn/ui components
-    │       ├── button.jsx
-    │       ├── input.jsx
-    │       ├── label.jsx
-    │       ├── checkbox.jsx
-    │       └── select.jsx
+    │   ├── ui/             ← shadcn/ui primitives
+    │   │   ├── button.jsx
+    │   │   ├── input.jsx
+    │   │   ├── label.jsx
+    │   │   ├── checkbox.jsx
+    │   │   └── select.jsx
+    │   ├── layout/         ← komponen layout & struktur halaman
+    │   │   ├── LeftPanel.jsx       ← panel kiri (ilustrasi + branding)
+    │   │   ├── RightPanel.jsx      ← panel kanan + Divider
+    │   │   ├── AuthFullLayout.jsx  ← layout full-width (forgot/reset password)
+    │   │   └── StepIndicator.jsx   ← progress bar 3-langkah Sign Up
+    │   └── shared/         ← komponen UI reusable lintas halaman
+    │       ├── IconInput.jsx       ← input dengan ikon + TogglePassword
+    │       ├── ErrorAlert.jsx      ← alert error dari API
+    │       ├── SuccessToast.jsx    ← toast notifikasi sukses
+    │       └── OtpInput.jsx        ← 6-kotak OTP dengan auto-focus & paste
     └── pages/
-        ├── AdminDashboardPage.jsx  ← dashboard admin (Verifikasi & Manajemen)
+        ├── auth/           ← halaman-halaman autentikasi
+        │   ├── LoginPage.jsx
+        │   ├── SignUpPage.jsx
+        │   ├── SignUpOtpPage.jsx
+        │   ├── SignUpReviewPage.jsx
+        │   ├── ForgotPasswordPage.jsx
+        │   ├── CheckEmailPage.jsx
+        │   ├── ResetPasswordPage.jsx
+        │   └── SsoCallbackPage.jsx
+        ├── admin/          ← komponen dashboard admin
+        │   ├── mappers.js          ← fungsi transform data API → UI
+        │   ├── AdminSidebar.jsx    ← sidebar navigasi admin
+        │   ├── ConfirmModal.jsx    ← modal approve & reject
+        │   ├── AdminToast.jsx      ← toast undo (5 detik)
+        │   ├── TableControls.jsx   ← toolbar (search, filter, export)
+        │   ├── VerifikasiTable.jsx ← tabel tab Verifikasi Akun
+        │   └── ManajemenTable.jsx  ← tabel tab Manajemen Akun
+        ├── AdminDashboardPage.jsx  ← dashboard admin (orchestrator)
         ├── SubscriptionPage.jsx    ← halaman pilih paket
         ├── PaymentSuccessPage.jsx  ← halaman pembayaran berhasil
-        └── MidtransTestPage.jsx    ← halaman test konfigurasi Midtrans (dev only)
+        └── MidtransTestPage.jsx    ← tool test Midtrans (dev only)
 ```
 
 ---
@@ -254,17 +282,36 @@ server: {
 
 ## 8. Komponen & Arsitektur
 
-### 8.1 Halaman (Pages)
+### 8.1 Halaman Auth (`src/pages/auth/`)
 
-| File                           | Halaman                                      | Keterangan                                   |
-| ------------------------------ | -------------------------------------------- | -------------------------------------------- |
-| `App.jsx`                      | Login, Sign Up, OTP, Review, Forgot Password, Check Email, Reset Password, SSO Callback | Semua halaman auth + routing utama |
-| `pages/SubscriptionPage.jsx`   | Subscription                                 | Pilih paket Tahunan / Bulanan (data API + fallback dummy) |
-| `pages/PaymentSuccessPage.jsx` | Payment Success                              | Konfirmasi bayar + link Discourse + WhatsApp |
-| `pages/AdminDashboardPage.jsx` | Admin Dashboard                              | Verifikasi & Manajemen Akun pengguna         |
-| `pages/MidtransTestPage.jsx`   | Midtrans Test                                | Tool verifikasi Midtrans Sandbox (dev only)  |
+Setiap halaman auth berdiri sendiri sebagai file terpisah. `App.jsx` hanya bertugas sebagai router.
 
-### 8.2 Komponen shadcn/ui
+| File                    | Halaman                                          |
+| ----------------------- | ------------------------------------------------ |
+| `LoginPage.jsx`         | Login dengan email & password                    |
+| `SignUpPage.jsx`        | Register 2-step (buat akun → verifikasi data)    |
+| `SignUpOtpPage.jsx`     | Verifikasi OTP 6 digit                           |
+| `SignUpReviewPage.jsx`  | Konfirmasi pendaftaran selesai                   |
+| `ForgotPasswordPage.jsx`| Form kirim email reset password                  |
+| `CheckEmailPage.jsx`    | Instruksi cek email + tombol kirim ulang         |
+| `ResetPasswordPage.jsx` | Form ubah password baru                          |
+| `SsoCallbackPage.jsx`   | Proses verifikasi SSO dari Discourse             |
+
+### 8.2 Dashboard Admin (`src/pages/admin/`)
+
+| File                  | Keterangan                                              |
+| --------------------- | ------------------------------------------------------- |
+| `mappers.js`          | Fungsi `mapToVerifikasi` & `mapToManajemen` (API → UI)  |
+| `AdminSidebar.jsx`    | Sidebar navigasi (logo, tab, profil, logout)            |
+| `ConfirmModal.jsx`    | Modal konfirmasi: `<RejectModal>` & `<ApproveModal>`    |
+| `AdminToast.jsx`      | Toast undo 5 detik setelah approve/reject               |
+| `TableControls.jsx`   | `<VerifikasiControls>` & `<ManajemenControls>` (toolbar)|
+| `VerifikasiTable.jsx` | Tabel tab Verifikasi Akun dengan role select & action   |
+| `ManajemenTable.jsx`  | Tabel tab Manajemen Akun dengan status, voucher, dst.   |
+
+`AdminDashboardPage.jsx` adalah orchestrator yang menggabungkan semua komponen admin di atas.
+
+### 8.3 Komponen shadcn/ui (`src/components/ui/`)
 
 | Komponen     | File              | Kegunaan                                        |
 | ------------ | ----------------- | ----------------------------------------------- |
@@ -274,29 +321,37 @@ server: {
 | `<Checkbox>` | `ui/checkbox.jsx` | Checkbox "Ingatkan saya"                        |
 | `<Select>`   | `ui/select.jsx`   | Dropdown daerah pelatihan GASING                |
 
-### 8.3 Komponen Custom (tetap)
+### 8.4 Komponen Layout (`src/components/layout/`)
+
+| Komponen              | Deskripsi                                               |
+| --------------------- | ------------------------------------------------------- |
+| `<LeftPanel />`       | Panel kiri biru-ungu (ilustrasi + branding), hidden mobile |
+| `<RightPanel />`      | Panel kanan putih + footer copyright                    |
+| `<Divider />`         | Garis pemisah horizontal tipis                          |
+| `<AuthFullLayout />`  | Layout full-width untuk halaman forgot/reset password   |
+| `<StepIndicator />`   | Progress bar 3 langkah Sign Up                          |
+
+### 8.5 Komponen Shared (`src/components/shared/`)
 
 | Komponen            | Deskripsi                                       |
 | ------------------- | ----------------------------------------------- |
 | `<IconInput />`     | Wrapper `<Input>` dengan ikon kiri/kanan        |
-| `<StepIndicator />` | Progress bar 3 langkah Sign Up                  |
+| `<TogglePassword />` | Tombol show/hide password (dipakai di IconInput) |
 | `<OtpInput />`      | 6-kotak OTP dengan auto-focus dan paste support |
-| `<PlanCard />`      | Card pilihan paket di SubscriptionPage          |
-| `<Avatar />`        | Avatar initials user di navbar                  |
 | `<ErrorAlert />`    | Alert merah untuk error dari API                |
-| `<EnvelopeCluster />` | Ilustrasi SVG dekoratif di halaman forgot password |
-| `<AuthFullLayout />` | Layout full-width untuk halaman forgot/reset password |
-| `<SuccessToast />`  | Toast notifikasi hijau (auto-dismiss)           |
+| `<SuccessToast />`  | Toast notifikasi hijau (reset password)         |
 
-### 8.4 Custom Hook
+### 8.6 Custom Hook (`src/hooks/`)
 
-**`useCountdown(seconds)`**
+**`useCountdown(initialSeconds)`** — `src/hooks/useCountdown.js`
 
 | Return    | Tipe       | Keterangan              |
 | --------- | ---------- | ----------------------- |
 | `display` | `string`   | Format MM:SS            |
 | `expired` | `boolean`  | `true` jika timer habis |
-| `reset()` | `function` | Restart timer           |
+| `reset()` | `function` | Restart timer ke nilai awal |
+
+Digunakan di `SignUpOtpPage` (OTP 10 menit) dan `CheckEmailPage` (resend 30 detik).
 
 ---
 
@@ -748,6 +803,50 @@ Ubah CSS variables di `src/index.css`:
 ---
 
 ## 17. Changelog
+
+### v2.5.0 — 12 Mei 2026 *(Refactoring)*
+
+**Tujuan:** Memecah file-file besar agar mudah dibaca dan di-maintain. Tidak ada perubahan fungsional.
+
+**Sebelum refactoring:**
+
+| File | Baris |
+| ---- | ----- |
+| `App.jsx` | 1.059 |
+| `AdminDashboardPage.jsx` | 962 |
+
+**Sesudah refactoring — semua file di bawah 200 baris:**
+
+| File baru | Baris |
+| --------- | ----- |
+| `App.jsx` | ~100 |
+| `pages/auth/LoginPage.jsx` | ~95 |
+| `pages/auth/SignUpPage.jsx` | ~130 |
+| `pages/auth/SignUpOtpPage.jsx` | ~50 |
+| `pages/auth/SignUpReviewPage.jsx` | ~40 |
+| `pages/auth/ForgotPasswordPage.jsx` | ~55 |
+| `pages/auth/CheckEmailPage.jsx` | ~70 |
+| `pages/auth/ResetPasswordPage.jsx` | ~70 |
+| `pages/auth/SsoCallbackPage.jsx` | ~45 |
+| `components/layout/LeftPanel.jsx` | ~40 |
+| `components/layout/RightPanel.jsx` | ~15 |
+| `components/layout/AuthFullLayout.jsx` | ~65 |
+| `components/layout/StepIndicator.jsx` | ~40 |
+| `components/shared/IconInput.jsx` | ~30 |
+| `components/shared/OtpInput.jsx` | ~45 |
+| `components/shared/ErrorAlert.jsx` | ~10 |
+| `components/shared/SuccessToast.jsx` | ~10 |
+| `hooks/useCountdown.js` | ~15 |
+| `pages/AdminDashboardPage.jsx` | ~130 |
+| `pages/admin/mappers.js` | ~50 |
+| `pages/admin/AdminSidebar.jsx` | ~50 |
+| `pages/admin/ConfirmModal.jsx` | ~55 |
+| `pages/admin/AdminToast.jsx` | ~12 |
+| `pages/admin/TableControls.jsx` | ~120 |
+| `pages/admin/VerifikasiTable.jsx` | ~100 |
+| `pages/admin/ManajemenTable.jsx` | ~140 |
+
+---
 
 ### v2.4.0 — 11 Mei 2026
 
