@@ -17,7 +17,7 @@ import AdminDashboardPage  from '@/pages/AdminDashboardPage'
 import MidtransTestPage    from '@/pages/MidtransTestPage'
 
 export default function App() {
-  const [page, setPage]             = useState('subscription')
+  const [page, setPage]             = useState('login')
   const [otpToken, setOtpToken]     = useState('')
   const [regEmail, setRegEmail]     = useState('')
   const [fpEmail, setFpEmail]       = useState('')
