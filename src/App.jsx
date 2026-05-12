@@ -920,7 +920,8 @@ function SsoCallbackPage({ sso, sig, onNavigate }) {
 
 // ─── MAIN APP ─────────────────────────────────────────────────────────────────
 export default function App() {
-  const [page, setPage]             = useState('login')
+  // const [page, setPage]             = useState('login')
+  const [page, setPage]             = useState('subscription')
   const [otpToken, setOtpToken]     = useState('')
   const [regEmail, setRegEmail]     = useState('')
   const [fpEmail, setFpEmail]       = useState('')
@@ -979,9 +980,8 @@ export default function App() {
     if (ssoParams) {
       setPage('sso-callback')
     } else {
-      // setPage('subscription')setPage('subscription')
-      // Lewati halaman subscription dan langsung masuk ke Discourse
-      window.location.href = import.meta.env.VITE_DISCOURSE_URL
+      setPage('subscription')
+      // window.location.href = import.meta.env.VITE_DISCOURSE_URL
     }
   }
 

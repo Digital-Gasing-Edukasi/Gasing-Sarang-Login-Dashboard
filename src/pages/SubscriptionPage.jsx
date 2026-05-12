@@ -1,9 +1,19 @@
 // src/pages/SubscriptionPage.jsx
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { LogOut, Loader2, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { subscriptionApi } from "@/lib/api";
 
+import waveLeft from "@/assets/subscription/wave_blue_left.png";
+import waveRight from "@/assets/subscription/wave_blue_right.png";
+import iconBook from "@/assets/subscription/icon_book.png";
+import iconLightbulb from "@/assets/subscription/icon_lightbulb.png";
+import iconPlane from "@/assets/subscription/icon_plane.png";
+import iconThumbsup from "@/assets/subscription/icon_thumbsup.png";
+import iconStarsBlue from "@/assets/subscription/icon_stars_blue.png";
+import iconStarsYellow from "@/assets/subscription/icon_stars_yellow.png";
+import stripeGreenOne from "@/assets/subscription/icon_stripe_green_one.png";
+import stripeGreenTwo from "@/assets/subscription/icon_stripe_green_two.png";
 // Transform API package response → UI plan format
 function transformPlan(pkg) {
   const isAnnual =
@@ -100,27 +110,25 @@ function PlanCard({ plan, selected, onSelect }) {
     <div
       onClick={() => onSelect(plan.id)}
       className={cn(
-        "relative rounded-[24px] border-2 p-8 cursor-pointer transition-all duration-300 bg-white",
+        "rounded-[24px] border-2 p-8 cursor-pointer transition-all duration-300 bg-white",
         selected
           ? "border-blue-600 shadow-[0_0_40px_rgba(59,130,246,0.15)]"
           : "border-gray-200 hover:border-gray-300"
       )}
     >
-      {/* Badge hemat */}
-      {plan.label && (
-        <div className="absolute -top-3.5 right-6 z-10">
-          <span className="bg-[#48b2ff] text-white text-xs font-medium px-4 py-1.5 rounded-full whitespace-nowrap shadow-sm">
-            {plan.label}
-          </span>
-        </div>
-      )}
-
       <div className="flex items-center justify-between">
         <div>
-          {/* Nama paket */}
-          <p className="text-gray-500 text-[15px] font-semibold mb-3">
-            {plan.name}
-          </p>
+          {/* Nama paket + Badge hemat inline */}
+          <div className="flex items-center gap-2 mb-3">
+            <p className="text-gray-500 text-[15px] font-semibold">
+              {plan.name}
+            </p>
+            {plan.label && (
+              <span className="bg-[#48b2ff] text-white text-xs font-medium px-3 py-1 rounded-full whitespace-nowrap">
+                {plan.label}
+              </span>
+            )}
+          </div>
 
           {/* Harga */}
           <div className="flex items-baseline gap-2 mb-2">
@@ -175,13 +183,19 @@ function PlanCard({ plan, selected, onSelect }) {
 function Decorations() {
   return (
     <>
-      {/* Background gradient & blobs */}
-      <div className="absolute inset-0 bg-gradient-to-br from-[#f0f6ff] via-[#f7fafe] to-[#f0f6ff] pointer-events-none -z-20" />
+      {/* Background putih */}
+      <div className="absolute inset-0 bg-white pointer-events-none -z-20" />
       
-      {/* Dark Navy Wave Background */}
-      <svg className="absolute bottom-0 left-0 w-full text-[#0a1128] pointer-events-none -z-10" viewBox="0 0 1440 320" preserveAspectRatio="none" style={{height: '40vh', minHeight: '320px'}}>
-        <path fill="currentColor" fillOpacity="1" d="M0,256L48,229.3C96,203,192,149,288,144C384,139,480,181,576,192C672,203,768,181,864,154.7C960,128,1056,96,1152,106.7C1248,117,1344,171,1392,197.3L1440,224L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"></path>
-      </svg>
+      {/* Left and Right Waves */}
+      <img src={waveLeft} className="absolute bottom-0 left-0 w-full sm:w-[45%] lg:w-[40%] object-contain object-bottom pointer-events-none -z-10" alt="" />
+      <img src={waveRight} className="absolute bottom-0 right-0 w-full sm:w-[45%] lg:w-[40%] object-contain object-bottom pointer-events-none -z-10" alt="" />
+
+      {/* Floating Elements */}
+      <img src={iconBook} className="absolute w-[clamp(60px,7vw,140px)] bottom-[clamp(20px,8vh,100px)] left-[clamp(16px,4.6vw,80px)] object-contain pointer-events-none z-0" alt="" />
+      <img src={iconPlane} className="absolute w-[clamp(90px,9.9vw,202px)] bottom-[clamp(10px,2vh,40px)] left-1/2 -translate-x-1/2 object-contain pointer-events-none -z-10" alt="" />
+      <img src={iconLightbulb} className="absolute w-[clamp(60px,7.3vw,140px)] top-[clamp(60px,20vh,200px)] left-[clamp(16px,3.5vw,80px)] object-contain pointer-events-none z-0" alt="" />
+      <img src={iconStarsBlue} className="absolute w-[clamp(45px,5.3vw,100px)] top-[clamp(40px,10vh,120px)] left-[45%] object-contain pointer-events-none -z-10" alt="" />
+      <img src={iconStarsYellow} className="absolute w-[clamp(152px,19.6vw,374px)] bottom-[clamp(60px,16vh,180px)] right-[clamp(30px,7vw,120px)] object-contain pointer-events-none z-10" alt="" />
     </>
   );
 }
@@ -305,10 +319,8 @@ export default function SubscriptionPage({ user, onSignOut, onPaymentSuccess, on
             <br />
             <span className="font-bold relative inline-block mt-1">
               Gasing Circle
-              {/* Green underline SVG */}
-              <svg className="absolute w-full h-3 -bottom-1 left-0 text-[#22c55e]" viewBox="0 0 100 10" preserveAspectRatio="none">
-                <path d="M0 5 Q 50 10 100 5" stroke="currentColor" strokeWidth="6" fill="transparent" strokeLinecap="round" />
-              </svg>
+              {/* Green underline image */}
+              <img src={stripeGreenOne} className="absolute w-[110%] h-auto -bottom-1 -left-2 object-contain" alt="" />
             </span>
           </h1>
           <ul className="space-y-5">
@@ -327,6 +339,8 @@ export default function SubscriptionPage({ user, onSignOut, onPaymentSuccess, on
 
         {/* Kanan — plan cards */}
         <div className="animate-fade-in-up delay-200 space-y-6 relative">
+          
+          <img src={iconThumbsup} className="absolute top-0 right-0 translate-x-[70%] -translate-y-[50%] w-[clamp(70px,8.8vw,160px)] object-contain pointer-events-none z-20" alt="" />
 
           <div className="space-y-5">
             {loadingPlans ? (
