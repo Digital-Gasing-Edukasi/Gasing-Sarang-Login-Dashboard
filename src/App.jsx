@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/select'
 
 import { cn } from '@/lib/utils'
-import { authApi, regionsApi, discourseApi, tokenStorage } from '@/lib/api'
+import { authApi, profileApi, regionsApi, discourseApi, tokenStorage } from '@/lib/api'
 
 import SubscriptionPage    from '@/pages/SubscriptionPage'
 import PaymentSuccessPage  from '@/pages/PaymentSuccessPage'
@@ -170,7 +170,8 @@ function LoginPage({ onNavigate, onLoginSuccess, isSsoMode = false }) {
     try {
       const data = await authApi.login(email, password)
       tokenStorage.setTokens(data.accessToken, data.refreshToken, remember)
-      onLoginSuccess({ email })
+      const profile = await profileApi.getMe()
+      onLoginSuccess(profile)
     } catch (e) {
       setErrors({ general: e.message })
     } finally {
@@ -977,6 +978,10 @@ export default function App() {
 
   const handleLoginSuccess = (user) => {
     setCurrentUser(user)
+    if (user?.superadmin === true || user?.superAdmin === true) {
+      setPage('admin-dashboard')
+      return
+    }
     if (ssoParams) {
       setPage('sso-callback')
     } else {
