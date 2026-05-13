@@ -39,26 +39,29 @@ export function fmtDate(iso) {
 // verifiedStatus dari API adalah NUMBER: 0=pending, 1=approved, 2=rejected
 function parseVerifiedStatus(v) {
   if (v === 1 || v === 'approved') return 'Approved'
-  if (v === 2 || v === 'rejected') return 'Rejected'
+  if (v === -1 || v === 'rejected') return 'Rejected'
   return 'Pending'
 }
 
-export function mapToVerifikasi(u) {
+export function mapToVerifikasi(u, regions = []) {
+  const regionObj = regions.find(r => r.id === u.trainingRegionId)
+  const regionName = regionObj ? regionObj.regionName : (u.trainingRegion?.regionName || '-')
+
   return {
     id:       u.id,
     name:     u.name || '-',
     username: u.username ? `@${u.username}` : `@${(u.email || '').split('@')[0]}`,
     email:    u.email || '-',
-    status:   'Review',
+    status:   parseVerifiedStatus(u.verifiedStatus),
     birthdate: parseBirthdate(u.birthdate),
-    training:  u.trainingRegion?.regionName || '-',
+    training:  regionName,
     year:      parseCreatedAtYear(u.createdAt),
     school:    u.schoolName || '-',
     role:      u.discourseGroup?.name || u.discourseGroupName || '',
   }
 }
 
-export function mapToManajemen(u) {
+export function mapToManajemen(u, regions = []) {
   const sub = u.activeSubscription || u.subscription
   const subStatus =
     sub?.status === 'active'  ? 'Active'  :
@@ -72,6 +75,9 @@ export function mapToManajemen(u) {
   const voucher = u.activeVoucher?.code || ''
   const action  = voucher ? 'Sudah Disalin' : (accountStatus === 'Approved' ? 'Konfirmasi' : '-')
 
+  const regionObj = regions.find(r => r.id === u.trainingRegionId)
+  const regionName = regionObj ? regionObj.regionName : (u.trainingRegion?.regionName || '-')
+
   return {
     id:       u.id,
     name:     u.name || '-',
@@ -81,7 +87,7 @@ export function mapToManajemen(u) {
     accountStatus,
     voucher,
     birthdate: parseBirthdate(u.birthdate),
-    training:  u.trainingRegion?.regionName || '-',
+    training:  regionName,
     year:      parseCreatedAtYear(u.createdAt),
     school:    u.schoolName || '-',
     role:      u.discourseGroup?.name || u.discourseGroupName || '',

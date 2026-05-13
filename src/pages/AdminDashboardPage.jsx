@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { adminApi, discourseApi } from '@/lib/api'
+import { adminApi, discourseApi, regionsApi } from '@/lib/api'
 import { mapToVerifikasi, mapToManajemen } from './admin/mappers'
 import { AdminSidebar }    from './admin/AdminSidebar'
 import { AdminToast }      from './admin/AdminToast'
@@ -59,6 +59,7 @@ export default function AdminDashboardPage({ onSignOut }) {
   const [searchQuery, setSearchQuery]       = useState('')
   const [roleErrors, setRoleErrors]         = useState({})
   const [discourseGroups, setDiscourseGroups] = useState([])
+  const [trainingRegions, setTrainingRegions] = useState([])
   const [rejectCandidate, setRejectCandidate] = useState(null)
   const [approveCandidate, setApproveCandidate] = useState(null)
   const [toast, setToast]                   = useState(null)
@@ -69,16 +70,28 @@ export default function AdminDashboardPage({ onSignOut }) {
   const executeActionRef = useRef(true)
   const { sortConfig, handleSort, resetSort } = useSort()
 
-  const loadUsers = useCallback(async (tab) => {
+  const loadUsers = useCallback(async (tab, currentRegions = []) => {
     setLoadingUsers(true); setApiError('')
     try {
+      let regions = currentRegions.length ? currentRegions : [];
+      if (regions.length === 0) {
+        try {
+          const rRes = await regionsApi.list();
+          regions = Array.isArray(rRes) ? rRes : (rRes.data || []);
+          // update state tapi jangan trigger infinite loop
+          setTrainingRegions(regions);
+        } catch (e) {
+          console.error("Failed to load regions", e)
+        }
+      }
+
       if (tab === 'verifikasi') {
         const res = await adminApi.getUsers({ verifiedStatus: 'pending' })
         const rawList = Array.isArray(res) ? res : res.data || []
-        setUsers(rawList.map(mapToVerifikasi))
+        setUsers(rawList.map(u => mapToVerifikasi(u, regions)))
       } else {
         const res = await adminApi.getUsers({})
-        setManagementUsers((Array.isArray(res) ? res : res.data || []).map(mapToManajemen))
+        setManagementUsers((Array.isArray(res) ? res : res.data || []).map(u => mapToManajemen(u, regions)))
       }
     } catch (err) {
       setApiError(err.message || 'Gagal memuat data')
