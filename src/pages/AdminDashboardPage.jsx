@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { adminApi } from '@/lib/api'
+import { adminApi, discourseApi } from '@/lib/api'
 import { mapToVerifikasi, mapToManajemen } from './admin/mappers'
 import { AdminSidebar }    from './admin/AdminSidebar'
 import { AdminToast }      from './admin/AdminToast'
@@ -58,6 +58,7 @@ export default function AdminDashboardPage({ onSignOut }) {
   const [apiError, setApiError]             = useState('')
   const [searchQuery, setSearchQuery]       = useState('')
   const [roleErrors, setRoleErrors]         = useState({})
+  const [discourseGroups, setDiscourseGroups] = useState([])
   const [rejectCandidate, setRejectCandidate] = useState(null)
   const [approveCandidate, setApproveCandidate] = useState(null)
   const [toast, setToast]                   = useState(null)
@@ -72,8 +73,9 @@ export default function AdminDashboardPage({ onSignOut }) {
     setLoadingUsers(true); setApiError('')
     try {
       if (tab === 'verifikasi') {
-        const res = await adminApi.getUsers({ 'filter[verifiedStatus]': 'pending' })
-        setUsers((Array.isArray(res) ? res : res.data || []).map(mapToVerifikasi))
+        const res = await adminApi.getUsers({ verifiedStatus: 'pending' })
+        const rawList = Array.isArray(res) ? res : res.data || []
+        setUsers(rawList.map(mapToVerifikasi))
       } else {
         const res = await adminApi.getUsers({})
         setManagementUsers((Array.isArray(res) ? res : res.data || []).map(mapToManajemen))
@@ -86,6 +88,12 @@ export default function AdminDashboardPage({ onSignOut }) {
   }, [])
 
   useEffect(() => { loadUsers(activeTab) }, [activeTab])
+
+  useEffect(() => {
+    discourseApi.getGroups()
+      .then(res => setDiscourseGroups(Array.isArray(res) ? res : (res.data || [])))
+      .catch(err => console.error("Failed to load discourse groups", err))
+  }, [])
 
   const handleTabChange = (tab) => {
     setActiveTab(tab); setSearchQuery(''); resetSort()
@@ -121,18 +129,24 @@ export default function AdminDashboardPage({ onSignOut }) {
     setUsers(prev => prev.filter(u => u.id !== target.id))
     setApproveCandidate(null)
     setToast({ message: <>Akun {target.name} telah <span className="text-green-500 font-medium">disetujui</span></>, user: target })
-    scheduleAction(() => adminApi.verifyUser(target.id, { status: 'approved' }), () => {
+    
+    // Pastikan discourseGroupId berupa angka (integer)
+    const groupId = target.role ? parseInt(target.role, 10) : null;
+    
+    scheduleAction(() => adminApi.verifyUser(target.id, { status: 'approved', discourseGroupId: groupId }), () => {
       setUsers(prev => [target, ...prev]); setApiError('Gagal menyetujui akun. Silakan coba lagi.')
     })
   }
 
-  const handleConfirmReject = () => {
+  const handleConfirmReject = (reason) => {
     if (!rejectCandidate) return
     const target = rejectCandidate
     setUsers(prev => prev.filter(u => u.id !== target.id))
     setRejectCandidate(null)
     setToast({ message: <>Akun {target.name} telah <span className="text-red-500 font-medium">ditolak</span></>, user: target })
-    scheduleAction(() => adminApi.verifyUser(target.id, { status: 'rejected' }), () => {
+    
+    // API menggunakan key 'rejectedReason' bukan 'reason'
+    scheduleAction(() => adminApi.verifyUser(target.id, { status: 'rejected', rejectedReason: reason }), () => {
       setUsers(prev => [target, ...prev]); setApiError('Gagal menolak akun. Silakan coba lagi.')
     })
   }
@@ -229,6 +243,7 @@ export default function AdminDashboardPage({ onSignOut }) {
                   onReject={setRejectCandidate}
                   roleErrors={roleErrors}
                   searchQuery={searchQuery}
+                  discourseGroups={discourseGroups}
                 />
               ) : (
                 <ManajemenTable

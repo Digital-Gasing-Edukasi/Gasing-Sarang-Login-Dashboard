@@ -15,7 +15,7 @@ function SortableHeader({ label, sortKey, sortConfig, onSort }) {
   )
 }
 
-export function VerifikasiTable({ users, sortConfig, onSort, onRoleChange, onApprove, onReject, roleErrors, searchQuery }) {
+export function VerifikasiTable({ users, sortConfig, onSort, onRoleChange, onApprove, onReject, roleErrors, searchQuery, discourseGroups = [] }) {
   return (
     <table className="w-full text-left text-sm whitespace-nowrap">
       <thead className="bg-[#0A1128] text-white">
@@ -79,7 +79,20 @@ export function VerifikasiTable({ users, sortConfig, onSort, onRoleChange, onApp
                   onChange={e => onRoleChange(user.id, e.target.value)}
                 >
                   <option value="" disabled>Pilih Role</option>
-                  {ROLE_OPTIONS.map(r => <option key={r} value={r}>{r}</option>)}
+                  {discourseGroups
+                    .filter(g => {
+                      const isStr = typeof g === 'string'
+                      const label = isStr ? g : (g.name || g.title || g.groupName || '')
+                      // Hardcode nama role yang ingin ditampilkan di sini
+                      const ALLOWED_ROLES = ['Trainer Utama', 'Trainer Kelas', 'Guru', 'Trainer Aula']
+                      return ALLOWED_ROLES.includes(label)
+                    })
+                    .map((g, idx) => {
+                      const isStr = typeof g === 'string'
+                      const val = isStr ? g : (g.id || g.groupId || idx)
+                      const label = isStr ? g : (g.name || g.title || g.groupName || val)
+                      return <option key={val} value={val}>{label}</option>
+                  })}
                 </select>
                 <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
               </div>

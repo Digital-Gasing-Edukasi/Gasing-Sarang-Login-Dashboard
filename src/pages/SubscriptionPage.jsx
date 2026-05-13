@@ -236,44 +236,26 @@ export default function SubscriptionPage({ user, onSignOut, onPaymentSuccess, on
     try {
       const data = await subscriptionApi.checkout(selectedPlan);
 
-      // Prioritaskan metode Midtrans Snap Popup jika token/snapToken tersedia dari API
+      // ── Snap Redirect: redirect browser ke halaman pembayaran Midtrans ──
+      // Backend mengembalikan redirect_url langsung dari Midtrans API
+      if (data.redirectUrl || data.redirect_url) {
+        window.location.href = data.redirectUrl || data.redirect_url;
+        return;
+      }
+
+      // Fallback: jika backend hanya mengembalikan token, buat redirect URL manual
       if (data.token || data.snapToken) {
         const snapToken = data.token || data.snapToken;
-        const currentPlan = plans.find((p) => p.id === selectedPlan);
-        const planLabel = currentPlan?.planLabel || currentPlan?.name || '';
+        const isSandbox = import.meta.env.VITE_MIDTRANS_CLIENT_KEY?.startsWith('SB-') ||
+                          import.meta.env.VITE_MIDTRANS_CLIENT_KEY?.startsWith('Mid-client-');
+        const baseSnap  = isSandbox
+          ? 'https://app.sandbox.midtrans.com/snap/v2/vtweb/'
+          : 'https://app.midtrans.com/snap/v2/vtweb/';
+        window.location.href = baseSnap + snapToken;
+        return;
+      }
 
-        // Memastikan script window.snap sudah ter-load dari index.html
-        if (window.snap) {
-          window.snap.pay(snapToken, {
-            onSuccess: function (result) {
-              console.log("Pembayaran sukses!", result);
-              // Navigasi via state-based router, bukan window.location.href
-              onPaymentSuccess?.(planLabel);
-            },
-            onPending: function (result) {
-              console.log("Menunggu pembayaran!", result);
-              // Navigasi ke admin dashboard untuk lihat status
-              onPaymentPending?.();
-            },
-            onError: function (result) {
-              console.log("Pembayaran gagal!", result);
-              setError("Pembayaran gagal atau kedaluwarsa. Silakan coba lagi.");
-            },
-            onClose: function () {
-              console.log("Popup ditutup tanpa menyelesaikan pembayaran");
-              setError("Pembayaran belum diselesaikan.");
-            }
-          });
-        } else {
-          throw new Error("Midtrans script belum siap.");
-        }
-      }
-      // Fallback jika API mengembalikan redirect URL langsung (Snap Redirect)
-      else if (data.redirectUrl) {
-        window.location.href = data.redirectUrl;
-      } else {
-        throw new Error("Data pembayaran tidak valid dari server");
-      }
+      throw new Error("Data pembayaran tidak valid dari server");
     } catch (e) {
       setError(e.message || "Gagal memproses pembayaran, coba lagi");
     } finally {

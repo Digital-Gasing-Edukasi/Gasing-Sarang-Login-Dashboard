@@ -11,10 +11,13 @@ import { CheckEmailPage }   from '@/pages/auth/CheckEmailPage'
 import { ResetPasswordPage } from '@/pages/auth/ResetPasswordPage'
 import { SsoCallbackPage }  from '@/pages/auth/SsoCallbackPage'
 
-import SubscriptionPage    from '@/pages/SubscriptionPage'
-import PaymentSuccessPage  from '@/pages/PaymentSuccessPage'
-import AdminDashboardPage  from '@/pages/AdminDashboardPage'
-import MidtransTestPage    from '@/pages/MidtransTestPage'
+import SubscriptionPage     from '@/pages/SubscriptionPage'
+import PaymentSuccessPage   from '@/pages/PaymentSuccessPage'
+import PaymentFinishPage    from '@/pages/PaymentFinishPage'
+import PaymentUnfinishPage  from '@/pages/PaymentUnfinishPage'
+import PaymentErrorPage     from '@/pages/PaymentErrorPage'
+import AdminDashboardPage   from '@/pages/AdminDashboardPage'
+import MidtransTestPage     from '@/pages/MidtransTestPage'
 
 export default function App() {
   const [page, setPage]             = useState('login')
@@ -28,7 +31,24 @@ export default function App() {
   const [activePlanName, setActivePlanName] = useState('')
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search)
+    const params   = new URLSearchParams(window.location.search)
+    const pathname = window.location.pathname
+
+    // ── Snap Redirect landing pages (Midtrans redirects browser ke sini) ────
+    if (pathname.includes('/payment/finish')) {
+      setPage('payment-finish')
+      return
+    }
+    if (pathname.includes('/payment/unfinish')) {
+      setPage('payment-unfinish')
+      return
+    }
+    if (pathname.includes('/payment/error')) {
+      setPage('payment-error')
+      return
+    }
+
+    // ── Query param routing ───────────────────────────────────────────────
     const paymentStatus = params.get('payment')
     const token         = params.get('token')
     const emailParam    = params.get('email')
@@ -88,7 +108,10 @@ export default function App() {
   }
 
   // ── Full-screen pages ─────────────────────────────────────────────────────
-  if (page === 'midtrans-test')   return <MidtransTestPage />
+  if (page === 'payment-finish')   return <PaymentFinishPage />
+  if (page === 'payment-unfinish') return <PaymentUnfinishPage />
+  if (page === 'payment-error')    return <PaymentErrorPage />
+  if (page === 'midtrans-test')    return <MidtransTestPage />
   if (page === 'subscription')    return <SubscriptionPage user={currentUser} onSignOut={handleSignOut} onPaymentSuccess={handlePaymentSuccess} onPaymentPending={() => setPage('admin-dashboard')} />
   if (page === 'payment-success') return <PaymentSuccessPage user={currentUser} onSignOut={handleSignOut} activePlanName={activePlanName} />
   if (page === 'forgot-password') return <ForgotPasswordPage onNavigate={setPage} onEmailSent={handleEmailSent} />
