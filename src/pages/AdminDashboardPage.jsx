@@ -86,9 +86,10 @@ export default function AdminDashboardPage({ onSignOut }) {
       }
 
       if (tab === 'verifikasi') {
-        const res = await adminApi.getUsers({ verifiedStatus: 'pending' })
+        const res = await adminApi.getUsers({ verifiedStatus: 0 })
         const rawList = Array.isArray(res) ? res : res.data || []
-        setUsers(rawList.map(u => mapToVerifikasi(u, regions)))
+        const pendingUsers = rawList.filter(u => u.verifiedStatus != 1 && u.verifiedStatus != -1 || u.verifiedStatus === 'waiting')
+        setUsers(pendingUsers.map(u => mapToVerifikasi(u, regions)))
       } else {
         const res = await adminApi.getUsers({})
         setManagementUsers((Array.isArray(res) ? res : res.data || []).map(u => mapToManajemen(u, regions)))
