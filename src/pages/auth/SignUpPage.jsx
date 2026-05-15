@@ -42,8 +42,19 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
   const handleNextToData = () => {
     setError('')
     if (!username || !email || !password || !confirm) { setError('Semua field wajib diisi'); return }
+    
+    // Validasi Username
+    if (username.length < 3) { setError('Username minimal 3 karakter'); return }
+    if (!/^[a-z][a-z0-9_]*$/.test(username)) { setError('Username harus diawali huruf kecil dan hanya berisi huruf kecil, angka, dan underscore'); return }
+    
+    // Validasi Email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(email)) { setError('Format email tidak valid'); return }
+    
+    // Validasi Password
     if (password !== confirm) { setError('Konfirmasi password tidak cocok'); return }
     if (password.length < 8) { setError('Password minimal 8 karakter'); return }
+    
     setStep(2)
   }
 
@@ -56,7 +67,14 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
       onOtpToken(data.token, email)
       onNavigate('signup-otp')
     } catch (e) {
-      setError(e.message)
+      const msg = e.message;
+      setError(msg);
+      
+      // Jika error dari backend berkaitan dengan field di step 1, otomatis kembali ke step 1
+      const msgLower = msg.toLowerCase();
+      if (msgLower.includes('username') || msgLower.includes('email') || msgLower.includes('password')) {
+        setStep(1);
+      }
     } finally {
       setLoading(false)
     }

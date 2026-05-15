@@ -72,7 +72,14 @@ async function requestMultipart(endpoint, formData) {
 async function handleResponse(res) {
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
-    const message = data.message || `Error ${res.status}`;
+    let message = data.message || `Error ${res.status}`;
+    if (data.errors) {
+      if (Array.isArray(data.errors)) {
+        message = data.errors.join(", ");
+      } else if (typeof data.errors === 'object') {
+        message = Object.values(data.errors).flat().join(", ");
+      }
+    }
     throw new Error(Array.isArray(message) ? message.join(", ") : message);
   }
   return data;
