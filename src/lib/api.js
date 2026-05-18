@@ -223,7 +223,12 @@ export const discourseApi = {
     request(
       `/discourse/sso-login${returnPath ? `?return_path=${encodeURIComponent(returnPath)}` : ""}`
     ).then(data => {
-      if (data.redirectUrl) window.location.href = data.redirectUrl
+      const url = data.redirectUrl || data.redirect_url || data.url || data.ssoUrl
+      if (url) {
+        window.location.href = url
+      } else {
+        throw new Error("Redirect URL tidak ditemukan di respons server")
+      }
     }),
 
   // SSO gateway: verifies sso+sig params from Discourse callback

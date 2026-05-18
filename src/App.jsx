@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { tokenStorage } from '@/lib/api'
+import { tokenStorage, subscriptionApi } from '@/lib/api'
 import { LeftPanel }    from '@/components/layout/LeftPanel'
 
 import { LoginPage }        from '@/pages/auth/LoginPage'
@@ -10,6 +10,7 @@ import { ForgotPasswordPage } from '@/pages/auth/ForgotPasswordPage'
 import { CheckEmailPage }   from '@/pages/auth/CheckEmailPage'
 import { ResetPasswordPage } from '@/pages/auth/ResetPasswordPage'
 import { SsoCallbackPage }  from '@/pages/auth/SsoCallbackPage'
+import { AuthChoicePage }   from '@/pages/auth/AuthChoicePage'
 
 import SubscriptionPage     from '@/pages/SubscriptionPage'
 import PaymentSuccessPage   from '@/pages/PaymentSuccessPage'
@@ -83,14 +84,38 @@ export default function App() {
     setOtpToken(token); setRegEmail(email)
   }
 
-  const handleLoginSuccess = (user) => {
+  const handleLoginSuccess = async (user) => {
     setCurrentUser(user)
-    if (user?.superadmin === true || user?.superAdmin === true) {
+    console.log("🚀 User Data Payload:", user);
+    console.log("✅ User Capabilities:", user?.capabilities);
+    console.log("✅ User Groups:", user?.groups);
+    
+    const isSuperAdmin = user?.superadmin === true || user?.superAdmin === true;
+    
+    // Mengecek apakah user memiliki capabilities yang tidak null dan tidak kosong
+    const hasCapabilities = user?.capabilities && 
+      (Array.isArray(user.capabilities) ? user.capabilities.length > 0 : Object.keys(user.capabilities).length > 0);
+
+    // "yang bisa masuk ke dashboard hanya yang bukan admin, tetapi, mempunya capabilieties tidak null"
+    if (!isSuperAdmin && hasCapabilities) {
       setPage('admin-dashboard')
-    } else if (ssoParams) {
-      setPage('sso-callback')
+    } else if (isSuperAdmin) {
+      setPage('auth-choice')
     } else {
-      setPage('subscription')
+      try {
+        const sub = await subscriptionApi.getStatus()
+        const isActive = sub?.hasActiveSubscription === true || sub?.subscription?.status === 'active';
+        if (isActive) {
+          setPage('auth-choice')
+          console.log("✅ Active Sub:", sub?.hasActiveSubscription);
+        } else {
+          setPage('subscription')
+          console.log("✅ Active Sub:", sub?.hasActiveSubscription);
+        }
+      } catch (error) {
+        console.log("❌ Active Sub Error:", error);
+        setPage('subscription')
+      }
     }
   }
 
@@ -125,7 +150,8 @@ export default function App() {
     'signup':        <SignUpPage onNavigate={setPage} onOtpToken={handleOtpToken} />,
     'signup-otp':    <SignUpOtpPage onNavigate={setPage} otpToken={otpToken} email={regEmail} />,
     'signup-review': <SignUpReviewPage onNavigate={setPage} />,
-    'sso-callback':  ssoParams ? <SsoCallbackPage sso={ssoParams.sso} sig={ssoParams.sig} onNavigate={setPage} /> : null,
+    'auth-choice':   <AuthChoicePage onNavigate={setPage} />,
+    'sso-callback':  <SsoCallbackPage sso={ssoParams?.sso} sig={ssoParams?.sig} onNavigate={setPage} />,
   }
 
   return (
