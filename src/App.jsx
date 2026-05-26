@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { tokenStorage, subscriptionApi } from '@/lib/api'
+import { tokenStorage, subscriptionApi, profileApi } from '@/lib/api'
 import { LeftPanel }    from '@/components/layout/LeftPanel'
 
 import { LoginPage }        from '@/pages/auth/LoginPage'
@@ -30,54 +30,71 @@ export default function App() {
   const [ssoParams, setSsoParams]   = useState(null)
   const [currentUser, setCurrentUser] = useState(null)
   const [activePlanName, setActivePlanName] = useState('')
+  const [sessionChecked, setSessionChecked] = useState(false)
 
   useEffect(() => {
-    const params   = new URLSearchParams(window.location.search)
-    const pathname = window.location.pathname
+    const init = async () => {
+      const params   = new URLSearchParams(window.location.search)
+      const pathname = window.location.pathname
 
-    // ── Snap Redirect landing pages (Midtrans redirects browser ke sini) ────
-    if (pathname.includes('/payment/finish')) {
-      setPage('payment-finish')
-      return
-    }
-    if (pathname.includes('/payment/unfinish')) {
-      setPage('payment-unfinish')
-      return
-    }
-    if (pathname.includes('/payment/error')) {
-      setPage('payment-error')
-      return
-    }
+      // ── Snap Redirect landing pages (Midtrans redirects browser ke sini) ────
+      if (pathname.includes('/payment/finish')) {
+        setPage('payment-finish')
+        setSessionChecked(true)
+        return
+      }
+      if (pathname.includes('/payment/unfinish')) {
+        setPage('payment-unfinish')
+        setSessionChecked(true)
+        return
+      }
+      if (pathname.includes('/payment/error')) {
+        setPage('payment-error')
+        setSessionChecked(true)
+        return
+      }
 
-    // ── Query param routing ───────────────────────────────────────────────
-    const paymentStatus = params.get('payment')
-    const token         = params.get('token')
-    const emailParam    = params.get('email')
-    const adminParam    = params.get('admin')
-    const midtransTest  = params.get('midtrans-test')
-    const ssoParam      = params.get('sso')
-    const sigParam      = params.get('sig')
+      // ── Query param routing ───────────────────────────────────────────────
+      const paymentStatus = params.get('payment')
+      const token         = params.get('token')
+      const emailParam    = params.get('email')
+      const adminParam    = params.get('admin')
+      const midtransTest  = params.get('midtrans-test')
+      const ssoParam      = params.get('sso')
+      const sigParam      = params.get('sig')
 
-    if (midtransTest === 'true') {
-      setPage('midtrans-test')
-    } else if (ssoParam && sigParam) {
-      setSsoParams({ sso: ssoParam, sig: sigParam })
-      window.history.replaceState({}, '', window.location.pathname)
-      setPage(tokenStorage.getAccess() ? 'sso-callback' : 'login')
-    } else if (adminParam === 'true') {
-      setPage('admin-dashboard')
-      window.history.replaceState({}, '', window.location.pathname)
-    } else if (paymentStatus === 'success') {
-      const planName = params.get('plan')
-      if (planName) setActivePlanName(decodeURIComponent(planName))
-      setPage('payment-success')
-      window.history.replaceState({}, '', window.location.pathname)
-    } else if (token) {
-      setResetToken(token)
-      if (emailParam) setResetEmail(decodeURIComponent(emailParam))
-      setPage('reset-password')
-      window.history.replaceState({}, '', window.location.pathname)
+      if (midtransTest === 'true') {
+        setPage('midtrans-test')
+      } else if (ssoParam && sigParam) {
+        setSsoParams({ sso: ssoParam, sig: sigParam })
+        window.history.replaceState({}, '', window.location.pathname)
+        setPage(tokenStorage.getAccess() ? 'sso-callback' : 'login')
+      } else if (adminParam === 'true') {
+        setPage('admin-dashboard')
+        window.history.replaceState({}, '', window.location.pathname)
+      } else if (paymentStatus === 'success') {
+        const planName = params.get('plan')
+        if (planName) setActivePlanName(decodeURIComponent(planName))
+        setPage('payment-success')
+        window.history.replaceState({}, '', window.location.pathname)
+      } else if (token) {
+        setResetToken(token)
+        if (emailParam) setResetEmail(decodeURIComponent(emailParam))
+        setPage('reset-password')
+        window.history.replaceState({}, '', window.location.pathname)
+      } else if (tokenStorage.getAccess()) {
+        // Restore session on page refresh
+        try {
+          const profile = await profileApi.getMe()
+          await handleLoginSuccess(profile)
+        } catch {
+          tokenStorage.clear()
+        }
+      }
+
+      setSessionChecked(true)
     }
+    init()
   }, [])
 
   const handleOtpToken = (token, email) => {
@@ -92,9 +109,19 @@ export default function App() {
     
     const isSuperAdmin = user?.superadmin === true || user?.superAdmin === true;
     
-    // Mengecek apakah user memiliki capabilities yang tidak null dan tidak kosong
-    const hasCapabilities = user?.capabilities && 
-      (Array.isArray(user.capabilities) ? user.capabilities.length > 0 : Object.keys(user.capabilities).length > 0);
+    const ADMIN_CAPABILITIES = [
+      'USER/DISCOURSE/CHANGE_GROUP',
+      'PACKAGE/MGMT',
+      'USER/VERIFY',
+      'USER/LIST',
+      'VOUCHER/MGMT',
+      'USER/DISCOURSE/MANAGE_EXTRA_GROUPS',
+    ]
+
+    const hasCapabilities = user?.capabilities &&
+      (Array.isArray(user.capabilities)
+        ? ADMIN_CAPABILITIES.every(cap => user.capabilities.includes(cap))
+        : ADMIN_CAPABILITIES.every(cap => cap in user.capabilities))
 
     // "yang bisa masuk ke dashboard hanya yang bukan admin, tetapi, mempunya capabilieties tidak null"
     if (!isSuperAdmin && hasCapabilities) {
@@ -131,6 +158,9 @@ export default function App() {
     if (planName) setActivePlanName(planName)
     setPage('payment-success')
   }
+
+  // ── Session check loading ─────────────────────────────────────────────────
+  if (!sessionChecked) return null
 
   // ── Full-screen pages ─────────────────────────────────────────────────────
   if (page === 'payment-finish')   return <PaymentFinishPage />

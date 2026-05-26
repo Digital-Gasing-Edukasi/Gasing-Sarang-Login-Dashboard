@@ -1,8 +1,8 @@
 // src/pages/PaymentSuccessPage.jsx
 import React, { useEffect, useState } from 'react'
-import { LogOut, Loader2 } from 'lucide-react'
+import { LogOut, Loader2, ArrowRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { subscriptionApi } from '@/lib/api'
+import { subscriptionApi, tokenStorage, discourseApi } from '@/lib/api'
 
 function Avatar({ name = '' }) {
   const initials = name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()
@@ -29,9 +29,21 @@ function Decorations() {
 }
 
 export default function PaymentSuccessPage({ user, onSignOut, activePlanName }) {
-  const DISCOURSE_URL = import.meta.env.VITE_DISCOURSE_URL || '#'
-  const WA_NUMBER    = import.meta.env.VITE_WA_NUMBER || '628123456789'
-  const waUrl        = `https://wa.me/${WA_NUMBER}`
+  const WA_NUMBER = import.meta.env.VITE_WA_NUMBER || '628123456789'
+  const waUrl     = `https://wa.me/${WA_NUMBER}`
+
+  const handleRedirectDefault = () => {
+    const token = tokenStorage.getAccess()
+    window.location.href = `https://gasing.vercel.app/api/auth/callback?token=${token}`
+  }
+
+  const handleRedirectSso = async () => {
+    try {
+      await discourseApi.ssoLogin()
+    } catch (error) {
+      console.error('Gagal inisiasi SSO:', error)
+    }
+  }
 
   // Nama paket: dari props (diteruskan dari App) atau fallback ke cek API
   const [planName, setPlanName] = useState(activePlanName || '')
@@ -77,19 +89,31 @@ export default function PaymentSuccessPage({ user, onSignOut, activePlanName }) 
           Selamat datang di Gasing Circle, akses Anda sekarang kini telah aktif.
         </p>
 
-        {/* CTA — Jelajahi Gasing Circle */}
-        <a
-          href={DISCOURSE_URL}
-          target="_blank"
-          rel="noopener noreferrer"
-          className={cn(
-            'px-10 py-3.5 rounded-full font-semibold text-white text-[15px] text-center',
-            'bg-[#003cf9] hover:bg-blue-700 active:scale-[0.98] transition-all duration-200 shadow-md',
-            'flex items-center justify-center mb-10'
-          )}
-        >
-          Jelajahi Gasing Circle
-        </a>
+        {/* CTA — Pilih Tujuan */}
+        <div className="flex flex-col gap-3 w-full max-w-sm mb-10">
+          <button
+            onClick={handleRedirectDefault}
+            className={cn(
+              'w-full flex items-center justify-between px-6 py-3.5 rounded-full',
+              'font-semibold text-white text-[15px]',
+              'bg-[#003cf9] hover:bg-blue-700 active:scale-[0.98] transition-all duration-200 shadow-md'
+            )}
+          >
+            <span>Gasing Web App</span>
+            <ArrowRight size={18} />
+          </button>
+          <button
+            onClick={handleRedirectSso}
+            className={cn(
+              'w-full flex items-center justify-between px-6 py-3.5 rounded-full',
+              'font-semibold text-[15px]',
+              'bg-white text-gray-800 border border-gray-300 hover:bg-gray-50 active:scale-[0.98] transition-all duration-200 shadow-sm'
+            )}
+          >
+            <span>Komunitas (SSO)</span>
+            <ArrowRight size={18} />
+          </button>
+        </div>
 
         {/* Hubungi Kami */}
         <p className="text-[14px] text-gray-500">

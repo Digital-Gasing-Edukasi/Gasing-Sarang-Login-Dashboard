@@ -1,6 +1,6 @@
 # GASING CIRCLE — Frontend SPA
 
-> **Versi:** 2.5.0 · **Tanggal:** 12 Mei 2026 · **Stack:** React 18 + Vite + Tailwind CSS + shadcn/ui
+> **Versi:** 2.6.0 · **Tanggal:** 18 Mei 2026 · **Stack:** React 18 + Vite + Tailwind CSS + shadcn/ui
 
 ---
 
@@ -132,16 +132,16 @@ Login page/
 └─────────────┘                                              │
        │ Belum punya akun                                    │ Login berhasil
        ▼                                                     ▼
+┌─────────────────┐                            ┌────────────────────────┐
+│ Sign Up Step 1  │                            │   Auth Choice Page     │
+│ (Buat Akun)     │                            │(Gasing / SSO Callback) │
+└─────────────────┘                            └────────────────────────┘
+       │                                                 │
+       ▼                                                 ▼
 ┌─────────────────┐                            ┌──────────────────────┐
-│ Sign Up Step 1  │                            │ Redirect ke Discourse│
-│ (Buat Akun)     │                            │ (VITE_DISCOURSE_URL) │
+│ Sign Up Step 2  │                            │ Redirect ke Discourse│
+│ (Verifikasi OTP)│                            │ (VITE_DISCOURSE_URL) │
 └─────────────────┘                            └──────────────────────┘
-       │
-       ▼
-┌─────────────────┐                            
-│ Sign Up Step 2  │                            
-│ (Verifikasi OTP)│                            
-└─────────────────┘                            
        │                                       
        ▼                                       
 ┌─────────────────┐                            
@@ -171,6 +171,7 @@ Alur Discourse SSO & Pembayaran:
 | `'signup'`          | Sign Up Step 1 — buat akun                    |
 | `'signup-otp'`      | Sign Up Step 2 — verifikasi OTP                |
 | `'signup-review'`   | Sign Up Step 3 — review selesai                |
+| `'auth-choice'`     | Pilihan navigasi (Gasing / SSO) setelah login  |
 | `'forgot-password'` | Lupa password                                  |
 | `'check-email'`     | Cek email — instruksi setelah kirim reset link |
 | `'reset-password'`  | Reset password — form ubah password baru       |
@@ -289,6 +290,7 @@ Setiap halaman auth berdiri sendiri sebagai file terpisah. `App.jsx` hanya bertu
 | File                    | Halaman                                          |
 | ----------------------- | ------------------------------------------------ |
 | `LoginPage.jsx`         | Login dengan email & password                    |
+| `AuthChoicePage.jsx`    | Pilihan navigasi (Gasing / SSO) setelah login    |
 | `SignUpPage.jsx`        | Register 2-step (buat akun → verifikasi data)    |
 | `SignUpOtpPage.jsx`     | Verifikasi OTP 6 digit                           |
 | `SignUpReviewPage.jsx`  | Konfirmasi pendaftaran selesai                   |
@@ -803,6 +805,12 @@ Ubah CSS variables di `src/index.css`:
 ---
 
 ## 17. Changelog
+
+### v2.6.0 — 18 Mei 2026
+
+- ✅ Tambah `AuthChoicePage` — halaman pilihan navigasi (Gasing / SSO Callback) setelah login berhasil.
+- ✅ Update `App.jsx` — memisahkan alur Admin Dashboard berdasar cek `capabilities`.
+- ✅ Integrasi redirect callback URL JWT token.
 
 ### v2.5.0 — 12 Mei 2026 *(Refactoring)*
 
