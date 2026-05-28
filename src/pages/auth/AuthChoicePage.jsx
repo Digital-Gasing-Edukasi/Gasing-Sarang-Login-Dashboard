@@ -1,9 +1,9 @@
 import { RightPanel } from '@/components/layout/RightPanel'
 import { Button } from '@/components/ui/button'
-import { tokenStorage, discourseApi } from '@/lib/api'
-import { ArrowRight, LogIn } from 'lucide-react'
+import { tokenStorage, discourseApi, authApi } from '@/lib/api'
+import { ArrowRight, LogIn, LogOut } from 'lucide-react'
 
-export function AuthChoicePage({ onNavigate }) {
+export function AuthChoicePage({ onNavigate, onSignOut }) {
   const handleRedirectDefault = () => {
     const token = tokenStorage.getAccess()
     window.location.href = `https://gasing.vercel.app/api/auth/callback?token=${token}`
@@ -14,6 +14,20 @@ export function AuthChoicePage({ onNavigate }) {
       await discourseApi.ssoLogin()
     } catch (error) {
       console.error('Gagal inisiasi SSO:', error)
+    }
+  }
+
+  const handleLogout = async () => {
+    try {
+      await authApi.logout()
+    } catch (error) {
+      console.error('Gagal logout:', error)
+    }
+    if (onSignOut) {
+      onSignOut()
+    } else {
+      tokenStorage.clear()
+      onNavigate('login')
     }
   }
 
@@ -49,6 +63,16 @@ export function AuthChoicePage({ onNavigate }) {
           >
             <span>Komunitas (SSO)</span>
             <ArrowRight size={18} />
+          </Button>
+
+          <Button 
+            onClick={handleLogout} 
+            variant="ghost" 
+            className="w-full flex items-center justify-center text-red-500 hover:text-red-600 hover:bg-red-50 mt-4"
+            size="lg"
+          >
+            <LogOut size={18} className="mr-2" />
+            <span>Keluar</span>
           </Button>
         </div>
       </div>

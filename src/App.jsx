@@ -180,7 +180,7 @@ export default function App() {
     'signup':        <SignUpPage onNavigate={setPage} onOtpToken={handleOtpToken} />,
     'signup-otp':    <SignUpOtpPage onNavigate={setPage} otpToken={otpToken} email={regEmail} />,
     'signup-review': <SignUpReviewPage onNavigate={setPage} />,
-    'auth-choice':   <AuthChoicePage onNavigate={setPage} />,
+    'auth-choice':   <AuthChoicePage onNavigate={setPage} onSignOut={handleSignOut} />,
     'sso-callback':  <SsoCallbackPage sso={ssoParams?.sso} sig={ssoParams?.sig} onNavigate={setPage} />,
   }
 
