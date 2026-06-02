@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Lock, Loader2 } from 'lucide-react'
+import { Lock, Loader2, Check, Circle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Label }  from '@/components/ui/label'
 import { AuthFullLayout }            from '@/components/layout/AuthFullLayout'
@@ -26,10 +26,20 @@ export function ResetPasswordPage({ token, email, onNavigate }) {
     return () => clearTimeout(t)
   }, [success, redirectSecs])
 
+  const passwordRules = [
+    { label: 'Memiliki minimal 8 karakter', ok: password.length >= 8 },
+    { label: 'Memiliki minimal 1 huruf kapital', ok: /[A-Z]/.test(password) },
+    {
+      label: 'Memiliki minimal 1 angka dan 1 karakter spesial',
+      ok: /\d/.test(password) && /[^A-Za-z0-9]/.test(password),
+    },
+  ]
+  const allRulesOk = passwordRules.every(r => r.ok)
+
   const handleReset = async () => {
     setError('')
-    if (!password)           { setError('Password baru wajib diisi'); return }
-    if (password.length < 8) { setError('Password minimal 8 karakter'); return }
+    if (!password)    { setError('Password baru wajib diisi'); return }
+    if (!allRulesOk)  { setError('Password belum memenuhi semua ketentuan'); return }
     if (password !== confirm) { setError('Konfirmasi password tidak cocok'); return }
     setLoading(true)
     try {
@@ -71,6 +81,27 @@ export function ResetPasswordPage({ token, email, onNavigate }) {
             <Button className="w-full" onClick={handleReset} disabled={loading || success}>
               {loading ? <><Loader2 size={16} className="animate-spin" /> Memproses...</> : 'Ubah Password'}
             </Button>
+
+            <ul className="space-y-1.5">
+              {passwordRules.map(rule => (
+                <li
+                  key={rule.label}
+                  className={cn(
+                    'flex items-center gap-2 text-xs transition-colors',
+                    rule.ok ? 'text-green-600' : 'text-muted-foreground'
+                  )}
+                >
+                  {rule.ok ? (
+                    <span className="flex h-4 w-4 items-center justify-center rounded-full bg-green-600 text-white">
+                      <Check size={11} strokeWidth={3} />
+                    </span>
+                  ) : (
+                    <Circle size={16} className="text-muted-foreground/50" />
+                  )}
+                  {rule.label}
+                </li>
+              ))}
+            </ul>
           </div>
         </div>
 

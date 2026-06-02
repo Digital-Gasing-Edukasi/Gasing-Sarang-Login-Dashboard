@@ -1,6 +1,6 @@
 # GASING CIRCLE — Frontend SPA
 
-> **Versi:** 2.6.0 · **Tanggal:** 18 Mei 2026 · **Stack:** React 18 + Vite + Tailwind CSS + shadcn/ui
+> **Versi:** 2.8.0 · **Tanggal:** 02 Juni 2026 · **Stack:** React 18 + Vite + Tailwind CSS + shadcn/ui
 
 ---
 
@@ -397,13 +397,21 @@ Token disimpan di `localStorage`. Request otomatis attach `Authorization: Bearer
 | PATCH  | `/profile/picture`        | Update foto profil (via fileId)              |
 | POST   | `/profile/confirm-email`  | Konfirmasi perubahan email                   |
 
-#### Training Regions (`regionsApi`)
+#### Regions (`regionsApi`)
 
-| Method | Path                              | Keterangan               |
-| ------ | --------------------------------- | ------------------------ |
-| GET    | `/training-regions`               | List semua daerah (public)|
-| GET    | `/training-regions/:id`           | Detail satu daerah       |
-| GET    | `/training-regions/by-area/:id`   | Filter by area ID        |
+Hierarki **Province → Regency**. Tanpa query → daftar provinsi. Untuk kabupaten/kota: `?type=REGENCY&parentId=<provinceId>` (+ `&keyword=` untuk search).
+
+| Method | Path             | Keterangan                                         |
+| ------ | ---------------- | -------------------------------------------------- |
+| GET    | `/regions`       | List region (public). Param: `type`, `parentId`, `keyword` |
+| GET    | `/regions/:id`   | Detail satu region                                 |
+
+#### Training Sessions (`trainingSessionsApi`)
+
+| Method | Path                      | Keterangan                                             |
+| ------ | ------------------------- | ------------------------------------------------------ |
+| GET    | `/training-sessions`      | List sesi (public). `?regionId=` → sesi per kota (tanpa paginasi); tanpa `regionId` → paginasi `{ data, meta }` |
+| GET    | `/training-sessions/:id`  | Detail satu sesi pelatihan                             |
 
 #### Timezone (`timezoneApi`)
 
@@ -446,6 +454,13 @@ Token disimpan di `localStorage`. Request otomatis attach `Authorization: Bearer
 | PATCH  | `/file-manager/commit/:fileId`  | Commit file yang diupload     |
 | GET    | `/file-manager/download/:fileId`| URL download file             |
 
+#### Skills & Endorsements (`skillsApi`)
+
+| Method | Path                       | Keterangan                                  |
+| ------ | -------------------------- | ------------------------------------------- |
+| GET    | `/users/:username/skills`  | List skill milik user + status endorsement  |
+| POST   | `/skills/:skillId/endorse` | Toggle endorse skill `{ user_id }`          |
+
 #### Admin (`adminApi`)
 
 **Users**
@@ -483,13 +498,39 @@ Token disimpan di `localStorage`. Request otomatis attach `Authorization: Bearer
 | ------ | ----------------- | ----------------------- |
 | GET    | `/admin/payments` | List semua transaksi    |
 
-**Training Regions**
+**Regions**
 
-| Method | Path                          | Keterangan             |
-| ------ | ----------------------------- | ---------------------- |
-| POST   | `/admin/training-regions`     | Tambah daerah baru     |
-| PATCH  | `/admin/training-regions/:id` | Update daerah          |
-| DELETE | `/admin/training-regions/:id` | Hapus daerah           |
+| Method | Path                  | Keterangan            |
+| ------ | --------------------- | --------------------- |
+| POST   | `/admin/regions`      | Tambah region (Province/Regency) |
+| PATCH  | `/admin/regions/:id`  | Update region         |
+| DELETE | `/admin/regions/:id`  | Hapus region          |
+
+**Training Sessions**
+
+| Method | Path                            | Keterangan                |
+| ------ | ------------------------------- | ------------------------- |
+| POST   | `/admin/training-sessions`      | Tambah sesi pelatihan     |
+| PATCH  | `/admin/training-sessions/:id`  | Update sesi pelatihan     |
+| DELETE | `/admin/training-sessions/:id`  | Hapus sesi pelatihan      |
+
+**Skills**
+
+| Method | Path                | Keterangan          |
+| ------ | ------------------- | ------------------- |
+| GET    | `/admin/skills`     | List skill (paginasi) |
+| POST   | `/admin/skills`     | Tambah skill        |
+| PATCH  | `/admin/skills/:id` | Update skill        |
+| DELETE | `/admin/skills/:id` | Hapus skill         |
+
+**UAC / IAM** (butuh `superAdmin`)
+
+| Method | Path                       | Keterangan                       |
+| ------ | -------------------------- | -------------------------------- |
+| GET    | `/admin/uac/groups`        | List grup capability             |
+| GET    | `/admin/uac/groups/:id`    | Detail grup + capability         |
+| POST   | `/admin/uac/assignments`   | Assign grup ke user `{ userId, groupId }` |
+| DELETE | `/admin/uac/assignments`   | Lepas grup dari user `{ userId, groupId }` |
 
 **Vouchers**
 
@@ -805,6 +846,35 @@ Ubah CSS variables di `src/index.css`:
 ---
 
 ## 17. Changelog
+
+### v2.8.0 — 02 Juni 2026
+
+- ✅ **Custom Routing Paths**: Konfigurasi ulang struktur routing aplikasi di `App.jsx` dengan memisahkan path Admin Dashboard agar dapat diakses melalui `/admin-dashboard/` dan tetap mempertahankan halaman registrasi pada endpoint `/register/`.
+- ✅ **UI Enhancements pada SignUpPage**:
+  - Menyembunyikan daftar pengecekan (rule) password hingga pengguna fokus (klik) pada field password.
+  - Memperbarui gaya indikator pengecekan password yang belum terpenuhi menjadi lingkaran bergaris putus-putus (`border-dashed`), menyesuaikan dengan desain referensi.
+  - Menyelaraskan skala tipografi (ukuran font) di seluruh halaman SignUp (judul, deskripsi, form label, dan teks lisensi) dengan spesifikasi desain (contoh: judul ke ukuran `text-[22px]`, label form ke `text-[13px] font-semibold`).
+
+### v2.7.0 — 29 Mei 2026 *(Sync API Collection 29/05/26)*
+
+Menyelaraskan `src/lib/api.js` dengan Postman collection terbaru. **Catatan:** hanya API layer + README; UI (SignUp & admin) belum disesuaikan — lihat "Yang perlu ditindaklanjuti".
+
+- ✅ **Password requirement checklist** ditambah di `SignUpPage` (Buat Akun Baru) & `ResetPasswordPage` (Ubah Password): min 8 karakter, min 1 huruf kapital, min 1 angka & 1 karakter spesial — indikator live.
+- ✅ **`regionsApi`** — endpoint `/training-regions` → `/regions` (hierarki Province→Regency, param `type`/`parentId`/`keyword`).
+- ✅ **`trainingSessionsApi`** (baru) — `/training-sessions` (`?regionId=` untuk sesi per kota di form registrasi).
+- ✅ **`authApi.resetPassword`** — kembali ke `POST /auth/reset-password` `{ token, email, newPassword }` sesuai collection.
+- ✅ **`adminApi`** — `/admin/training-regions` → `/admin/regions`; tambah CRUD `/admin/training-sessions`, `/admin/skills`, dan UAC/IAM `/admin/uac/*`.
+- ✅ **`skillsApi`** (baru) — `/users/:username/skills` & `POST /skills/:skillId/endorse`.
+- ✅ **`SignUpPage` "Verifikasi Data"** disesuaikan desain terbaru:
+  - "Nama Lengkap" dipindah ke step 1 (Buat Akun Baru).
+  - "Lokasi kamu saat ini" cascade **Provinsi → Kab/Kota** (`/regions`); Kab/Kota = `regionId`.
+  - "Kapan kamu mendapat pelatihan?" = filter; "Dimana?" = sesi hasil filter (`/training-sessions`); sesi terpilih = `lastTrainingSessionId`.
+  - Payload register: `trainingRegionId` → `regionId` + `lastTrainingSessionId`.
+
+**Yang perlu ditindaklanjuti (UI, di luar scope sesi ini):**
+
+- `pages/admin/mappers.js` masih membaca `u.trainingRegionId` / `u.trainingRegion` — sesuaikan ke `regionId` / `region` + `lastTrainingSession`.
+- Link reset password dari email hanya membawa `?token=`, tanpa `&email=`; collection mewajibkan `email` di body. Pastikan template email menambahkan `&email=` atau backend mengambil email dari token.
 
 ### v2.6.0 — 18 Mei 2026
 

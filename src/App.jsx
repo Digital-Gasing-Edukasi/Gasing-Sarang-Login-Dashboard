@@ -1,193 +1,299 @@
-import { useState, useEffect } from 'react'
-import { tokenStorage, subscriptionApi, profileApi } from '@/lib/api'
-import { LeftPanel }    from '@/components/layout/LeftPanel'
+import { useState, useEffect, lazy, Suspense } from "react";
+import { tokenStorage, subscriptionApi, profileApi } from "@/lib/api";
+import { LeftPanel } from "@/components/layout/LeftPanel";
 
-import { LoginPage }        from '@/pages/auth/LoginPage'
-import { SignUpPage }       from '@/pages/auth/SignUpPage'
-import { SignUpOtpPage }    from '@/pages/auth/SignUpOtpPage'
-import { SignUpReviewPage } from '@/pages/auth/SignUpReviewPage'
-import { ForgotPasswordPage } from '@/pages/auth/ForgotPasswordPage'
-import { CheckEmailPage }   from '@/pages/auth/CheckEmailPage'
-import { ResetPasswordPage } from '@/pages/auth/ResetPasswordPage'
-import { SsoCallbackPage }  from '@/pages/auth/SsoCallbackPage'
-import { AuthChoicePage }   from '@/pages/auth/AuthChoicePage'
+import { LoginPage } from "@/pages/auth/LoginPage";
+import { SignUpPage } from "@/pages/auth/SignUpPage";
+import { SignUpOtpPage } from "@/pages/auth/SignUpOtpPage";
+import { SignUpReviewPage } from "@/pages/auth/SignUpReviewPage";
+import { ForgotPasswordPage } from "@/pages/auth/ForgotPasswordPage";
+import { CheckEmailPage } from "@/pages/auth/CheckEmailPage";
+import { ResetPasswordPage } from "@/pages/auth/ResetPasswordPage";
+import { SsoCallbackPage } from "@/pages/auth/SsoCallbackPage";
+import { AuthChoicePage } from "@/pages/auth/AuthChoicePage";
 
-import SubscriptionPage     from '@/pages/SubscriptionPage'
-import PaymentSuccessPage   from '@/pages/PaymentSuccessPage'
-import PaymentFinishPage    from '@/pages/PaymentFinishPage'
-import PaymentUnfinishPage  from '@/pages/PaymentUnfinishPage'
-import PaymentErrorPage     from '@/pages/PaymentErrorPage'
-import AdminDashboardPage   from '@/pages/AdminDashboardPage'
-import MidtransTestPage     from '@/pages/MidtransTestPage'
+import SubscriptionPage from "@/pages/SubscriptionPage";
+import PaymentSuccessPage from "@/pages/PaymentSuccessPage";
+import PaymentFinishPage from "@/pages/PaymentFinishPage";
+import PaymentUnfinishPage from "@/pages/PaymentUnfinishPage";
+import PaymentErrorPage from "@/pages/PaymentErrorPage";
+const AdminDashboardPage = lazy(() => import("@/pages/AdminDashboardPage"));
+import MidtransTestPage from "@/pages/MidtransTestPage";
 
 export default function App() {
-  const [page, setPage]             = useState('login')
-  const [otpToken, setOtpToken]     = useState('')
-  const [regEmail, setRegEmail]     = useState('')
-  const [fpEmail, setFpEmail]       = useState('')
-  const [resetToken, setResetToken] = useState('')
-  const [resetEmail, setResetEmail] = useState('')
-  const [ssoParams, setSsoParams]   = useState(null)
-  const [currentUser, setCurrentUser] = useState(null)
-  const [activePlanName, setActivePlanName] = useState('')
-  const [sessionChecked, setSessionChecked] = useState(false)
+  const [page, setPage] = useState("login");
+  const [otpToken, setOtpToken] = useState("");
+  const [regEmail, setRegEmail] = useState("");
+  const [fpEmail, setFpEmail] = useState("");
+  const [resetToken, setResetToken] = useState("");
+  const [resetEmail, setResetEmail] = useState("");
+  const [ssoParams, setSsoParams] = useState(null);
+  const [currentUser, setCurrentUser] = useState(null);
+  const [activePlanName, setActivePlanName] = useState("");
+  const [sessionChecked, setSessionChecked] = useState(false);
 
   useEffect(() => {
     const init = async () => {
-      const params   = new URLSearchParams(window.location.search)
-      const pathname = window.location.pathname
+      const params = new URLSearchParams(window.location.search);
+      const pathname = window.location.pathname;
 
       // ── Snap Redirect landing pages (Midtrans redirects browser ke sini) ────
-      if (pathname.includes('/payment/finish')) {
-        setPage('payment-finish')
-        setSessionChecked(true)
-        return
+      if (pathname.includes("/payment/finish")) {
+        setPage("payment-finish");
+        setSessionChecked(true);
+        return;
       }
-      if (pathname.includes('/payment/unfinish')) {
-        setPage('payment-unfinish')
-        setSessionChecked(true)
-        return
+      if (pathname.includes("/payment/unfinish")) {
+        setPage("payment-unfinish");
+        setSessionChecked(true);
+        return;
       }
-      if (pathname.includes('/payment/error')) {
-        setPage('payment-error')
-        setSessionChecked(true)
-        return
+      if (pathname.includes("/payment/error")) {
+        setPage("payment-error");
+        setSessionChecked(true);
+        return;
       }
 
       // ── Query param routing ───────────────────────────────────────────────
-      const paymentStatus = params.get('payment')
-      const token         = params.get('token')
-      const emailParam    = params.get('email')
-      const adminParam    = params.get('admin')
-      const midtransTest  = params.get('midtrans-test')
-      const ssoParam      = params.get('sso')
-      const sigParam      = params.get('sig')
+      const paymentStatus = params.get("payment");
+      const token = params.get("token");
+      const emailParam = params.get("email");
+      const adminParam = params.get("admin");
+      const midtransTest = params.get("midtrans-test");
+      const ssoParam = params.get("sso");
+      const sigParam = params.get("sig");
 
-      if (midtransTest === 'true') {
-        setPage('midtrans-test')
-      } else if (ssoParam && sigParam) {
-        setSsoParams({ sso: ssoParam, sig: sigParam })
-        window.history.replaceState({}, '', window.location.pathname)
-        setPage(tokenStorage.getAccess() ? 'sso-callback' : 'login')
-      } else if (adminParam === 'true') {
-        setPage('admin-dashboard')
-        window.history.replaceState({}, '', window.location.pathname)
-      } else if (paymentStatus === 'success') {
-        const planName = params.get('plan')
-        if (planName) setActivePlanName(decodeURIComponent(planName))
-        setPage('payment-success')
-        window.history.replaceState({}, '', window.location.pathname)
-      } else if (token) {
-        setResetToken(token)
-        if (emailParam) setResetEmail(decodeURIComponent(emailParam))
-        setPage('reset-password')
-        window.history.replaceState({}, '', window.location.pathname)
-      } else if (tokenStorage.getAccess()) {
-        // Restore session on page refresh
+      const clearUrlParams = () =>
+        window.history.replaceState({}, "", window.location.pathname);
+
+      if (midtransTest === "true") {
+        setPage("midtrans-test");
+        return;
+      }
+
+      if (ssoParam && sigParam) {
+        setSsoParams({ sso: ssoParam, sig: sigParam });
+        clearUrlParams();
+        setPage(tokenStorage.getAccess() ? "sso-callback" : "login");
+        return;
+      }
+
+      if (adminParam === "true" || pathname.includes("/admin-dashboard")) {
+        setPage("admin-dashboard");
+        clearUrlParams();
+        return;
+      }
+
+      if (pathname.includes("/register")) {
+        setPage("login");
+        clearUrlParams();
+        return;
+      }
+
+      if (paymentStatus === "success") {
+        const planName = params.get("plan");
+        if (planName) setActivePlanName(decodeURIComponent(planName));
+        setPage("payment-success");
+        clearUrlParams();
+        return;
+      }
+
+      if (token) {
+        setResetToken(token);
+        if (emailParam) setResetEmail(decodeURIComponent(emailParam));
+        setPage("reset-password");
+        clearUrlParams();
+        return;
+      }
+
+      if (tokenStorage.getAccess()) {
         try {
-          const profile = await profileApi.getMe()
-          await handleLoginSuccess(profile)
+          const profile = await profileApi.getMe();
+          await handleLoginSuccess(profile);
         } catch {
-          tokenStorage.clear()
+          tokenStorage.clear();
         }
       }
 
-      setSessionChecked(true)
-    }
-    init()
-  }, [])
+      setSessionChecked(true);
+    };
+    init();
+  }, []);
 
   const handleOtpToken = (token, email) => {
-    setOtpToken(token); setRegEmail(email)
-  }
+    setOtpToken(token);
+    setRegEmail(email);
+  };
 
   const handleLoginSuccess = async (user) => {
-    setCurrentUser(user)
+    setCurrentUser(user);
     console.log("🚀 User Data Payload:", user);
     console.log("✅ User Capabilities:", user?.capabilities);
     console.log("✅ User Groups:", user?.groups);
-    
-    const isSuperAdmin = user?.superadmin === true || user?.superAdmin === true;
-    
-    const ADMIN_CAPABILITIES = [
-      'USER/DISCOURSE/CHANGE_GROUP',
-      'PACKAGE/MGMT',
-      'USER/VERIFY',
-      'USER/LIST',
-      'VOUCHER/MGMT',
-      'USER/DISCOURSE/MANAGE_EXTRA_GROUPS',
-    ]
 
-    const hasCapabilities = user?.capabilities &&
+    const isSuperAdmin = user?.superadmin === true || user?.superAdmin === true;
+
+    const ADMIN_CAPABILITIES = [
+      "USER/DISCOURSE/CHANGE_GROUP",
+      "PACKAGE/MGMT",
+      "USER/VERIFY",
+      "USER/LIST",
+      "VOUCHER/MGMT",
+      "USER/DISCOURSE/MANAGE_EXTRA_GROUPS",
+    ];
+
+    const hasCapabilities =
+      user?.capabilities &&
       (Array.isArray(user.capabilities)
-        ? ADMIN_CAPABILITIES.every(cap => user.capabilities.includes(cap))
-        : ADMIN_CAPABILITIES.every(cap => cap in user.capabilities))
+        ? ADMIN_CAPABILITIES.every((cap) => user.capabilities.includes(cap))
+        : ADMIN_CAPABILITIES.every((cap) => cap in user.capabilities));
 
     // "yang bisa masuk ke dashboard hanya yang bukan admin, tetapi, mempunya capabilieties tidak null"
     if (!isSuperAdmin && hasCapabilities) {
-      setPage('admin-dashboard')
+      setPage("admin-dashboard");
     } else if (isSuperAdmin) {
-      setPage('auth-choice')
+      setPage("auth-choice");
     } else {
       try {
-        const sub = await subscriptionApi.getStatus()
-        const isActive = sub?.hasActiveSubscription === true || sub?.subscription?.status === 'active';
+        const sub = await subscriptionApi.getStatus();
+        const isActive =
+          sub?.hasActiveSubscription === true ||
+          sub?.subscription?.status === "active";
         if (isActive) {
-          setPage('auth-choice')
+          setPage("auth-choice");
           console.log("✅ Active Sub:", sub?.hasActiveSubscription);
         } else {
-          setPage('subscription')
+          setPage("subscription");
           console.log("✅ Active Sub:", sub?.hasActiveSubscription);
         }
       } catch (error) {
         console.log("❌ Active Sub Error:", error);
-        setPage('subscription')
+        setPage("subscription");
       }
     }
-  }
+  };
 
   const handleSignOut = () => {
-    tokenStorage.clear(); setCurrentUser(null); setPage('login')
-  }
+    tokenStorage.clear();
+    setCurrentUser(null);
+    setPage("login");
+  };
 
   const handleEmailSent = (email) => {
-    setFpEmail(email); setPage('check-email')
-  }
+    setFpEmail(email);
+    setPage("check-email");
+  };
 
   const handlePaymentSuccess = (planName) => {
-    if (planName) setActivePlanName(planName)
-    setPage('payment-success')
-  }
+    if (planName) setActivePlanName(planName);
+    setPage("payment-success");
+  };
 
   // ── Session check loading ─────────────────────────────────────────────────
-  if (!sessionChecked) return null
+  if (!sessionChecked) return null;
 
   // ── Full-screen pages ─────────────────────────────────────────────────────
-  if (page === 'payment-finish')   return <PaymentFinishPage />
-  if (page === 'payment-unfinish') return <PaymentUnfinishPage />
-  if (page === 'payment-error')    return <PaymentErrorPage />
-  if (page === 'midtrans-test')    return <MidtransTestPage />
-  if (page === 'subscription')    return <SubscriptionPage user={currentUser} onSignOut={handleSignOut} onPaymentSuccess={handlePaymentSuccess} onPaymentPending={() => setPage('admin-dashboard')} />
-  if (page === 'payment-success') return <PaymentSuccessPage user={currentUser} onSignOut={handleSignOut} activePlanName={activePlanName} />
-  if (page === 'forgot-password') return <ForgotPasswordPage onNavigate={setPage} onEmailSent={handleEmailSent} />
-  if (page === 'check-email')     return <CheckEmailPage email={fpEmail} onNavigate={setPage} />
-  if (page === 'reset-password')  return <ResetPasswordPage token={resetToken} email={resetEmail} onNavigate={setPage} />
-  if (page === 'admin-dashboard') return <AdminDashboardPage user={currentUser} onSignOut={handleSignOut} />
+  if (page === "payment-finish") return <PaymentFinishPage />;
+  if (page === "payment-unfinish") return <PaymentUnfinishPage />;
+  if (page === "payment-error") return <PaymentErrorPage />;
+  if (page === "midtrans-test") return <MidtransTestPage />;
+  if (page === "subscription")
+    return (
+      <SubscriptionPage
+        user={currentUser}
+        onSignOut={handleSignOut}
+        onPaymentSuccess={handlePaymentSuccess}
+        onPaymentPending={() => setPage("admin-dashboard")}
+      />
+    );
+  if (page === "payment-success")
+    return (
+      <PaymentSuccessPage
+        user={currentUser}
+        onSignOut={handleSignOut}
+        activePlanName={activePlanName}
+      />
+    );
+  if (page === "forgot-password")
+    return (
+      <ForgotPasswordPage onNavigate={setPage} onEmailSent={handleEmailSent} />
+    );
+  if (page === "check-email")
+    return <CheckEmailPage email={fpEmail} onNavigate={setPage} />;
+  if (page === "reset-password")
+    return (
+      <ResetPasswordPage
+        token={resetToken}
+        email={resetEmail}
+        onNavigate={setPage}
+      />
+    );
+  if (page === "admin-dashboard")
+    return (
+      <Suspense
+        fallback={
+          <div className="flex h-screen items-center justify-center">
+            <svg
+              className="animate-spin h-10 w-10 text-blue-600"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+            >
+              <circle
+                className="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                strokeWidth="4"
+              ></circle>
+              <path
+                className="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+              ></path>
+            </svg>
+          </div>
+        }
+      >
+        <AdminDashboardPage user={currentUser} onSignOut={handleSignOut} />
+      </Suspense>
+    );
 
   // ── Split-layout pages (login / signup) ───────────────────────────────────
   const authPages = {
-    'login':         <LoginPage onNavigate={setPage} onLoginSuccess={handleLoginSuccess} isSsoMode={!!ssoParams} />,
-    'signup':        <SignUpPage onNavigate={setPage} onOtpToken={handleOtpToken} />,
-    'signup-otp':    <SignUpOtpPage onNavigate={setPage} otpToken={otpToken} email={regEmail} />,
-    'signup-review': <SignUpReviewPage onNavigate={setPage} />,
-    'auth-choice':   <AuthChoicePage onNavigate={setPage} onSignOut={handleSignOut} />,
-    'sso-callback':  <SsoCallbackPage sso={ssoParams?.sso} sig={ssoParams?.sig} onNavigate={setPage} />,
-  }
+    login: (
+      <LoginPage
+        onNavigate={setPage}
+        onLoginSuccess={handleLoginSuccess}
+        isSsoMode={!!ssoParams}
+      />
+    ),
+    signup: <SignUpPage onNavigate={setPage} onOtpToken={handleOtpToken} />,
+    "signup-otp": (
+      <SignUpOtpPage
+        onNavigate={setPage}
+        otpToken={otpToken}
+        email={regEmail}
+      />
+    ),
+    "signup-review": <SignUpReviewPage onNavigate={setPage} />,
+    "auth-choice": (
+      <AuthChoicePage onNavigate={setPage} onSignOut={handleSignOut} />
+    ),
+    "sso-callback": (
+      <SsoCallbackPage
+        sso={ssoParams?.sso}
+        sig={ssoParams?.sig}
+        onNavigate={setPage}
+      />
+    ),
+  };
 
   return (
     <div className="flex h-screen overflow-hidden">
       <LeftPanel />
-      {authPages[page] ?? authPages['login']}
+      {authPages[page] ?? authPages["login"]}
     </div>
-  )
+  );
 }

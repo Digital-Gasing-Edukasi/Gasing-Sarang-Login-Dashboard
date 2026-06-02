@@ -162,15 +162,31 @@ export const profileApi = {
     request("/profile/confirm-email", { method: "POST", body: { token } }),
 };
 
-// ─── TRAINING REGIONS ─────────────────────────────────────────────────────────
+// ─── REGIONS (Province → Regency hierarchy) ─────────────────────────────────────
+// list() defaults to provinces. Pass { type: "REGENCY", parentId, keyword } for regencies.
 export const regionsApi = {
-  list: () =>
-    fetch(`${BASE_URL}/training-regions`, { headers: { Accept: "application/json" } })
-      .then((r) => r.json()),
+  list: (params = {}) => {
+    const q = buildQuery(params);
+    return fetch(`${BASE_URL}/regions${q ? "?" + q : ""}`, {
+      headers: { Accept: "application/json" },
+    }).then((r) => r.json());
+  },
 
-  get: (id) => request(`/training-regions/${id}`),
+  get: (id) => request(`/regions/${id}`),
+};
 
-  getByAreaId: (areaId) => request(`/training-regions/by-area/${areaId}`),
+// ─── TRAINING SESSIONS ──────────────────────────────────────────────────────────
+// list({ regionId }) returns sessions for a regency (used by the registration form).
+// list({ page, limit, keyword }) paginates for admin browsing.
+export const trainingSessionsApi = {
+  list: (params = {}) => {
+    const q = buildQuery(params);
+    return fetch(`${BASE_URL}/training-sessions${q ? "?" + q : ""}`, {
+      headers: { Accept: "application/json" },
+    }).then((r) => r.json());
+  },
+
+  get: (id) => request(`/training-sessions/${id}`),
 };
 
 // ─── TIMEZONE ─────────────────────────────────────────────────────────────────
@@ -251,6 +267,18 @@ export const fileManagerApi = {
   getDownloadUrl: (fileId) => `${BASE_URL}/file-manager/download/${fileId}`,
 };
 
+// ─── SKILLS & ENDORSEMENTS ──────────────────────────────────────────────────────
+export const skillsApi = {
+  getUserSkills: (username) => request(`/users/${username}/skills`),
+
+  // Toggles endorsement of `skillId` for the skill owner identified by `userId`.
+  toggleEndorse: (skillId, userId) =>
+    request(`/skills/${skillId}/endorse`, {
+      method: "POST",
+      body: { user_id: userId },
+    }),
+};
+
 // ─── ADMIN ────────────────────────────────────────────────────────────────────
 export const adminApi = {
   // ── Users ──
@@ -310,15 +338,57 @@ export const adminApi = {
     return request(`/admin/payments${q ? "?" + q : ""}`);
   },
 
-  // ── Training Regions ──
-  createTrainingRegion: (data) =>
-    request("/admin/training-regions", { method: "POST", body: data }),
+  // ── Regions ──
+  createRegion: (data) =>
+    request("/admin/regions", { method: "POST", body: data }),
 
-  updateTrainingRegion: (id, data) =>
-    request(`/admin/training-regions/${id}`, { method: "PATCH", body: data }),
+  updateRegion: (id, data) =>
+    request(`/admin/regions/${id}`, { method: "PATCH", body: data }),
 
-  deleteTrainingRegion: (id) =>
-    request(`/admin/training-regions/${id}`, { method: "DELETE" }),
+  deleteRegion: (id) =>
+    request(`/admin/regions/${id}`, { method: "DELETE" }),
+
+  // ── Training Sessions ──
+  createTrainingSession: (data) =>
+    request("/admin/training-sessions", { method: "POST", body: data }),
+
+  updateTrainingSession: (id, data) =>
+    request(`/admin/training-sessions/${id}`, { method: "PATCH", body: data }),
+
+  deleteTrainingSession: (id) =>
+    request(`/admin/training-sessions/${id}`, { method: "DELETE" }),
+
+  // ── Skills ──
+  getSkills: (params = {}) => {
+    const q = buildQuery({ page: 1, limit: 20, ...params });
+    return request(`/admin/skills${q ? "?" + q : ""}`);
+  },
+
+  createSkill: (data) =>
+    request("/admin/skills", { method: "POST", body: data }),
+
+  updateSkill: (id, data) =>
+    request(`/admin/skills/${id}`, { method: "PATCH", body: data }),
+
+  deleteSkill: (id) =>
+    request(`/admin/skills/${id}`, { method: "DELETE" }),
+
+  // ── UAC / IAM (requires superAdmin) ──
+  getUacGroups: () => request("/admin/uac/groups"),
+
+  getUacGroup: (id) => request(`/admin/uac/groups/${id}`),
+
+  assignUacGroup: (userId, groupId) =>
+    request("/admin/uac/assignments", {
+      method: "POST",
+      body: { userId, groupId },
+    }),
+
+  removeUacGroup: (userId, groupId) =>
+    request("/admin/uac/assignments", {
+      method: "DELETE",
+      body: { userId, groupId },
+    }),
 
   // ── Vouchers ──
   getVouchers: (params = {}) => {

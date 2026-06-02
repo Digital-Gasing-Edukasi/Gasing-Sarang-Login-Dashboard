@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Mail, Lock, LogIn, Calendar, Loader2 } from "lucide-react";
+import { Mail, Lock, LogIn, Calendar, Loader2, Check, Circle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,44 +14,134 @@ import { RightPanel, Divider } from "@/components/layout/RightPanel";
 import { StepIndicator } from "@/components/layout/StepIndicator";
 import { IconInput, TogglePassword } from "@/components/shared/IconInput";
 import { ErrorAlert } from "@/components/shared/ErrorAlert";
-import { authApi, regionsApi } from "@/lib/api";
+import { authApi, regionsApi, trainingSessionsApi } from "@/lib/api";
+
+const asList = (data) =>
+  Array.isArray(data) ? data : data?.data || data?.items || [];
+
+const sessionDate = (s) => {
+  const sd = s.startDate;
+  const raw = sd?.utc?.raw ?? (typeof sd === "string" ? sd : null);
+  const d = sd?.unix ? new Date(sd.unix * 1000) : raw ? new Date(raw) : null;
+  return d && !isNaN(d) ? d : null;
+};
+
+const MONTHS = [
+  "Januari", "Februari", "Maret", "April", "Mei", "Juni",
+  "Juli", "Agustus", "September", "Oktober", "November", "Desember",
+];
+
+// "Kapan" = tahun + bulan pelatihan
+const sessionYear = (s) => {
+  const d = sessionDate(s);
+  return d ? String(d.getFullYear()) : "";
+};
+
+const sessionMonth = (s) => {
+  const d = sessionDate(s);
+  return d ? String(d.getMonth()) : "";
+};
 
 export function SignUpPage({ onNavigate, onOtpToken }) {
   const [step, setStep] = useState(1);
+  const [name, setName] = useState("");
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
-  const [name, setName] = useState("");
   const [birthdate, setBirthdate] = useState("");
-  const [regionId, setRegionId] = useState("");
   const [schoolName, setSchoolName] = useState("");
   const [showPass, setShowPass] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [passwordFocused, setPasswordFocused] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [regions, setRegions] = useState([]);
-  const [regionsLoading, setRegionsLoading] = useState(true);
+
+  // Lokasi saat ini (Provinsi → Kab/Kota = regionId)
+  const [provinces, setProvinces] = useState([]);
+  const [provincesLoading, setProvincesLoading] = useState(true);
+  const [provinceId, setProvinceId] = useState("");
+  const [regencies, setRegencies] = useState([]);
+  const [regencyLoading, setRegencyLoading] = useState(false);
+  const [regionId, setRegionId] = useState("");
+
+  // Pelatihan Gasing: Kapan (filter) → Dimana (session = lastTrainingSessionId)
+  const [sessions, setSessions] = useState([]);
+  const [sessionsLoading, setSessionsLoading] = useState(true);
+  const [kapanYear, setKapanYear] = useState("");
+  const [kapanMonth, setKapanMonth] = useState("");
+  const [lastTrainingSessionId, setLastTrainingSessionId] = useState("");
 
   useEffect(() => {
     regionsApi
       .list()
-      .then((data) => {
-        const list = Array.isArray(data) ? data : data.data || data.items || [];
-        setRegions(list);
-      })
-      .catch(() => setRegions([]))
-      .finally(() => setRegionsLoading(false));
+      .then((d) => setProvinces(asList(d)))
+      .catch(() => setProvinces([]))
+      .finally(() => setProvincesLoading(false));
+
+    trainingSessionsApi
+      .list({ limit: 100 })
+      .then((d) => setSessions(asList(d)))
+      .catch(() => setSessions([]))
+      .finally(() => setSessionsLoading(false));
   }, []);
+
+  const handleProvinceChange = (v) => {
+    setProvinceId(v);
+    setRegionId("");
+    setRegencies([]);
+    setRegencyLoading(true);
+    regionsApi
+      .list({ type: "REGENCY", parentId: v })
+      .then((d) => setRegencies(asList(d)))
+      .catch(() => setRegencies([]))
+      .finally(() => setRegencyLoading(false));
+  };
+
+  const handleYearChange = (v) => {
+    setKapanYear(v);
+    setKapanMonth("");
+    setLastTrainingSessionId("");
+  };
+
+  const handleMonthChange = (v) => {
+    setKapanMonth(v);
+    setLastTrainingSessionId("");
+  };
+
+  const yearOptions = [...new Set(sessions.map(sessionYear).filter(Boolean))]
+    .sort()
+    .reverse();
+  const monthOptions = [
+    ...new Set(
+      sessions
+        .filter((s) => sessionYear(s) === kapanYear)
+        .map(sessionMonth)
+        .filter(Boolean),
+    ),
+  ].sort((a, b) => Number(a) - Number(b));
+  const dimanaOptions = sessions.filter(
+    (s) => sessionYear(s) === kapanYear && sessionMonth(s) === kapanMonth,
+  );
+
+  const passwordRules = [
+    { label: "Minimal 8 karakter", ok: password.length >= 8 },
+    { label: "Minimal 1 huruf kapital", ok: /[A-Z]/.test(password) },
+    {
+      label: "Minimal 1 angka dan 1 karakter spesial",
+      ok: /\d/.test(password) && /[^A-Za-z0-9]/.test(password),
+    },
+  ];
+  const allRulesOk = passwordRules.every((r) => r.ok);
+  const showPasswordRules = passwordFocused || password.length > 0;
 
   const handleNextToData = () => {
     setError("");
-    if (!username || !email || !password || !confirm) {
+    if (!name || !username || !email || !password || !confirm) {
       setError("Semua field wajib diisi");
       return;
     }
 
-    // Validasi Username
     if (username.length < 3) {
       setError("Username minimal 3 karakter");
       return;
@@ -63,20 +153,18 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
       return;
     }
 
-    // Validasi Email
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       setError("Format email tidak valid");
       return;
     }
 
-    // Validasi Password
-    if (password !== confirm) {
-      setError("Konfirmasi password tidak cocok");
+    if (!allRulesOk) {
+      setError("Password belum memenuhi semua ketentuan");
       return;
     }
-    if (password.length < 8) {
-      setError("Password minimal 8 karakter");
+    if (password !== confirm) {
+      setError("Konfirmasi password tidak cocok");
       return;
     }
 
@@ -85,7 +173,7 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
 
   const handleRegister = async () => {
     setError("");
-    if (!name || !birthdate || !regionId || !schoolName) {
+    if (!birthdate || !regionId || !lastTrainingSessionId || !schoolName) {
       setError("Semua field wajib diisi");
       return;
     }
@@ -97,7 +185,8 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
         password,
         name,
         birthdate,
-        trainingRegionId: regionId,
+        regionId,
+        lastTrainingSessionId,
         schoolName,
       });
       onOtpToken(data.token, email);
@@ -106,7 +195,6 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
       const msg = e.message;
       setError(msg);
 
-      // Jika error dari backend berkaitan dengan field di step 1, otomatis kembali ke step 1
       const msgLower = msg.toLowerCase();
       if (
         msgLower.includes("username") ||
@@ -126,11 +214,11 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
 
       {step === 1 ? (
         <>
-          <div className="animate-fade-in-up delay-100">
-            <h1 className="text-2xl font-bold text-foreground mb-1">
-              Daftar Akun Baru
+          <div className="animate-fade-in-up delay-100 text-center">
+            <h1 className="text-[22px] font-bold text-foreground mb-1.5">
+              Buat Akun Baru
             </h1>
-            <p className="text-sm text-muted-foreground mb-6">
+            <p className="text-[13px] text-muted-foreground mb-6">
               Silakan isi data di bawah ini untuk buat akun.
             </p>
           </div>
@@ -138,7 +226,16 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
           <div className="space-y-4 animate-fade-in-up delay-200">
             <ErrorAlert message={error} />
             <div className="space-y-1.5">
-              <Label>Username</Label>
+              <Label className="text-[13px] font-semibold">Nama Lengkap</Label>
+              <Input
+                type="text"
+                placeholder="Masukkan nama lengkap"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-[13px] font-semibold">Username</Label>
               <Input
                 type="text"
                 placeholder="Masukkan username"
@@ -147,7 +244,7 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
               />
             </div>
             <div className="space-y-1.5">
-              <Label>Email</Label>
+              <Label className="text-[13px] font-semibold">Email</Label>
               <IconInput
                 icon={Mail}
                 type="email"
@@ -157,13 +254,15 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
               />
             </div>
             <div className="space-y-1.5">
-              <Label>Password</Label>
+              <Label className="text-[13px] font-semibold">Password</Label>
               <IconInput
                 icon={Lock}
                 type={showPass ? "text" : "password"}
                 placeholder="Masukkan password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                onFocus={() => setPasswordFocused(true)}
+                onBlur={() => setPasswordFocused(false)}
                 iconRight={
                   <TogglePassword
                     show={showPass}
@@ -171,9 +270,35 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
                   />
                 }
               />
+              {showPasswordRules && (
+                <div className="space-y-1.5 pt-1 animate-in fade-in slide-in-from-top-1">
+                  <p className="text-[13px] font-medium text-foreground">
+                    Password kamu harus memiliki:
+                  </p>
+                  <ul className="space-y-1.5">
+                    {passwordRules.map((rule) => (
+                      <li
+                        key={rule.label}
+                        className={`flex items-center gap-2 text-[12px] transition-colors ${
+                          rule.ok ? "text-green-600" : "text-muted-foreground"
+                        }`}
+                      >
+                        {rule.ok ? (
+                          <span className="flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-full bg-green-600 text-white">
+                            <Check size={11} strokeWidth={3} />
+                          </span>
+                        ) : (
+                          <div className="h-4 w-4 flex-shrink-0 rounded-full border-[1.5px] border-dashed border-muted-foreground/50" />
+                        )}
+                        {rule.label}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
             <div className="space-y-1.5">
-              <Label>Konfirmasi Password</Label>
+              <Label className="text-[13px] font-semibold">Konfirmasi Password</Label>
               <IconInput
                 icon={Lock}
                 type={showConfirm ? "text" : "password"}
@@ -194,19 +319,19 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
           </div>
 
           <Divider />
-          <div className="animate-fade-in-up delay-300 space-y-3">
-            <p className="text-xs text-muted-foreground text-center">
-              Dengan mendaftar, Anda menyetujui{" "}
+          <div className="animate-fade-in-up delay-300 space-y-4">
+            <p className="text-[13px] text-muted-foreground text-center px-4">
+              Dengan mendaftar akun, kamu menyetujui{" "}
               <a
                 href="#"
-                className="underline text-foreground/70 hover:text-foreground"
+                className="underline font-medium text-blue-500 hover:text-blue-600"
               >
                 Ketentuan Layanan
               </a>{" "}
               dan{" "}
               <a
                 href="#"
-                className="underline text-foreground/70 hover:text-foreground"
+                className="underline font-medium text-blue-500 hover:text-blue-600"
               >
                 Kebijakan Privasi
               </a>{" "}
@@ -214,25 +339,25 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
             </p>
             <button
               onClick={() => onNavigate("login")}
-              className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mx-auto"
+              className="flex items-center gap-1.5 text-sm font-bold text-foreground hover:text-foreground/80 transition-colors mx-auto"
             >
-              <LogIn size={15} /> Sudah punya akun? Login
+              <LogIn size={16} /> Log In
             </button>
           </div>
         </>
       ) : (
         <>
-          <div className="animate-fade-in-up delay-100 relative">
+          <div className="animate-fade-in-up delay-100 relative text-center">
             <button
               onClick={() => setStep(1)}
               className="absolute -top-8 left-0 text-sm text-muted-foreground hover:text-foreground"
             >
               &larr; Kembali
             </button>
-            <h1 className="text-2xl font-bold text-foreground mb-1">
+            <h1 className="text-[22px] font-bold text-foreground mb-1.5">
               Verifikasi Data
             </h1>
-            <p className="text-sm text-muted-foreground mb-6">
+            <p className="text-[13px] text-muted-foreground mb-6">
               Silakan masukkan verifikasi data diri yang sesuai.
             </p>
           </div>
@@ -240,15 +365,7 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
           <div className="space-y-4 animate-fade-in-up delay-200">
             <ErrorAlert message={error} />
             <div className="space-y-1.5">
-              <Label>Nama Lengkap</Label>
-              <Input
-                placeholder="Masukkan nama lengkap"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label>Tanggal Lahir</Label>
+              <Label className="text-[13px] font-semibold">Tanggal Lahir</Label>
               <IconInput
                 icon={Calendar}
                 type="date"
@@ -256,31 +373,117 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
                 onChange={(e) => setBirthdate(e.target.value)}
               />
             </div>
+
             <div className="space-y-1.5">
-              <Label>Dimana kamu mendapat pelatihan Gasing pertama?</Label>
+              <Label className="text-[13px] font-semibold">Lokasi kamu saat ini</Label>
+              <div className="grid grid-cols-2 gap-3">
+                <Select
+                  value={provinceId}
+                  onValueChange={handleProvinceChange}
+                  disabled={provincesLoading}
+                >
+                  <SelectTrigger>
+                    <SelectValue
+                      placeholder={
+                        provincesLoading ? "Memuat..." : "Pilih Provinsi"
+                      }
+                    />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {provinces.map((p) => (
+                      <SelectItem key={p.id} value={p.id}>
+                        {p.regionName || p.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select
+                  value={regionId}
+                  onValueChange={setRegionId}
+                  disabled={!provinceId || regencyLoading}
+                >
+                  <SelectTrigger>
+                    <SelectValue
+                      placeholder={
+                        regencyLoading ? "Memuat..." : "Pilih Kab./Kota"
+                      }
+                    />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {regencies.map((r) => (
+                      <SelectItem key={r.id} value={r.id}>
+                        {r.regionName || r.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-[13px] font-semibold">Kapan kamu mendapat pelatihan Gasing pertama?</Label>
+              <div className="grid grid-cols-2 gap-3">
+                <Select
+                  value={kapanYear}
+                  onValueChange={handleYearChange}
+                  disabled={sessionsLoading}
+                >
+                  <SelectTrigger>
+                    <SelectValue
+                      placeholder={sessionsLoading ? "Memuat..." : "Tahun"}
+                    />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {yearOptions.map((year) => (
+                      <SelectItem key={year} value={year}>
+                        {year}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select
+                  value={kapanMonth}
+                  onValueChange={handleMonthChange}
+                  disabled={!kapanYear}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Bulan" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {monthOptions.map((m) => (
+                      <SelectItem key={m} value={m}>
+                        {MONTHS[Number(m)]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-[13px] font-semibold">Dimana kamu mendapat pelatihan Gasing pertama?</Label>
               <Select
-                value={regionId}
-                onValueChange={setRegionId}
-                disabled={regionsLoading}
+                value={lastTrainingSessionId}
+                onValueChange={setLastTrainingSessionId}
+                disabled={!kapanMonth}
               >
                 <SelectTrigger>
-                  <SelectValue
-                    placeholder={regionsLoading ? "Memuat..." : "Pilih"}
-                  />
+                  <SelectValue placeholder="Pilih Daerah" />
                 </SelectTrigger>
                 <SelectContent>
-                  {regions.map((r) => (
-                    <SelectItem key={r.id} value={r.id}>
-                      {r.regionName || r.name}
+                  {dimanaOptions.map((s) => (
+                    <SelectItem key={s.id} value={s.id}>
+                      {s.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
+
             <div className="space-y-1.5">
-              <Label>Nama Sekolah</Label>
+              <Label className="text-[13px] font-semibold">Sekolah asal kamu saat pelatihan Gasing pertama?</Label>
               <Input
-                placeholder="Masukkan nama sekolah"
+                placeholder="Nama sekolah"
                 value={schoolName}
                 onChange={(e) => setSchoolName(e.target.value)}
               />
@@ -300,19 +503,19 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
             </Button>
           </div>
 
-          <div className="animate-fade-in-up delay-300 mt-6 space-y-3">
-            <p className="text-xs text-muted-foreground text-center">
-              Dengan mengklik lanjutkan, Anda menyetujui{" "}
+          <div className="animate-fade-in-up delay-300 mt-6 space-y-4">
+            <p className="text-[13px] text-muted-foreground text-center px-4">
+              Dengan mengklik lanjutkan, kamu menyetujui{" "}
               <a
                 href="#"
-                className="underline text-blue-500 hover:text-blue-600"
+                className="underline font-medium text-blue-500 hover:text-blue-600"
               >
                 Ketentuan Layanan
               </a>{" "}
               dan{" "}
               <a
                 href="#"
-                className="underline text-blue-500 hover:text-blue-600"
+                className="underline font-medium text-blue-500 hover:text-blue-600"
               >
                 Kebijakan Privasi
               </a>{" "}
@@ -320,9 +523,9 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
             </p>
             <button
               onClick={() => onNavigate("login")}
-              className="flex items-center gap-1.5 text-sm text-foreground font-semibold hover:text-foreground/80 transition-colors mx-auto mt-4"
+              className="flex items-center gap-1.5 text-sm font-bold text-foreground hover:text-foreground/80 transition-colors mx-auto mt-4"
             >
-              <LogIn size={15} /> Login
+              <LogIn size={16} /> Log In
             </button>
           </div>
         </>
