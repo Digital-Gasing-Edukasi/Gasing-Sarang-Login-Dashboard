@@ -68,6 +68,7 @@ export default function App() {
 
       if (midtransTest === "true") {
         setPage("midtrans-test");
+        setSessionChecked(true);
         return;
       }
 
@@ -75,18 +76,21 @@ export default function App() {
         setSsoParams({ sso: ssoParam, sig: sigParam });
         clearUrlParams();
         setPage(tokenStorage.getAccess() ? "sso-callback" : "login");
+        setSessionChecked(true);
         return;
       }
 
       if (adminParam === "true" || pathname.includes("/admin-dashboard")) {
         setPage("admin-dashboard");
         clearUrlParams();
+        setSessionChecked(true);
         return;
       }
 
       if (pathname.includes("/register")) {
         setPage("login");
         clearUrlParams();
+        setSessionChecked(true);
         return;
       }
 
@@ -95,6 +99,7 @@ export default function App() {
         if (planName) setActivePlanName(decodeURIComponent(planName));
         setPage("payment-success");
         clearUrlParams();
+        setSessionChecked(true);
         return;
       }
 
@@ -103,6 +108,7 @@ export default function App() {
         if (emailParam) setResetEmail(decodeURIComponent(emailParam));
         setPage("reset-password");
         clearUrlParams();
+        setSessionChecked(true);
         return;
       }
 
