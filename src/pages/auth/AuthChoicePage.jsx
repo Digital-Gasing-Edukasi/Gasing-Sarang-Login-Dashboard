@@ -1,12 +1,11 @@
 import { RightPanel } from '@/components/layout/RightPanel'
 import { Button } from '@/components/ui/button'
-import { tokenStorage, discourseApi, authApi } from '@/lib/api'
+import { tokenStorage, discourseApi, authApi, webAppApi } from '@/lib/api'
 import { ArrowRight, LogIn, LogOut } from 'lucide-react'
 
 export function AuthChoicePage({ onNavigate, onSignOut }) {
   const handleRedirectDefault = () => {
-    const token = tokenStorage.getAccess()
-    window.location.href = `https://gasing.vercel.app/api/auth/callback?token=${token}`
+    webAppApi.redirectWithTokens()
   }
 
   const handleRedirectSso = async () => {

@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react'
 import { LogOut, Loader2, ArrowRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { subscriptionApi, tokenStorage, discourseApi } from '@/lib/api'
+import { subscriptionApi, discourseApi, webAppApi } from '@/lib/api'
 
 function Avatar({ name = '' }) {
   const initials = name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()
@@ -33,8 +33,7 @@ export default function PaymentSuccessPage({ user, onSignOut, activePlanName }) 
   const waUrl     = `https://wa.me/${WA_NUMBER}`
 
   const handleRedirectDefault = () => {
-    const token = tokenStorage.getAccess()
-    window.location.href = `https://gasing.vercel.app/api/auth/callback?token=${token}`
+    webAppApi.redirectWithTokens()
   }
 
   const handleRedirectSso = async () => {

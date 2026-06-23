@@ -179,6 +179,9 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
     }
     setLoading(true);
     try {
+      // Endpoint /auth/register mengharapkan tahun/bulan/region pelatihan pertama,
+      // bukan id session. Turunkan dari pilihan dropdown + region milik session.
+      const selectedSession = sessions.find((s) => s.id === lastTrainingSessionId);
       const data = await authApi.register({
         username,
         email,
@@ -186,7 +189,10 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
         name,
         birthdate,
         regionId,
-        lastTrainingSessionId,
+        firstTrainingYear: Number(kapanYear),
+        firstTrainingMonth: Number(kapanMonth) + 1, // kapanMonth 0-based (getMonth)
+        firstTrainingRegionId:
+          selectedSession?.regionId ?? selectedSession?.region?.id ?? null,
         schoolName,
       });
       onOtpToken(data.token, email);

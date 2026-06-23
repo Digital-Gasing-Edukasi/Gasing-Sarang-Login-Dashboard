@@ -252,6 +252,27 @@ export const discourseApi = {
     request("/discourse/gateway", { method: "POST", body: { sso, sig } }),
 };
 
+// ─── EXTERNAL WEB APP (non-Discourse) ──────────────────────────────────────────
+// Hands the current session over to the Gasing web app by forwarding the tokens
+// on the callback URL. Contract: `token` = access token, `refresh` = refresh token.
+const WEB_APP_CALLBACK_URL = "https://gasing.vercel.app/api/auth/callback";
+
+export const webAppApi = {
+  redirectWithTokens() {
+    const access  = tokenStorage.getAccess();
+    const refresh = tokenStorage.getRefresh();
+
+    if (!access || !refresh) {
+      console.warn("[webAppApi] redirectWithTokens: token tidak lengkap", { access: !!access, refresh: !!refresh });
+    }
+
+    const params = new URLSearchParams();
+    if (access)  params.append("token", access);
+    if (refresh) params.append("refresh", refresh);
+    window.location.href = `${WEB_APP_CALLBACK_URL}?${params.toString()}`;
+  },
+};
+
 // ─── FILE MANAGER ─────────────────────────────────────────────────────────────
 export const fileManagerApi = {
   upload: (file, isPublic = true) => {
