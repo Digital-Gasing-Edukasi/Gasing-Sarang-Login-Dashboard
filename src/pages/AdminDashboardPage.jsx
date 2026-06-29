@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { adminApi, discourseApi, regionsApi } from '@/lib/api'
+import { buildFixUrl } from '@/lib/fixLink'
 import { mapToVerifikasi, mapToManajemen } from './admin/mappers'
 import { AdminSidebar }    from './admin/AdminSidebar'
 import { AdminToast }      from './admin/AdminToast'
@@ -152,15 +153,40 @@ export default function AdminDashboardPage({ onSignOut }) {
     })
   }
 
-  const handleConfirmReject = (reason) => {
+  const handleConfirmReject = ({ invalidFields, notes, reason }) => {
     if (!rejectCandidate) return
     const target = rejectCandidate
     setUsers(prev => prev.filter(u => u.id !== target.id))
     setRejectCandidate(null)
     setToast({ message: <>Akun {target.name} telah <span className="text-red-500 font-medium">ditolak</span></>, user: target })
-    
-    // API menggunakan key 'rejectedReason' bukan 'reason'
-    scheduleAction(() => adminApi.verifyUser(target.id, { status: 'rejected', rejectedReason: reason }), () => {
+
+    // Link perbaikan data (self-contained di URL). Backend menaruh link ini di email user.
+    const r = target.raw || {}
+    const correctionUrl = buildFixUrl({
+      uid: target.id,
+      name: target.name === '-' ? '' : target.name,
+      username: (target.username || '').replace(/^@/, ''),
+      email: target.email === '-' ? '' : target.email,
+      birthdate: r.birthdate || '',
+      regionId: r.regionId || '',
+      provinceId: r.provinceId || '',
+      firstTrainingYear: r.firstTrainingYear || '',
+      firstTrainingMonth: r.firstTrainingMonth || '',
+      lastTrainingSessionId: r.lastTrainingSessionId || '',
+      trainingRegionId: r.trainingRegionId || '',
+      schoolName: target.school === '-' ? '' : target.school,
+      invalid: invalidFields,
+      notes,
+    })
+
+    // API menggunakan key 'rejectedReason'. rejectedFields + correctionUrl adalah field baru.
+    // TODO(backend): simpan rejectedFields & kirim email berisi correctionUrl ke user.
+    scheduleAction(() => adminApi.verifyUser(target.id, {
+      status: 'rejected',
+      rejectedReason: reason,
+      rejectedFields: invalidFields,
+      correctionUrl,
+    }), () => {
       setUsers(prev => [target, ...prev]); setApiError('Gagal menolak akun. Silakan coba lagi.')
     })
   }

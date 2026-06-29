@@ -141,6 +141,11 @@ export const authApi = {
       method: "POST",
       body: { token, email, newPassword },
     }),
+
+  // Resubmit data yang sudah diperbaiki user (alur "akun ditolak → perbaiki data").
+  // TODO(backend): sediakan endpoint ini. Body = { uid, ...field yang diperbaiki }.
+  submitCorrection: (data) =>
+    request("/auth/correct-data", { method: "POST", body: data }),
 };
 
 // ─── PROFILE ──────────────────────────────────────────────────────────────────

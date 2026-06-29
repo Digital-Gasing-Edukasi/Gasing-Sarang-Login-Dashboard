@@ -1,9 +1,11 @@
 import { useState, useEffect, lazy, Suspense } from "react";
 import { tokenStorage, subscriptionApi, profileApi } from "@/lib/api";
+import { decodeFixPayload } from "@/lib/fixLink";
 import { LeftPanel } from "@/components/layout/LeftPanel";
 
 import { LoginPage } from "@/pages/auth/LoginPage";
 import { SignUpPage } from "@/pages/auth/SignUpPage";
+import { FixDataPage } from "@/pages/auth/FixDataPage";
 import { SignUpOtpPage } from "@/pages/auth/SignUpOtpPage";
 import { SignUpReviewPage } from "@/pages/auth/SignUpReviewPage";
 import { ForgotPasswordPage } from "@/pages/auth/ForgotPasswordPage";
@@ -28,6 +30,7 @@ export default function App() {
   const [resetToken, setResetToken] = useState("");
   const [resetEmail, setResetEmail] = useState("");
   const [ssoParams, setSsoParams] = useState(null);
+  const [fixData, setFixData] = useState(null);
   const [currentUser, setCurrentUser] = useState(null);
   const [activePlanName, setActivePlanName] = useState("");
   const [sessionChecked, setSessionChecked] = useState(false);
@@ -62,9 +65,22 @@ export default function App() {
       const midtransTest = params.get("midtrans-test");
       const ssoParam = params.get("sso");
       const sigParam = params.get("sig");
+      const fixParam = params.get("fix");
 
       const clearUrlParams = () =>
         window.history.replaceState({}, "", window.location.pathname);
+
+      // ── Link "Perbaikan Data" dari email akun yang ditolak ────────────────
+      if (fixParam) {
+        const decoded = decodeFixPayload(fixParam);
+        if (decoded) {
+          setFixData(decoded);
+          clearUrlParams();
+          setPage("fix-data");
+          setSessionChecked(true);
+          return;
+        }
+      }
 
       if (midtransTest === "true") {
         setPage("midtrans-test");
@@ -276,6 +292,7 @@ export default function App() {
       />
     ),
     signup: <SignUpPage onNavigate={setPage} onOtpToken={handleOtpToken} />,
+    "fix-data": <FixDataPage fixData={fixData} onNavigate={setPage} />,
     "signup-otp": (
       <SignUpOtpPage
         onNavigate={setPage}

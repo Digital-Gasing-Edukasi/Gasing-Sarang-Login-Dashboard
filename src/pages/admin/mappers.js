@@ -58,6 +58,16 @@ export function mapToVerifikasi(u, regions = []) {
     year:      parseCreatedAtYear(u.createdAt),
     school:    u.schoolName || '-',
     role:      u.discourseGroup?.name || u.discourseGroupName || '',
+    // Id mentah untuk membangun link perbaikan data (prefill di FixDataPage).
+    raw: {
+      birthdate:  (u.birthdate && typeof u.birthdate === 'object') ? (u.birthdate.date || '') : (u.birthdate || ''),
+      regionId:   u.regionId || u.region?.id || '',
+      provinceId: u.provinceId || u.province?.id || u.region?.parentId || '',
+      trainingRegionId:      u.trainingRegionId || '',
+      firstTrainingYear:     u.firstTrainingYear || '',
+      firstTrainingMonth:    u.firstTrainingMonth || '',
+      lastTrainingSessionId: u.lastTrainingSessionId || u.lastTrainingSession?.id || '',
+    },
   }
 }
 
