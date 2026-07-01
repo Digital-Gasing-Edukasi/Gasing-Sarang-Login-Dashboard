@@ -1,140 +1,161 @@
-# Alur Perbaikan Data Akun Ditolak (Rejected Account → Fix Data)
+# Alur Perbaikan Data / Revisi Akun (Revise Flow)
 
-Dokumentasi fitur penanganan akun yang ditolak admin: admin menandai data yang
-salah, user menerima email berisi link untuk memperbaiki data tersebut, lalu
-mengirim ulang data yang sudah dibetulkan.
+Dokumentasi fitur penanganan akun yang perlu perbaikan data: admin menandai data
+yang salah, backend mengirim email berisi link revisi (token JWT), user membuka
+form yang sudah terisi data lamanya, memperbaiki, lalu mengirim ulang.
 
-- **Status:** Frontend selesai. Beberapa bagian menunggu backend (lihat
-  [Tugas Backend](#tugas-backend)).
+- **Status:** Frontend selesai (admin + user + route + prefill). Token-based.
 - **Audiens:** Frontend & backend engineer Gasing Auth.
 - **Repo:** `gasing-auth` (React + Vite + Tailwind).
-- **Keputusan desain:** lihat [ADR-0001](adr/0001-fix-data-flow.md).
+- **Keputusan desain:** [ADR-0003](adr/0003-revise-token-flow.md) (menggantikan
+  [ADR-0001](adr/0001-fix-data-flow.md) yang memakai link self-contained `?fix=`).
+
+> **Catatan mekanisme.** Sejak ADR-0003, alur memakai **token JWT** yang di-generate
+> backend, bukan payload yang di-encode di URL. Bagian legacy `?fix=` (`buildFixUrl`,
+> `decodeFixPayload`, `submitCorrection`) masih ada di kode sebagai fallback tetapi
+> **deprecated** — akan dihapus setelah alur token stabil. Lihat §10.
 
 ---
 
 ## 1. Konteks & Tujuan
 
-Sebelumnya, admin menolak akun dengan satu alasan teks bebas dan user tidak punya
-jalur untuk memperbaiki datanya. Alur baru ini:
+Admin memverifikasi pendaftar di tab **Verifikasi Akun**. Bila ada data salah,
+admin punya dua aksi (satu modal, `RejectModal`):
 
-1. Admin memverifikasi data secara manual di tab **Verifikasi Akun**.
-2. Jika ada data salah, admin **mencentang field yang salah** (bukan teks bebas)
-   dan boleh menambah catatan per field.
-3. Sistem mengirim email: *akun sudah dibuat, tapi ada data yang salah* — berisi
-   daftar data yang salah + link perbaikan.
-4. Link membawa user ke halaman **Perbaiki Data** dengan form yang **sudah terisi
-   data lamanya**.
-5. Field yang salah ditandai **border merah + bubble notifikasi** (dinamis: hilang
-   begitu user mengedit field tersebut).
+- **Minta revisi** (centang field yang salah) → status `revise`. User mendapat
+  email berisi link untuk memperbaiki field tersebut, lalu kirim ulang.
+- **Tolak final** (centang **"Lainnya"** + tulis catatan) → status `rejected`.
+  Penolakan final dengan alasan bebas; user tidak diberi jalur perbaikan.
+
+Fokus dokumen ini adalah alur **revise**.
 
 ---
 
-## 2. Alur End-to-End
+## 2. Alur End-to-End (Revise)
 
 ```
 ┌──────────────────────────────────────────────────────────────────────┐
-│ ADMIN (Verifikasi Akun)                                               │
-│  RejectModal → centang field salah + catatan opsional per field        │
-│  onConfirm({ invalidFields, notes, reason })                           │
+│ ADMIN (Verifikasi Akun → RejectModal)                                 │
+│  Centang field salah (tanggalLahir/lokasi/riwayatPelatihan/namaSekolah)│
+│  → onConfirm({ status:'revise', invalidFields, reason })               │
 └───────────────────────────────┬──────────────────────────────────────┘
-                                │ adminApi.verifyUser(id, {
-                                │   status: 'rejected',
-                                │   rejectedReason,        // string readable
-                                │   rejectedFields,        // ['name', ...]
-                                │   correctionUrl,         // /?fix=<payload>
-                                │ })
+                                │ adminApi.reviseUser(id, {
+                                │   rejectedReason,        // ringkas label field
+                                │   fieldsToRevise,        // ['tanggalLahir', ...]
+                                │ })  → PATCH /admin/users/:id/verify {status:'revise'}
                                 ▼
 ┌──────────────────────────────────────────────────────────────────────┐
 │ BACKEND                                                                │
-│  Simpan status + rejectedFields → kirim EMAIL berisi correctionUrl      │
+│  Set status REVISE (verifiedStatus=2) → generate token JWT →           │
+│  kirim EMAIL berisi link: https://[host]/register/revise?token=<JWT>   │
 └───────────────────────────────┬──────────────────────────────────────┘
                                 │ user klik link di email
                                 ▼
 ┌──────────────────────────────────────────────────────────────────────┐
-│ FRONTEND (App.jsx)                                                     │
-│  Baca ?fix=<payload> → decodeFixPayload() → route page "fix-data"      │
+│ FRONTEND (App.jsx boot)                                               │
+│  pathname includes '/revise' + ?token= → authApi.getRevise(token)     │
+│  → POST /auth/revise {token} → { user, reviseReason, reviseFields }    │
+│  → normalizeRevise + enrich provinsi → route page 'fix-data'          │
+│  (token invalid/expired → page 'revise-error')                        │
 └───────────────────────────────┬──────────────────────────────────────┘
                                 ▼
 ┌──────────────────────────────────────────────────────────────────────┐
-│ FixDataPage                                                            │
-│  Prefill semua field dari payload                                       │
-│  Field di payload.invalid → border merah + bubble (pesan dari notes)    │
-│  User edit → bubble hilang → submit                                     │
+│ FixDataPage                                                           │
+│  Prefill field dari respons; field di reviseFields → border+teks merah │
+│  User edit → penanda hilang → "Kirim Perbaikan Data" (langsung submit) │
 └───────────────────────────────┬──────────────────────────────────────┘
-                                │ authApi.submitCorrection({ uid, ...data })
+                                │ authApi.submitRevise({ token, ...data })
                                 ▼
 ┌──────────────────────────────────────────────────────────────────────┐
-│ BACKEND  POST /auth/correct-data                                       │
-│  Update data user → reset ke status pending untuk ditinjau ulang        │
+│ BACKEND  POST /auth/revise/submit                                      │
+│  Update data user → set status WAITING → notifikasi admin USER/VERIFY   │
+│  Token di-revoke (one-time)                                            │
+└───────────────────────────────┬──────────────────────────────────────┘
+                                ▼
+┌──────────────────────────────────────────────────────────────────────┐
+│ FRONTEND (FixDataPage — layar sukses)                                 │
+│  "Akunmu Sedang Ditinjau Kembali" (estimasi 24-48 jam + cek email)     │
 └──────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 3. Kontrak Link (`?fix=<payload>`)
+## 3. Kontrak Link & Endpoint
 
-Link bersifat **self-contained** — semua data prefill + daftar field salah
-di-encode langsung di URL, tanpa lookup ke backend. Sumber kebenaran kontrak ada
-di [`src/lib/fixLink.js`](../src/lib/fixLink.js).
+### Link email (route FE)
 
-**Format:** `<origin>/?fix=<base64url(JSON)>`
-
-`base64url` = base64 standar dengan `+`→`-`, `/`→`_`, padding `=` dibuang.
-Encoding unicode-safe (`encodeURIComponent` sebelum `btoa`).
-
-### Struktur payload
-
-| Field                   | Tipe       | Keterangan                                   |
-|-------------------------|------------|----------------------------------------------|
-| `uid`                   | string     | Id user, dikirim balik saat resubmit         |
-| `name`                  | string     | Nama lengkap                                 |
-| `username`              | string     | Tanpa prefix `@`                             |
-| `email`                 | string     | Email                                        |
-| `birthdate`             | string     | `YYYY-MM-DD`                                 |
-| `regionId`              | string     | Region lokasi saat ini (Kab/Kota)            |
-| `provinceId`            | string     | Provinsi lokasi saat ini                     |
-| `firstTrainingYear`     | number     | Tahun pelatihan pertama                      |
-| `firstTrainingMonth`    | number     | Bulan pelatihan pertama (1–12)               |
-| `lastTrainingSessionId` | string     | Id session pelatihan                         |
-| `trainingRegionId`      | string     | Region pelatihan pertama                     |
-| `schoolName`            | string     | Sekolah asal                                 |
-| `invalid`               | string[]   | Daftar **key** field yang salah (lihat §4)   |
-| `notes`                 | object     | `{ [key]: 'pesan bubble custom' }` (opsional)|
-
-### Helper
-
-```js
-import { encodeFixPayload, decodeFixPayload, buildFixUrl } from '@/lib/fixLink'
-
-const url = buildFixUrl(payload)          // → 'https://app/?fix=eyJ1aWQiOi...'
-const data = decodeFixPayload(token)      // → payload | null (null kalau invalid)
+```
+https://[host]/register/revise?token=<JWT>
 ```
 
-`decodeFixPayload` mengembalikan `null` bila token rusak atau `invalid` bukan
-array — pemanggil harus menangani kasus null (App.jsx fallback ke halaman login).
+- `/register` = `base` Vite; `/revise` = penanda yang dideteksi App.jsx
+  (`pathname.includes('/revise')`); `?token=` = revise JWT.
+- Route ini di-set dari **config backend** (mereka yang menyusun URL email).
+- Tidak bentrok dengan reset-password (yang memakai `/register?token=&email=`
+  tanpa `/revise`).
+
+### Endpoint
+
+| Aksi | Endpoint | Body |
+|------|----------|------|
+| Admin minta revisi | `PATCH /admin/users/:id/verify` | `{ status:'revise', rejectedReason, fieldsToRevise[] }` |
+| Admin tolak final | `PATCH /admin/users/:id/verify` | `{ status:'rejected', rejectedReason }` |
+| Admin kirim ulang email | `POST /admin/users/:id/resend-revise-email` | — |
+| User ambil prefill | `POST /auth/revise` | `{ token }` |
+| User submit revisi | `POST /auth/revise/submit` | `{ token, name, birthdate, regionId, firstTrainingYear, firstTrainingMonth, firstTrainingRegionId, lastTrainingSessionId, schoolName }` |
+
+Auth `/auth/revise*` lewat `token` di body (bukan access token). Token
+**one-time** — di-revoke setelah `submit` sukses.
+
+### Respons `POST /auth/revise`
+
+```jsonc
+{
+  "user": {
+    "id", "username", "email", "name",
+    "birthdate": { "date": "2018-06-06", "formatted": "06 Jun 2018" },
+    "regionId": "019e…", "region": { "id": "019e…", "regionName": "Kabupaten Bangli" },
+    "lastTrainingSessionId": null, "lastTrainingSession": null,
+    "schoolName": "SD 01 Gasing", "verifiedStatus": 2, …
+  },
+  "reviseReason": "Nama dan tanggal lahir tidak sesuai dengan KTP",
+  "reviseFields": ["tanggalLahir", "lokasi", "riwayatPelatihan", "namaSekolah"]
+}
+```
+
+`reviseReason` & `reviseFields` berada di **top-level** (sibling `user`).
 
 ---
 
 ## 4. Registry Field (`FIELD_DEFS`)
 
-Satu sumber kebenaran untuk **checklist admin** dan **bubble error user**.
-Didefinisikan di [`src/lib/fixLink.js`](../src/lib/fixLink.js).
+Sumber kebenaran tunggal untuk **checklist admin** (`RejectModal`) dan **penanda
+error user** (`FixDataPage`). Didefinisikan di [`src/lib/fixLink.js`](../src/lib/fixLink.js).
 
-| key         | label              |
-|-------------|--------------------|
-| `name`      | Nama Lengkap       |
-| `username`  | Username           |
-| `email`     | Email              |
-| `birthdate` | Tanggal Lahir      |
-| `region`    | Lokasi Saat Ini    |
-| `training`  | Data Pelatihan Gasing |
-| `school`    | Sekolah Asal       |
+| key                | label              |
+|--------------------|--------------------|
+| `tanggalLahir`     | Tanggal Lahir      |
+| `lokasi`           | Lokasi             |
+| `riwayatPelatihan` | Riwayat Pelatihan  |
+| `namaSekolah`      | Nama Sekolah       |
+| `lainnya`          | Lainnya            |
 
-> Menambah field baru cukup di `FIELD_DEFS`. Checklist admin & mapping bubble ikut
-> otomatis. Pastikan FixDataPage punya kontrol form untuk key tersebut.
+> Key ini **wajib sama** dengan kosakata `reviseFields` backend (dikonfirmasi dari
+> respons `/auth/revise`) karena admin mengirim `fieldsToRevise` dengan key ini dan
+> user-side menandai field merah dengan key yang sama.
+>
+> - **`lainnya`** bukan field form. Mencentangnya mengubah aksi jadi **tolak final**
+>   (`status:'rejected'`): memunculkan textarea "Catatan Tambahan" → `rejectedReason`,
+>   dan checklist field lain diabaikan.
+> - **Identity (Nama/Username/Email)** tidak ada di registry — form perbaikan tidak
+>   menampilkannya (hanya dikirim ulang apa adanya). `FIELD_DEFS` (minus `lainnya`)
+>   harus sama dengan `CORRECTABLE_KEYS` di `FixDataPage.jsx`.
 
-`region` menutupi 2 dropdown (provinsi + kab/kota); `training` menutupi 3 dropdown
-(tahun + bulan + daerah). Satu key error → border merah di semua dropdown terkait.
+`lokasi` menutupi 2 dropdown (provinsi + kab/kota); `riwayatPelatihan` menutupi 3
+dropdown (tahun + bulan + daerah). Satu key error → border merah di semua dropdown
+terkait.
+
+`verifiedStatus` (numerik): `1`=Approved, `2`=Revise, `-1`=Rejected, lainnya=Waiting.
 
 ---
 
@@ -142,77 +163,95 @@ Didefinisikan di [`src/lib/fixLink.js`](../src/lib/fixLink.js).
 
 | File | Peran |
 |------|-------|
-| [`src/lib/fixLink.js`](../src/lib/fixLink.js) | Kontrak link: registry field, encode/decode, `buildFixUrl`, pesan default |
-| [`src/pages/admin/ConfirmModal.jsx`](../src/pages/admin/ConfirmModal.jsx) | `RejectModal` dengan checklist field + catatan per field |
-| [`src/pages/admin/mappers.js`](../src/pages/admin/mappers.js) | `mapToVerifikasi` menyimpan `raw` (id mentah) untuk prefill |
-| [`src/pages/AdminDashboardPage.jsx`](../src/pages/AdminDashboardPage.jsx) | `handleConfirmReject` membangun `correctionUrl` & memanggil `verifyUser` |
-| [`src/lib/api.js`](../src/lib/api.js) | `authApi.submitCorrection` (resubmit data) |
-| [`src/pages/auth/FixDataPage.jsx`](../src/pages/auth/FixDataPage.jsx) | Form perbaikan: prefill + border merah + bubble dinamis |
-| [`src/App.jsx`](../src/App.jsx) | Deteksi `?fix=` → decode → route `fix-data` |
+| [`src/lib/api.js`](../src/lib/api.js) | `adminApi.reviseUser/rejectUser/resendReviseEmail`, `authApi.getRevise/submitRevise` |
+| [`src/lib/fixLink.js`](../src/lib/fixLink.js) | `FIELD_DEFS` (registry field). Legacy: encode/decode `?fix=` |
+| [`src/pages/admin/ConfirmModal.jsx`](../src/pages/admin/ConfirmModal.jsx) | `RejectModal` — checklist + "Lainnya" (rejected) vs field (revise) |
+| [`src/pages/AdminDashboardPage.jsx`](../src/pages/AdminDashboardPage.jsx) | `handleConfirmReject` → `reviseUser`/`rejectUser`; list `filter[verifiedStatus]=waiting` |
+| [`src/pages/admin/mappers.js`](../src/pages/admin/mappers.js) | `parseVerifiedStatus` (2→Revise), map tabel |
+| [`src/App.jsx`](../src/App.jsx) | Deteksi `/revise` → `getRevise` → `normalizeRevise` + enrich provinsi → route |
+| [`src/pages/auth/FixDataPage.jsx`](../src/pages/auth/FixDataPage.jsx) | Form perbaikan: prefill + field merah + `submitRevise` |
 
 ---
 
 ## 6. Detail Komponen
 
-### RejectModal
-- State `checked` (`{ [key]: bool }`) + `notes` (`{ [key]: string }`).
-- Submit aktif jika minimal 1 field dicentang.
-- Menghasilkan `reason` string readable: `"Nama Lengkap: catatan; Email"`.
-- Callback: `onConfirm({ invalidFields, notes, reason })`.
+### RejectModal (`ConfirmModal.jsx`)
+- Checklist `FIELD_DEFS` dengan checkbox biru; state `checked`.
+- **"Lainnya" dicentang** → `isRejected = true`: tampilkan textarea "Catatan
+  Tambahan", checklist field diabaikan.
+- Submit aktif jika: minimal 1 field (mode revise) **atau** Lainnya + catatan terisi
+  (mode rejected).
+- Callback `onConfirm({ status, invalidFields, reason })`:
+  - `status:'revise'` → `reason` = ringkas label field, `invalidFields` = key field.
+  - `status:'rejected'` → `reason` = Catatan Tambahan, `invalidFields` = `[]`.
 
-### FixDataPage — bubble dinamis
-- `fieldErrors` di-init dari `payload.invalid` + `payload.notes`. Pesan default
-  dari `defaultFieldMessage(key)` bila tidak ada catatan admin.
-- Setiap `onChange` field memanggil `clearErr(key)` → menghapus key dari
-  `fieldErrors` → border merah + bubble hilang.
-- Tombol submit menolak kirim selama `fieldErrors` masih ada isinya.
-- Komponen `<ErrorBubble>` = callout merah dengan ekor segitiga di bawah field.
-
----
-
-## 7. Tugas Backend
-
-Bagian yang **tidak bisa dikerjakan frontend** dan harus diselesaikan backend:
-
-1. **Kirim email.** Baca `correctionUrl` dari body `PATCH /admin/users/:id/verify`
-   lalu sisipkan ke email penolakan. (FE tidak bisa mengirim email.)
-2. **Terima field baru** pada `verify`: `rejectedFields` (array) & `correctionUrl`
-   (string). Disimpan + dipakai untuk email.
-3. **Endpoint resubmit** `POST /auth/correct-data` — body `{ uid, name, username,
-   email, birthdate, regionId, firstTrainingYear, firstTrainingMonth,
-   firstTrainingRegionId, lastTrainingSessionId, schoolName }`. Update data user
-   dan set kembali ke status *pending* untuk ditinjau ulang. Sesuaikan
-   nama/route di [`src/lib/api.js`](../src/lib/api.js) bila berbeda.
+### FixDataPage (`FixDataPage.jsx`)
+- **Field yang bisa diperbaiki** (`CORRECTABLE_KEYS`): Tanggal lahir, Lokasi
+  (provinsi+kab/kota), Pelatihan (tahun/bulan/daerah), Sekolah. Nama/Username/Email
+  tidak ditampilkan (dikirim ulang apa adanya).
+- `fieldErrors` di-init dari `invalid` (reviseFields), difilter ke `CORRECTABLE_KEYS`.
+  Pesan default `"Data kurang sesuai."`. Setiap `onChange` → `clearErr(key)`.
+- Penanda error = **border merah + teks merah** (`<FieldError>`).
+- Submit **langsung** (tanpa modal): `handleSubmit` (validasi) → `doSubmit`. Bila
+  `reviseToken` ada → `submitRevise`, else legacy `submitCorrection`.
+- Sukses → **"Akunmu Sedang Ditinjau Kembali"** (estimasi 24-48 jam + callout cek
+  email berkala).
 
 ---
 
-## 8. Catatan Akurasi Prefill ⚠️
+## 7. Prefill (`normalizeRevise` di App.jsx)
 
-Tabel admin (`mapToVerifikasi`) hanya menyimpan data display. Untuk prefill,
-ditambahkan objek `raw` yang mengambil id mentah dari respons `GET /admin/users`.
-**Nama field di `raw` masih asumsi** dan perlu diverifikasi terhadap respons asli:
+Respons `/auth/revise` dipetakan ke bentuk prefill FixDataPage:
 
-`u.regionId`, `u.provinceId`, `u.trainingRegionId`, `u.firstTrainingYear`,
-`u.firstTrainingMonth`, `u.lastTrainingSessionId`.
+- `birthdate` = object `{date, formatted}` → ambil `.date` (`YYYY-MM-DD`).
+- `regionId` langsung; **provinsi tidak ada di respons** → boot memanggil
+  `regionsApi.get(regionId)` untuk mengambil `parentId` agar cascade lokasi prefill.
+- Tahun/bulan pelatihan diturunkan dari `lastTrainingSession.startDate.unix` bila ada.
+- `invalid` = `reviseFields`; `reviseReason` disimpan untuk konteks.
 
-- Jika nama field API berbeda → perbaiki di
-  [`src/pages/admin/mappers.js`](../src/pages/admin/mappers.js).
-- Field yang id-nya tidak tersedia → dropdown lokasi/pelatihan tampil kosong dan
-  user memilih ulang. Field teks (nama, email, sekolah, tanggal lahir) tetap
-  terisi karena tidak bergantung pada id.
+Bila sebuah id tidak tersedia, dropdown terkait tampil kosong dan user memilih ulang;
+field teks (nama, sekolah, tanggal lahir) tetap terisi.
+
+---
+
+## 8. Status Backend
+
+Sudah tersedia (Postman `komunitas-api`): `verify {revise|rejected}`,
+`resend-revise-email`, `/auth/revise`, `/auth/revise/submit`, list
+`filter[verifiedStatus]=waiting`.
+
+Perlu dipastikan backend:
+1. **Set `[routes]` email** = `/register/revise` (agar link mendarat di FE).
+2. Email revisi memuat link + `reviseReason`/`reviseFields`.
+3. Email notifikasi saat status berubah (opsional, jejak untuk user).
 
 ---
 
 ## 9. Pengujian Manual
 
-1. Login sebagai admin → tab **Verifikasi Akun**.
-2. Klik tombol **X** pada satu user → centang beberapa field → **Tolak Akun**.
-3. Di Network/console, ambil `correctionUrl` dari payload `verifyUser` (atau
-   panggil `buildFixUrl` manual di console).
-4. Buka URL tersebut → harus mendarat di **Perbaiki Data** dengan field terisi dan
-   field yang dicentang bertanda merah + bubble.
-5. Edit field merah → bubble hilang. Submit → muncul layar sukses.
+1. Dapatkan `reviseToken` (dari respons admin `verify {status:'revise'}` atau minta
+   backend generate).
+2. `npm run dev`, lalu buka:
+   ```
+   http://localhost:5173/register/revise?token=<JWT>
+   ```
+3. Harus mendarat di **Perbaikan Data** dengan field terisi dan field di
+   `reviseFields` bertanda **merah + "Data kurang sesuai."**.
+4. Edit field merah → penanda hilang → **Kirim Perbaikan Data** → layar **"Akunmu
+   Sedang Ditinjau Kembali"**.
 
-> Selama backend belum siap, langkah 3 (email) digantikan dengan menyalin
-> `correctionUrl` manual, dan submit (langkah 5) akan gagal di network sampai
-> `POST /auth/correct-data` tersedia.
+> `getRevise` (langkah 2–3) bisa diulang. `submitRevise` (langkah 4) **one-time** —
+> token mati setelah sukses; untuk tes ulang minta token baru. Pastikan CORS backend
+> mengizinkan origin dev (`localhost:5173`); bila diblok → halaman "Link Tidak Valid".
+
+---
+
+## 10. Legacy `?fix=` (Deprecated)
+
+Mekanisme lama (ADR-0001): link self-contained `?fix=<base64url(JSON)>`, prefill
+dari URL, submit `POST /auth/correct-data`. Masih ada di kode sebagai fallback
+(`buildFixUrl`, `encodeFixPayload`, `decodeFixPayload`, `authApi.submitCorrection`,
+deteksi `?fix=` di App.jsx) tetapi **tidak dipakai lagi**.
+
+**Rencana pembersihan** setelah alur token stabil di produksi: hapus helper `?fix=`
+di `fixLink.js`, blok `?fix=` di `App.jsx`, dan `submitCorrection` di `api.js`.

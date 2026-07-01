@@ -1,6 +1,50 @@
 import { useState, useEffect, lazy, Suspense } from "react";
-import { tokenStorage, subscriptionApi, profileApi } from "@/lib/api";
+import { tokenStorage, subscriptionApi, profileApi, authApi, regionsApi } from "@/lib/api";
+import { isSuperAdmin, isOperationalAdmin } from "@/lib/roles";
 import { decodeFixPayload } from "@/lib/fixLink";
+
+// Normalisasi respons `POST /auth/revise` → bentuk prefill FixDataPage.
+// TODO(verify): sesuaikan nama field dengan respons `/auth/revise` yang sebenarnya
+// dan desain user-side final (contoh submit backend memakai teachingGrade, tanpa
+// field training — lihat ADR-0003).
+function normalizeRevise(res) {
+  const u = res?.user || res?.profile || res?.data || res || {};
+  // reviseReason & reviseFields ada di top-level (sibling dari `user`).
+  const fields = res?.reviseFields || u.reviseFields || u.fieldsToRevise || [];
+  const reason = res?.reviseReason || u.reviseReason || "";
+
+  // Tahun/bulan pelatihan diturunkan dari lastTrainingSession.startDate bila ada.
+  const startUnix = u.lastTrainingSession?.startDate?.unix;
+  let firstTrainingYear = "";
+  let firstTrainingMonth = "";
+  if (startUnix) {
+    const d = new Date(startUnix * 1000);
+    firstTrainingYear = String(d.getFullYear());
+    firstTrainingMonth = d.getMonth() + 1; // 1-based (FixDataPage mengurangi 1)
+  }
+
+  return {
+    uid: u.id,
+    name: u.name || "",
+    username: u.username || "",
+    email: u.email || "",
+    birthdate:
+      u.birthdate && typeof u.birthdate === "object"
+        ? u.birthdate.date || ""
+        : u.birthdate || "",
+    regionId: u.regionId || u.region?.id || "",
+    // Respons revise tidak menyertakan provinsi — dilengkapi di boot (fetch detail region).
+    provinceId: u.provinceId || u.region?.parentId || "",
+    firstTrainingYear,
+    firstTrainingMonth,
+    lastTrainingSessionId: u.lastTrainingSessionId || u.lastTrainingSession?.id || "",
+    schoolName: u.schoolName || "",
+    // reviseFields (kosakata FE: tanggalLahir/lokasi/riwayatPelatihan/namaSekolah)
+    invalid: Array.isArray(fields) ? fields : [],
+    reviseReason: reason,
+    notes: {},
+  };
+}
 import { LeftPanel } from "@/components/layout/LeftPanel";
 
 import { LoginPage } from "@/pages/auth/LoginPage";
@@ -31,6 +75,8 @@ export default function App() {
   const [resetEmail, setResetEmail] = useState("");
   const [ssoParams, setSsoParams] = useState(null);
   const [fixData, setFixData] = useState(null);
+  const [reviseData, setReviseData] = useState(null);
+  const [reviseToken, setReviseToken] = useState("");
   const [currentUser, setCurrentUser] = useState(null);
   const [activePlanName, setActivePlanName] = useState("");
   const [sessionChecked, setSessionChecked] = useState(false);
@@ -70,7 +116,39 @@ export default function App() {
       const clearUrlParams = () =>
         window.history.replaceState({}, "", window.location.pathname);
 
-      // ── Link "Perbaikan Data" dari email akun yang ditolak ────────────────
+      // ── Link "Revisi Data" dari email (token JWT dari backend) ────────────
+      // Route: /register/revise?token=<JWT>. Prefill diambil dari server (bukan URL).
+      if (pathname.includes("/revise")) {
+        const reviseTokenParam = params.get("token");
+        if (reviseTokenParam) {
+          try {
+            const data = await authApi.getRevise(reviseTokenParam);
+            const normalized = normalizeRevise(data);
+            // Respons revise hanya punya regionId (kabupaten), tanpa provinsi induk.
+            // Lengkapi provinceId dari detail region agar cascade lokasi bisa prefill.
+            if (normalized.regionId && !normalized.provinceId) {
+              try {
+                const region = await regionsApi.get(normalized.regionId);
+                const r = region?.data || region || {};
+                normalized.provinceId = r.parentId || r.parent?.id || "";
+              } catch {
+                /* biarkan kosong — user pilih provinsi/kota ulang */
+              }
+            }
+            setReviseData(normalized);
+            setReviseToken(reviseTokenParam);
+            clearUrlParams();
+            setPage("fix-data");
+          } catch {
+            // Token invalid / kadaluarsa / sudah dipakai (one-time).
+            setPage("revise-error");
+          }
+          setSessionChecked(true);
+          return;
+        }
+      }
+
+      // ── Link "Perbaikan Data" (LEGACY ?fix=, superseded oleh /revise) ──────
       if (fixParam) {
         const decoded = decodeFixPayload(fixParam);
         if (decoded) {
@@ -147,51 +225,34 @@ export default function App() {
     setRegEmail(email);
   };
 
+  // Tentukan halaman tujuan setelah login berdasarkan peran user.
+  // Aturan peran ada di src/lib/roles.js (sumber kebenaran tunggal).
+  //   - Admin operasional  → admin-dashboard
+  //   - Superadmin         → auth-choice
+  //   - User biasa         → auth-choice bila langganan aktif, else subscription
   const handleLoginSuccess = async (user) => {
     setCurrentUser(user);
-    console.log("🚀 User Data Payload:", user);
-    console.log("✅ User Capabilities:", user?.capabilities);
-    console.log("✅ User Groups:", user?.groups);
 
-    const isSuperAdmin = user?.superadmin === true || user?.superAdmin === true;
-
-    const ADMIN_CAPABILITIES = [
-      "USER/DISCOURSE/CHANGE_GROUP",
-      "PACKAGE/MGMT",
-      "USER/VERIFY",
-      "USER/LIST",
-      "VOUCHER/MGMT",
-      "USER/DISCOURSE/MANAGE_EXTRA_GROUPS",
-    ];
-
-    const hasCapabilities =
-      user?.capabilities &&
-      (Array.isArray(user.capabilities)
-        ? ADMIN_CAPABILITIES.every((cap) => user.capabilities.includes(cap))
-        : ADMIN_CAPABILITIES.every((cap) => cap in user.capabilities));
-
-    // "yang bisa masuk ke dashboard hanya yang bukan admin, tetapi, mempunya capabilieties tidak null"
-    if (!isSuperAdmin && hasCapabilities) {
+    if (isOperationalAdmin(user)) {
       setPage("admin-dashboard");
-    } else if (isSuperAdmin) {
+      return;
+    }
+
+    if (isSuperAdmin(user)) {
       setPage("auth-choice");
-    } else {
-      try {
-        const sub = await subscriptionApi.getStatus();
-        const isActive =
-          sub?.hasActiveSubscription === true ||
-          sub?.subscription?.status === "active";
-        if (isActive) {
-          setPage("auth-choice");
-          console.log("✅ Active Sub:", sub?.hasActiveSubscription);
-        } else {
-          setPage("subscription");
-          console.log("✅ Active Sub:", sub?.hasActiveSubscription);
-        }
-      } catch (error) {
-        console.log("❌ Active Sub Error:", error);
-        setPage("subscription");
-      }
+      return;
+    }
+
+    // User biasa: cek status langganan untuk menentukan halaman.
+    try {
+      const sub = await subscriptionApi.getStatus();
+      const isActive =
+        sub?.hasActiveSubscription === true ||
+        sub?.subscription?.status === "active";
+      setPage(isActive ? "auth-choice" : "subscription");
+    } catch {
+      // Gagal cek langganan → arahkan ke halaman langganan (fail-safe).
+      setPage("subscription");
     }
   };
 
@@ -282,6 +343,28 @@ export default function App() {
       </Suspense>
     );
 
+  if (page === "revise-error")
+    return (
+      <div className="flex h-screen overflow-hidden">
+        <LeftPanel />
+        <div className="flex-1 flex items-center justify-center p-8">
+          <div className="text-center space-y-4 max-w-[380px] animate-fade-in-up">
+            <h1 className="text-[22px] font-bold text-foreground">Link Tidak Valid</h1>
+            <p className="text-[13px] text-muted-foreground">
+              Link revisi tidak valid atau sudah kadaluarsa. Silakan minta admin
+              mengirim ulang email revisi.
+            </p>
+            <button
+              onClick={() => setPage("login")}
+              className="text-sm font-bold text-foreground hover:text-foreground/80 transition-colors"
+            >
+              Kembali ke Login
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+
   // ── Split-layout pages (login / signup) ───────────────────────────────────
   const authPages = {
     login: (
@@ -292,7 +375,13 @@ export default function App() {
       />
     ),
     signup: <SignUpPage onNavigate={setPage} onOtpToken={handleOtpToken} />,
-    "fix-data": <FixDataPage fixData={fixData} onNavigate={setPage} />,
+    "fix-data": (
+      <FixDataPage
+        fixData={reviseData ?? fixData}
+        reviseToken={reviseToken}
+        onNavigate={setPage}
+      />
+    ),
     "signup-otp": (
       <SignUpOtpPage
         onNavigate={setPage}

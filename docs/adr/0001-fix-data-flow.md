@@ -1,8 +1,13 @@
 # ADR-0001: Mekanisme Perbaikan Data untuk Akun yang Ditolak
 
-**Status:** Accepted
+**Status:** Superseded by [ADR-0003](0003-revise-token-flow.md)
 **Date:** 2026-06-29
 **Deciders:** Frontend lead (ery), backend team (sign-off pending)
+
+> ⚠️ **Superseded (2026-07-01).** Backend kini menyediakan alur token-based (`revise`),
+> yaitu "Option B" yang dulu ditunda di dokumen ini. Mekanisme link self-contained
+> (`?fix=`) diganti. Lihat [ADR-0003](0003-revise-token-flow.md). Dokumen ini disimpan
+> sebagai catatan sejarah keputusan.
 
 ## Context
 
@@ -120,10 +125,13 @@ duplikasi.
 ## Action Items
 
 1. [x] Implementasi `fixLink.js`, `FixDataPage`, checklist `RejectModal`, routing.
-2. [ ] Backend: terima `rejectedFields` + `correctionUrl` di `verify`, kirim email.
-3. [ ] Backend: sediakan `POST /auth/correct-data`.
-4. [ ] Verifikasi nama field `raw` di `mapToVerifikasi` vs respons API asli.
-5. [ ] Tinjau keamanan data-di-URL; pertimbangkan migrasi token-based untuk produksi.
+2. [x] FE: notifikasi "akun akan ditinjau ulang" pada layar sukses `FixDataPage`.
+3. [ ] Backend: terima `rejectedFields` + `correctionUrl` di `verify`, kirim email.
+4. [ ] Backend: sediakan `POST /auth/correct-data`.
+5. [ ] Backend: kirim email konfirmasi "akun sedang direview" setelah resubmit
+   (lihat [FIX_DATA_FLOW §7.4](../FIX_DATA_FLOW.md)).
+6. [ ] Verifikasi nama field `raw` di `mapToVerifikasi` vs respons API asli.
+7. [ ] Tinjau keamanan data-di-URL; pertimbangkan migrasi token-based untuk produksi.
 
 ## Lihat Juga
 

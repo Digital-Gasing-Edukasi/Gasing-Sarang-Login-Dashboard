@@ -15,22 +15,30 @@
 //   firstTrainingYear,            // number
 //   firstTrainingMonth,           // number 1-12
 //   lastTrainingSessionId,        // id session pelatihan
-//   trainingRegionId,             // region pelatihan pertama
+//   firstTrainingRegionId,        // region pelatihan pertama (nama kanonik; lihat SignUpPage)
 //   schoolName,
-//   invalid: ['name', ...],       // daftar key field yang salah (lihat FIELD_DEFS)
+//   invalid: ['birthdate', ...],  // daftar key field yang salah (lihat FIELD_DEFS)
 //   notes: { name: 'pesan', ... } // opsional: pesan bubble custom per field
 // }
 
-// Registry field yang bisa ditandai salah. Satu sumber kebenaran untuk
-// RejectModal (checklist) dan FixDataPage (bubble error).
+// Registry field yang bisa ditandai salah oleh admin (checklist RejectModal).
+// Key ini dikirim ke backend sebagai `fieldsToRevise` (opaque — FE yang menentukan
+// artinya, lihat ADR-0003).
+// Catatan:
+//   - Identity (Nama/Username/Email) sengaja tidak ada: form perbaikan tidak
+//     menampilkannya, jadi tidak boleh ditandai.
+//   - 'lainnya' BUKAN field form user. Mencentangnya mengubah aksi jadi TOLAK FINAL
+//     (status 'rejected'): memunculkan textarea "Catatan Tambahan" → rejectedReason,
+//     dan checklist field lain diabaikan. Tanpa 'lainnya' = status 'revise'.
+// Key HARUS sama dengan `reviseFields` yang dikembalikan backend (kosakata FE, dipakai
+// admin saat kirim fieldsToRevise DAN user-side saat menandai field merah). Contoh
+// respons backend: ["tanggalLahir","lokasi","riwayatPelatihan","namaSekolah"].
 export const FIELD_DEFS = [
-  { key: 'name',      label: 'Nama Lengkap' },
-  { key: 'username',  label: 'Username' },
-  { key: 'email',     label: 'Email' },
-  { key: 'birthdate', label: 'Tanggal Lahir' },
-  { key: 'region',    label: 'Lokasi Saat Ini' },
-  { key: 'training',  label: 'Data Pelatihan Gasing' },
-  { key: 'school',    label: 'Sekolah Asal' },
+  { key: 'tanggalLahir',     label: 'Tanggal Lahir' },
+  { key: 'lokasi',           label: 'Lokasi' },
+  { key: 'riwayatPelatihan', label: 'Riwayat Pelatihan' },
+  { key: 'namaSekolah',      label: 'Nama Sekolah' },
+  { key: 'lainnya',          label: 'Lainnya' },
 ]
 
 export const FIELD_LABEL = Object.fromEntries(FIELD_DEFS.map((f) => [f.key, f.label]))

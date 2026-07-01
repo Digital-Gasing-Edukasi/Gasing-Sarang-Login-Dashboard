@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Mail, Calendar, Loader2, LogIn, CheckCircle2 } from "lucide-react";
+import { Calendar, Loader2, LogIn, UserSearch, HelpCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,7 +15,6 @@ import { IconInput } from "@/components/shared/IconInput";
 import { ErrorAlert } from "@/components/shared/ErrorAlert";
 import { cn } from "@/lib/utils";
 import { authApi, regionsApi, trainingSessionsApi } from "@/lib/api";
-import { defaultFieldMessage } from "@/lib/fixLink";
 
 const asList = (data) =>
   Array.isArray(data) ? data : data?.data || data?.items || [];
@@ -43,26 +42,27 @@ const sessionMonth = (s) => {
 // Style border merah saat field invalid (dipakai Input & SelectTrigger).
 const errCls = "border-red-500 focus-visible:border-red-500 focus-visible:ring-red-500/30 focus:border-red-500 focus:ring-red-500/30";
 
-// Bubble notifikasi di bawah field yang salah.
-function ErrorBubble({ message }) {
+// Field yang BISA diperbaiki user di halaman ini (lihat desain — Nama/Username/Email
+// tidak ditampilkan, hanya dikirim ulang apa adanya dari payload). Penanda error
+// hanya untuk key di sini agar submit tidak tersangkut field yang tak punya input.
+const CORRECTABLE_KEYS = ["tanggalLahir", "lokasi", "riwayatPelatihan", "namaSekolah"];
+
+// Pesan error merah di bawah field yang salah (border merah + teks).
+function FieldError({ message }) {
   if (!message) return null;
-  return (
-    <div className="relative mt-1.5 animate-fade-in">
-      <div className="absolute -top-1 left-4 w-2.5 h-2.5 bg-red-600 rotate-45" />
-      <div className="relative bg-red-600 text-white text-xs font-medium px-3 py-2 rounded-lg shadow-md">
-        {message}
-      </div>
-    </div>
-  );
+  return <p className="mt-1.5 text-[13px] text-red-500 animate-fade-in">{message}</p>;
 }
 
-export function FixDataPage({ fixData, onNavigate }) {
-  // Map invalid[] + notes{} → { [fieldKey]: pesan }. Sumber bubble dinamis.
+export function FixDataPage({ fixData, reviseToken, onNavigate }) {
+  // Map invalid[] + notes{} → { [fieldKey]: pesan }. Sumber penanda error dinamis.
+  // Hanya field yang bisa diperbaiki di halaman ini (CORRECTABLE_KEYS).
   const initialErrors = () => {
     const errs = {};
-    (fixData?.invalid || []).forEach((k) => {
-      errs[k] = fixData?.notes?.[k] || defaultFieldMessage(k);
-    });
+    (fixData?.invalid || [])
+      .filter((k) => CORRECTABLE_KEYS.includes(k))
+      .forEach((k) => {
+        errs[k] = fixData?.notes?.[k] || "Data kurang sesuai.";
+      });
     return errs;
   };
 
@@ -72,9 +72,11 @@ export function FixDataPage({ fixData, onNavigate }) {
   const [submitted, setSubmitted] = useState(false);
 
   // ── Prefill dari payload ────────────────────────────────────────────────────
-  const [name, setName] = useState(fixData?.name || "");
-  const [username, setUsername] = useState(fixData?.username || "");
-  const [email, setEmail] = useState(fixData?.email || "");
+  // Identity (nama/username/email) tidak diedit di halaman ini — hanya dikirim
+  // ulang apa adanya dari payload saat submit. Sisanya bisa diperbaiki user.
+  const name = fixData?.name || "";
+  const username = fixData?.username || "";
+  const email = fixData?.email || "";
   const [birthdate, setBirthdate] = useState(fixData?.birthdate || "");
   const [schoolName, setSchoolName] = useState(fixData?.schoolName || "");
 
@@ -130,7 +132,7 @@ export function FixDataPage({ fixData, onNavigate }) {
   const handleProvinceChange = (v) => {
     setProvinceId(v);
     setRegionId("");
-    clearErr("region");
+    clearErr("lokasi");
   };
 
   const handleYearChange = (v) => {
@@ -144,7 +146,7 @@ export function FixDataPage({ fixData, onNavigate }) {
   };
   const handleSessionChange = (v) => {
     setLastTrainingSessionId(v);
-    clearErr("training");
+    clearErr("riwayatPelatihan");
   };
 
   const yearOptions = [...new Set(sessions.map(sessionYear).filter(Boolean))]
@@ -159,9 +161,10 @@ export function FixDataPage({ fixData, onNavigate }) {
     (s) => sessionYear(s) === kapanYear && sessionMonth(s) === kapanMonth
   );
 
-  const handleSubmit = async () => {
+  // Validasi lalu langsung submit (tanpa modal konfirmasi — sesuai desain terbaru).
+  const handleSubmit = () => {
     setError("");
-    if (!name || !username || !email || !birthdate || !regionId || !lastTrainingSessionId || !schoolName) {
+    if (!birthdate || !regionId || !lastTrainingSessionId || !schoolName) {
       setError("Semua field wajib diisi");
       return;
     }
@@ -169,11 +172,15 @@ export function FixDataPage({ fixData, onNavigate }) {
       setError("Masih ada data yang ditandai salah. Perbaiki dulu sebelum mengirim.");
       return;
     }
+    doSubmit();
+  };
+
+  const doSubmit = async () => {
     setLoading(true);
     try {
       const selectedSession = sessions.find((s) => s.id === lastTrainingSessionId);
-      await authApi.submitCorrection({
-        uid: fixData?.uid,
+      const payload = {
+        // Nama/Username/Email tidak diedit di halaman ini — dikirim ulang apa adanya.
         name,
         username,
         email,
@@ -185,7 +192,15 @@ export function FixDataPage({ fixData, onNavigate }) {
           selectedSession?.regionId ?? selectedSession?.region?.id ?? null,
         lastTrainingSessionId,
         schoolName,
-      });
+      };
+
+      if (reviseToken) {
+        // Alur baru (token JWT dari email): auth via token, bukan uid.
+        await authApi.submitRevise({ token: reviseToken, ...payload });
+      } else {
+        // Legacy (?fix= self-contained) — dihapus setelah backend stabil (ADR-0003).
+        await authApi.submitCorrection({ uid: fixData?.uid, ...payload });
+      }
       setSubmitted(true);
     } catch (e) {
       setError(e.message || "Gagal mengirim perbaikan data. Coba lagi.");
@@ -194,24 +209,35 @@ export function FixDataPage({ fixData, onNavigate }) {
     }
   };
 
-  // ── Sukses ──────────────────────────────────────────────────────────────────
+  // ── Sukses: perbaikan terkirim, akun masuk antrian review ────────────────────
   if (submitted) {
     return (
       <RightPanel>
-        <div className="animate-fade-in-up text-center space-y-4">
-          <div className="mx-auto w-16 h-16 rounded-full bg-green-50 border border-dashed border-green-500 flex items-center justify-center">
-            <CheckCircle2 className="text-green-500" size={30} strokeWidth={1.5} />
+        <div className="animate-fade-in-up text-center space-y-5 max-w-[380px] mx-auto">
+          <div className="mx-auto w-16 h-16 rounded-full bg-orange-50 border border-dashed border-orange-400 flex items-center justify-center">
+            <UserSearch className="text-orange-500" size={28} strokeWidth={1.5} />
           </div>
-          <h1 className="text-[22px] font-bold text-foreground">Data Berhasil Dikirim</h1>
-          <p className="text-[13px] text-muted-foreground px-4">
-            Terima kasih. Data kamu sudah diperbarui dan akan ditinjau ulang oleh admin.
+          <h1 className="text-[22px] font-bold text-foreground">Akunmu Sedang Ditinjau Kembali</h1>
+          <p className="text-[13px] text-muted-foreground px-2 leading-relaxed">
+            Terima kasih telah mengajukan perbaikan data diri. Tim kami akan segera
+            memeriksa informasi yang kamu kirimkan.{" "}
+            <span className="font-semibold text-foreground">
+              Proses peninjauan akan memakan waktu 24 - 48 jam.
+            </span>
           </p>
-          <button
+          <div className="flex items-start gap-2.5 text-left bg-blue-50 rounded-xl px-4 py-3">
+            <HelpCircle className="text-blue-500 shrink-0 mt-0.5" size={18} />
+            <p className="text-[13px] text-slate-600">
+              Mohon cek email secara berkala untuk melihat status akunmu.
+            </p>
+          </div>
+          <div className="border-t border-gray-100" />
+          <Button
+            className="rounded-full px-10 mx-auto"
             onClick={() => onNavigate("login")}
-            className="flex items-center gap-1.5 text-sm font-bold text-foreground hover:text-foreground/80 transition-colors mx-auto"
           >
-            <LogIn size={16} /> Log In
-          </button>
+            <LogIn size={16} /> Kembali ke Log in
+          </Button>
         </div>
       </RightPanel>
     );
@@ -220,10 +246,10 @@ export function FixDataPage({ fixData, onNavigate }) {
   return (
     <RightPanel>
       <div className="animate-fade-in-up delay-100 text-center">
-        <h1 className="text-[22px] font-bold text-foreground mb-1.5">Perbaiki Data Kamu</h1>
+        <h1 className="text-[22px] font-bold text-foreground mb-1.5">Perbaikan Data</h1>
         <p className="text-[13px] text-muted-foreground mb-6 px-2">
-          Akun kamu sudah dibuat, tapi ada data yang perlu diperbaiki. Field bertanda{" "}
-          <span className="text-red-600 font-medium">merah</span> di bawah harus dibetulkan.
+          Silakan lengkapi dan perbaiki data berikut sesuai tindakan perbaikan yang
+          diperlukan.
         </p>
       </div>
 
@@ -231,59 +257,24 @@ export function FixDataPage({ fixData, onNavigate }) {
         <ErrorAlert message={error} />
 
         <div className="space-y-1.5">
-          <Label className="text-[13px] font-semibold">Nama Lengkap</Label>
-          <Input
-            type="text"
-            placeholder="Masukkan nama lengkap"
-            value={name}
-            onChange={(e) => { setName(e.target.value); clearErr("name"); }}
-            className={cn(fieldErrors.name && errCls)}
-          />
-          <ErrorBubble message={fieldErrors.name} />
-        </div>
-
-        <div className="space-y-1.5">
-          <Label className="text-[13px] font-semibold">Username</Label>
-          <Input
-            type="text"
-            placeholder="Masukkan username"
-            value={username}
-            onChange={(e) => { setUsername(e.target.value); clearErr("username"); }}
-            className={cn(fieldErrors.username && errCls)}
-          />
-          <ErrorBubble message={fieldErrors.username} />
-        </div>
-
-        <div className="space-y-1.5">
-          <Label className="text-[13px] font-semibold">Email</Label>
-          <IconInput
-            icon={Mail}
-            type="email"
-            placeholder="Masukkan email"
-            value={email}
-            onChange={(e) => { setEmail(e.target.value); clearErr("email"); }}
-            className={cn(fieldErrors.email && errCls)}
-          />
-          <ErrorBubble message={fieldErrors.email} />
-        </div>
-
-        <div className="space-y-1.5">
-          <Label className="text-[13px] font-semibold">Tanggal Lahir</Label>
+          <Label className="text-[13px] font-semibold">
+            Tanggal lahir <span className="text-red-500">*</span>
+          </Label>
           <IconInput
             icon={Calendar}
             type="date"
             value={birthdate}
-            onChange={(e) => { setBirthdate(e.target.value); clearErr("birthdate"); }}
-            className={cn(fieldErrors.birthdate && errCls)}
+            onChange={(e) => { setBirthdate(e.target.value); clearErr("tanggalLahir"); }}
+            className={cn(fieldErrors.tanggalLahir && errCls)}
           />
-          <ErrorBubble message={fieldErrors.birthdate} />
+          <FieldError message={fieldErrors.tanggalLahir} />
         </div>
 
         <div className="space-y-1.5">
           <Label className="text-[13px] font-semibold">Lokasi kamu saat ini</Label>
           <div className="grid grid-cols-2 gap-3">
             <Select value={provinceId} onValueChange={handleProvinceChange}>
-              <SelectTrigger className={cn(fieldErrors.region && errCls)}>
+              <SelectTrigger className={cn(fieldErrors.lokasi && errCls)}>
                 <SelectValue placeholder="Pilih Provinsi" />
               </SelectTrigger>
               <SelectContent>
@@ -294,10 +285,10 @@ export function FixDataPage({ fixData, onNavigate }) {
             </Select>
             <Select
               value={regionId}
-              onValueChange={(v) => { setRegionId(v); clearErr("region"); }}
+              onValueChange={(v) => { setRegionId(v); clearErr("lokasi"); }}
               disabled={!provinceId || regencyLoading}
             >
-              <SelectTrigger className={cn(fieldErrors.region && errCls)}>
+              <SelectTrigger className={cn(fieldErrors.lokasi && errCls)}>
                 <SelectValue placeholder={regencyLoading ? "Memuat..." : "Pilih Kab./Kota"} />
               </SelectTrigger>
               <SelectContent>
@@ -307,14 +298,14 @@ export function FixDataPage({ fixData, onNavigate }) {
               </SelectContent>
             </Select>
           </div>
-          <ErrorBubble message={fieldErrors.region} />
+          <FieldError message={fieldErrors.lokasi} />
         </div>
 
         <div className="space-y-1.5">
           <Label className="text-[13px] font-semibold">Kapan kamu mendapat pelatihan Gasing pertama?</Label>
           <div className="grid grid-cols-2 gap-3">
             <Select value={kapanYear} onValueChange={handleYearChange} disabled={sessionsLoading}>
-              <SelectTrigger className={cn(fieldErrors.training && errCls)}>
+              <SelectTrigger className={cn(fieldErrors.riwayatPelatihan && errCls)}>
                 <SelectValue placeholder={sessionsLoading ? "Memuat..." : "Tahun"} />
               </SelectTrigger>
               <SelectContent>
@@ -324,7 +315,7 @@ export function FixDataPage({ fixData, onNavigate }) {
               </SelectContent>
             </Select>
             <Select value={kapanMonth} onValueChange={handleMonthChange} disabled={!kapanYear}>
-              <SelectTrigger className={cn(fieldErrors.training && errCls)}>
+              <SelectTrigger className={cn(fieldErrors.riwayatPelatihan && errCls)}>
                 <SelectValue placeholder="Bulan" />
               </SelectTrigger>
               <SelectContent>
@@ -339,7 +330,7 @@ export function FixDataPage({ fixData, onNavigate }) {
         <div className="space-y-1.5">
           <Label className="text-[13px] font-semibold">Dimana kamu mendapat pelatihan Gasing pertama?</Label>
           <Select value={lastTrainingSessionId} onValueChange={handleSessionChange} disabled={!kapanMonth}>
-            <SelectTrigger className={cn(fieldErrors.training && errCls)}>
+            <SelectTrigger className={cn(fieldErrors.riwayatPelatihan && errCls)}>
               <SelectValue placeholder="Pilih Daerah" />
             </SelectTrigger>
             <SelectContent>
@@ -348,36 +339,29 @@ export function FixDataPage({ fixData, onNavigate }) {
               ))}
             </SelectContent>
           </Select>
-          <ErrorBubble message={fieldErrors.training} />
+          <FieldError message={fieldErrors.riwayatPelatihan} />
         </div>
 
         <div className="space-y-1.5">
-          <Label className="text-[13px] font-semibold">Sekolah asal kamu saat pelatihan Gasing pertama?</Label>
+          <Label className="text-[13px] font-semibold">
+            Sekolah asal kamu saat pelatihan Gasing pertama? <span className="text-red-500">*</span>
+          </Label>
           <Input
             placeholder="Nama sekolah"
             value={schoolName}
-            onChange={(e) => { setSchoolName(e.target.value); clearErr("school"); }}
-            className={cn(fieldErrors.school && errCls)}
+            onChange={(e) => { setSchoolName(e.target.value); clearErr("namaSekolah"); }}
+            className={cn(fieldErrors.namaSekolah && errCls)}
           />
-          <ErrorBubble message={fieldErrors.school} />
+          <FieldError message={fieldErrors.namaSekolah} />
         </div>
 
-        <Button className="w-full" onClick={handleSubmit} disabled={loading}>
+        <Button className="w-full rounded-full" onClick={handleSubmit} disabled={loading}>
           {loading ? (
             <><Loader2 size={16} className="animate-spin" /> Mengirim...</>
           ) : (
-            "Kirim Perbaikan"
+            "Kirim Perbaikan Data"
           )}
         </Button>
-      </div>
-
-      <div className="animate-fade-in-up delay-300 mt-6">
-        <button
-          onClick={() => onNavigate("login")}
-          className="flex items-center gap-1.5 text-sm font-bold text-foreground hover:text-foreground/80 transition-colors mx-auto"
-        >
-          <LogIn size={16} /> Log In
-        </button>
       </div>
     </RightPanel>
   );

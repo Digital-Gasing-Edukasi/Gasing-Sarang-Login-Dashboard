@@ -2,13 +2,13 @@ import { useRef, useState } from 'react'
 import { Search, Download, Filter, Check, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
-function SearchInput({ value, onChange }) {
+function SearchInput({ value, onChange, placeholder = 'Cari user...' }) {
   return (
     <div className="relative">
       <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
       <input
         type="text"
-        placeholder="Cari user..."
+        placeholder={placeholder}
         value={value}
         onChange={e => onChange(e.target.value)}
         className="w-full pl-10 pr-10 py-2.5 bg-white border border-gray-200 rounded-full text-sm outline-none focus:border-[#D946EF] focus:ring-1 focus:ring-[#D946EF] transition-all"
@@ -48,7 +48,13 @@ export function VerifikasiControls({ totalCount, searchQuery, onSearchChange, on
 
 const ALL_ROLES          = ['Trainer Utama', 'Trainer Aula', 'Trainer Kelas', 'Guru']
 const ALL_SUBSCRIPTIONS  = ['Not Active', 'Active', 'Expired']
-const STATUS_FILTERS     = ['Semua', 'Approved', 'Pending', 'Rejected']
+const STATUS_FILTERS = [
+  { id: 'Semua', label: 'Semua' },
+  { id: 'Approved', label: 'Disetujui' },
+  { id: 'Pending', label: 'Ditangguhkan' },
+  { id: 'Rejected', label: 'Ditolak' },
+  { id: 'Deleted', label: 'Baru Dihapus' }
+]
 
 export function ManajemenControls({
   activeFilter, onFilterChange,
@@ -70,11 +76,11 @@ export function ManajemenControls({
       {/* Status filter pills */}
       <div className="flex items-center gap-2 bg-gray-50/50 border border-gray-100 p-1.5 rounded-full">
         {STATUS_FILTERS.map(status => {
-          const isSelected = activeFilter === status
+          const isSelected = activeFilter === status.id
           return (
             <button
-              key={status}
-              onClick={() => onFilterChange(status)}
+              key={status.id}
+              onClick={() => onFilterChange(status.id)}
               className={cn(
                 'flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-colors',
                 isSelected ? 'bg-[#0A1128] text-white shadow-sm' : 'text-gray-500 hover:text-[#0A1128] bg-transparent'
@@ -86,7 +92,7 @@ export function ManajemenControls({
               )}>
                 {isSelected && <Check size={12} className="text-white" strokeWidth={3} />}
               </div>
-              {status}
+              {status.label}
             </button>
           )
         })}
@@ -170,6 +176,53 @@ export function ManajemenControls({
         <button onClick={onExport} className="flex items-center gap-2 bg-[#0A1128] hover:bg-[#0A1128]/90 text-white px-5 py-2.5 rounded-full text-sm font-medium transition-colors shadow-sm">
           <Download size={16} /> Export List
         </button>
+      </div>
+    </div>
+  )
+}
+
+export function PendaftaranTrainerControls({ searchQuery, onSearchChange, onAdd }) {
+  return (
+    <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center gap-4">
+        <button
+          onClick={onAdd}
+          className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-full text-sm font-medium transition-colors shadow-sm"
+        >
+          <span className="text-lg leading-none">+</span> Pendaftaran Pelatihan
+        </button>
+      </div>
+
+      <div className="flex items-center gap-4">
+        <div className="w-[300px]">
+          <SearchInput value={searchQuery} onChange={onSearchChange} />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export function RiwayatPelatihanControls({ searchQuery, onSearchChange, onAdd, onExport }) {
+  return (
+    <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center gap-4">
+        <button
+          onClick={onAdd}
+          className="flex items-center gap-2 border border-gray-200 text-[#0A1128] hover:bg-gray-50 px-5 py-2.5 rounded-full text-sm font-medium transition-colors shadow-sm"
+        >
+          <span className="text-lg leading-none">+</span> Tambah Pelatihan Baru
+        </button>
+      </div>
+
+      <div className="flex items-center gap-4">
+        <div className="w-[300px]">
+          <SearchInput value={searchQuery} onChange={onSearchChange} placeholder="Cari riwayat pelatihan..." />
+        </div>
+        {onExport && (
+          <button onClick={onExport} className="flex items-center gap-2 bg-[#0A1128] hover:bg-[#0A1128]/90 text-white px-5 py-2.5 rounded-full text-sm font-medium transition-colors shadow-sm">
+            <Download size={16} /> Export List
+          </button>
+        )}
       </div>
     </div>
   )

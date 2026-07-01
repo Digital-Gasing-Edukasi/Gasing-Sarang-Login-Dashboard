@@ -142,8 +142,18 @@ export const authApi = {
       body: { token, email, newPassword },
     }),
 
-  // Resubmit data yang sudah diperbaiki user (alur "akun ditolak → perbaiki data").
-  // TODO(backend): sediakan endpoint ini. Body = { uid, ...field yang diperbaiki }.
+  // ── Alur Revise (akun diminta perbaiki data via token JWT dari email) ─────────
+  // Auth lewat `token` di body (bukan access token) — user datang dari link email.
+  //
+  // getRevise: ambil profil + alasan + daftar field yang harus diperbaiki.
+  getRevise: (token) =>
+    request("/auth/revise", { method: "POST", body: { token }, headers: {} }),
+  // submitRevise: kirim data yang sudah diperbaiki. Token one-time (di-revoke server).
+  submitRevise: (data) =>
+    request("/auth/revise/submit", { method: "POST", body: data, headers: {} }),
+
+  // @deprecated — diganti getRevise/submitRevise (alur token-based backend).
+  // Lihat ADR-0003. Dihapus setelah FixDataPage migrasi ke token.
   submitCorrection: (data) =>
     request("/auth/correct-data", { method: "POST", body: data }),
 };
@@ -326,6 +336,26 @@ export const adminApi = {
 
   verifyUser: (userId, data) =>
     request(`/admin/users/${userId}/verify`, { method: "PATCH", body: data }),
+
+  // Minta user memperbaiki data (status → REVISE). Backend generate token JWT +
+  // kirim email berisi link revise. `fieldsToRevise` = array key field yang salah.
+  reviseUser: (userId, { rejectedReason, fieldsToRevise }) =>
+    request(`/admin/users/${userId}/verify`, {
+      method: "PATCH",
+      body: { status: "revise", rejectedReason, fieldsToRevise },
+    }),
+
+  // Tolak akun secara FINAL (status → REJECTED). User tidak bisa memperbaiki data.
+  // Dipicu saat admin memilih "Lainnya" di RejectModal. `rejectedReason` = teks bebas.
+  rejectUser: (userId, { rejectedReason }) =>
+    request(`/admin/users/${userId}/verify`, {
+      method: "PATCH",
+      body: { status: "rejected", rejectedReason },
+    }),
+
+  // Kirim ulang email revise (token baru). Hanya untuk user berstatus REVISE.
+  resendReviseEmail: (userId) =>
+    request(`/admin/users/${userId}/resend-revise-email`, { method: "POST" }),
 
   updateDiscourseGroup: (userId, discourseGroupId) =>
     request(`/admin/users/${userId}/discourse-group`, {

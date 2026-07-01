@@ -36,16 +36,20 @@ export function fmtDate(iso) {
   return d.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })
 }
 
-// verifiedStatus dari API adalah NUMBER: 0=pending, 1=approved, 2=rejected
+// verifiedStatus dari API (NUMBER): 1=approved, 2=revise, -1=rejected, lainnya=waiting.
 function parseVerifiedStatus(v) {
   if (v === 1 || v === 'approved') return 'Approved'
+  if (v === 2 || v === 'revise') return 'Revise'
   if (v === -1 || v === 'rejected') return 'Rejected'
   return 'Pending'
 }
 
 export function mapToVerifikasi(u, regions = []) {
-  const regionObj = regions.find(r => r.id === u.trainingRegionId)
-  const regionName = regionObj ? regionObj.regionName : (u.trainingRegion?.regionName || '-')
+  // Nama kanonik field region pelatihan = firstTrainingRegionId (lihat SignUpPage).
+  // Tetap terima trainingRegionId lama sebagai fallback agar tidak breaking.
+  const trainingRegionId = u.firstTrainingRegionId || u.trainingRegionId
+  const regionObj = regions.find(r => r.id === trainingRegionId)
+  const regionName = regionObj ? regionObj.regionName : (u.firstTrainingRegion?.regionName || u.trainingRegion?.regionName || '-')
 
   return {
     id:       u.id,
@@ -63,7 +67,7 @@ export function mapToVerifikasi(u, regions = []) {
       birthdate:  (u.birthdate && typeof u.birthdate === 'object') ? (u.birthdate.date || '') : (u.birthdate || ''),
       regionId:   u.regionId || u.region?.id || '',
       provinceId: u.provinceId || u.province?.id || u.region?.parentId || '',
-      trainingRegionId:      u.trainingRegionId || '',
+      firstTrainingRegionId: u.firstTrainingRegionId || u.trainingRegionId || '',
       firstTrainingYear:     u.firstTrainingYear || '',
       firstTrainingMonth:    u.firstTrainingMonth || '',
       lastTrainingSessionId: u.lastTrainingSessionId || u.lastTrainingSession?.id || '',
@@ -85,8 +89,9 @@ export function mapToManajemen(u, regions = []) {
   const voucher = u.activeVoucher?.code || ''
   const action  = voucher ? 'Sudah Disalin' : (accountStatus === 'Approved' ? 'Konfirmasi' : '-')
 
-  const regionObj = regions.find(r => r.id === u.trainingRegionId)
-  const regionName = regionObj ? regionObj.regionName : (u.trainingRegion?.regionName || '-')
+  const trainingRegionId = u.firstTrainingRegionId || u.trainingRegionId
+  const regionObj = regions.find(r => r.id === trainingRegionId)
+  const regionName = regionObj ? regionObj.regionName : (u.firstTrainingRegion?.regionName || u.trainingRegion?.regionName || '-')
 
   return {
     id:       u.id,

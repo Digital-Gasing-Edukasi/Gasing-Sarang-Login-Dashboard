@@ -1,6 +1,6 @@
 # GASING CIRCLE — Frontend SPA
 
-> **Versi:** 2.8.0 · **Tanggal:** 02 Juni 2026 · **Stack:** React 18 + Vite + Tailwind CSS + shadcn/ui
+> **Versi:** 2.9.0 · **Tanggal:** 25 Juni 2026 · **Stack:** React 18 + Vite + Tailwind CSS + shadcn/ui
 
 ---
 
@@ -109,13 +109,19 @@ Login page/
         │   ├── ResetPasswordPage.jsx
         │   └── SsoCallbackPage.jsx
         ├── admin/          ← komponen dashboard admin
-        │   ├── mappers.js          ← fungsi transform data API → UI
-        │   ├── AdminSidebar.jsx    ← sidebar navigasi admin
-        │   ├── ConfirmModal.jsx    ← modal approve & reject
-        │   ├── AdminToast.jsx      ← toast undo (5 detik)
-        │   ├── TableControls.jsx   ← toolbar (search, filter, export)
-        │   ├── VerifikasiTable.jsx ← tabel tab Verifikasi Akun
-        │   └── ManajemenTable.jsx  ← tabel tab Manajemen Akun
+        │   ├── mappers.js                  ← fungsi transform data API → UI
+        │   ├── AdminSidebar.jsx            ← sidebar navigasi admin
+        │   ├── ConfirmModal.jsx            ← modal approve & reject
+        │   ├── AdminToast.jsx              ← toast undo (5 detik)
+        │   ├── TableControls.jsx           ← toolbar per tab (search, filter, export, add)
+        │   ├── VerifikasiTable.jsx         ← tabel tab Verifikasi Akun
+        │   ├── ManajemenTable.jsx          ← tabel tab Manajemen Akun
+        │   ├── UbahRoleModal.jsx           ← modal ubah role (Manajemen Akun)
+        │   ├── KirimVoucherModal.jsx       ← modal kirim voucher (Manajemen Akun)
+        │   ├── PendaftaranTrainerTable.jsx ← tabel tab Pendaftaran Trainer
+        │   ├── AddPendaftaranTrainerModal.jsx ← modal tambah pendaftaran trainer
+        │   ├── RiwayatPelatihanTable.jsx   ← tabel tab Riwayat Pelatihan (sort + action)
+        │   └── HapusRiwayatModal.jsx       ← modal konfirmasi hapus riwayat (ketik DELETE)
         ├── AdminDashboardPage.jsx  ← dashboard admin (orchestrator)
         ├── SubscriptionPage.jsx    ← halaman pilih paket
         ├── PaymentSuccessPage.jsx  ← halaman pembayaran berhasil
@@ -233,10 +239,10 @@ Buat file `.env` di root folder (sejajar dengan `package.json`):
 VITE_API_URL=http://localhost:3000
 
 # URL komunitas Discourse
-VITE_DISCOURSE_URL=https://dev-komunitas.gasingacademy.org
+VITE_DISCOURSE_URL=https://<APP_DOMAIN>
 
 # Nomor WhatsApp perusahaan (format internasional tanpa + dan spasi)
-VITE_WA_NUMBER=6287788000305
+VITE_WA_NUMBER=62XXXXXXXXXXX
 
 # ─── Midtrans ─────────────────────────────────────────────────────────────────
 # Client Key → untuk frontend (Snap script di index.html)
@@ -269,7 +275,7 @@ Vite proxy dikonfigurasi di `vite.config.js` sebagai bantuan dev lokal (menghind
 server: {
   proxy: {
     '/api': {
-      target: 'https://dev-dge-comunity.baka.work',
+      target: 'https://<BACKEND_API_HOST>',
       changeOrigin: true,
       secure: true,
     }
@@ -307,11 +313,33 @@ Setiap halaman auth berdiri sendiri sebagai file terpisah. `App.jsx` hanya bertu
 | `AdminSidebar.jsx`    | Sidebar navigasi (logo, tab, profil, logout)            |
 | `ConfirmModal.jsx`    | Modal konfirmasi: `<RejectModal>` & `<ApproveModal>`    |
 | `AdminToast.jsx`      | Toast undo 5 detik setelah approve/reject               |
-| `TableControls.jsx`   | `<VerifikasiControls>` & `<ManajemenControls>` (toolbar)|
+| `TableControls.jsx`   | `<VerifikasiControls>`, `<ManajemenControls>`, `<PendaftaranTrainerControls>`, `<RiwayatPelatihanControls>` (toolbar per tab) |
 | `VerifikasiTable.jsx` | Tabel tab Verifikasi Akun dengan role select & action   |
 | `ManajemenTable.jsx`  | Tabel tab Manajemen Akun dengan status, voucher, dst.   |
+| `UbahRoleModal.jsx`   | Modal ubah role pengguna (Manajemen Akun)               |
+| `KirimVoucherModal.jsx` | Modal kirim voucher personal (Manajemen Akun)         |
+| `PendaftaranTrainerTable.jsx` | Tabel tab Pendaftaran Trainer + toggle status   |
+| `AddPendaftaranTrainerModal.jsx` | Modal tambah pendaftaran pelatihan trainer   |
+| `RiwayatPelatihanTable.jsx` | Tabel tab Riwayat Pelatihan: sort per-kolom, badge status & langganan, action edit/download/hapus |
+| `HapusRiwayatModal.jsx` | Modal konfirmasi hapus riwayat (wajib ketik `DELETE`) + undo via toast |
 
 `AdminDashboardPage.jsx` adalah orchestrator yang menggabungkan semua komponen admin di atas.
+
+#### Tab Riwayat Pelatihan
+
+Tabel menampilkan kolom: **Nama Pelatihan** (+ badge `New`), **Daerah Pelatihan**, **Tgl. Mulai**, **Status**, grup **Peserta Guru Pelatihan** (Nama Peserta + link `50+ lainnya`, Email, Langganan), **Last Updated**, dan **Action**.
+
+| Elemen | Nilai / Perilaku |
+| ------ | ---------------- |
+| Badge **Status** | `Saved` (hijau), `Processing` (amber), `Pending` (ungu), `Error` (merah) |
+| Badge **Langganan** | `Aktif` (hijau), `Non-Aktif` / `Berakhir` (abu) |
+| **Sort** | Per-kolom via ikon ↕ (state lokal di komponen tabel); kolom tanggal di-parse format Indonesia (`15 Mar 2026`) |
+| **Search** | Toolbar `Cari riwayat pelatihan...` — cari di nama, daerah, nama/email peserta |
+| **Action — Edit** | Ikon pensil (flow update riwayat — belum tersambung) |
+| **Action — Download** | Ekspor CSV satu baris riwayat |
+| **Action — Hapus** | Buka `<HapusRiwayatModal>`; setelah hapus muncul toast "Berhasil menghapus riwayat pelatihan" dengan **Batalkan** (undo mengembalikan baris ke posisi semula) |
+
+> Data masih dummy (`riwayatPelatihanData` di `AdminDashboardPage.jsx`) — belum terhubung ke endpoint backend.
 
 ### 8.3 Komponen shadcn/ui (`src/components/ui/`)
 
@@ -560,7 +588,9 @@ Login menghasilkan dua token:
 
 ## 10. Integrasi Midtrans
 
-Metode yang digunakan: **Snap Popup** — popup Midtrans muncul di atas halaman (bukan redirect ke halaman lain).
+Metode yang digunakan pada alur produksi: **Snap Redirect** — browser diarahkan ke halaman pembayaran Midtrans, lalu kembali ke salah satu landing page `/payment/finish`, `/payment/unfinish`, atau `/payment/error`.
+
+> **Catatan:** `window.snap.pay` (Snap **Popup**) hanya dipakai di **MidtransTestPage** (tool dev, lihat §11), bukan di alur checkout produksi. Script `snap.js` tetap dimuat di `index.html` karena dibutuhkan oleh halaman test tersebut.
 
 ### Konfigurasi index.html
 
@@ -583,14 +613,21 @@ https://app.midtrans.com/snap/snap.js
 ### Flow
 
 ```
-1. User pilih paket → klik "Berlangganan"
-2. Frontend: POST /subscription/checkout { packageId }
-3. Backend: buat transaksi Midtrans → return { snapToken }
-4. Frontend: window.snap.pay(snapToken, { onSuccess, onPending, onError })
-5. User bayar via popup Midtrans
-6. onSuccess → navigasi ke PaymentSuccessPage
-7. onPending → navigasi ke AdminDashboard (lihat status)
+1. User pilih paket → klik "Mulai Berlangganan"
+2. Frontend: subscriptionApi.checkout(packageId) → POST /subscription/checkout
+3. Backend: buat transaksi Midtrans → return { redirectUrl } (atau { token })
+4. Frontend (SubscriptionPage.handleCheckout):
+     - jika ada redirectUrl/redirect_url → window.location.href = redirectUrl
+     - jika hanya token/snapToken       → bangun snap URL (sandbox/prod) → redirect
+5. User bayar di halaman Midtrans
+6. Midtrans redirect kembali ke:
+     /payment/finish    → PaymentFinishPage
+     /payment/unfinish  → PaymentUnfinishPage
+     /payment/error     → PaymentErrorPage
+   (App.jsx mendeteksi path ini di boot sequence)
 ```
+
+> Diagram sequence lengkap alur ini ada di [`ARCHITECTURE.md` §7.5](ARCHITECTURE.md#75-pembayaran-subscription--midtrans).
 
 ### Endpoint Checkout
 
@@ -644,8 +681,8 @@ App.jsx mendeteksi param tersebut, memproses melalui `discourseApi.gateway()`, m
 
 | Keperluan | URL |
 | --- | --- |
-| **SSO Callback URL** | `https://dev-komunitas.gasingacademy.org/register` |
-| **Midtrans Finish URL** | `https://dev-komunitas.gasingacademy.org/register?payment=success` |
+| **SSO Callback URL** | `https://<APP_DOMAIN>/register` |
+| **Midtrans Finish URL** | `https://<APP_DOMAIN>/register?payment=success` |
 
 ### Flow
 
@@ -666,8 +703,8 @@ App.jsx mendeteksi param tersebut, memproses melalui `discourseApi.gateway()`, m
 
 | Environment | URL | Status |
 | --- | --- | --- |
-| **Staging (domain)** | `https://dev-komunitas.gasingacademy.org/register/` | ✅ Live |
-| **Staging (IP)** | `http://34.101.34.59/register` | ✅ Live |
+| **Staging (domain)** | `https://<APP_DOMAIN>/register/` | ✅ Live |
+| **Staging (IP)** | `http://<SERVER_IP>/register` | ✅ Live |
 | **Lokal** | `http://localhost:5173` | via `npm run dev` |
 
 ### Infrastruktur GCE
@@ -677,7 +714,7 @@ App.jsx mendeteksi param tersebut, memproses melalui `discourseApi.gateway()`, m
 | **GCP Project** | `sacred-octagon` |
 | **VM Instance** | `discourse-01` |
 | **Zone** | `asia-southeast2-a` (Jakarta) |
-| **IP Publik** | `34.101.34.59` |
+| **IP Publik** | `<SERVER_IP>` |
 | **OS** | Ubuntu 24.04 LTS |
 | **Machine Type** | `e2-medium` (2 vCPU, 4GB RAM) |
 | **Web Server** | Nginx |
@@ -691,7 +728,7 @@ App di-serve melalui dua Nginx config:
 ```nginx
 server {
     listen 80;
-    server_name 34.101.34.59;
+    server_name <SERVER_IP>;
     location = / {
         return 301 /register;
     }
@@ -722,7 +759,7 @@ Untuk update build ke staging secara manual:
 npm run build:staging
 
 # 2. Upload ke VM
-scp -r "dist\*" ksatriagaberdevelopment@34.101.34.59:/tmp/gasing-upload/
+scp -r "dist\*" ksatriagaberdevelopment@<SERVER_IP>:/tmp/gasing-upload/
 ```
 
 ```bash
@@ -800,7 +837,7 @@ const DUMMY_PLANS = [
 Update `.env`:
 
 ```
-VITE_WA_NUMBER=628111222333
+VITE_WA_NUMBER=62XXXXXXXXXXX
 ```
 
 ### 13.3 Mengganti URL Discourse
@@ -808,7 +845,7 @@ VITE_WA_NUMBER=628111222333
 Update `.env`:
 
 ```
-VITE_DISCOURSE_URL=https://komunitas.gasingcircle.id
+VITE_DISCOURSE_URL=https://<PROD_DOMAIN>
 ```
 
 ### 13.4 Mengganti Tema Warna
@@ -847,6 +884,23 @@ Ubah CSS variables di `src/index.css`:
 
 ## 17. Changelog
 
+### v2.9.0 — 25 Juni 2026
+
+- ✅ **Redesain tab Riwayat Pelatihan** (`RiwayatPelatihanTable.jsx`) menyesuaikan referensi Figma "Dashboard Riwayat Pelatihan":
+  - Kolom baru: **Nama Pelatihan** (+ badge `New`), **Daerah Pelatihan**, **Tgl. Mulai**, **Status**, grup **Peserta Guru Pelatihan** (Nama Peserta + link `50+ lainnya`, Email, Langganan), **Last Updated**, **Action**.
+  - Badge **Status**: `Saved` / `Processing` / `Pending` / `Error`; badge **Langganan**: `Aktif` / `Non-Aktif` / `Berakhir`.
+  - **Sort per-kolom** (state lokal) dengan parsing tanggal format Indonesia.
+  - **Action** per baris: edit (pensil), download (ekspor CSV satu baris), hapus (trash merah).
+- ✅ **Flow Hapus Riwayat** (`HapusRiwayatModal.jsx`, baru): modal konfirmasi dengan input wajib ketik `DELETE`; setelah hapus muncul toast sukses + **Batalkan** (undo mengembalikan baris ke posisi semula).
+- ✅ **`RiwayatPelatihanControls`** (`TableControls.jsx`): tambah tombol **`+ Tambah Pelatihan Baru`** dan placeholder search `Cari riwayat pelatihan...`; `SearchInput` kini menerima prop `placeholder`.
+- ✅ **`AdminDashboardPage.jsx`**: struktur data `riwayatPelatihanData` diperbarui ke field baru, handler `handleDeleteRiwayat` / `handleDownloadRiwayat`, dan dukungan undo riwayat di `handleUndoToast`.
+
+**Yang perlu ditindaklanjuti:**
+
+- Flow **Tambah Pelatihan Baru** (Opsi A & B + date picker) dan **Update Riwayat Pelatihan** (modal multi-step + daftar peserta) belum tersambung — tombol & ikon edit sudah tampil sesuai desain.
+- Pop-up **Lihat Nama Peserta**, **Edit/Hapus Peserta**, dan **Edit Email** belum diimplementasikan.
+- Data riwayat masih dummy — belum terhubung ke endpoint backend.
+
 ### v2.8.0 — 02 Juni 2026
 
 - ✅ **Custom Routing Paths**: Konfigurasi ulang struktur routing aplikasi di `App.jsx` dengan memisahkan path Admin Dashboard agar dapat diakses melalui `/admin-dashboard/` dan tetap mempertahankan halaman registrasi pada endpoint `/register/`.
@@ -873,7 +927,7 @@ Menyelaraskan `src/lib/api.js` dengan Postman collection terbaru. **Catatan:** h
 
 **Yang perlu ditindaklanjuti (UI, di luar scope sesi ini):**
 
-- `pages/admin/mappers.js` masih membaca `u.trainingRegionId` / `u.trainingRegion` — sesuaikan ke `regionId` / `region` + `lastTrainingSession`.
+- ✅ ~~`pages/admin/mappers.js` masih membaca `u.trainingRegionId`~~ — sudah diselaraskan ke `firstTrainingRegionId` (nama kanonik) dengan fallback ke `trainingRegionId` lama. Lihat [FIX_DATA_FLOW §8](docs/FIX_DATA_FLOW.md) & [ARCHITECTURE §11](ARCHITECTURE.md).
 - Link reset password dari email hanya membawa `?token=`, tanpa `&email=`; collection mewajibkan `email` di body. Pastikan template email menambahkan `&email=` atau backend mengambil email dari token.
 
 ### v2.6.0 — 18 Mei 2026
@@ -940,8 +994,8 @@ Sesi ini berfokus pada penyelesaian deployment ke environment staging di GCE dan
 
 **🚀 Deployment**
 
-- App **berhasil live** di `https://dev-komunitas.gasingacademy.org/register/` ✅
-- App juga dapat diakses via IP langsung: `http://34.101.34.59` ✅
+- App **berhasil live** di `https://<APP_DOMAIN>/register/` ✅
+- App juga dapat diakses via IP langsung: `http://<SERVER_IP>` ✅
 - VM: `discourse-01` · Zone: `asia-southeast2-a` · Project: `sacred-octagon`
 - File di-serve dari `/var/www/gasing-auth/` via Nginx
 
@@ -960,8 +1014,8 @@ Sesi ini berfokus pada penyelesaian deployment ke environment staging di GCE dan
 - **[vite.config.js]** `base: '/register'` dikonfirmasi — assets di-build ke path `/register/assets/...`
 
 **📋 Yang Masih Perlu Dilakukan**
-- CORS backend: izinkan origin `https://dev-komunitas.gasingacademy.org` dan `http://34.101.34.59`
-- Konfigurasi SSO Discourse: daftarkan `https://dev-komunitas.gasingacademy.org/register` sebagai callback URL
+- CORS backend: izinkan origin `https://<APP_DOMAIN>` dan `http://<SERVER_IP>`
+- Konfigurasi SSO Discourse: daftarkan `https://<APP_DOMAIN>/register` sebagai callback URL
 - Upload gambar ilustrasi (`illustration.png`, `illustrasi_forgotPassword.png`) ke `/var/www/gasing-auth/` jika belum ada
 
 ---
@@ -984,8 +1038,8 @@ Sesi ini berfokus pada perbaikan bug dan konfigurasi agar project siap dinaikkan
 - Tambah file `.env.staging` dengan variabel khusus environment staging
 - Tambah script `build:staging` di `package.json` → menjalankan `vite build --mode staging`
 - Dokumentasi URL yang perlu didaftarkan ke Backend/Discourse/Midtrans:
-  - **SSO Callback URL:** `https://dev-komunitas.gasingacademy.org/register`
-  - **Midtrans Finish URL:** `https://dev-komunitas.gasingacademy.org/register?payment=success`
+  - **SSO Callback URL:** `https://<APP_DOMAIN>/register`
+  - **Midtrans Finish URL:** `https://<APP_DOMAIN>/register?payment=success`
 
 ---
 
