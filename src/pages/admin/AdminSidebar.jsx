@@ -1,12 +1,14 @@
 import { User, Users, LogOut, CalendarPlus, History } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
-export function AdminSidebar({ activeTab, onTabChange, onSignOut }) {
+export function AdminSidebar({ activeTab, onTabChange, onSignOut, user }) {
+  const profilePictureUrl = user?.profilePictureUrl || user?.ProfilePictureUrl || ""
+
   return (
     <aside className="w-[260px] min-w-[260px] max-w-[260px] flex-none bg-[#0A1128] text-white flex flex-col h-full">
       <div className="p-8 flex items-center gap-4">
         <div className="w-10 h-10 rounded-full bg-white shrink-0" />
-        <span className="text-xl font-bold tracking-wide">Logo</span>
+        <span className="text-l font-bold tracking-wide">Sarang Gasing Dashboard</span>
       </div>
 
       <nav className="flex-1 px-4 mt-4 space-y-2">
@@ -60,7 +62,7 @@ export function AdminSidebar({ activeTab, onTabChange, onSignOut }) {
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-full bg-blue-500 overflow-hidden">
             <img
-              src="https://i.pravatar.cc/100"
+              src={profilePictureUrl || "https://i.pravatar.cc/100"}
               alt="Admin"
               className="w-full h-full object-cover"
             />

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Mail, Lock, LogIn, Calendar, Loader2, Check, Circle } from "lucide-react";
+import { Mail, Lock, LogIn, Calendar, Loader2, Check, Circle, ChevronLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -216,6 +216,14 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
 
   return (
     <RightPanel>
+      {step === 2 && (
+        <button
+          onClick={() => setStep(1)}
+          className="animate-fade-in-up mb-6 flex items-center gap-1 text-sm font-bold text-blue-600 hover:text-blue-700 transition-colors"
+        >
+          <ChevronLeft size={18} /> Kembali
+        </button>
+      )}
       <StepIndicator currentStep={step === 1 ? 1 : 2} />
 
       {step === 1 ? (
@@ -224,9 +232,6 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
             <h1 className="text-[22px] font-bold text-foreground mb-1.5">
               Buat Akun Baru
             </h1>
-            <p className="text-[13px] text-muted-foreground mb-6">
-              Silakan isi data di bawah ini untuk buat akun.
-            </p>
           </div>
 
           <div className="space-y-4 animate-fade-in-up delay-200">
@@ -304,7 +309,9 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
               )}
             </div>
             <div className="space-y-1.5">
-              <Label className="text-[13px] font-semibold">Konfirmasi Password</Label>
+              <Label className="text-[13px] font-semibold">
+                Konfirmasi Password
+              </Label>
               <IconInput
                 icon={Lock}
                 type={showConfirm ? "text" : "password"}
@@ -353,19 +360,10 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
         </>
       ) : (
         <>
-          <div className="animate-fade-in-up delay-100 relative text-center">
-            <button
-              onClick={() => setStep(1)}
-              className="absolute -top-8 left-0 text-sm text-muted-foreground hover:text-foreground"
-            >
-              &larr; Kembali
-            </button>
+          <div className="animate-fade-in-up delay-100 text-center">
             <h1 className="text-[22px] font-bold text-foreground mb-1.5">
               Verifikasi Data
             </h1>
-            <p className="text-[13px] text-muted-foreground mb-6">
-              Silakan masukkan verifikasi data diri yang sesuai.
-            </p>
           </div>
 
           <div className="space-y-4 animate-fade-in-up delay-200">
@@ -381,7 +379,9 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
             </div>
 
             <div className="space-y-1.5">
-              <Label className="text-[13px] font-semibold">Lokasi kamu saat ini</Label>
+              <Label className="text-[13px] font-semibold">
+                Lokasi kamu saat ini
+              </Label>
               <div className="grid grid-cols-2 gap-3">
                 <Select
                   value={provinceId}
@@ -427,7 +427,9 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
             </div>
 
             <div className="space-y-1.5">
-              <Label className="text-[13px] font-semibold">Kapan kamu mendapat pelatihan Gasing pertama?</Label>
+              <Label className="text-[13px] font-semibold">
+                Kapan kamu mendapat pelatihan Gasing pertama?
+              </Label>
               <div className="grid grid-cols-2 gap-3">
                 <Select
                   value={kapanYear}
@@ -467,7 +469,9 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
             </div>
 
             <div className="space-y-1.5">
-              <Label className="text-[13px] font-semibold">Dimana kamu mendapat pelatihan Gasing pertama?</Label>
+              <Label className="text-[13px] font-semibold">
+                Dimana kamu mendapat pelatihan Gasing pertama?
+              </Label>
               <Select
                 value={lastTrainingSessionId}
                 onValueChange={setLastTrainingSessionId}
@@ -487,7 +491,9 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
             </div>
 
             <div className="space-y-1.5">
-              <Label className="text-[13px] font-semibold">Sekolah asal kamu saat pelatihan Gasing pertama?</Label>
+              <Label className="text-[13px] font-semibold">
+                Sekolah asal kamu saat pelatihan Gasing pertama?
+              </Label>
               <Input
                 placeholder="Nama sekolah"
                 value={schoolName}

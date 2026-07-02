@@ -57,7 +57,7 @@ function buildCsvContent(tab, users) {
   return [headers.join(','), ...rows.map(r => r.map(escapeCsv).join(','))].join('\n')
 }
 
-export default function AdminDashboardPage({ onSignOut }) {
+export default function AdminDashboardPage({ user, onSignOut }) {
   const [activeTab, setActiveTab] = useState('verifikasi')
   const [users, setUsers]                   = useState([])
   const [managementUsers, setManagementUsers] = useState([])
@@ -338,7 +338,7 @@ export default function AdminDashboardPage({ onSignOut }) {
 
   return (
     <div className="h-screen bg-white flex font-sans overflow-hidden">
-      <AdminSidebar activeTab={activeTab} onTabChange={handleTabChange} onSignOut={onSignOut} />
+      <AdminSidebar activeTab={activeTab} onTabChange={handleTabChange} onSignOut={onSignOut} user={user} />
 
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
         <header className="px-10 py-8 border-b border-gray-100 shrink-0">
