@@ -1,23 +1,21 @@
 import { useState } from 'react'
-import { X } from 'lucide-react'
+import { X, Info } from 'lucide-react'
+
+const EMPTY = { nama: '', url: '', periode: '', batasWaktu: '' }
 
 export function AddPendaftaranTrainerModal({ isOpen, onClose, onSave }) {
-  const [formData, setFormData] = useState({
-    nama: '',
-    kuota: '',
-    periodeStart: '',
-    periodeEnd: '',
-    batasDaftar: ''
-  })
+  const [formData, setFormData] = useState(EMPTY)
 
   if (!isOpen) return null
 
   const handleSubmit = (e) => {
     e.preventDefault()
     onSave(formData)
-    setFormData({ nama: '', kuota: '', periodeStart: '', periodeEnd: '', batasDaftar: '' })
+    setFormData(EMPTY)
     onClose()
   }
+
+  const set = (k) => (e) => setFormData({ ...formData, [k]: e.target.value })
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
@@ -28,7 +26,7 @@ export function AddPendaftaranTrainerModal({ isOpen, onClose, onSave }) {
             <X size={20} />
           </button>
         </div>
-        
+
         <form onSubmit={handleSubmit} className="p-6">
           <div className="space-y-4">
             <div>
@@ -36,55 +34,52 @@ export function AddPendaftaranTrainerModal({ isOpen, onClose, onSave }) {
               <input
                 type="text"
                 required
-                placeholder="mis: Pelatihan Gasing Daerah A..."
+                placeholder="mis: Pelatihan Gasing Pondok Berhitung Gunung Mas"
                 value={formData.nama}
-                onChange={e => setFormData({ ...formData, nama: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1.5">Target Kuota</label>
-              <input
-                type="number"
-                required
-                placeholder="Masukkan angka saja, mis: 200"
-                value={formData.kuota}
-                onChange={e => setFormData({ ...formData, kuota: e.target.value })}
+                onChange={set('nama')}
                 className="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Periode Mulai</label>
-                <input
-                  type="date"
-                  required
-                  value={formData.periodeStart}
-                  onChange={e => setFormData({ ...formData, periodeStart: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Periode Selesai</label>
-                <input
-                  type="date"
-                  required
-                  value={formData.periodeEnd}
-                  onChange={e => setFormData({ ...formData, periodeEnd: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                />
-              </div>
+            <div>
+              <label className="flex items-center gap-1.5 text-sm font-semibold text-gray-700 mb-1.5">
+                Tautan Topik
+                <span className="group relative inline-flex">
+                  <Info size={14} className="text-gray-400" />
+                  <span className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-1 -translate-x-1/2 whitespace-nowrap rounded-md bg-[#0A1128] px-2.5 py-1.5 text-xs font-normal text-white opacity-0 transition-opacity group-hover:opacity-100">
+                    Masukkan tautan topik pendaftaran pelatihan.
+                  </span>
+                </span>
+              </label>
+              <input
+                type="url"
+                required
+                placeholder="https://dev-komunitas.gasingacademy.org/t/.../143"
+                value={formData.url}
+                onChange={set('url')}
+                className="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              />
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1.5">Batas Akhir Pendaftaran</label>
+              <label className="block text-sm font-semibold text-gray-700 mb-1.5">Rentang Waktu</label>
               <input
-                type="date"
+                type="text"
                 required
-                value={formData.batasDaftar}
-                onChange={e => setFormData({ ...formData, batasDaftar: e.target.value })}
+                placeholder="mis: 10 - 25 Maret 2026"
+                value={formData.periode}
+                onChange={set('periode')}
+                className="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-1.5">Batas Waktu Pendaftaran</label>
+              <input
+                type="datetime-local"
+                required
+                value={formData.batasWaktu}
+                onChange={set('batasWaktu')}
                 className="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
               />
             </div>
@@ -93,7 +88,7 @@ export function AddPendaftaranTrainerModal({ isOpen, onClose, onSave }) {
               ⚠️ Pastikan data sudah benar sebelum menyimpan.
             </p>
           </div>
-          
+
           <div className="mt-8">
             <button
               type="submit"

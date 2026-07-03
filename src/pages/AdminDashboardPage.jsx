@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { adminApi, discourseApi, regionsApi } from '@/lib/api'
-import { mapToVerifikasi, mapToManajemen } from './admin/mappers'
+import { adminApi, discourseApi, regionsApi, appConfigApi, trainingSessionsApi } from '@/lib/api'
+import { mapToVerifikasi, mapToManajemen, mapToRiwayat, fmtDate } from './admin/mappers'
 import { AdminSidebar }    from './admin/AdminSidebar'
 import { AdminToast }      from './admin/AdminToast'
 import { RejectModal, ApproveModal } from './admin/ConfirmModal'
@@ -10,10 +10,62 @@ import { ManajemenTable }  from './admin/ManajemenTable'
 import { PendaftaranTrainerTable } from './admin/PendaftaranTrainerTable'
 import { RiwayatPelatihanTable } from './admin/RiwayatPelatihanTable'
 import { AddPendaftaranTrainerModal } from './admin/AddPendaftaranTrainerModal'
+import { AddPelatihanModal } from './admin/AddPelatihanModal'
+import { PerbaruiRiwayatModal } from './admin/PerbaruiRiwayatModal'
 import { UbahRoleModal } from './admin/UbahRoleModal'
 import { KirimVoucherModal } from './admin/KirimVoucherModal'
 import { HapusRiwayatModal } from './admin/HapusRiwayatModal'
 
+
+// ─── Pendaftaran Trainer (app-config hero_banner-home-v2) ───────────────────────
+const PENDAFTARAN_KEY = 'hero_banner-home-v2'
+const HEADER_BASE = 'Apa kamu mau daftar menjadi Trainer di pelatihan Gasing tanggal '
+const DEFAULT_SHARED = {
+  modalBody: 'Tim Gasing akan menghubungi members yang terpilih menjadi Trainer untuk pengimbasan, berikut informasi lainnya. Pastikan nomor HP kamu aktif ya!',
+  modalTitle: 'Yuk, daftar jadi Trainer pengimbasan Gasing!',
+  modalSuccess: 'Terima kasih sudah mendaftar sebagai Trainer!',
+}
+
+// Ambil id topik dari URL Discourse (mis .../t/slug/143 atau .../t/slug/143/5 → 143).
+function parseThreadId(url) {
+  if (!url) return null
+  const s = String(url)
+  const m = s.match(/\/t\/[^/]+\/(\d+)/)
+  if (m) return m[1]
+  const nums = s.match(/\d+/g)
+  return nums ? nums[nums.length - 1] : null
+}
+
+// value.threads (object) → array baris untuk table.
+function threadsToRows(value) {
+  const threads = value?.threads || {}
+  return Object.entries(threads).map(([id, t]) => ({
+    id,
+    threadId: id,
+    nama: t.namaPelatihan || '-',
+    url: t.url || '',
+    periode: t.periode || '-',
+    batasWaktu: t.batasWaktu || '',
+    isActive: !!t.enabled,
+    headerText: t.headerText || '',
+  }))
+}
+
+// array baris → value untuk PUT (pertahankan shared_content).
+function rowsToValue(rows, sharedContent) {
+  const threads = {}
+  rows.forEach(r => {
+    threads[r.threadId] = {
+      enabled: r.isActive,
+      headerText: r.headerText,
+      namaPelatihan: r.nama,
+      periode: r.periode,
+      batasWaktu: r.batasWaktu,
+      url: r.url,
+    }
+  })
+  return { threads, shared_content: sharedContent || DEFAULT_SHARED }
+}
 
 function useSort() {
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' })
@@ -66,21 +118,16 @@ export default function AdminDashboardPage({ user, onSignOut }) {
   const [searchQuery, setSearchQuery]       = useState('')
   const [roleErrors, setRoleErrors]         = useState({})
   
-  // States for Pendaftaran Trainer
-  const [pendaftaranData, setPendaftaranData] = useState([
-    { id: 1, nama: 'Pelatihan Gasing Daerah A', kuota: 50, periode: '10 - 20 Nov 2023', batasDaftar: '05 Nov 2023', isActive: true },
-    { id: 2, nama: 'Pelatihan Gasing Daerah B', kuota: 100, periode: '11 - 20 Nov 2023', batasDaftar: '05 Nov 2023', isActive: false },
-    { id: 3, nama: 'Pelatihan Gasing Daerah C', kuota: 50, periode: '11 - 20 Nov 2023', batasDaftar: '05 Nov 2023', isActive: false },
-  ])
+  // States for Pendaftaran Trainer (sumber: app-config hero_banner-home-v2)
+  const [pendaftaranData, setPendaftaranData] = useState([])
+  const [sharedContent, setSharedContent] = useState(DEFAULT_SHARED)
   const [isAddPendaftaranModalOpen, setIsAddPendaftaranModalOpen] = useState(false)
 
-  // States for Riwayat Pelatihan
-  const [riwayatPelatihanData, setRiwayatPelatihanData] = useState([
-    { id: 1, nama: 'Pelatihan SDN 02 Melati Harapan', isNew: true, daerah: 'Bogor, Jawa Barat', tglMulai: '15 Mar 2026', status: 'Saved', pesertaNama: 'Achmad Fauzi', pesertaLainnya: 50, pesertaEmail: 'achfauzi@gmail.com', langganan: 'Aktif', lastUpdatedDate: '28 Mei 2026', lastUpdatedTime: '9:20 AM' },
-    { id: 2, nama: 'Pelatihan SD Terpadu Depok', daerah: 'Depok, Jawa Barat', tglMulai: '25 Feb 2026', status: 'Saved', pesertaNama: 'Achmad Fauzi', pesertaLainnya: 50, pesertaEmail: 'achfauzi@gmail.com', langganan: 'Non-Aktif', lastUpdatedDate: '12 Feb 2026', lastUpdatedTime: '14:05 PM' },
-    { id: 3, nama: 'Pelatihan TNI Jaya Aceh Barat', daerah: 'Aceh Barat, Aceh', tglMulai: '5 Jan 2026', status: 'Saved', pesertaNama: 'Achmad Fauzi', pesertaLainnya: 50, pesertaEmail: 'achfauzi@gmail.com', langganan: 'Berakhir', lastUpdatedDate: '5 Jan 2026', lastUpdatedTime: '08:30 AM' },
-  ])
+  // States for Riwayat Pelatihan (di-load dari GET /training-sessions)
+  const [riwayatPelatihanData, setRiwayatPelatihanData] = useState([])
   const [riwayatToDelete, setRiwayatToDelete] = useState(null)
+  const [isAddPelatihanModalOpen, setIsAddPelatihanModalOpen] = useState(false)
+  const [perbaruiSession, setPerbaruiSession] = useState(null)
 
   const [discourseGroups, setDiscourseGroups] = useState([])
   const [trainingRegions, setTrainingRegions] = useState([])
@@ -130,6 +177,62 @@ export default function AdminDashboardPage({ user, onSignOut }) {
 
   useEffect(() => { loadUsers(activeTab) }, [activeTab])
 
+  const loadPendaftaran = useCallback(async () => {
+    try {
+      const res = await appConfigApi.get(PENDAFTARAN_KEY)
+      const value = res?.value ?? res?.data?.value ?? res ?? {}
+      setSharedContent(value.shared_content || DEFAULT_SHARED)
+      setPendaftaranData(threadsToRows(value))
+    } catch (e) {
+      // Belum dikonfigurasi / gagal baca → mulai dari kosong.
+      setPendaftaranData([])
+      setSharedContent(DEFAULT_SHARED)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (activeTab === 'pendaftaran-trainer') loadPendaftaran()
+  }, [activeTab, loadPendaftaran])
+
+  const loadRiwayat = useCallback(async () => {
+    try {
+      const res = await trainingSessionsApi.list({ page: 1, limit: 100 })
+      const list = Array.isArray(res) ? res : (res?.data || res?.items || [])
+
+      // Session cuma bawa regionId. Resolve "Kab/Kota, Provinsi":
+      // GET /regions/:id → { name, parentId }, lalu parentId → nama provinsi.
+      // Dedupe + cache (parentId sering sama). Best-effort; gagal = biarin '-'.
+      const cache = {}
+      const getRegion = async (id) => {
+        if (!id) return null
+        if (id in cache) return cache[id]
+        try {
+          const r = await regionsApi.get(id)
+          const reg = r?.data || r
+          cache[id] = { name: reg?.name || reg?.regionName || '', parentId: reg?.parentId || null }
+        } catch { cache[id] = null }
+        return cache[id]
+      }
+
+      const ids = [...new Set(list.map(s => s.regionId).filter(Boolean))]
+      const regionMap = {}
+      await Promise.all(ids.map(async (id) => {
+        const reg = await getRegion(id)
+        if (!reg) return
+        const prov = reg.parentId ? await getRegion(reg.parentId) : null
+        regionMap[id] = [reg.name, prov?.name].filter(Boolean).join(', ')
+      }))
+
+      setRiwayatPelatihanData(list.map(s => mapToRiwayat(s, regionMap)))
+    } catch (e) {
+      setRiwayatPelatihanData([])
+    }
+  }, [])
+
+  useEffect(() => {
+    if (activeTab === 'riwayat-pelatihan') loadRiwayat()
+  }, [activeTab, loadRiwayat])
+
   useEffect(() => {
     discourseApi.getGroups()
       .then(res => setDiscourseGroups(Array.isArray(res) ? res : (res.data || [])))
@@ -141,41 +244,106 @@ export default function AdminDashboardPage({ user, onSignOut }) {
     setActiveFilter('Semua'); setSelectedRoles([]); setSelectedSubscriptions([])
   }
 
-  const handleAddPendaftaran = (data) => {
-    const formatPeriode = (start, end) => {
-      // simple format for demonstration
-      if (!start || !end) return '-'
-      const s = new Date(start)
-      const e = new Date(end)
-      return `${s.getDate()} - ${e.getDate()} ${e.toLocaleString('id-ID', { month: 'short' })} ${e.getFullYear()}`
+  const persistPendaftaran = (rows) =>
+    appConfigApi.set(PENDAFTARAN_KEY, rowsToValue(rows, sharedContent))
+
+  const handleAddPendaftaran = async (data) => {
+    const threadId = parseThreadId(data.url)
+    if (!threadId) {
+      setApiError('Tautan topik tidak valid. Pastikan URL mengandung id topik Discourse.')
+      return
     }
-    const formatBatas = (batas) => {
-      if (!batas) return '-'
-      const b = new Date(batas)
-      return `${b.getDate()} ${b.toLocaleString('id-ID', { month: 'short' })} ${b.getFullYear()}`
-    }
-    
-    const newEntry = {
-      id: Date.now(),
+
+    const newRow = {
+      id: threadId,
+      threadId,
       nama: data.nama,
-      kuota: data.kuota,
-      periode: formatPeriode(data.periodeStart, data.periodeEnd),
-      batasDaftar: formatBatas(data.batasDaftar),
-      isActive: true
+      url: data.url,
+      periode: data.periode,
+      batasWaktu: data.batasWaktu,
+      isActive: false,
+      headerText: HEADER_BASE + (data.periode || ''),
     }
-    setPendaftaranData(prev => [newEntry, ...prev])
-    setToast({ message: <>Pelatihan <span className="font-medium">{data.nama}</span> berhasil ditambahkan</> })
+    // Ganti kalau threadId sama sudah ada.
+    const next = [newRow, ...pendaftaranData.filter(r => r.threadId !== threadId)]
+    const prev = pendaftaranData
+
+    setApiError('')
+    setPendaftaranData(next)
+    try {
+      await persistPendaftaran(next)
+      setToast({ message: <>Pelatihan <span className="font-medium">{data.nama}</span> berhasil ditambahkan</> })
+    } catch (err) {
+      setPendaftaranData(prev)
+      setApiError(err.message || 'Gagal menyimpan pendaftaran pelatihan.')
+    }
   }
 
-  const handleTogglePendaftaranStatus = (id) => {
-    setPendaftaranData(prev => prev.map(item => {
-      if (item.id === id) {
-        return { ...item, isActive: !item.isActive }
-      }
-      return item
+  // Aturan: hanya 1 pelatihan boleh aktif. Nyalakan 1 → matikan sisanya.
+  const handleTogglePendaftaranStatus = async (id) => {
+    const target = pendaftaranData.find(r => r.id === id)
+    if (!target) return
+    const turningOn = !target.isActive
+    const next = pendaftaranData.map(r => ({
+      ...r,
+      isActive: turningOn ? r.id === id : (r.id === id ? false : r.isActive),
     }))
+    const prev = pendaftaranData
+
+    setApiError('')
+    setPendaftaranData(next)
+    try {
+      await persistPendaftaran(next)
+    } catch (err) {
+      setPendaftaranData(prev)
+      setApiError(err.message || 'Gagal memperbarui status pelatihan.')
+    }
   }
 
+
+  // Tambah pelatihan baru → POST /admin/training-sessions (optimistic).
+  // Status = state upload: Processing (in-flight) → Saved (sukses) / Error (gagal).
+  // Response cuma balikin session (tanpa peserta/langganan) → kolom itu diisi '-'.
+  const handleAddPelatihan = async (data) => {
+    const tempId = `temp-${Date.now()}`
+    const baseRow = {
+      id: tempId,
+      nama: data.name,
+      isNew: true,
+      daerah: data.daerahLabel,
+      tglMulai: data.tglMulaiLabel,
+      status: 'Processing',
+      pesertaNama: '-',
+      pesertaLainnya: 0,
+      pesertaEmail: '-',
+      langganan: '-',
+      lastUpdatedDate: fmtDate(Date.now()),
+      lastUpdatedTime: '',
+    }
+    setRiwayatPelatihanData(prev => [baseRow, ...prev])
+
+    try {
+      const res = await adminApi.createTrainingSession({
+        name: data.name,
+        regionId: data.regionId,
+        startDate: data.startDate,
+        endDate: data.endDate,
+      })
+      const sessionId = res?.id || res?.data?.id || tempId
+      setRiwayatPelatihanData(prev =>
+        prev.map(r => (r.id === tempId ? { ...r, id: sessionId, status: 'Saved' } : r))
+      )
+      setToast({ message: <>Pelatihan <span className="font-medium">{data.name}</span> berhasil ditambahkan</> })
+      if (toastTimeoutId) clearTimeout(toastTimeoutId)
+      const tid = setTimeout(() => setToast(null), 5000)
+      setToastTimeoutId(tid)
+    } catch (err) {
+      setRiwayatPelatihanData(prev =>
+        prev.map(r => (r.id === tempId ? { ...r, status: 'Error' } : r))
+      )
+      setApiError(err.message || 'Gagal menambah pelatihan.')
+    }
+  }
 
   const handleDeleteRiwayat = (item) => {
     const target = item || riwayatToDelete
@@ -191,8 +359,8 @@ export default function AdminDashboardPage({ user, onSignOut }) {
 
   const handleDownloadRiwayat = (item) => {
     const csv = [
-      'Nama Pelatihan,Daerah Pelatihan,Tgl. Mulai,Status,Nama Peserta,Email,Langganan,Last Updated',
-      `"${item.nama}","${item.daerah}","${item.tglMulai}","${item.status}","${item.pesertaNama}","${item.pesertaEmail}","${item.langganan}","${item.lastUpdatedDate}"`
+      'Nama Pelatihan,Daerah Pelatihan,Tgl. Mulai,Status,Nama Peserta',
+      `"${item.nama}","${item.daerah}","${item.tglMulai}","${item.status}","${item.pesertaNama}"`
     ].join('\n')
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
     const url = URL.createObjectURL(blob)
@@ -385,10 +553,11 @@ export default function AdminDashboardPage({ user, onSignOut }) {
             <RiwayatPelatihanControls
               searchQuery={searchQuery}
               onSearchChange={setSearchQuery}
+              onAdd={() => setIsAddPelatihanModalOpen(true)}
               onExport={() => {
                 const csv = [
-                  'Nama Pelatihan,Daerah Pelatihan,Tgl. Mulai,Status,Nama Peserta,Email,Langganan,Last Updated',
-                  ...riwayatPelatihanData.map(item => `"${item.nama}","${item.daerah}","${item.tglMulai}","${item.status}","${item.pesertaNama}","${item.pesertaEmail}","${item.langganan}","${item.lastUpdatedDate}"`)
+                  'Nama Pelatihan,Daerah Pelatihan,Tgl. Mulai,Status,Nama Peserta',
+                  ...riwayatPelatihanData.map(item => `"${item.nama}","${item.daerah}","${item.tglMulai}","${item.status}","${item.pesertaNama}"`)
                 ].join('\n')
                 const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
                 const url = URL.createObjectURL(blob)
@@ -437,6 +606,7 @@ export default function AdminDashboardPage({ user, onSignOut }) {
                 <RiwayatPelatihanTable
                   data={riwayatPelatihanData}
                   searchQuery={searchQuery}
+                  onEdit={setPerbaruiSession}
                   onDelete={setRiwayatToDelete}
                   onDownload={handleDownloadRiwayat}
                 />
@@ -467,6 +637,22 @@ export default function AdminDashboardPage({ user, onSignOut }) {
           onCancel={() => setActionModal({ type: null, user: null })} 
         />
       )}
+      <AddPelatihanModal
+        isOpen={isAddPelatihanModalOpen}
+        onClose={() => setIsAddPelatihanModalOpen(false)}
+        onSave={handleAddPelatihan}
+      />
+      <PerbaruiRiwayatModal
+        isOpen={!!perbaruiSession}
+        session={perbaruiSession}
+        onClose={() => setPerbaruiSession(null)}
+        onDone={(session, count) => {
+          setToast({ message: <>Berhasil menambahkan <span className="font-medium">{count}</span> peserta ke <span className="font-medium">{session.nama}</span></> })
+          if (toastTimeoutId) clearTimeout(toastTimeoutId)
+          const tid = setTimeout(() => setToast(null), 5000)
+          setToastTimeoutId(tid)
+        }}
+      />
       <HapusRiwayatModal
         item={riwayatToDelete}
         onConfirm={handleDeleteRiwayat}

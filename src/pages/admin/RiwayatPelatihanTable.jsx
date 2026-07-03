@@ -9,12 +9,6 @@ const STATUS_CLASSES = {
   Error:      'bg-red-50 text-red-500',
 }
 
-const LANGGANAN_CLASSES = {
-  Aktif:       'bg-green-50 text-green-600',
-  'Non-Aktif': 'bg-gray-100 text-gray-400',
-  Berakhir:    'bg-gray-100 text-gray-400',
-}
-
 const ID_MONTHS = {
   jan: 0, feb: 1, mar: 2, apr: 3, mei: 4, jun: 5,
   jul: 6, agu: 7, sep: 8, okt: 9, nov: 10, des: 11,
@@ -100,17 +94,6 @@ export function RiwayatPelatihanTable({ data, searchQuery, onEdit, onDownload, o
           <th className="px-4 py-4 font-medium align-bottom">
             <SortableHeader label="Nama Peserta" sublabel="Peserta Guru Pelatihan" sortKey="pesertaNama" sortConfig={sortConfig} onSort={handleSort} />
           </th>
-          <th className="px-4 py-4 font-medium align-bottom">
-            <div className="text-[11px] font-normal text-white/40 mb-0.5">Peserta Guru Pelatihan</div>
-            Email
-          </th>
-          <th className="px-4 py-4 font-medium align-bottom">
-            <div className="text-[11px] font-normal text-white/40 mb-0.5">Peserta Guru Pelatihan</div>
-            Langganan
-          </th>
-          <th className="px-4 py-4 font-medium align-bottom">
-            <SortableHeader label="Last Updated" sortKey="lastUpdatedDate" sortConfig={sortConfig} onSort={handleSort} />
-          </th>
           <th className="px-4 py-4 font-medium align-bottom text-center">Action</th>
         </tr>
       </thead>
@@ -144,18 +127,6 @@ export function RiwayatPelatihanTable({ data, searchQuery, onEdit, onDownload, o
                   </button>
                 )}
               </td>
-              <td className="px-4 py-4 text-[#0A1128] font-medium">{item.pesertaEmail || '-'}</td>
-              <td className="px-4 py-4">
-                <span className={cn('inline-flex items-center px-3 py-1 rounded-full text-xs font-bold', LANGGANAN_CLASSES[item.langganan] || 'bg-gray-100 text-gray-400')}>
-                  {item.langganan || '-'}
-                </span>
-              </td>
-              <td className="px-4 py-4 text-[#0A1128] font-medium">
-                <div className="flex flex-col">
-                  <span>{item.lastUpdatedDate || '-'}</span>
-                  {item.lastUpdatedTime && <span className="text-[10px] text-gray-400">{item.lastUpdatedTime}</span>}
-                </div>
-              </td>
               <td className="px-4 py-4">
                 <div className="flex items-center justify-center gap-1">
                   <button
@@ -185,7 +156,7 @@ export function RiwayatPelatihanTable({ data, searchQuery, onEdit, onDownload, o
           ))
         ) : (
           <tr>
-            <td colSpan="9" className="px-4 py-12 text-center text-gray-500">
+            <td colSpan="6" className="px-4 py-12 text-center text-gray-500">
               Tidak ada data riwayat pelatihan {searchQuery ? `untuk pencarian "${searchQuery}"` : ''}.
             </td>
           </tr>

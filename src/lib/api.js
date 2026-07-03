@@ -204,6 +204,68 @@ export const trainingSessionsApi = {
   get: (id) => request(`/training-sessions/${id}`),
 };
 
+// ─── TRAINING HISTORIES (import peserta via CSV) ────────────────────────────────
+// Alur: upload CSV → poll job validasi → review/koreksi rows → push (commit).
+// Semua butuh capability TRAINING_HISTORY/MGMT.
+export const trainingHistoriesApi = {
+  // multipart: file (CSV kolom `email`) + trainingSessionId → { importId, trackId }
+  upload: (file, trainingSessionId) => {
+    const fd = new FormData();
+    fd.append("file", file);
+    fd.append("trainingSessionId", trainingSessionId);
+    return requestMultipart("/admin/training-histories/imports", fd);
+  },
+
+  listImports: (params = {}) => {
+    const q = buildQuery({ page: 1, limit: 20, ...params });
+    return request(`/admin/training-histories/imports${q ? "?" + q : ""}`);
+  },
+
+  // → { data: {header, status}, rows: { data:[{id,email,userId,valid,message}], meta } }
+  getImport: (id, params = {}) => {
+    const q = buildQuery({ page: 1, limit: 50, ...params });
+    return request(`/admin/training-histories/imports/${id}${q ? "?" + q : ""}`);
+  },
+
+  getRow: (id, rowId) =>
+    request(`/admin/training-histories/imports/${id}/rows/${rowId}`),
+
+  // Update email 1 row → auto re-validate, balik row terbaru (valid+message).
+  patchRow: (id, rowId, email) =>
+    request(`/admin/training-histories/imports/${id}/rows/${rowId}`, {
+      method: "PATCH",
+      body: { email },
+    }),
+
+  deleteRow: (id, rowId) =>
+    request(`/admin/training-histories/imports/${id}/rows/${rowId}`, {
+      method: "DELETE",
+    }),
+
+  // Commit ke tabel training_histories (hanya saat status SAVED) → { trackId }.
+  // Row invalid + duplikat di-skip otomatis.
+  push: (id) =>
+    request(`/admin/training-histories/imports/${id}/push`, { method: "POST" }),
+};
+
+// ─── QUEUE JOBS (polling proses async) ──────────────────────────────────────────
+// getJob → { status: "COMPLETED"|..., progress, currentAction, error, result }
+export const queueApi = {
+  getJob: (id) => request(`/queue/jobs/${id}`),
+};
+
+// ─── APP CONFIGS ──────────────────────────────────────────────────────────────
+// Key/value config store. get() publik; set() butuh cap SETTING/WRITE (admin).
+// Dipakai untuk banner Pendaftaran Trainer di Home (key: hero_banner-home-v2).
+export const appConfigApi = {
+  get: (key) =>
+    fetch(`${BASE_URL}/app-configs/${key}`, { headers: { Accept: "application/json" } })
+      .then((r) => r.json()),
+
+  set: (key, value) =>
+    request(`/admin/app-configs/${key}`, { method: "PUT", body: { value } }),
+};
+
 // ─── TIMEZONE ─────────────────────────────────────────────────────────────────
 export const timezoneApi = {
   list: () =>

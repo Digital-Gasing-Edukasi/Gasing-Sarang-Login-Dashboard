@@ -36,6 +36,49 @@ export function fmtDate(iso) {
   return d.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })
 }
 
+// Ambil epoch-ms dari field date API (object { unix } / { utc:{raw} } / { date } / ISO).
+function dateFieldMs(raw) {
+  if (!raw) return null
+  if (typeof raw === 'object') {
+    if (raw.unix) return raw.unix * 1000
+    const iso = raw.utc?.raw || raw.date
+    if (iso) { const d = new Date(iso); return isNaN(d) ? null : d.getTime() }
+    return null
+  }
+  const d = new Date(raw)
+  return isNaN(d) ? null : d.getTime()
+}
+
+// Training session (GET /training-sessions) → row tabel Riwayat Pelatihan.
+// Endpoint ini TIDAK menyediakan peserta/langganan/status/last-updated → diisi '-'.
+// Session hanya membawa `regionId` (tanpa nama daerah), jadi `regionMap`
+// (regionId → "Kab, Provinsi") di-resolve terpisah oleh pemanggil dan dilewatkan
+// ke sini. Kalau API kelak meng-embed region, object embedded tetap dipakai.
+export function mapToRiwayat(s, regionMap = {}) {
+  const startMs = dateFieldMs(s.startDate)
+  const rid = s.regionId || s.region?.id
+  const embedded = s.region || s.regency
+  const embeddedName = embedded?.name || embedded?.regionName
+  const daerah =
+    regionMap[rid] ||
+    (embeddedName
+      ? [embeddedName, embedded.parent?.name || embedded.parent?.regionName].filter(Boolean).join(', ')
+      : '-')
+  return {
+    id:       s.id,
+    nama:     s.name || '-',
+    daerah,
+    tglMulai: startMs ? fmtDate(startMs) : '-',
+    status:   'Saved',
+    pesertaNama:    '-',
+    pesertaLainnya: 0,
+    pesertaEmail:   '-',
+    langganan:      '-',
+    lastUpdatedDate: '-',
+    lastUpdatedTime: '',
+  }
+}
+
 // verifiedStatus dari API (NUMBER): 1=approved, 2=revise, -1=rejected, lainnya=waiting.
 function parseVerifiedStatus(v) {
   if (v === 1 || v === 'approved') return 'Approved'
