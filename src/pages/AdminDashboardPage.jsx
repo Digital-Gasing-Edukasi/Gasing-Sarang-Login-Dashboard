@@ -19,6 +19,8 @@ import { PerbaruiRiwayatModal } from './admin/PerbaruiRiwayatModal'
 import { DaftarPesertaModal } from './admin/DaftarPesertaModal'
 import { UbahRoleModal } from './admin/UbahRoleModal'
 import { HapusAkunModal, PulihkanAkunModal } from './admin/AccountActionModals'
+import { SuspendModal } from './admin/SuspendModal'
+import { SetujuiAkunModal } from './admin/SetujuiAkunModal'
 import { KirimVoucherModal } from './admin/KirimVoucherModal'
 
 
@@ -155,9 +157,10 @@ export default function AdminDashboardPage({ user, onSignOut }) {
   const [approveCandidate, setApproveCandidate] = useState(null)
 
   // ── Bulk verifikasi ────────────────────────────────────────────────────────
-  const BULK_LIMIT = 10 // keputusan #2: hard limit 10 akun sekaligus
+  const BULK_LIMIT = 100 // keputusan #2: hard limit 100 akun sekaligus
   const [selectedIds, setSelectedIds] = useState([])
   const [verifSubTab, setVerifSubTab] = useState('pending') // 'pending' | 'voucher'
+  const [bulkSuspendOpen, setBulkSuspendOpen] = useState(false) // modal tangguhkan bulk (Manajemen)
   const [bulkModal, setBulkModal] = useState(null) // 'approve' | 'reject' | 'confirm' | null
 
   // Sub-tab Pending Voucher Setup (task b). Diisi FE dari hasil approve tab Pending
@@ -668,10 +671,6 @@ export default function AdminDashboardPage({ user, onSignOut }) {
   }
 
   const handleActionClick = (type, user) => {
-    // Part 2 (belum di-wire): setujui-akun, tangguhkan-akun, dan hapus-akun dari
-    // tab Ditangguhkan. Menu tetap tampil (fidelity), tapi belum membuka modal.
-    if (type === 'setujui-akun' || type === 'tangguhkan-akun') return
-    if (type === 'hapus-akun' && activeFilter === 'Ditangguhkan') return
     setActionModal({ type, user })
   }
 
@@ -725,6 +724,38 @@ export default function AdminDashboardPage({ user, onSignOut }) {
     )
   }
 
+  // Setujui akun (tab Ditolak) → approve dgn role + pelatihan + voucher (dari modal).
+  const handleConfirmSetujuiAkun = ({ discourseGroupId, lastTrainingSessionId, voucherCode }) => {
+    const target = actionModal.user
+    if (!target) return
+    setActionModal({ type: null, user: null })
+    const prevStatus = target.accountStatus
+    const roleName = discourseGroups.find(g => String(g.id ?? g) === String(discourseGroupId))?.name
+    setManagementUsers(prev => prev.map(u => u.id === target.id
+      ? { ...u, accountStatus: 'Disetujui', role: roleName || u.role, voucher: voucherCode || u.voucher }
+      : u))
+    setToast({ message: <>Akun {target.name} telah <span className="text-green-500 font-medium">disetujui</span></>, statusUndo: { id: target.id, prevStatus } })
+    scheduleAction(
+      () => adminApi.verifyUser(target.id, { status: 'approved', discourseGroupId, lastTrainingSessionId }),
+      () => { setManagementUsers(prev => prev.map(u => u.id === target.id ? { ...u, accountStatus: prevStatus } : u)); setApiError('Gagal menyetujui akun.') }
+    )
+  }
+
+  // Tangguhkan akun (tab Disetujui) → suspend s/d suspendedUntil (modal preset/manual).
+  // TODO(be): reason & emailMessage belum dikirim — endpoint /suspend hanya terima suspendedUntil.
+  const handleConfirmTangguhkanAkun = ({ suspendedUntil }) => {
+    const target = actionModal.user
+    if (!target) return
+    setActionModal({ type: null, user: null })
+    const prevStatus = target.accountStatus
+    setManagementUsers(prev => prev.map(u => u.id === target.id ? { ...u, accountStatus: 'Ditangguhkan' } : u))
+    setToast({ message: <>Akun {target.name} telah <span className="text-orange-500 font-medium">ditangguhkan</span></>, statusUndo: { id: target.id, prevStatus } })
+    scheduleAction(
+      () => adminApi.suspendUser(target.id, suspendedUntil),
+      () => { setManagementUsers(prev => prev.map(u => u.id === target.id ? { ...u, accountStatus: prevStatus } : u)); setApiError('Gagal menangguhkan akun.') }
+    )
+  }
+
   const handleConfirmKirimVoucher = (voucherCode) => {
     const target = actionModal.user
     setManagementUsers(managementUsers.map(u => u.id === target.id ? { ...u, voucher: voucherCode } : u))
@@ -755,6 +786,15 @@ export default function AdminDashboardPage({ user, onSignOut }) {
       executeActionRef.current = false
       const { id, prevStatus } = toast.statusUndo
       setManagementUsers(prev => prev.map(u => u.id === id ? { ...u, accountStatus: prevStatus } : u))
+      setToast(null)
+      if (toastTimeoutId) clearTimeout(toastTimeoutId)
+      return
+    }
+    // Undo bulk status: kembalikan status tiap akun + batalkan commit batch.
+    if (toast?.bulkStatusUndo) {
+      executeActionRef.current = false
+      const prevList = toast.bulkStatusUndo
+      setManagementUsers(prev => prev.map(u => { const pr = prevList.find(x => x.id === u.id); return pr ? { ...u, accountStatus: pr.status } : u }))
       setToast(null)
       if (toastTimeoutId) clearTimeout(toastTimeoutId)
       return
@@ -827,6 +867,46 @@ export default function AdminDashboardPage({ user, onSignOut }) {
   }
   const selectedUsers = currentData.filter(u => selectedIds.includes(u.id))
 
+  // ── Bulk aksi Manajemen (mengikuti aksi baris per tab) ──────────────────────
+  // Ubah status banyak akun sekaligus + toast undo 5s. commitEach(id, prevStatus)->Promise.
+  const runBulkStatus = (rows, newStatus, message, commitEach) => {
+    if (!rows.length) return
+    const prev = rows.map(u => ({ id: u.id, status: u.accountStatus }))
+    const ids = rows.map(r => r.id)
+    setManagementUsers(p => p.map(u => ids.includes(u.id) ? { ...u, accountStatus: newStatus } : u))
+    setSelectedIds([])
+    setToast({ message, bulkStatusUndo: prev })
+    scheduleAction(
+      () => Promise.all(ids.map(id => commitEach(id, prev.find(x => x.id === id)?.status))),
+      () => {
+        setManagementUsers(p => p.map(u => { const pr = prev.find(x => x.id === u.id); return pr ? { ...u, accountStatus: pr.status } : u }))
+        setApiError('Gagal memproses sebagian akun.')
+      }
+    )
+  }
+
+  const handleManajemenBulk = (key) => {
+    const rows = selectedUsers
+    if (!rows.length) return
+    if (key === 'hapus') {
+      runBulkStatus(rows, 'Baru Dihapus', <>{rows.length} akun telah <span className="text-red-500 font-medium">dihapus</span></>, (id) => adminApi.requestUserDeletion(id))
+    } else if (key === 'pulihkan') {
+      runBulkStatus(rows, 'Disetujui', <>{rows.length} akun telah <span className="text-green-500 font-medium">dipulihkan</span></>,
+        (id, prevStatus) => prevStatus === 'Baru Dihapus' ? adminApi.cancelUserDeletion(id) : adminApi.unsuspendUser(id))
+    } else if (key === 'setujui') {
+      runBulkStatus(rows, 'Disetujui', <>{rows.length} akun telah <span className="text-green-500 font-medium">disetujui</span></>, (id) => adminApi.verifyUser(id, { status: 'approved' }))
+    } else if (key === 'tangguhkan') {
+      setBulkSuspendOpen(true)
+    }
+  }
+
+  // Bulk tangguhkan pakai satu SuspendModal → suspendedUntil sama untuk semua terpilih.
+  const handleBulkTangguhkan = ({ suspendedUntil }) => {
+    const rows = selectedUsers
+    setBulkSuspendOpen(false)
+    runBulkStatus(rows, 'Ditangguhkan', <>{rows.length} akun telah <span className="text-orange-500 font-medium">ditangguhkan</span></>, (id) => adminApi.suspendUser(id, suspendedUntil))
+  }
+
   const handleExport = () => {
     const csv = buildCsvContent(activeTab, sortedUsers)
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
@@ -877,21 +957,32 @@ export default function AdminDashboardPage({ user, onSignOut }) {
               onDismissLimit={() => setLimitHit(false)}
             />
           )}
-          {activeTab === 'manajemen' && (
-            <ManajemenControls
-              activeFilter={activeFilter} onFilterChange={setActiveFilter}
-              selectedRoles={selectedRoles} onRolesChange={setSelectedRoles}
-              selectedSubscriptions={selectedSubscriptions} onSubscriptionsChange={setSelectedSubscriptions}
-              selectedPlans={selectedPlans} onPlansChange={setSelectedPlans}
-              searchQuery={searchQuery} onSearchChange={setSearchQuery}
-              onExport={handleExport}
-            />
-          )}
           {activeTab === 'pendaftaran-trainer' && (
             <PendaftaranTrainerControls
               searchQuery={searchQuery}
               onSearchChange={setSearchQuery}
               onAdd={() => setIsAddPendaftaranModalOpen(true)}
+              selectedCount={selectedIds.length}
+              bulkLimit={BULK_LIMIT}
+              limitHit={limitHit}
+              onClearSelection={clearSelection}
+              onDismissLimit={() => setLimitHit(false)}
+            />
+          )}
+          {activeTab === 'manajemen' && (
+            <ManajemenControls
+              activeFilter={activeFilter} onFilterChange={(f) => { setActiveFilter(f); setSelectedIds([]) }}
+              selectedRoles={selectedRoles} onRolesChange={setSelectedRoles}
+              selectedSubscriptions={selectedSubscriptions} onSubscriptionsChange={setSelectedSubscriptions}
+              selectedPlans={selectedPlans} onPlansChange={setSelectedPlans}
+              searchQuery={searchQuery} onSearchChange={setSearchQuery}
+              onExport={handleExport}
+              selectedCount={selectedIds.length}
+              bulkLimit={BULK_LIMIT}
+              limitHit={limitHit}
+              onDismissLimit={() => setLimitHit(false)}
+              onClearSelection={clearSelection}
+              onBulkAction={handleManajemenBulk}
             />
           )}
           {activeTab === 'riwayat-pelatihan' && (
@@ -911,6 +1002,11 @@ export default function AdminDashboardPage({ user, onSignOut }) {
                 link.setAttribute('download', 'riwayat_pelatihan-Export data.csv')
                 document.body.appendChild(link); link.click(); document.body.removeChild(link)
               }}
+              selectedCount={selectedIds.length}
+              bulkLimit={BULK_LIMIT}
+              limitHit={limitHit}
+              onClearSelection={clearSelection}
+              onDismissLimit={() => setLimitHit(false)}
             />
           )}
 
@@ -952,18 +1048,28 @@ export default function AdminDashboardPage({ user, onSignOut }) {
                   searchQuery={searchQuery}
                   activeFilter={activeFilter}
                   onActionClick={handleActionClick}
+                  selectedIds={selectedIds}
+                  onToggleSelect={toggleSelect}
+                  onToggleSelectAll={toggleSelectAll}
+                  allSelected={allSelected}
                 />
               )}
               {activeTab === 'pendaftaran-trainer' && (
                 <PendaftaranTrainerTable
                   data={pendaftaranData}
                   onToggleStatus={handleTogglePendaftaranStatus}
+                  selectedIds={selectedIds}
+                  onToggleSelect={toggleSelect}
+                  onToggleSelectAll={() => toggleSelectAll(pendaftaranData.map(d => d.id))}
+                  allSelected={selectedIds.length > 0 && pendaftaranData.every(d => selectedIds.includes(d.id))}
                   searchQuery={searchQuery}
                 />
               )}
               {activeTab === 'riwayat-pelatihan' && (
                 <RiwayatPelatihanTable
                   data={riwayatPelatihanData}
+                  selectedIds={selectedIds}
+                  onToggleSelect={toggleSelect}
                   searchQuery={searchQuery}
                   onEdit={setPerbaruiSession}
                   onDownload={handleDownloadRiwayat}
@@ -1042,6 +1148,29 @@ export default function AdminDashboardPage({ user, onSignOut }) {
           user={actionModal.user}
           onConfirm={handleConfirmPulihkanAkun}
           onCancel={() => setActionModal({ type: null, user: null })}
+        />
+      )}
+      {actionModal.type === 'setujui-akun' && (
+        <SetujuiAkunModal
+          user={actionModal.user}
+          discourseGroups={discourseGroups}
+          trainingSessions={trainingSessions}
+          onConfirm={handleConfirmSetujuiAkun}
+          onCancel={() => setActionModal({ type: null, user: null })}
+        />
+      )}
+      {actionModal.type === 'tangguhkan-akun' && (
+        <SuspendModal
+          user={actionModal.user}
+          onConfirm={handleConfirmTangguhkanAkun}
+          onCancel={() => setActionModal({ type: null, user: null })}
+        />
+      )}
+      {bulkSuspendOpen && (
+        <SuspendModal
+          user={{ name: `${selectedIds.length} akun terpilih` }}
+          onConfirm={handleBulkTangguhkan}
+          onCancel={() => setBulkSuspendOpen(false)}
         />
       )}
       <AddPelatihanModal

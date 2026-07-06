@@ -1,4 +1,4 @@
-import { ExternalLink } from 'lucide-react'
+import { ExternalLink, Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { getTableScrollProps } from './tableScroll'
 
@@ -12,7 +12,13 @@ function fmtBatasWaktu(v) {
   })
 }
 
-export function PendaftaranTrainerTable({ data, onToggleStatus, searchQuery }) {
+export function PendaftaranTrainerTable({
+  data,
+  onToggleStatus,
+  searchQuery,
+  selectedIds = [],
+  onToggleSelect,
+}) {
   const filteredData = data.filter(item => {
     if (!searchQuery) return true
     return (item.nama || '').toLowerCase().includes(searchQuery.toLowerCase())
@@ -23,6 +29,9 @@ export function PendaftaranTrainerTable({ data, onToggleStatus, searchQuery }) {
     <table className="w-full text-left text-sm whitespace-nowrap">
       <thead className="bg-[#0A1128] text-white sticky top-0 z-20">
         <tr>
+          <th className="px-4 py-4 w-12 text-center sticky left-0 z-30 bg-[#0A1128]">
+            <div className="w-4 h-4 rounded border border-white/30 mx-auto" />
+          </th>
           <th className="px-4 py-4 font-medium rounded-tl-lg">Nama Pelatihan</th>
           <th className="px-4 py-4 font-medium">Link</th>
           <th className="px-4 py-4 font-medium">Periode</th>
@@ -33,8 +42,21 @@ export function PendaftaranTrainerTable({ data, onToggleStatus, searchQuery }) {
       </thead>
       <tbody className="divide-y divide-gray-100">
         {filteredData.length > 0 ? (
-          filteredData.map(item => (
-            <tr key={item.id} className="group hover:bg-[#F9FAFB] transition-colors">
+          filteredData.map(item => {
+            const selected = selectedIds.includes(item.id);
+            return (
+            <tr key={item.id} className={cn('group transition-colors', selected ? 'bg-[#F4F6FB]' : 'hover:bg-[#F9FAFB]')}>
+              <td className={cn('px-4 py-4 text-center sticky left-0 z-10 transition-colors', selected ? 'bg-[#F4F6FB]' : 'bg-white group-hover:bg-[#F9FAFB]')}>
+                <button
+                  onClick={() => onToggleSelect(item.id)}
+                  className={cn(
+                    'w-4 h-4 rounded border flex items-center justify-center mx-auto transition-colors',
+                    selected ? 'bg-blue-600 border-blue-600' : 'border-gray-300 bg-gray-50 hover:border-gray-400'
+                  )}
+                >
+                  {selected && <Check size={11} className="text-white" strokeWidth={3} />}
+                </button>
+              </td>
               <td className="px-4 py-4">
                 <div className="flex items-center gap-2">
                   <span className="font-bold text-[#0A1128]">{item.nama}</span>
@@ -89,7 +111,8 @@ export function PendaftaranTrainerTable({ data, onToggleStatus, searchQuery }) {
                 </div>
               </td>
             </tr>
-          ))
+            )
+          })
         ) : (
           <tr>
             <td colSpan="6" className="px-4 py-12 text-center text-gray-500">

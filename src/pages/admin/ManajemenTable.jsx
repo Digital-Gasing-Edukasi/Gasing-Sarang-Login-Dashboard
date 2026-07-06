@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
-import { ArrowDownUp, MoreHorizontal, Edit, Trash2, Clock, CheckCircle2, History, SearchX } from 'lucide-react'
+import { ArrowDownUp, MoreHorizontal, Edit, Trash2, Clock, CheckCircle2, History, SearchX, Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { getTableScrollProps } from './tableScroll'
 
@@ -141,7 +141,10 @@ const SUBSCRIPTION_CLASSES = {
   Expired:    'text-red-500',
 }
 
-export function ManajemenTable({ users, sortConfig, onSort, searchQuery, activeFilter, onActionClick }) {
+export function ManajemenTable({
+  users, sortConfig, onSort, searchQuery, activeFilter, onActionClick,
+  selectedIds = [], onToggleSelect, onToggleSelectAll, allSelected = false,
+}) {
   const isReducedView = activeFilter === 'Rejected' || activeFilter === 'Deleted' || activeFilter === 'Ditolak' || activeFilter === 'Baru Dihapus'
 
   return (
@@ -150,7 +153,15 @@ export function ManajemenTable({ users, sortConfig, onSort, searchQuery, activeF
         <thead className="bg-[#0A1128] text-white sticky top-0 z-20">
           <tr>
             <th className="px-4 py-4 w-12 text-center sticky left-0 z-30 bg-[#0A1128]">
-              <div className="w-4 h-4 rounded border border-white/30 mx-auto" />
+              <button
+                onClick={onToggleSelectAll}
+                className={cn(
+                  'w-4 h-4 rounded border flex items-center justify-center mx-auto transition-colors',
+                  allSelected ? 'bg-blue-600 border-blue-600' : 'border-white/30 hover:border-white/60'
+                )}
+              >
+                {allSelected && <Check size={11} className="text-white" strokeWidth={3} />}
+              </button>
             </th>
             <th className="px-4 py-4 font-medium sticky left-[48px] z-30 bg-[#0A1128] shadow-[4px_0_10px_-4px_rgba(0,0,0,0.3)]">
               <SortableHeader label="Nama Pengguna" sortKey="name" sortConfig={sortConfig} onSort={onSort} />
@@ -209,12 +220,21 @@ export function ManajemenTable({ users, sortConfig, onSort, searchQuery, activeF
         </thead>
         <tbody className="divide-y divide-gray-100">
           {users.length > 0 ? users.map(user => {
+            const selected = selectedIds.includes(user.id)
             return (
-              <tr key={user.id} className="group hover:bg-[#F9FAFB] transition-colors">
-                <td className="px-4 py-4 text-center sticky left-0 z-10 bg-white group-hover:bg-[#F9FAFB] transition-colors">
-                  <div className="w-4 h-4 rounded border border-gray-300 bg-gray-50 mx-auto" />
+              <tr key={user.id} className={cn('group transition-colors', selected ? 'bg-[#F4F6FB]' : 'hover:bg-[#F9FAFB]')}>
+                <td className={cn('px-4 py-4 text-center sticky left-0 z-10 transition-colors', selected ? 'bg-[#F4F6FB]' : 'bg-white group-hover:bg-[#F9FAFB]')}>
+                  <button
+                    onClick={() => onToggleSelect && onToggleSelect(user.id)}
+                    className={cn(
+                      'w-4 h-4 rounded border flex items-center justify-center mx-auto transition-colors',
+                      selected ? 'bg-blue-600 border-blue-600' : 'border-gray-300 bg-gray-50 hover:border-gray-400'
+                    )}
+                  >
+                    {selected && <Check size={11} className="text-white" strokeWidth={3} />}
+                  </button>
                 </td>
-                <td className="px-4 py-4 sticky left-[48px] z-10 bg-white group-hover:bg-[#F9FAFB] transition-colors shadow-[4px_0_10px_-4px_rgba(0,0,0,0.05)]">
+                <td className={cn('px-4 py-4 sticky left-[48px] z-10 transition-colors shadow-[4px_0_10px_-4px_rgba(0,0,0,0.05)]', selected ? 'bg-[#F4F6FB]' : 'bg-white group-hover:bg-[#F9FAFB]')}>
                   <div className="font-bold text-[#0A1128] flex items-center">
                     {user.name}
                     {user.isNew && (
@@ -276,7 +296,7 @@ export function ManajemenTable({ users, sortConfig, onSort, searchQuery, activeF
                 <td className="px-4 py-4 text-[#0A1128] font-medium">{user.alumniTanggal || '-'}</td>
                 <td className="px-4 py-4 text-[#0A1128] font-medium whitespace-normal break-words max-w-[200px] leading-snug align-top">{user.school || '-'}</td>
                 <td className="px-4 py-4 text-[#0A1128] font-medium">{user.lastUpdated || '-'}</td>
-                <td className="px-4 py-4 text-center sticky right-0 z-10 bg-white group-hover:bg-[#F9FAFB] transition-colors shadow-[-4px_0_10px_-4px_rgba(0,0,0,0.05)]">
+                <td className={cn('px-4 py-4 text-center sticky right-0 z-10 transition-colors shadow-[-4px_0_10px_-4px_rgba(0,0,0,0.05)]', selected ? 'bg-[#F4F6FB]' : 'bg-white group-hover:bg-[#F9FAFB]')}>
                   <RowActionMenu tab={activeFilter} user={user} onAction={onActionClick} />
                 </td>
               </tr>

@@ -1,4 +1,4 @@
-import { History, Trash2 } from 'lucide-react'
+import { History, Trash2, Clock, CheckCircle2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 // Modal konfirmasi terpusat untuk aksi status akun (Hapus / Pulihkan).
@@ -63,6 +63,36 @@ export function PulihkanAkunModal({ user, onConfirm, onCancel }) {
       title="Yakin Pulihkan Akun Ini?"
       body={<>Akun <span className="font-semibold text-[#0A1128]">{user.name}</span> akan dipulihkan dan diaktifkan kembali.</>}
       confirmLabel="Pulihkan Akun"
+      onConfirm={onConfirm}
+      onCancel={onCancel}
+    />
+  )
+}
+
+export function SetujuiAkunModal({ user, onConfirm, onCancel }) {
+  if (!user) return null
+  return (
+    <ConfirmActionModal
+      tone="primary"
+      Icon={CheckCircle2}
+      title="Yakin Setujui Akun Ini?"
+      body={<>Akun <span className="font-semibold text-[#0A1128]">{user.name}</span> akan disetujui dan dipindah ke tab Disetujui.</>}
+      confirmLabel="Setujui Akun"
+      onConfirm={onConfirm}
+      onCancel={onCancel}
+    />
+  )
+}
+
+export function TangguhkanAkunModal({ user, onConfirm, onCancel }) {
+  if (!user) return null
+  return (
+    <ConfirmActionModal
+      tone="danger"
+      Icon={Clock}
+      title="Yakin Tangguhkan Akun Ini?"
+      body={<>Akun <span className="font-semibold text-[#0A1128]">{user.name}</span> akan ditangguhkan dan dipindah ke tab Ditangguhkan.</>}
+      confirmLabel="Tangguhkan Akun"
       onConfirm={onConfirm}
       onCancel={onCancel}
     />

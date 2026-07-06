@@ -45,15 +45,15 @@ export function VerifikasiTable({
           <th className="px-4 py-4 font-medium">
             <SortableHeader label="Lokasi" sortKey="lokasi" sortConfig={sortConfig} onSort={onSort} />
           </th>
-          <th className="px-4 py-4 font-medium text-center">Setuju?</th>
+          {selectedIds.length === 0 && <th className="px-4 py-4 font-medium text-center">Setuju?</th>}
         </tr>
       </thead>
       <tbody className="divide-y divide-gray-100">
         {users.length > 0 ? users.map(user => {
           const selected = selectedIds.includes(user.id)
           return (
-            <tr key={user.id} className={cn('group transition-colors', selected ? 'bg-blue-50/50' : 'hover:bg-[#F9FAFB]')}>
-              <td className={cn('px-4 py-4 text-center sticky left-0 z-10 transition-colors', selected ? 'bg-blue-50/50' : 'bg-white group-hover:bg-[#F9FAFB]')}>
+            <tr key={user.id} className={cn('group transition-colors', selected ? 'bg-[#F4F6FB]' : 'hover:bg-[#F9FAFB]')}>
+              <td className={cn('px-4 py-4 text-center sticky left-0 z-10 transition-colors', selected ? 'bg-[#F4F6FB]' : 'bg-white group-hover:bg-[#F9FAFB]')}>
                 <button
                   onClick={() => onToggleSelect(user.id)}
                   className={cn(
@@ -64,7 +64,7 @@ export function VerifikasiTable({
                   {selected && <Check size={11} className="text-white" strokeWidth={3} />}
                 </button>
               </td>
-              <td className={cn('px-4 py-4 sticky left-[48px] z-10 transition-colors shadow-[4px_0_10px_-4px_rgba(0,0,0,0.05)]', selected ? 'bg-blue-50/50' : 'bg-white group-hover:bg-[#F9FAFB]')}>
+              <td className={cn('px-4 py-4 sticky left-[48px] z-10 transition-colors shadow-[4px_0_10px_-4px_rgba(0,0,0,0.05)]', selected ? 'bg-[#F4F6FB]' : 'bg-white group-hover:bg-[#F9FAFB]')}>
                 <div className="flex items-center gap-2">
                   <span className="font-bold text-[#0A1128]">{user.name}</span>
                   {user.isNew && (
@@ -83,22 +83,24 @@ export function VerifikasiTable({
               </td>
               <td className="px-4 py-4 text-[#0A1128] font-medium">{user.birthdate}</td>
               <td className="px-4 py-4 text-[#0A1128] font-medium whitespace-normal max-w-[220px]" title={user.lokasi}>{user.lokasi}</td>
-              <td className="px-4 py-4">
-                <div className="flex items-center justify-center gap-2">
-                  <button
-                    onClick={() => onApprove(user.id)}
-                    className="w-9 h-9 rounded-full bg-white border-2 border-green-500 hover:bg-green-50 flex items-center justify-center text-green-500 transition-colors"
-                  >
-                    <Check size={16} strokeWidth={3} />
-                  </button>
-                  <button
-                    onClick={() => onReject(user)}
-                    className="w-9 h-9 rounded-full bg-white border-2 border-red-400 hover:bg-red-50 flex items-center justify-center text-red-500 transition-colors"
-                  >
-                    <X size={16} strokeWidth={2.5} />
-                  </button>
-                </div>
-              </td>
+              {selectedIds.length === 0 && (
+                <td className="px-4 py-4">
+                  <div className="flex items-center justify-center gap-2">
+                    <button
+                      onClick={() => onApprove(user.id)}
+                      className="w-9 h-9 rounded-full bg-white border-2 border-green-500 hover:bg-green-50 flex items-center justify-center text-green-500 transition-colors"
+                    >
+                      <Check size={16} strokeWidth={3} />
+                    </button>
+                    <button
+                      onClick={() => onReject(user)}
+                      className="w-9 h-9 rounded-full bg-white border-2 border-red-400 hover:bg-red-50 flex items-center justify-center text-red-500 transition-colors"
+                    >
+                      <X size={16} strokeWidth={2.5} />
+                    </button>
+                  </div>
+                </td>
+              )}
             </tr>
           )
         }) : (

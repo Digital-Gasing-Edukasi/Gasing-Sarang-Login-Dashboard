@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useRef, useState, useEffect } from 'react'
 import { Search, Download, Filter, Check, X, Link2, Users, MonitorPlay, GraduationCap } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -18,6 +18,48 @@ function SearchInput({ value, onChange, placeholder = 'Cari user...' }) {
           <X size={14} />
         </button>
       )}
+    </div>
+  )
+}
+
+// Search collapsible: default = tombol bulat; klik → melebar jadi input (auto-focus).
+// Menciut lagi saat blur & kosong. Tombol X: bersihkan + ciutkan.
+function ExpandableSearch({ value, onChange, placeholder = 'Cari user...' }) {
+  const [open, setOpen] = useState(false)
+  const inputRef = useRef(null)
+
+  useEffect(() => { if (open) inputRef.current?.focus() }, [open])
+
+  if (!open && !value) {
+    return (
+      <button
+        onClick={() => setOpen(true)}
+        className="w-[42px] h-[42px] rounded-full border border-gray-200 text-[#0A1128] hover:bg-gray-50 flex items-center justify-center shrink-0 shadow-sm transition-colors"
+      >
+        <Search size={18} />
+      </button>
+    )
+  }
+
+  return (
+    <div className="relative w-[280px] animate-in fade-in slide-in-from-right-2 duration-200">
+      <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+      <input
+        ref={inputRef}
+        type="text"
+        placeholder={placeholder}
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        onBlur={() => { if (!value) setOpen(false) }}
+        className="w-full pl-10 pr-10 py-2.5 bg-white border border-gray-200 rounded-full text-sm outline-none focus:border-[#D946EF] focus:ring-1 focus:ring-[#D946EF] transition-all"
+      />
+      <button
+        onMouseDown={e => e.preventDefault()}
+        onClick={() => { onChange(''); setOpen(false) }}
+        className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+      >
+        <X size={14} />
+      </button>
     </div>
   )
 }
@@ -73,10 +115,10 @@ export function VerifikasiControls({
           </div>
         )}
 
-        <div className="flex items-center gap-4 bg-gray-50 border border-gray-100 rounded-full px-3 py-2.5">
+        <div className="flex items-center gap-4 w-full bg-gray-100 border border-gray-200 rounded-full px-3 py-2.5">
           <button
             onClick={onClearSelection}
-            className="w-11 h-11 rounded-full border border-gray-200 bg-white text-gray-500 hover:bg-gray-50 flex items-center justify-center shrink-0 transition-colors"
+            className="w-11 h-11 rounded-full border border-gray-200 bg-gray-200 text-gray-600 hover:bg-gray-300 flex items-center justify-center shrink-0 transition-colors"
           >
             <X size={18} />
           </button>
@@ -86,12 +128,12 @@ export function VerifikasiControls({
           </span>
           <span className="text-sm font-medium text-[#0A1128]">Akun dipilih</span>
 
-          <div className="h-7 w-px bg-gray-200 mx-1" />
+          <div className="h-7 w-px bg-gray-300 mx-1" />
 
           {subTab === 'voucher' ? (
             <button
               onClick={onBulkConfirm}
-              className="px-7 py-2.5 rounded-full border-2 border-green-400 bg-green-50/50 text-green-600 text-sm font-semibold hover:bg-green-50 transition-colors"
+              className="px-7 py-2.5 rounded-full border border-green-500 bg-transparent text-green-600 text-sm font-semibold hover:bg-green-50 transition-colors"
             >
               Konfirmasi
             </button>
@@ -99,13 +141,13 @@ export function VerifikasiControls({
             <>
               <button
                 onClick={onBulkApprove}
-                className="px-7 py-2.5 rounded-full border-2 border-green-400 bg-green-50/50 text-green-600 text-sm font-semibold hover:bg-green-50 transition-colors"
+                className="px-7 py-2.5 rounded-full border border-green-500 bg-transparent text-green-600 text-sm font-semibold hover:bg-green-50 transition-colors"
               >
                 Setujui
               </button>
               <button
                 onClick={onBulkReject}
-                className="px-7 py-2.5 rounded-full border-2 border-red-300 bg-red-50/50 text-red-500 text-sm font-semibold hover:bg-red-50 transition-colors"
+                className="px-7 py-2.5 rounded-full border border-red-400 bg-transparent text-red-500 text-sm font-semibold hover:bg-red-50 transition-colors"
               >
                 Tolak
               </button>
@@ -241,6 +283,20 @@ function FilterDrawer({
   )
 }
 
+// Aksi bulk per tab (mengikuti aksi baris masing-masing tab).
+const BULK_ACTIONS_BY_TAB = {
+  'Disetujui':    [{ key: 'tangguhkan', label: 'Tangguhkan', tone: 'warn' }, { key: 'hapus', label: 'Hapus', tone: 'danger' }],
+  'Ditolak':      [{ key: 'setujui',    label: 'Setujui',    tone: 'ok' },   { key: 'hapus', label: 'Hapus', tone: 'danger' }],
+  'Ditangguhkan': [{ key: 'pulihkan',   label: 'Pulihkan',   tone: 'info' }, { key: 'hapus', label: 'Hapus', tone: 'danger' }],
+  'Baru Dihapus': [{ key: 'pulihkan',   label: 'Pulihkan',   tone: 'info' }],
+}
+const BULK_TONE = {
+  ok:     'border border-green-500 text-green-600 hover:bg-green-50',
+  warn:   'border border-orange-400 text-orange-500 hover:bg-orange-50',
+  info:   'border border-blue-500 text-blue-600 hover:bg-blue-50',
+  danger: 'border border-red-400 text-red-500 hover:bg-red-50',
+}
+
 export function ManajemenControls({
   activeFilter, onFilterChange,
   selectedRoles, onRolesChange,
@@ -248,9 +304,50 @@ export function ManajemenControls({
   selectedPlans = [], onPlansChange,
   searchQuery, onSearchChange,
   onExport,
+  selectedCount = 0, bulkLimit = 10, limitHit = false, onDismissLimit,
+  onClearSelection, onBulkAction,
 }) {
   const [isFilterOpen, setIsFilterOpen] = useState(false)
   const activeCount = selectedRoles.length + selectedSubscriptions.length + selectedPlans.length
+
+  // Mode bulk: aktif saat ada baris terpilih. Ganti toolbar dengan action-bar per tab.
+  if (selectedCount > 0) {
+    const actions = BULK_ACTIONS_BY_TAB[activeFilter] || []
+    return (
+      <div className="relative mb-6">
+        {limitHit && (
+          <div className="absolute -top-16 left-1/2 -translate-x-1/2 z-20 flex items-center gap-4 bg-[#0A1128] text-white text-base font-medium px-6 py-4 rounded-2xl shadow-xl animate-in fade-in slide-in-from-top-2 duration-200">
+            <span>Maksimal {bulkLimit} akun dapat dipilih sekaligus.</span>
+            <button onClick={onDismissLimit} className="text-white/70 hover:text-white transition-colors shrink-0">
+              <X size={18} />
+            </button>
+          </div>
+        )}
+        <div className="flex items-center gap-4 w-full bg-gray-100 border border-gray-200 rounded-full px-3 py-2.5">
+          <button
+            onClick={onClearSelection}
+            className="w-11 h-11 rounded-full border border-gray-200 bg-gray-200 text-gray-600 hover:bg-gray-300 flex items-center justify-center shrink-0 transition-colors"
+          >
+            <X size={18} />
+          </button>
+          <span className="inline-flex items-center px-3 py-1 rounded-full bg-orange-100 text-orange-500 text-sm font-bold">
+            {selectedCount}/{bulkLimit}
+          </span>
+          <span className="text-sm font-medium text-[#0A1128]">Akun dipilih</span>
+          <div className="h-7 w-px bg-gray-300 mx-1" />
+          {actions.map(a => (
+            <button
+              key={a.key}
+              onClick={() => onBulkAction && onBulkAction(a.key)}
+              className={cn('px-7 py-2.5 rounded-full bg-transparent text-sm font-semibold transition-colors', BULK_TONE[a.tone])}
+            >
+              {a.label}
+            </button>
+          ))}
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="flex items-center justify-between mb-6">
@@ -275,9 +372,7 @@ export function ManajemenControls({
 
       {/* Right controls */}
       <div className="flex items-center gap-3">
-        <div className="w-[280px]">
-          <SearchInput value={searchQuery} onChange={onSearchChange} />
-        </div>
+        <ExpandableSearch value={searchQuery} onChange={onSearchChange} />
 
         {/* Filter button (buka drawer). Badge saat ada filter aktif. */}
         <button
@@ -311,7 +406,33 @@ export function ManajemenControls({
   )
 }
 
-export function PendaftaranTrainerControls({ searchQuery, onSearchChange, onAdd }) {
+export function PendaftaranTrainerControls({
+  searchQuery, onSearchChange, onAdd,
+  selectedCount = 0, bulkLimit = 100, limitHit = false,
+  onClearSelection, onDismissLimit,
+}) {
+  if (selectedCount > 0) {
+    return (
+      <div className="relative mb-6">
+        {limitHit && (
+          <div className="absolute -top-16 left-1/2 -translate-x-1/2 z-20 flex items-center gap-4 bg-[#0A1128] text-white text-base font-medium px-6 py-4 rounded-2xl shadow-xl animate-in fade-in slide-in-from-top-2 duration-200">
+            <span>Maksimal {bulkLimit} item dapat dipilih sekaligus.</span>
+            <button onClick={onDismissLimit} className="text-white/70 hover:text-white transition-colors shrink-0"><X size={18} /></button>
+          </div>
+        )}
+        <div className="flex items-center gap-4 w-full bg-gray-100 border border-gray-200 rounded-full px-3 py-2.5">
+          <button onClick={onClearSelection} className="w-11 h-11 rounded-full border border-gray-200 bg-gray-200 text-gray-600 hover:bg-gray-300 flex items-center justify-center shrink-0 transition-colors">
+            <X size={18} />
+          </button>
+          <span className="inline-flex items-center px-3 py-1 rounded-full bg-orange-100 text-orange-500 text-sm font-bold">
+            {selectedCount}/{bulkLimit}
+          </span>
+          <span className="text-sm font-medium text-[#0A1128]">Item dipilih</span>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex items-center justify-between mb-6">
       <div className="flex items-center gap-4">
@@ -332,7 +453,33 @@ export function PendaftaranTrainerControls({ searchQuery, onSearchChange, onAdd 
   )
 }
 
-export function RiwayatPelatihanControls({ searchQuery, onSearchChange, onAdd, onExport }) {
+export function RiwayatPelatihanControls({
+  searchQuery, onSearchChange, onAdd, onExport,
+  selectedCount = 0, bulkLimit = 100, limitHit = false,
+  onClearSelection, onDismissLimit,
+}) {
+  if (selectedCount > 0) {
+    return (
+      <div className="relative mb-6">
+        {limitHit && (
+          <div className="absolute -top-16 left-1/2 -translate-x-1/2 z-20 flex items-center gap-4 bg-[#0A1128] text-white text-base font-medium px-6 py-4 rounded-2xl shadow-xl animate-in fade-in slide-in-from-top-2 duration-200">
+            <span>Maksimal {bulkLimit} item dapat dipilih sekaligus.</span>
+            <button onClick={onDismissLimit} className="text-white/70 hover:text-white transition-colors shrink-0"><X size={18} /></button>
+          </div>
+        )}
+        <div className="flex items-center gap-4 w-full bg-gray-100 border border-gray-200 rounded-full px-3 py-2.5">
+          <button onClick={onClearSelection} className="w-11 h-11 rounded-full border border-gray-200 bg-gray-200 text-gray-600 hover:bg-gray-300 flex items-center justify-center shrink-0 transition-colors">
+            <X size={18} />
+          </button>
+          <span className="inline-flex items-center px-3 py-1 rounded-full bg-orange-100 text-orange-500 text-sm font-bold">
+            {selectedCount}/{bulkLimit}
+          </span>
+          <span className="text-sm font-medium text-[#0A1128]">Item dipilih</span>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex items-center justify-between mb-6">
       <div className="flex items-center gap-4">

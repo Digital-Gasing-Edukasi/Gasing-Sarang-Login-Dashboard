@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ArrowDownUp, Pencil, Download } from 'lucide-react'
+import { ArrowDownUp, Pencil, Download, Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { getTableScrollProps } from './tableScroll'
 
@@ -33,7 +33,13 @@ function SortableHeader({ label, sublabel, sortKey, sortConfig, onSort }) {
   )
 }
 
-export function RiwayatPelatihanTable({ data, searchQuery, onEdit, onDownload, onViewPeserta }) {
+export function RiwayatPelatihanTable({
+  data, searchQuery, onEdit, onDownload, onViewPeserta,
+  selectedIds = [],
+  onToggleSelect,
+  onToggleSelectAll,
+  allSelected,
+}) {
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' })
 
   const handleSort = (key) => {
@@ -76,6 +82,9 @@ export function RiwayatPelatihanTable({ data, searchQuery, onEdit, onDownload, o
     <table className="w-full text-left text-sm whitespace-nowrap">
       <thead className="bg-[#0A1128] text-white sticky top-0 z-20">
         <tr>
+          <th className="px-4 py-4 w-12 text-center sticky left-0 z-30 bg-[#0A1128]">
+            <div className="w-4 h-4 rounded border border-white/30 mx-auto" />
+          </th>
           <th className="px-4 py-4 font-medium align-bottom">
             <SortableHeader label="Nama Pelatihan" sortKey="nama" sortConfig={sortConfig} onSort={handleSort} />
           </th>
@@ -96,8 +105,21 @@ export function RiwayatPelatihanTable({ data, searchQuery, onEdit, onDownload, o
       </thead>
       <tbody className="divide-y divide-gray-100">
         {sortedData.length > 0 ? (
-          sortedData.map(item => (
-            <tr key={item.id} className="group hover:bg-[#F9FAFB] transition-colors">
+          sortedData.map(item => {
+            const selected = selectedIds.includes(item.id);
+            return (
+            <tr key={item.id} className={cn('group transition-colors', selected ? 'bg-[#F4F6FB]' : 'hover:bg-[#F9FAFB]')}>
+              <td className={cn('px-4 py-4 text-center sticky left-0 z-10 transition-colors', selected ? 'bg-[#F4F6FB]' : 'bg-white group-hover:bg-[#F9FAFB]')}>
+                <button
+                  onClick={() => onToggleSelect(item.id)}
+                  className={cn(
+                    'w-4 h-4 rounded border flex items-center justify-center mx-auto transition-colors',
+                    selected ? 'bg-blue-600 border-blue-600' : 'border-gray-300 bg-gray-50 hover:border-gray-400'
+                  )}
+                >
+                  {selected && <Check size={11} className="text-white" strokeWidth={3} />}
+                </button>
+              </td>
               <td className="px-4 py-4">
                 <div className="flex items-center gap-2">
                   <span className="font-bold text-[#0A1128] whitespace-normal max-w-[220px]">{item.nama}</span>
@@ -145,7 +167,8 @@ export function RiwayatPelatihanTable({ data, searchQuery, onEdit, onDownload, o
                 </div>
               </td>
             </tr>
-          ))
+            )
+          })
         ) : (
           <tr>
             <td colSpan="7" className="px-4 py-12 text-center text-gray-500">
