@@ -1,11 +1,23 @@
 import { useState, useEffect } from 'react'
-import { X } from 'lucide-react'
+import { X, UploadCloud, FileText } from 'lucide-react'
 import { regionsApi } from '@/lib/api'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
 import { CalendarRangePicker, toYMD, formatIdDate } from './CalendarRangePicker'
 
 const asList = (data) => (Array.isArray(data) ? data : data?.data || data?.items || [])
 const regionLabel = (r) => r?.regionName || r?.name || ''
+
+// Template CSV peserta (kolom `email`) — dibuat di klien, tanpa endpoint.
+function downloadTemplate() {
+  const csv = 'email\ncontoh1@email.com\ncontoh2@email.com\n'
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = 'template-peserta-guru.csv'
+  document.body.appendChild(a); a.click(); document.body.removeChild(a)
+  URL.revokeObjectURL(url)
+}
 
 export function AddPelatihanModal({ isOpen, onClose, onSave }) {
   const [name, setName] = useState('')
@@ -16,6 +28,8 @@ export function AddPelatihanModal({ isOpen, onClose, onSave }) {
   const [regencies, setRegencies] = useState([])
   const [regencyLoading, setRegencyLoading] = useState(false)
   const [range, setRange] = useState({ startDate: null, endDate: null })
+  const [pesertaFile, setPesertaFile] = useState(null)
+  const [fileError, setFileError] = useState('')
   const [error, setError] = useState('')
 
   // Load provinces the first time the modal opens (mirror of the signup flow).
@@ -43,12 +57,24 @@ export function AddPelatihanModal({ isOpen, onClose, onSave }) {
       .finally(() => setRegencyLoading(false))
   }
 
+  const pickFile = (f) => {
+    if (!f) return
+    if (!/\.csv$/i.test(f.name)) {
+      setFileError('Format file tidak didukung. Gunakan format .csv')
+      return
+    }
+    setFileError('')
+    setPesertaFile(f)
+  }
+
   const reset = () => {
     setName('')
     setProvinceId('')
     setRegionId('')
     setRegencies([])
     setRange({ startDate: null, endDate: null })
+    setPesertaFile(null)
+    setFileError('')
     setError('')
   }
 
@@ -57,14 +83,14 @@ export function AddPelatihanModal({ isOpen, onClose, onSave }) {
     onClose()
   }
 
-  // Validasi field di modal; upload-nya optimistic di parent (row Processing →
-  // Saved/Error), jadi modal langsung ditutup setelah data valid dikirim.
+  // Validasi field di modal; create + import peserta jalan optimistic di parent
+  // (row Processing → Saved/Error), jadi modal langsung ditutup setelah valid.
   const handleSubmit = (e) => {
     e.preventDefault()
     setError('')
     if (!name.trim()) return setError('Nama pelatihan wajib diisi.')
-    if (!regionId) return setError('Daerah pelatihan wajib dipilih.')
-    if (!range.startDate || !range.endDate) return setError('Tanggal mulai & selesai pelatihan wajib diisi.')
+    if (!regionId) return setError('Daerah wajib dipilih.')
+    if (!range.startDate || !range.endDate) return setError('Tanggal mulai & berakhir wajib diisi.')
 
     const provinceName = regionLabel(provinces.find((p) => p.id === provinceId))
     const regionName = regionLabel(regencies.find((r) => r.id === regionId))
@@ -76,6 +102,7 @@ export function AddPelatihanModal({ isOpen, onClose, onSave }) {
       endDate: toYMD(range.endDate),
       daerahLabel: [regionName, provinceName].filter(Boolean).join(', '),
       tglMulaiLabel: formatIdDate(range.startDate),
+      pesertaFile, // opsional — CSV daftar peserta guru
     })
     reset()
     onClose()
@@ -83,7 +110,14 @@ export function AddPelatihanModal({ isOpen, onClose, onSave }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="bg-white rounded-2xl w-full max-w-md shadow-xl">
+      {/* Toast error format file — mengambang di atas modal */}
+      {fileError && (
+        <div className="absolute top-6 left-1/2 -translate-x-1/2 z-[60] bg-red-500 text-white text-sm font-medium px-5 py-3 rounded-full shadow-lg">
+          {fileError}
+        </div>
+      )}
+
+      <div className="bg-white rounded-2xl w-full max-w-md shadow-xl max-h-[92vh] overflow-y-auto">
         <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
           <h2 className="text-lg font-bold text-[#0A1128]">Tambah Pelatihan Baru</h2>
           <button onClick={handleClose} className="text-gray-400 hover:text-gray-600 transition-colors">
@@ -105,7 +139,7 @@ export function AddPelatihanModal({ isOpen, onClose, onSave }) {
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1.5">Daerah Pelatihan</label>
+              <label className="block text-sm font-semibold text-gray-700 mb-1.5">Daerah</label>
               <div className="grid grid-cols-2 gap-3">
                 <Select value={provinceId} onValueChange={handleProvinceChange} disabled={provincesLoading}>
                   <SelectTrigger>
@@ -131,12 +165,36 @@ export function AddPelatihanModal({ isOpen, onClose, onSave }) {
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1.5">Tanggal Mulai &amp; Selesai Pelatihan</label>
+              <label className="block text-sm font-semibold text-gray-700 mb-1.5">Tanggal Mulai &amp; Berakhir</label>
               <CalendarRangePicker
                 startDate={range.startDate}
                 endDate={range.endDate}
                 onChange={setRange}
               />
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-1.5">Daftar Peserta Guru</label>
+              <label
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={(e) => { e.preventDefault(); pickFile(e.dataTransfer.files?.[0]) }}
+                className="flex flex-col items-center justify-center gap-2 border-2 border-dashed border-blue-300 rounded-xl py-6 px-4 text-center cursor-pointer hover:border-blue-500 transition-colors"
+              >
+                <input type="file" accept=".csv" className="sr-only" onChange={(e) => pickFile(e.target.files?.[0])} />
+                {pesertaFile ? <FileText size={24} className="text-blue-600" /> : <UploadCloud size={24} className="text-[#0A1128]" />}
+                <span className="text-sm text-gray-600">
+                  {pesertaFile ? (
+                    <span className="font-medium text-[#0A1128]">{pesertaFile.name}</span>
+                  ) : (
+                    <>Tarik file .CSV ke sini atau <span className="font-semibold text-blue-600">klik</span> untuk memilih file</>
+                  )}
+                </span>
+              </label>
+              <div className="text-center mt-3">
+                <button type="button" onClick={downloadTemplate} className="text-sm font-semibold text-blue-600 hover:underline">
+                  Download Template Peserta Guru
+                </button>
+              </div>
             </div>
 
             {error && <p className="text-xs text-red-500 font-medium pt-1">{error}</p>}

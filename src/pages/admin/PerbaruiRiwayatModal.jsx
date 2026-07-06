@@ -1,256 +1,230 @@
-import { useState, useRef } from 'react'
-import { X, UploadCloud, FileText, Pencil, Trash2, AlertTriangle } from 'lucide-react'
-import { cn } from '@/lib/utils'
-import { trainingHistoriesApi, queueApi } from '@/lib/api'
-import { EditEmailModal } from './EditEmailModal'
+import { useState, useEffect } from 'react'
+import { X, UploadCloud, FileText, Trash2 } from 'lucide-react'
+import { regionsApi } from '@/lib/api'
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
+import { CalendarRangePicker, toYMD, formatIdDate } from './CalendarRangePicker'
 
-// Poll job sampai COMPLETED / FAILED (maks ~60 detik).
-async function pollJob(trackId) {
-  for (let i = 0; i < 60; i++) {
-    const res = await queueApi.getJob(trackId)
-    const job = res?.data || res
-    if (job.status === 'COMPLETED') return job
-    if (job.status === 'FAILED') throw new Error(job.error || 'Proses gagal di server.')
-    await new Promise((r) => setTimeout(r, 1000))
-  }
-  throw new Error('Timeout menunggu proses server.')
+const asList = (data) => (Array.isArray(data) ? data : data?.data || data?.items || [])
+const regionLabel = (r) => r?.regionName || r?.name || ''
+
+function downloadTemplate() {
+  const csv = 'email\ncontoh1@email.com\ncontoh2@email.com\n'
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url; a.download = 'template-peserta-guru.csv'
+  document.body.appendChild(a); a.click(); document.body.removeChild(a)
+  URL.revokeObjectURL(url)
 }
 
-const asRows = (res) => res?.rows?.data || res?.rows || []
-
-export function PerbaruiRiwayatModal({ isOpen, session, onClose, onDone }) {
-  const [phase, setPhase] = useState('upload') // upload | validating | review | pushing
-  const [file, setFile] = useState(null)
-  const [importId, setImportId] = useState(null)
-  const [rows, setRows] = useState([])
+// Modal EDIT session (Perbarui Riwayat Pelatihan): prefill dari row, update via
+// PATCH, ganti CSV peserta (opsional), atau Hapus Riwayat (ketik DELETE → DELETE).
+export function PerbaruiRiwayatModal({ isOpen, session, onClose, onSave, onDelete }) {
+  const [name, setName] = useState('')
+  const [provinceId, setProvinceId] = useState('')
+  const [regionId, setRegionId] = useState('')
+  const [provinces, setProvinces] = useState([])
+  const [regencies, setRegencies] = useState([])
+  const [regencyLoading, setRegencyLoading] = useState(false)
+  const [range, setRange] = useState({ startDate: null, endDate: null })
+  const [pesertaFile, setPesertaFile] = useState(null)
+  const [fileError, setFileError] = useState('')
   const [error, setError] = useState('')
-  const [editingRow, setEditingRow] = useState(null)
-  const [deletingRow, setDeletingRow] = useState(null)
-  const fileRef = useRef(null)
+  const [confirmDelete, setConfirmDelete] = useState(false)
+  const [deleteText, setDeleteText] = useState('')
+
+  // Prefill saat modal dibuka: nama, tanggal, dan resolve provinsi dari regionId.
+  useEffect(() => {
+    if (!isOpen || !session) return
+    setName(session.nama || '')
+    setRange({
+      startDate: session.startMs ? new Date(session.startMs) : null,
+      endDate: session.endMs ? new Date(session.endMs) : null,
+    })
+    setPesertaFile(null); setFileError(''); setError(''); setConfirmDelete(false); setDeleteText('')
+
+    regionsApi.list().then((d) => setProvinces(asList(d))).catch(() => setProvinces([]))
+
+    if (session.regionId) {
+      regionsApi.get(session.regionId).then((r) => {
+        const reg = r?.data || r
+        const parentId = reg?.parentId || ''
+        setProvinceId(parentId)
+        setRegionId(session.regionId)
+        if (parentId) {
+          setRegencyLoading(true)
+          regionsApi.list({ type: 'REGENCY', parentId })
+            .then((d) => setRegencies(asList(d)))
+            .catch(() => setRegencies([]))
+            .finally(() => setRegencyLoading(false))
+        }
+      }).catch(() => {})
+    } else {
+      setProvinceId(''); setRegionId(''); setRegencies([])
+    }
+  }, [isOpen, session])
 
   if (!isOpen || !session) return null
 
-  const invalidCount = rows.filter((r) => !r.valid).length
-  const validCount = rows.length - invalidCount
-
-  const reset = () => {
-    setPhase('upload'); setFile(null); setImportId(null); setRows([])
-    setError(''); setEditingRow(null); setDeletingRow(null)
+  const handleProvinceChange = (v) => {
+    setProvinceId(v); setRegionId(''); setRegencies([]); setRegencyLoading(true)
+    regionsApi.list({ type: 'REGENCY', parentId: v })
+      .then((d) => setRegencies(asList(d)))
+      .catch(() => setRegencies([]))
+      .finally(() => setRegencyLoading(false))
   }
-  const handleClose = () => { reset(); onClose() }
 
   const pickFile = (f) => {
     if (!f) return
-    if (!/\.csv$/i.test(f.name)) return setError('File harus berformat .csv')
-    setError(''); setFile(f)
+    if (!/\.csv$/i.test(f.name)) return setFileError('Format file tidak didukung. Gunakan format .csv')
+    setFileError(''); setPesertaFile(f)
   }
 
-  const handleUpload = async () => {
-    if (!file) return setError('Pilih file CSV dulu.')
-    setError(''); setPhase('validating')
-    try {
-      const { importId: id, trackId } = await trainingHistoriesApi.upload(file, session.id)
-      await pollJob(trackId)
-      const detail = await trainingHistoriesApi.getImport(id, { limit: 100 })
-      setImportId(id)
-      setRows(asRows(detail))
-      setPhase('review')
-    } catch (err) {
-      setError(err.message || 'Gagal mengunggah CSV.')
-      setPhase('upload')
-    }
-  }
+  const handleSubmit = (e) => {
+    e.preventDefault()
+    setError('')
+    if (!name.trim()) return setError('Nama pelatihan wajib diisi.')
+    if (!regionId) return setError('Daerah wajib dipilih.')
+    if (!range.startDate || !range.endDate) return setError('Tanggal mulai & berakhir wajib diisi.')
 
-  const refreshRows = async () => {
-    const detail = await trainingHistoriesApi.getImport(importId, { limit: 100 })
-    setRows(asRows(detail))
-  }
+    const provinceName = regionLabel(provinces.find((p) => p.id === provinceId))
+    const regionName = regionLabel(regencies.find((r) => r.id === regionId))
 
-  const handleEditSave = async (email) => {
-    const updated = await trainingHistoriesApi.patchRow(importId, editingRow.id, email)
-    const row = updated?.data || updated
-    setRows((prev) => prev.map((r) => (r.id === row.id ? row : r)))
-    setEditingRow(null)
-  }
-
-  const handleDeleteConfirm = async () => {
-    try {
-      await trainingHistoriesApi.deleteRow(importId, deletingRow.id)
-      setRows((prev) => prev.filter((r) => r.id !== deletingRow.id))
-      setDeletingRow(null)
-    } catch (err) {
-      setError(err.message || 'Gagal menghapus peserta.')
-      setDeletingRow(null)
-    }
-  }
-
-  const handlePush = async () => {
-    setError(''); setPhase('pushing')
-    try {
-      const { trackId } = await trainingHistoriesApi.push(importId)
-      await pollJob(trackId)
-      onDone?.(session, validCount)
-      handleClose()
-    } catch (err) {
-      setError(err.message || 'Gagal menyimpan data.')
-      setPhase('review')
-    }
+    onSave({
+      id: session.id,
+      name: name.trim(),
+      regionId,
+      startDate: toYMD(range.startDate),
+      endDate: toYMD(range.endDate),
+      daerahLabel: [regionName, provinceName].filter(Boolean).join(', '),
+      tglMulaiLabel: formatIdDate(range.startDate),
+      pesertaFile,
+    })
+    onClose()
   }
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4">
-      <div className={cn('bg-white rounded-2xl w-full shadow-xl flex flex-col max-h-[90vh]', phase === 'review' ? 'max-w-2xl' : 'max-w-md')}>
-        {/* Header */}
-        <div className="px-6 py-4 border-b border-gray-100 flex items-start justify-between shrink-0">
-          <div>
-            <h2 className="text-lg font-bold text-[#0A1128]">Perbarui Riwayat Pelatihan</h2>
-            <p className="text-sm text-gray-500 mt-0.5">{session.nama}</p>
-          </div>
-          <button onClick={handleClose} className="text-gray-400 hover:text-gray-600 transition-colors">
+      {fileError && (
+        <div className="absolute top-6 left-1/2 -translate-x-1/2 z-[120] bg-red-500 text-white text-sm font-medium px-5 py-3 rounded-full shadow-lg">
+          {fileError}
+        </div>
+      )}
+
+      <div className="bg-white rounded-2xl w-full max-w-md shadow-xl max-h-[92vh] overflow-y-auto">
+        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+          <h2 className="text-lg font-bold text-[#0A1128]">Perbarui Riwayat Pelatihan</h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors">
             <X size={20} />
           </button>
         </div>
 
-        {/* Body */}
-        <div className="p-6 overflow-y-auto">
-          {(phase === 'upload' || phase === 'validating') && (
-            <>
+        <form onSubmit={handleSubmit} className="p-6">
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-1.5">Nama Pelatihan</label>
+              <input
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Masukkan nama pelatihan"
+                className="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-1.5">Daerah</label>
+              <div className="grid grid-cols-2 gap-3">
+                <Select value={provinceId} onValueChange={handleProvinceChange}>
+                  <SelectTrigger><SelectValue placeholder="Pilih Provinsi" /></SelectTrigger>
+                  <SelectContent>
+                    {provinces.map((p) => <SelectItem key={p.id} value={p.id}>{regionLabel(p)}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+                <Select value={regionId} onValueChange={setRegionId} disabled={!provinceId || regencyLoading}>
+                  <SelectTrigger><SelectValue placeholder={regencyLoading ? 'Memuat...' : 'Pilih Kab./Kota'} /></SelectTrigger>
+                  <SelectContent>
+                    {regencies.map((r) => <SelectItem key={r.id} value={r.id}>{regionLabel(r)}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-1.5">Tanggal Mulai &amp; Berakhir</label>
+              <CalendarRangePicker startDate={range.startDate} endDate={range.endDate} onChange={setRange} />
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-1.5">Daftar Peserta Guru</label>
               <label
                 onDragOver={(e) => e.preventDefault()}
                 onDrop={(e) => { e.preventDefault(); pickFile(e.dataTransfer.files?.[0]) }}
-                className={cn(
-                  'flex flex-col items-center justify-center gap-2 border-2 border-dashed rounded-xl py-10 px-4 text-center cursor-pointer transition-colors',
-                  phase === 'validating' ? 'border-gray-200 opacity-60 pointer-events-none' : 'border-gray-300 hover:border-blue-500'
-                )}
+                className="flex flex-col items-center justify-center gap-2 border-2 border-dashed border-blue-300 rounded-xl py-6 px-4 text-center cursor-pointer hover:border-blue-500 transition-colors"
               >
-                <input
-                  ref={fileRef}
-                  type="file"
-                  accept=".csv"
-                  className="sr-only"
-                  onChange={(e) => pickFile(e.target.files?.[0])}
-                />
-                {file ? <FileText size={28} className="text-blue-600" /> : <UploadCloud size={28} className="text-gray-400" />}
-                <span className="text-sm font-medium text-[#0A1128]">
-                  {file ? file.name : 'Klik atau tarik file CSV ke sini'}
+                <input type="file" accept=".csv" className="sr-only" onChange={(e) => pickFile(e.target.files?.[0])} />
+                {pesertaFile ? <FileText size={24} className="text-blue-600" /> : <UploadCloud size={24} className="text-[#0A1128]" />}
+                <span className="text-sm text-gray-600">
+                  {pesertaFile
+                    ? <span className="font-medium text-[#0A1128]">{pesertaFile.name}</span>
+                    : <>Tarik file .CSV ke sini atau <span className="font-semibold text-blue-600">klik</span> untuk mengganti peserta</>}
                 </span>
-                <span className="text-xs text-gray-400">Format: CSV berisi kolom email peserta</span>
               </label>
-
-              {phase === 'validating' && (
-                <p className="mt-4 text-sm text-blue-600 font-medium text-center animate-pulse">
-                  Memvalidasi email peserta...
-                </p>
-              )}
-              {error && <p className="mt-3 text-xs text-red-500 font-medium">{error}</p>}
-
-              <button
-                onClick={handleUpload}
-                disabled={!file || phase === 'validating'}
-                className="mt-6 w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-2.5 rounded-lg transition-colors"
-              >
-                Unggah &amp; Validasi
-              </button>
-            </>
-          )}
-
-          {(phase === 'review' || phase === 'pushing') && (
-            <>
-              {invalidCount > 0 && (
-                <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 text-amber-700 rounded-lg px-4 py-3 mb-4 text-sm">
-                  <AlertTriangle size={18} className="shrink-0 mt-0.5" />
-                  <span>
-                    <b>{invalidCount}</b> email tidak valid akan <b>dilewati</b> saat menyimpan. Perbaiki email atau hapus barisnya.
-                  </span>
-                </div>
-              )}
-
-              <div className="border border-gray-200 rounded-xl overflow-hidden">
-                <table className="w-full text-left text-sm">
-                  <thead className="bg-[#0A1128] text-white">
-                    <tr>
-                      <th className="px-4 py-3 font-medium">Email</th>
-                      <th className="px-4 py-3 font-medium">Status</th>
-                      <th className="px-4 py-3 font-medium text-center">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100">
-                    {rows.map((r) => (
-                      <tr key={r.id} className="hover:bg-gray-50">
-                        <td className="px-4 py-3 text-[#0A1128]">{r.email}</td>
-                        <td className="px-4 py-3">
-                          {r.valid ? (
-                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-green-50 text-green-600">Valid</span>
-                          ) : (
-                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-red-50 text-red-500" title={r.message || ''}>
-                              Tidak valid
-                            </span>
-                          )}
-                        </td>
-                        <td className="px-4 py-3">
-                          <div className="flex items-center justify-center gap-1">
-                            <button
-                              onClick={() => setEditingRow(r)}
-                              className="w-8 h-8 rounded-full flex items-center justify-center text-gray-500 hover:bg-gray-100 hover:text-[#0A1128] transition-colors"
-                              title="Edit email"
-                            >
-                              <Pencil size={15} />
-                            </button>
-                            <button
-                              onClick={() => setDeletingRow(r)}
-                              className="w-8 h-8 rounded-full flex items-center justify-center text-red-500 hover:bg-red-50 transition-colors"
-                              title="Hapus peserta"
-                            >
-                              <Trash2 size={15} />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                    {rows.length === 0 && (
-                      <tr><td colSpan="3" className="px-4 py-8 text-center text-gray-500">Tidak ada baris.</td></tr>
-                    )}
-                  </tbody>
-                </table>
+              <div className="text-center mt-3">
+                <button type="button" onClick={downloadTemplate} className="text-sm font-semibold text-blue-600 hover:underline">
+                  Download Template Peserta Guru
+                </button>
               </div>
+            </div>
 
-              {error && <p className="mt-3 text-xs text-red-500 font-medium">{error}</p>}
+            {error && <p className="text-xs text-red-500 font-medium pt-1">{error}</p>}
+          </div>
 
-              <button
-                onClick={handlePush}
-                disabled={phase === 'pushing' || validCount === 0}
-                className="mt-6 w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-2.5 rounded-lg transition-colors"
-              >
-                {phase === 'pushing' ? 'Menyimpan...' : `Simpan Data (${validCount} valid)`}
-              </button>
-            </>
-          )}
-        </div>
+          <div className="mt-8 flex gap-3">
+            <button
+              type="button"
+              onClick={() => setConfirmDelete(true)}
+              className="flex-1 border border-red-200 text-red-500 hover:bg-red-50 font-semibold py-2.5 rounded-lg transition-colors"
+            >
+              Hapus Riwayat
+            </button>
+            <button
+              type="submit"
+              className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 rounded-lg transition-colors"
+            >
+              Simpan
+            </button>
+          </div>
+        </form>
       </div>
 
-      {/* Edit email 1 row */}
-      <EditEmailModal
-        row={editingRow}
-        onSave={handleEditSave}
-        onCancel={() => setEditingRow(null)}
-      />
-
-      {/* Konfirmasi hapus row */}
-      {deletingRow && (
+      {/* Konfirmasi hapus session — ketik DELETE */}
+      {confirmDelete && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/40 p-4">
           <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-xl text-center">
             <div className="w-14 h-14 rounded-full bg-red-50 flex items-center justify-center mx-auto mb-4">
               <Trash2 className="text-red-500" size={24} />
             </div>
-            <h3 className="text-lg font-bold text-[#0A1128] mb-2">Yakin hapus peserta ini?</h3>
-            <p className="text-sm text-gray-500 mb-6">
-              Email <span className="font-semibold text-[#0A1128]">{deletingRow.email}</span> akan dihapus dari daftar impor.
+            <h3 className="text-lg font-bold text-[#0A1128] mb-2">Yakin Hapus Riwayat Pelatihan?</h3>
+            <p className="text-sm text-gray-500 mb-4">
+              Kamu akan menghapus <span className="font-semibold text-[#0A1128]">{session.nama}</span>. Seluruh data yang tersimpan akan hilang.
             </p>
+            <p className="text-xs text-gray-500 mb-1.5 text-left">Ketik <b className="text-red-500">DELETE</b> untuk melanjutkan</p>
+            <input
+              value={deleteText}
+              onChange={(e) => setDeleteText(e.target.value)}
+              placeholder="DELETE"
+              className="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm mb-5 focus:outline-none focus:border-red-400 focus:ring-1 focus:ring-red-400"
+            />
             <div className="flex gap-3">
-              <button onClick={() => setDeletingRow(null)} className="flex-1 border border-gray-200 text-[#0A1128] font-semibold py-2.5 rounded-lg hover:bg-gray-50 transition-colors">
+              <button onClick={() => { setConfirmDelete(false); setDeleteText('') }} className="flex-1 border border-gray-200 text-[#0A1128] font-semibold py-2.5 rounded-lg hover:bg-gray-50 transition-colors">
                 Batalkan
               </button>
-              <button onClick={handleDeleteConfirm} className="flex-1 bg-red-500 hover:bg-red-600 text-white font-semibold py-2.5 rounded-lg transition-colors">
+              <button
+                disabled={deleteText !== 'DELETE'}
+                onClick={() => { onDelete(session); onClose() }}
+                className="flex-1 bg-red-500 hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-2.5 rounded-lg transition-colors"
+              >
                 Hapus
               </button>
             </div>

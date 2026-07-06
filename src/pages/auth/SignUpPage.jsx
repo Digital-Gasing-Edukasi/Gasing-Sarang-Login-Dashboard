@@ -13,8 +13,24 @@ import {
 import { RightPanel, Divider } from "@/components/layout/RightPanel";
 import { StepIndicator } from "@/components/layout/StepIndicator";
 import { IconInput, TogglePassword } from "@/components/shared/IconInput";
-import { ErrorAlert } from "@/components/shared/ErrorAlert";
 import { authApi, regionsApi, trainingSessionsApi } from "@/lib/api";
+import { Filter } from 'bad-words';
+
+const filter = new Filter();
+const indonesianBadWords = [
+  "anjing", "njing", "anying", "asu", "babi", "celeng", "monyet", "kunyuk", 
+  "kampret", "bajingan", "bangsat", "keparat", "ngepet", 
+  "goblok", "tolol", "bego", "dongo", "idiot", "geblek", "oranggila", "sinting", "sarap", "udik", 
+  "ngentot", "ngewe", "memek", "kontol", "peler", "jembut", "bawok", "sange", "bokep", "porno", "bugil", "cipok",
+  "lonte", "pelacur", "perek", "sundal", "kimpek", "jablay", "banci",
+  "tai", "berak", "telek", "sampah", "jahanam",
+  "kafir", "cina", "cokin", "tiko", "kristen", "islam", "yahudi", "budha", "hindu", "komunis", "pki"
+];
+filter.addWords(...indonesianBadWords);
+
+const ERR_INPUT =
+  "!border-red-500 focus-visible:!border-red-500 focus-visible:ring-red-200";
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const asList = (data) =>
   Array.isArray(data) ? data : data?.data || data?.items || [];
@@ -55,7 +71,10 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
   const [showConfirm, setShowConfirm] = useState(false);
   const [passwordFocused, setPasswordFocused] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [errors, setErrors] = useState({});
+
+  const clearFieldError = (field) =>
+    setErrors((prev) => ({ ...prev, [field]: "" }));
 
   // Lokasi saat ini (Provinsi → Kab/Kota = regionId)
   const [provinces, setProvinces] = useState([]);
@@ -136,47 +155,53 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
   const showPasswordRules = passwordFocused || password.length > 0;
 
   const handleNextToData = () => {
-    setError("");
-    if (!name || !username || !email || !password || !confirm) {
-      setError("Semua field wajib diisi");
+    const next = {};
+    if (!name) next.name = "Nama lengkap wajib diisi.";
+    else if (filter.isProfane(name))
+      next.name = "Nama mengandung kata yang tidak pantas atau unsur SARA.";
+
+    if (!username) next.username = "Username wajib diisi.";
+    else if (username.length < 3)
+      next.username = "Username minimal 3 karakter.";
+    else if (!/^[a-z][a-z0-9_]*$/.test(username))
+      next.username =
+        "Username harus diawali huruf kecil dan hanya berisi huruf kecil, angka, dan underscore.";
+    else if (filter.isProfane(username.replace(/_/g, ' ')))
+      next.username = "Username mengandung kata yang tidak pantas atau unsur SARA.";
+
+    if (!email) next.email = "Email wajib diisi.";
+    else if (!EMAIL_RE.test(email)) next.email = "Format email tidak valid.";
+
+    if (!password) next.password = "Password wajib diisi.";
+    else if (!allRulesOk)
+      next.password = "Password belum memenuhi semua ketentuan.";
+
+    if (!confirm) next.confirm = "Konfirmasi password wajib diisi.";
+    else if (password !== confirm)
+      next.confirm = "Konfirmasi password tidak cocok.";
+
+    if (Object.keys(next).length) {
+      setErrors(next);
       return;
     }
 
-    if (username.length < 3) {
-      setError("Username minimal 3 karakter");
-      return;
-    }
-    if (!/^[a-z][a-z0-9_]*$/.test(username)) {
-      setError(
-        "Username harus diawali huruf kecil dan hanya berisi huruf kecil, angka, dan underscore",
-      );
-      return;
-    }
-
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      setError("Format email tidak valid");
-      return;
-    }
-
-    if (!allRulesOk) {
-      setError("Password belum memenuhi semua ketentuan");
-      return;
-    }
-    if (password !== confirm) {
-      setError("Konfirmasi password tidak cocok");
-      return;
-    }
-
+    setErrors({});
     setStep(2);
   };
 
   const handleRegister = async () => {
-    setError("");
-    if (!birthdate || !regionId || !lastTrainingSessionId || !schoolName) {
-      setError("Semua field wajib diisi");
+    const next = {};
+    if (!birthdate) next.birthdate = "Tanggal lahir wajib diisi.";
+    if (!regionId) next.regionId = "Lokasi kamu wajib dipilih.";
+    if (!lastTrainingSessionId)
+      next.session = "Lokasi pelatihan wajib dipilih.";
+    if (!schoolName) next.schoolName = "Nama sekolah wajib diisi.";
+    if (Object.keys(next).length) {
+      setErrors(next);
       return;
     }
+
+    setErrors({});
     setLoading(true);
     try {
       // Endpoint /auth/register mengharapkan tahun/bulan/region pelatihan pertama,
@@ -199,15 +224,18 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
       onNavigate("signup-otp");
     } catch (e) {
       const msg = e.message;
-      setError(msg);
-
       const msgLower = msg.toLowerCase();
-      if (
-        msgLower.includes("username") ||
-        msgLower.includes("email") ||
-        msgLower.includes("password")
-      ) {
+      if (msgLower.includes("username")) {
+        setErrors({ username: msg });
         setStep(1);
+      } else if (msgLower.includes("email")) {
+        setErrors({ email: msg });
+        setStep(1);
+      } else if (msgLower.includes("password")) {
+        setErrors({ password: msg });
+        setStep(1);
+      } else {
+        setErrors({ general: msg });
       }
     } finally {
       setLoading(false);
@@ -235,15 +263,24 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
           </div>
 
           <div className="space-y-4 animate-fade-in-up delay-200">
-            <ErrorAlert message={error} />
+            {errors.general && (
+              <p className="text-sm text-red-500 text-center">{errors.general}</p>
+            )}
             <div className="space-y-1.5">
               <Label className="text-[13px] font-semibold">Nama Lengkap</Label>
               <Input
                 type="text"
                 placeholder="Masukkan nama lengkap"
                 value={name}
-                onChange={(e) => setName(e.target.value)}
+                className={errors.name ? ERR_INPUT : ""}
+                onChange={(e) => {
+                  setName(e.target.value);
+                  clearFieldError("name");
+                }}
               />
+              {errors.name && (
+                <p className="text-xs text-red-500">{errors.name}</p>
+              )}
             </div>
             <div className="space-y-1.5">
               <Label className="text-[13px] font-semibold">Username</Label>
@@ -251,8 +288,15 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
                 type="text"
                 placeholder="Masukkan username"
                 value={username}
-                onChange={(e) => setUsername(e.target.value)}
+                className={errors.username ? ERR_INPUT : ""}
+                onChange={(e) => {
+                  setUsername(e.target.value);
+                  clearFieldError("username");
+                }}
               />
+              {errors.username && (
+                <p className="text-xs text-red-500">{errors.username}</p>
+              )}
             </div>
             <div className="space-y-1.5">
               <Label className="text-[13px] font-semibold">Email</Label>
@@ -261,8 +305,15 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
                 type="email"
                 placeholder="Masukkan email"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                className={errors.email ? ERR_INPUT : ""}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  clearFieldError("email");
+                }}
               />
+              {errors.email && (
+                <p className="text-xs text-red-500">{errors.email}</p>
+              )}
             </div>
             <div className="space-y-1.5">
               <Label className="text-[13px] font-semibold">Password</Label>
@@ -271,7 +322,11 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
                 type={showPass ? "text" : "password"}
                 placeholder="Masukkan password"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                className={errors.password ? ERR_INPUT : ""}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  clearFieldError("password");
+                }}
                 onFocus={() => setPasswordFocused(true)}
                 onBlur={() => setPasswordFocused(false)}
                 iconRight={
@@ -281,6 +336,9 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
                   />
                 }
               />
+              {errors.password && (
+                <p className="text-xs text-red-500">{errors.password}</p>
+              )}
               {showPasswordRules && (
                 <div className="space-y-1.5 pt-1 animate-in fade-in slide-in-from-top-1">
                   <p className="text-[13px] font-medium text-foreground">
@@ -317,7 +375,11 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
                 type={showConfirm ? "text" : "password"}
                 placeholder="Konfirmasi password"
                 value={confirm}
-                onChange={(e) => setConfirm(e.target.value)}
+                className={errors.confirm ? ERR_INPUT : ""}
+                onChange={(e) => {
+                  setConfirm(e.target.value);
+                  clearFieldError("confirm");
+                }}
                 iconRight={
                   <TogglePassword
                     show={showConfirm}
@@ -325,6 +387,9 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
                   />
                 }
               />
+              {errors.confirm && (
+                <p className="text-xs text-red-500">{errors.confirm}</p>
+              )}
             </div>
             <Button className="w-full" onClick={handleNextToData}>
               Lanjutkan
@@ -367,15 +432,24 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
           </div>
 
           <div className="space-y-4 animate-fade-in-up delay-200">
-            <ErrorAlert message={error} />
+            {errors.general && (
+              <p className="text-sm text-red-500 text-center">{errors.general}</p>
+            )}
             <div className="space-y-1.5">
               <Label className="text-[13px] font-semibold">Tanggal Lahir</Label>
               <IconInput
                 icon={Calendar}
                 type="date"
                 value={birthdate}
-                onChange={(e) => setBirthdate(e.target.value)}
+                className={errors.birthdate ? ERR_INPUT : ""}
+                onChange={(e) => {
+                  setBirthdate(e.target.value);
+                  clearFieldError("birthdate");
+                }}
               />
+              {errors.birthdate && (
+                <p className="text-xs text-red-500">{errors.birthdate}</p>
+              )}
             </div>
 
             <div className="space-y-1.5">
@@ -405,10 +479,13 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
                 </Select>
                 <Select
                   value={regionId}
-                  onValueChange={setRegionId}
+                  onValueChange={(v) => {
+                    setRegionId(v);
+                    clearFieldError("regionId");
+                  }}
                   disabled={!provinceId || regencyLoading}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className={errors.regionId ? ERR_INPUT : ""}>
                     <SelectValue
                       placeholder={
                         regencyLoading ? "Memuat..." : "Pilih Kab./Kota"
@@ -424,6 +501,9 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
                   </SelectContent>
                 </Select>
               </div>
+              {errors.regionId && (
+                <p className="text-xs text-red-500">{errors.regionId}</p>
+              )}
             </div>
 
             <div className="space-y-1.5">
@@ -474,10 +554,13 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
               </Label>
               <Select
                 value={lastTrainingSessionId}
-                onValueChange={setLastTrainingSessionId}
+                onValueChange={(v) => {
+                  setLastTrainingSessionId(v);
+                  clearFieldError("session");
+                }}
                 disabled={!kapanMonth}
               >
-                <SelectTrigger>
+                <SelectTrigger className={errors.session ? ERR_INPUT : ""}>
                   <SelectValue placeholder="Pilih Daerah" />
                 </SelectTrigger>
                 <SelectContent>
@@ -488,6 +571,9 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
                   ))}
                 </SelectContent>
               </Select>
+              {errors.session && (
+                <p className="text-xs text-red-500">{errors.session}</p>
+              )}
             </div>
 
             <div className="space-y-1.5">
@@ -497,8 +583,15 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
               <Input
                 placeholder="Nama sekolah"
                 value={schoolName}
-                onChange={(e) => setSchoolName(e.target.value)}
+                className={errors.schoolName ? ERR_INPUT : ""}
+                onChange={(e) => {
+                  setSchoolName(e.target.value);
+                  clearFieldError("schoolName");
+                }}
               />
+              {errors.schoolName && (
+                <p className="text-xs text-red-500">{errors.schoolName}</p>
+              )}
             </div>
             <Button
               className="w-full"

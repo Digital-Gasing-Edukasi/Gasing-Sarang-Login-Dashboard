@@ -5,8 +5,10 @@ import { Label }    from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
 import { RightPanel, Divider } from '@/components/layout/RightPanel'
 import { IconInput, TogglePassword } from '@/components/shared/IconInput'
-import { ErrorAlert } from '@/components/shared/ErrorAlert'
 import { authApi, profileApi, tokenStorage } from '@/lib/api'
+
+const ERR_INPUT = '!border-red-500 focus-visible:!border-red-500 focus-visible:ring-red-200'
+const EMAIL_RE  = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 export function LoginPage({ onNavigate, onLoginSuccess, isSsoMode = false }) {
   const [email, setEmail]       = useState('')
@@ -21,8 +23,9 @@ export function LoginPage({ onNavigate, onLoginSuccess, isSsoMode = false }) {
 
   const handleLogin = async () => {
     const next = {}
-    if (!email)    next.email    = 'Pastikan email tidak kosong.'
-    if (!password) next.password = 'Pastikan password tidak kosong.'
+    if (!email)                 next.email    = 'Pastikan email tidak kosong.'
+    else if (!EMAIL_RE.test(email)) next.email = 'Format email tidak valid.'
+    if (!password)              next.password = 'Pastikan password tidak kosong.'
     if (Object.keys(next).length) { setErrors(next); return }
 
     setErrors({}); setLoading(true)
@@ -32,7 +35,7 @@ export function LoginPage({ onNavigate, onLoginSuccess, isSsoMode = false }) {
       const profile = await profileApi.getMe()
       onLoginSuccess(profile)
     } catch (e) {
-      setErrors({ general: e.message })
+      setErrors({ password: e.message })
     } finally {
       setLoading(false)
     }
@@ -55,13 +58,11 @@ export function LoginPage({ onNavigate, onLoginSuccess, isSsoMode = false }) {
       )}
 
       <div className="space-y-4 animate-fade-in-up delay-200">
-        <ErrorAlert message={errors.general} />
-
         <div className="space-y-1">
           <Label htmlFor="login-email">Email</Label>
           <IconInput id="login-email" icon={Mail} type="email"
             placeholder="Masukkan email Anda" value={email}
-            className={errors.email ? 'border-red-500 focus-visible:ring-red-200' : ''}
+            className={errors.email ? ERR_INPUT : ''}
             onChange={e => { setEmail(e.target.value); clearFieldError('email') }}
             onKeyDown={e => e.key === 'Enter' && handleLogin()} />
           {errors.email && <p className="text-xs text-red-500">{errors.email}</p>}
@@ -71,7 +72,7 @@ export function LoginPage({ onNavigate, onLoginSuccess, isSsoMode = false }) {
           <Label htmlFor="login-pass">Password</Label>
           <IconInput id="login-pass" icon={Lock} type={showPass ? 'text' : 'password'}
             placeholder="Masukkan password Anda" value={password}
-            className={errors.password ? 'border-red-500 focus-visible:ring-red-200' : ''}
+            className={errors.password ? ERR_INPUT : ''}
             onChange={e => { setPassword(e.target.value); clearFieldError('password') }}
             onKeyDown={e => e.key === 'Enter' && handleLogin()}
             iconRight={<TogglePassword show={showPass} onToggle={() => setShowPass(v => !v)} />} />
@@ -82,7 +83,7 @@ export function LoginPage({ onNavigate, onLoginSuccess, isSsoMode = false }) {
           <div className="flex items-center gap-2">
             <Checkbox id="remember" checked={remember} onCheckedChange={setRemember} />
             <Label htmlFor="remember" className="font-normal text-muted-foreground cursor-pointer">
-              Ingatkan saya
+              Ingat saya
             </Label>
           </div>
           <button onClick={() => onNavigate('forgot-password')}

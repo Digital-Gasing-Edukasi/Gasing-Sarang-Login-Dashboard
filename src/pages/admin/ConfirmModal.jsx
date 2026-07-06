@@ -1,13 +1,17 @@
-import { useState } from 'react'
-import { Check, UserCheck } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Check, ChevronDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { FIELD_DEFS } from '@/lib/fixLink'
+import { getRoleOptions, resolveRoleValue } from './roleOptions'
 
 export function RejectModal({ candidate, onConfirm, onCancel }) {
   // checked: { [fieldKey]: true } — field yang dicentang salah oleh admin.
   const [checked, setChecked] = useState({})
   // note: "Catatan Tambahan" — muncul saat 'Lainnya' dicentang. → rejectedReason.
   const [note, setNote] = useState('')
+
+  // Reset saat kandidat berganti (modal dipakai ulang untuk user berbeda).
+  useEffect(() => { setChecked({}); setNote('') }, [candidate])
 
   if (!candidate) return null
 
@@ -42,7 +46,7 @@ export function RejectModal({ candidate, onConfirm, onCancel }) {
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm">
-      <div className="bg-white rounded-[24px] w-full max-w-[480px] shadow-2xl mx-4 max-h-[90vh] overflow-hidden flex flex-col">
+      <div className="bg-white rounded-[24px] w-full max-w-[560px] shadow-2xl mx-4 max-h-[90vh] overflow-hidden flex flex-col">
         <div className="p-8 pb-5 overflow-y-auto">
           <h3 className="text-2xl font-bold text-red-500 mb-1.5">Tolak Akun</h3>
           <p className="text-gray-500 text-sm mb-5">
@@ -51,7 +55,8 @@ export function RejectModal({ candidate, onConfirm, onCancel }) {
 
           <hr className="border-gray-100 mb-4" />
 
-          <div className="space-y-1">
+          {/* Checklist 2-kolom */}
+          <div className="grid grid-cols-2 gap-x-6 gap-y-1">
             {FIELD_DEFS.map((f) => {
               const on = !!checked[f.key]
               return (
@@ -64,12 +69,7 @@ export function RejectModal({ candidate, onConfirm, onCancel }) {
                   >
                     {on && <Check size={15} className="text-white" strokeWidth={3} />}
                   </span>
-                  <input
-                    type="checkbox"
-                    checked={on}
-                    onChange={() => toggle(f.key)}
-                    className="sr-only"
-                  />
+                  <input type="checkbox" checked={on} onChange={() => toggle(f.key)} className="sr-only" />
                   <span className="text-[15px] text-[#0A1128]">{f.label}</span>
                 </label>
               )
@@ -110,24 +110,90 @@ export function RejectModal({ candidate, onConfirm, onCancel }) {
   )
 }
 
-export function ApproveModal({ candidate, onConfirm, onCancel }) {
+// Dropdown kecil reusable (Role & Pelatihan) dengan tampilan konsisten.
+function Dropdown({ label, value, onChange, options, placeholder }) {
+  return (
+    <div>
+      <label className="block text-sm font-medium text-[#0A1128] mb-1.5">{label}</label>
+      <div className="relative">
+        <select
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className={cn(
+            'w-full appearance-none bg-white border rounded-xl py-3 pl-4 pr-9 text-sm font-medium outline-none transition-colors',
+            'border-gray-200 focus:border-[#0A1128]',
+            value ? 'text-[#0A1128]' : 'text-gray-400'
+          )}
+        >
+          <option value="" disabled>{placeholder}</option>
+          {options.map((o) => (
+            <option key={o.value} value={o.value} className="text-[#0A1128]">{o.label}</option>
+          ))}
+        </select>
+        <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+      </div>
+    </div>
+  )
+}
+
+export function ApproveModal({ candidate, discourseGroups = [], trainingSessions = [], onConfirm, onCancel }) {
+  const roleOptions = getRoleOptions(discourseGroups)
+  const sessionOptions = trainingSessions.map((s) => ({ value: String(s.id), label: s.name }))
+
+  const [role, setRole] = useState('')
+  const [session, setSession] = useState('')
+
+  // Prefill dari data user tiap kali kandidat berganti.
+  useEffect(() => {
+    if (!candidate) return
+    setRole(resolveRoleValue(discourseGroups, candidate.role))
+    setSession(candidate.raw?.lastTrainingSessionId ? String(candidate.raw.lastTrainingSessionId) : '')
+  }, [candidate, discourseGroups])
+
   if (!candidate) return null
+
+  // Keputusan #1: Role DAN Pelatihan Terbaru wajib dipilih.
+  const canSubmit = !!role && !!session
+
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm">
-      <div className="bg-white rounded-[24px] p-8 max-w-[400px] w-full shadow-2xl flex flex-col items-center text-center mx-4">
-        <div className="w-16 h-16 rounded-full border border-dashed border-green-500 flex items-center justify-center mb-6 bg-green-50">
-          <UserCheck className="text-green-500" size={28} strokeWidth={1.5} />
+      <div className="bg-white rounded-[24px] w-full max-w-[440px] shadow-2xl mx-4 overflow-hidden flex flex-col">
+        <div className="p-8 pb-5">
+          <h3 className="text-2xl font-bold text-[#0A1128] mb-1.5">Setujui Akun ini?</h3>
+          <p className="text-gray-500 text-sm mb-6">
+            Atur role dan pelatihan untuk <span className="font-bold text-[#0A1128]">{candidate.name}</span> sebelum menyetujui.
+          </p>
+
+          <div className="space-y-4">
+            <Dropdown
+              label="Role"
+              value={role}
+              onChange={setRole}
+              options={roleOptions}
+              placeholder="Pilih role"
+            />
+            <Dropdown
+              label="Nama Pelatihan Terbaru"
+              value={session}
+              onChange={setSession}
+              options={sessionOptions}
+              placeholder="Pilih pelatihan"
+            />
+          </div>
         </div>
-        <h3 className="text-xl font-bold text-[#0A1128] mb-3">Setujui verifikasi akun ini?</h3>
-        <p className="text-gray-500 mb-8 text-sm px-4">
-          Akun <span className="font-bold text-[#0A1128]">{candidate.name}</span> akan disetujui dan{' '}
-          <span className="text-green-500">mendapatkan akses</span> ke GASING Circle.
-        </p>
-        <div className="flex items-center justify-center gap-6 w-full">
-          <button onClick={onCancel} className="font-semibold text-[#0A1128] hover:text-gray-600 px-6 py-2 transition-colors">
+
+        <div className="flex items-center gap-4 p-6 bg-gray-50/70 border-t border-gray-100">
+          <button
+            onClick={onCancel}
+            className="flex-1 font-semibold text-[#0A1128] border border-gray-200 bg-white hover:bg-gray-50 px-6 py-3.5 rounded-full transition-colors"
+          >
             Batalkan
           </button>
-          <button onClick={onConfirm} className="font-semibold px-8 py-3 rounded-full bg-blue-600 text-white hover:bg-blue-700 transition-colors">
+          <button
+            disabled={!canSubmit}
+            onClick={() => onConfirm({ discourseGroupId: parseInt(role, 10), lastTrainingSessionId: session })}
+            className="flex-1 font-semibold px-6 py-3.5 rounded-full bg-blue-600 text-white hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
             Setujui Akun
           </button>
         </div>

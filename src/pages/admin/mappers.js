@@ -1,3 +1,11 @@
+// Window "komponen baru": badge New + titik biru navbar hilang setelah 3 hari.
+export const NEW_WINDOW_MS = 3 * 24 * 60 * 60 * 1000
+
+// True kalau epoch-ms masih dalam window 3 hari terakhir.
+export function computeIsNew(ms) {
+  return ms ? (Date.now() - ms) < NEW_WINDOW_MS : false
+}
+
 // ─── Date helpers ──────────────────────────────────────────────────────────────
 // API mengembalikan date sebagai object { date, formatted } atau unix timestamp object
 // Bukan string ISO biasa
@@ -49,6 +57,27 @@ function dateFieldMs(raw) {
   return isNaN(d) ? null : d.getTime()
 }
 
+// Rule Last Updated: kalau di-update hari ini → tampilkan jam; selain itu → tanggal.
+// Balik { text, ms } — ms buat sorting.
+function fmtLastUpdated(raw) {
+  const ms = dateFieldMs(raw)
+  if (!ms) return { text: '-', ms: 0 }
+  const d = new Date(ms)
+  const now = new Date()
+  const today =
+    d.getFullYear() === now.getFullYear() &&
+    d.getMonth() === now.getMonth() &&
+    d.getDate() === now.getDate()
+  if (today) {
+    let h = d.getHours()
+    const ampm = h >= 12 ? 'PM' : 'AM'
+    h = h % 12 || 12
+    const mm = String(d.getMinutes()).padStart(2, '0')
+    return { text: `${h}:${mm} ${ampm}`, ms }
+  }
+  return { text: fmtDate(ms), ms }
+}
+
 // Training session (GET /training-sessions) → row tabel Riwayat Pelatihan.
 // Endpoint ini TIDAK menyediakan peserta/langganan/status/last-updated → diisi '-'.
 // Session hanya membawa `regionId` (tanpa nama daerah), jadi `regionMap`
@@ -56,6 +85,8 @@ function dateFieldMs(raw) {
 // ke sini. Kalau API kelak meng-embed region, object embedded tetap dipakai.
 export function mapToRiwayat(s, regionMap = {}) {
   const startMs = dateFieldMs(s.startDate)
+  const lu = fmtLastUpdated(s.updatedAt)
+  const isNew = computeIsNew(dateFieldMs(s.createdAt))
   const rid = s.regionId || s.region?.id
   const embedded = s.region || s.regency
   const embeddedName = embedded?.name || embedded?.regionName
@@ -67,6 +98,7 @@ export function mapToRiwayat(s, regionMap = {}) {
   return {
     id:       s.id,
     nama:     s.name || '-',
+    isNew,
     daerah,
     tglMulai: startMs ? fmtDate(startMs) : '-',
     status:   'Saved',
@@ -74,8 +106,26 @@ export function mapToRiwayat(s, regionMap = {}) {
     pesertaLainnya: 0,
     pesertaEmail:   '-',
     langganan:      '-',
-    lastUpdatedDate: '-',
-    lastUpdatedTime: '',
+    lastUpdated:    lu.text,
+    lastUpdatedMs:  lu.ms,
+    // Raw untuk prefill modal edit (Perbarui Riwayat Pelatihan).
+    regionId: rid || '',
+    startMs,
+    endMs:    dateFieldMs(s.endDate),
+  }
+}
+
+// User (dari admin/users) → row peserta di modal Daftar Peserta Guru.
+export function mapToPeserta(u) {
+  const sub = u.activeSubscription || u.subscription
+  const langganan =
+    sub?.status === 'active'  ? 'Aktif' :
+    sub?.status === 'expired' ? 'Berakhir' : 'Non-Aktif'
+  return {
+    userId: u.id,
+    name:   u.name || '-',
+    email:  u.email || '-',
+    langganan,
   }
 }
 
@@ -94,6 +144,21 @@ export function mapToVerifikasi(u, regions = []) {
   const regionObj = regions.find(r => r.id === trainingRegionId)
   const regionName = regionObj ? regionObj.regionName : (u.firstTrainingRegion?.regionName || u.trainingRegion?.regionName || '-')
 
+  // Lokasi = domisili user (kolom "Lokasi" di tabel). Prioritas region ter-embed di
+  // respons; kalau tidak ada, coba resolve regionId lewat daftar regions.
+  const userRegion = u.region || u.regency
+  const provinceName =
+    u.province?.regionName || u.province?.name ||
+    userRegion?.parent?.regionName || userRegion?.parent?.name || ''
+  const regencyName =
+    userRegion?.regionName || userRegion?.name ||
+    regions.find(r => r.id === u.regionId)?.regionName || ''
+  const lokasi = [regencyName, provinceName].filter(Boolean).join(', ') || '-'
+
+  // Badge "New": akun dibuat < 7 hari.
+  const createdMs = parseCreatedAtMs(u.createdAt)
+  const isNew = createdMs ? (Date.now() - createdMs) < 7 * 24 * 60 * 60 * 1000 : false
+
   return {
     id:       u.id,
     name:     u.name || '-',
@@ -101,6 +166,8 @@ export function mapToVerifikasi(u, regions = []) {
     email:    u.email || '-',
     status:   parseVerifiedStatus(u.verifiedStatus),
     birthdate: parseBirthdate(u.birthdate),
+    lokasi,
+    isNew,
     training:  regionName,
     year:      parseCreatedAtYear(u.createdAt),
     school:    u.schoolName || '-',
@@ -118,23 +185,101 @@ export function mapToVerifikasi(u, regions = []) {
   }
 }
 
-export function mapToManajemen(u, regions = []) {
+// Status untuk 4 tab Manajemen Akun (struktur tabel besar):
+//   Disetujui | Ditolak | Ditangguhkan | Baru Dihapus
+// Prioritas flag: penghapusan > penangguhan > hasil verifikasi.
+// (suspend & deletion mengacu endpoint admin: /suspend & /deletion-request.)
+function parseManajemenStatus(u) {
+  if (u.deletionPending || u.deletionScheduledAt || u.deletedAt) return 'Baru Dihapus'
+  if (u.suspendedUntil || u.suspended) return 'Ditangguhkan'
+  const vs = u.verifiedStatus
+  if (vs === -1 || vs === 'rejected') return 'Ditolak'
+  return 'Disetujui'
+}
+
+// Jenis Paket → 'Tahunan' | 'Bulanan' | '-'. Diturunkan dari durasi paket.
+// (package: { duration, durationUnit } — lihat admin/packages Create Package.)
+function parsePlan(sub) {
+  if (!sub) return '-'
+  const pkg  = sub.package || sub.plan || {}
+  const unit = String(pkg.durationUnit || pkg.duration_unit || '').toLowerCase()
+  const dur  = Number(pkg.duration || 0)
+  const name = String(pkg.name || sub.packageName || '').toLowerCase()
+  if (unit === 'year' || dur >= 12 || name.includes('year') || name.includes('tahun')) return 'Tahunan'
+  if (unit === 'month' || dur >= 1 || name.includes('month') || name.includes('bulan')) return 'Bulanan'
+  return '-'
+}
+
+// Latest Update: <= 24 jam → jam ("9:20 AM"); > 24 jam → tanggal ("28 Mei 2026").
+// Balik { text, ms } — ms untuk sorting.
+function fmtLastUpdated24h(raw) {
+  const ms = dateFieldMs(raw)
+  if (!ms) return { text: '-', ms: 0 }
+  if (Date.now() - ms <= 24 * 60 * 60 * 1000) {
+    const d = new Date(ms)
+    let h = d.getHours()
+    const ampm = h >= 12 ? 'PM' : 'AM'
+    h = h % 12 || 12
+    return { text: `${h}:${String(d.getMinutes()).padStart(2, '0')} ${ampm}`, ms }
+  }
+  return { text: fmtDate(ms), ms }
+}
+
+// Nama role (discourse group). Prioritas embedded; fallback resolve id → daftar groups.
+function resolveRole(u, groups = []) {
+  const embedded = u.discourseGroup?.name || u.discourseGroupName
+  if (embedded) return embedded
+  const gid = u.discourseGroupId
+  if (gid != null) {
+    const g = groups.find(x => String(x.id) === String(gid))
+    if (g) return g.name
+  }
+  return ''
+}
+
+// "Kabupaten, Provinsi" dari region embedded / regionId + daftar provinsi.
+function resolveRegionLabel(regionObj, regionId, regions = []) {
+  const reg = regionObj || {}
+  const regencyName =
+    reg.regionName || reg.name ||
+    regions.find(r => r.id === regionId)?.regionName || ''
+  const provinceName =
+    reg.parent?.regionName || reg.parent?.name ||
+    regions.find(r => r.id === reg.parentId)?.regionName || ''
+  return [regencyName, provinceName].filter(Boolean).join(', ') || '-'
+}
+
+export function mapToManajemen(u, regions = [], discourseGroups = []) {
   const sub = u.activeSubscription || u.subscription
   const subStatus =
     sub?.status === 'active'  ? 'Active'  :
     sub?.status === 'expired' ? 'Expired' : 'Not Active'
 
-  const accountStatus = parseVerifiedStatus(u.verifiedStatus)
+  const accountStatus = parseManajemenStatus(u)
+  const isNew = computeIsNew(parseCreatedAtMs(u.createdAt))
 
-  const createdMs = parseCreatedAtMs(u.createdAt)
-  const isNew = createdMs ? (Date.now() - createdMs) < 7 * 24 * 60 * 60 * 1000 : false
+  const voucher = u.activeVoucher?.code || u.voucher?.code || u.voucherCode || ''
+  const action  = voucher ? 'Sudah Disalin' : (accountStatus === 'Disetujui' ? 'Konfirmasi' : '-')
 
-  const voucher = u.activeVoucher?.code || ''
-  const action  = voucher ? 'Sudah Disalin' : (accountStatus === 'Approved' ? 'Konfirmasi' : '-')
+  // Lokasi = domisili user.
+  const lokasi = resolveRegionLabel(u.region || u.regency, u.regionId, regions)
 
-  const trainingRegionId = u.firstTrainingRegionId || u.trainingRegionId
-  const regionObj = regions.find(r => r.id === trainingRegionId)
-  const regionName = regionObj ? regionObj.regionName : (u.firstTrainingRegion?.regionName || u.trainingRegion?.regionName || '-')
+  // Alumni Pelatihan = sesi yang diikuti user (lastTrainingSession).
+  const lts = u.lastTrainingSession || u.trainingSession || {}
+  const ltsMs = dateFieldMs(lts.startDate)
+  const alumniNama    = lts.name || '-'
+  const alumniTanggal = ltsMs ? fmtDate(ltsMs) : '-'
+  const alumniDaerah  = resolveRegionLabel(lts.region || lts.regency, lts.regionId, regions)
+
+  // Riwayat Pelatihan = jumlah histori pelatihan.
+  const riwayatCount =
+    u.trainingHistoriesCount ?? u.trainingHistoryCount ?? u._count?.trainingHistories ??
+    (Array.isArray(u.trainingHistories) ? u.trainingHistories.length : 0)
+
+  const subEnd = sub?.expiresAt || sub?.endDate || sub?.currentPeriodEnd || sub?.expiredAt || sub?.expires_at
+  const endMs  = dateFieldMs(subEnd)
+
+  const lu = fmtLastUpdated24h(u.updatedAt)
 
   return {
     id:       u.id,
@@ -145,13 +290,19 @@ export function mapToManajemen(u, regions = []) {
     accountStatus,
     voucher,
     birthdate: parseBirthdate(u.birthdate),
-    training:  regionName,
+    lokasi,
+    training:      alumniNama,   // kolom "Alumni Pelatihan Nama"
+    alumniDaerah,                // kolom "Alumni Pelatihan Daerah"
+    alumniTanggal,               // kolom "Alumni Pelatihan Tanggal Mulai"
+    riwayatCount,
     year:      parseCreatedAtYear(u.createdAt),
     school:    u.schoolName || '-',
-    role:      u.discourseGroup?.name || u.discourseGroupName || '',
+    role:      resolveRole(u, discourseGroups),
     subscription: subStatus,
-    plan:    sub ? (sub.package?.name || 'Terdaftar') : 'Tidak Terdaftar',
-    endDate: sub?.expiresAt ? fmtDate(sub.expiresAt) : '',
+    plan:    parsePlan(sub),
+    endDate: endMs ? fmtDate(endMs) : '-',
+    lastUpdated:   lu.text,
+    lastUpdatedMs: lu.ms,
     action,
   }
 }

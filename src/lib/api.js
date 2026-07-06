@@ -252,6 +252,18 @@ export const trainingHistoriesApi = {
 // getJob → { status: "COMPLETED"|..., progress, currentAction, error, result }
 export const queueApi = {
   getJob: (id) => request(`/queue/jobs/${id}`),
+
+  // Poll sampai COMPLETED / FAILED (default maks ~60 detik). Balik job final.
+  waitJob: async (trackId, { interval = 1000, tries = 60 } = {}) => {
+    for (let i = 0; i < tries; i++) {
+      const res = await queueApi.getJob(trackId);
+      const job = res?.data || res;
+      if (job.status === "COMPLETED") return job;
+      if (job.status === "FAILED") throw new Error(job.error || "Proses gagal di server.");
+      await new Promise((r) => setTimeout(r, interval));
+    }
+    throw new Error("Timeout menunggu proses server.");
+  },
 };
 
 // ─── APP CONFIGS ──────────────────────────────────────────────────────────────
@@ -387,6 +399,14 @@ export const adminApi = {
 
   getUser: (userId) => request(`/admin/users/${userId}`),
 
+  // Peserta 1 session — pakai filter existing lastTrainingSessionId.
+  // CATATAN: hanya user yang session TERAKHIR-nya = sessionId (bukan seluruh
+  // riwayat). Sementara sampai backend sediakan endpoint participants khusus.
+  getSessionParticipants: (sessionId, params = {}) => {
+    const q = buildQuery({ page: 1, limit: 20, "filter[lastTrainingSessionId]": sessionId, ...params });
+    return request(`/admin/users${q ? "?" + q : ""}`);
+  },
+
   updateUser: (userId, data) =>
     request(`/admin/users/${userId}`, { method: "PATCH", body: data }),
 
@@ -424,6 +444,25 @@ export const adminApi = {
       method: "PATCH",
       body: { discourseGroupId },
     }),
+
+  // ── Hapus / Pulihkan akun (soft delete via deletion-request) ──
+  // Hapus akun → jadwalkan penghapusan (akun masuk tab "Baru Dihapus").
+  requestUserDeletion: (userId) =>
+    request(`/admin/users/${userId}/deletion-request`, { method: "POST" }),
+  // Pulihkan akun dari "Baru Dihapus" → batalkan jadwal penghapusan.
+  cancelUserDeletion: (userId) =>
+    request(`/admin/users/${userId}/deletion-request`, { method: "DELETE" }),
+
+  // ── Tangguhkan / Pulihkan akun (suspend) ──
+  // suspendedUntil: "YYYY-MM-DD HH:mm:ss". Akun masuk tab "Ditangguhkan".
+  suspendUser: (userId, suspendedUntil) =>
+    request(`/admin/users/${userId}/suspend`, {
+      method: "POST",
+      body: { suspendedUntil },
+    }),
+  // Pulihkan akun dari "Ditangguhkan" → cabut penangguhan.
+  unsuspendUser: (userId) =>
+    request(`/admin/users/${userId}/suspend`, { method: "DELETE" }),
 
   // ── Packages ──
   getPackages: () => request("/admin/packages"),

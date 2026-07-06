@@ -4,10 +4,11 @@ import { Button } from '@/components/ui/button'
 import { Label }  from '@/components/ui/label'
 import { AuthFullLayout }            from '@/components/layout/AuthFullLayout'
 import { IconInput, TogglePassword } from '@/components/shared/IconInput'
-import { ErrorAlert }                from '@/components/shared/ErrorAlert'
 import { SuccessToast }              from '@/components/shared/SuccessToast'
 import { cn }      from '@/lib/utils'
 import { authApi } from '@/lib/api'
+
+const ERR_INPUT = '!border-red-500 focus-visible:!border-red-500 focus-visible:ring-red-200'
 
 export function ResetPasswordPage({ token, email, onNavigate }) {
   const [password, setPassword]       = useState('')
@@ -15,8 +16,11 @@ export function ResetPasswordPage({ token, email, onNavigate }) {
   const [showPass, setShowPass]       = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
   const [loading, setLoading]         = useState(false)
-  const [error, setError]             = useState('')
+  const [errors, setErrors]           = useState({})
   const [success, setSuccess]         = useState(false)
+
+  const clearFieldError = (field) =>
+    setErrors(prev => ({ ...prev, [field]: '' }))
   const [redirectSecs, setRedirectSecs] = useState(10)
 
   useEffect(() => {
@@ -37,16 +41,19 @@ export function ResetPasswordPage({ token, email, onNavigate }) {
   const allRulesOk = passwordRules.every(r => r.ok)
 
   const handleReset = async () => {
-    setError('')
-    if (!password)    { setError('Password baru wajib diisi'); return }
-    if (!allRulesOk)  { setError('Password belum memenuhi semua ketentuan'); return }
-    if (password !== confirm) { setError('Konfirmasi password tidak cocok'); return }
-    setLoading(true)
+    const next = {}
+    if (!password)                 next.password = 'Password baru wajib diisi.'
+    else if (!allRulesOk)          next.password = 'Password belum memenuhi semua ketentuan.'
+    if (!confirm)                  next.confirm  = 'Konfirmasi password wajib diisi.'
+    else if (password !== confirm) next.confirm  = 'Konfirmasi password tidak cocok.'
+    if (Object.keys(next).length) { setErrors(next); return }
+
+    setErrors({}); setLoading(true)
     try {
       await authApi.resetPassword(token, email, password)
       setSuccess(true)
     } catch (e) {
-      setError(e.message)
+      setErrors({ general: e.message })
     } finally {
       setLoading(false)
     }
@@ -63,20 +70,26 @@ export function ResetPasswordPage({ token, email, onNavigate }) {
           </div>
 
           <div className="space-y-4 animate-fade-in-up delay-100">
-            <ErrorAlert message={error} />
+            {errors.general && (
+              <p className="text-sm text-red-500 text-center">{errors.general}</p>
+            )}
             <div className="space-y-1.5">
               <Label>Password Baru</Label>
               <IconInput icon={Lock} type={showPass ? 'text' : 'password'}
                 placeholder="Masukkan password baru" value={password}
-                onChange={e => setPassword(e.target.value)}
+                className={errors.password ? ERR_INPUT : ''}
+                onChange={e => { setPassword(e.target.value); clearFieldError('password') }}
                 iconRight={<TogglePassword show={showPass} onToggle={() => setShowPass(v => !v)} />} />
+              {errors.password && <p className="text-xs text-red-500">{errors.password}</p>}
             </div>
             <div className="space-y-1.5">
               <Label>Konfirmasi Password Baru</Label>
               <IconInput icon={Lock} type={showConfirm ? 'text' : 'password'}
                 placeholder="Ulangi password baru" value={confirm}
-                onChange={e => setConfirm(e.target.value)}
+                className={errors.confirm ? ERR_INPUT : ''}
+                onChange={e => { setConfirm(e.target.value); clearFieldError('confirm') }}
                 iconRight={<TogglePassword show={showConfirm} onToggle={() => setShowConfirm(v => !v)} />} />
+              {errors.confirm && <p className="text-xs text-red-500">{errors.confirm}</p>}
             </div>
             <Button className="w-full" onClick={handleReset} disabled={loading || success}>
               {loading ? <><Loader2 size={16} className="animate-spin" /> Memproses...</> : 'Ubah Password'}

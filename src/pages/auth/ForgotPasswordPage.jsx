@@ -5,22 +5,31 @@ import { Label }  from '@/components/ui/label'
 import { AuthFullLayout } from '@/components/layout/AuthFullLayout'
 import { Divider }        from '@/components/layout/RightPanel'
 import { IconInput }      from '@/components/shared/IconInput'
-import { ErrorAlert }     from '@/components/shared/ErrorAlert'
 import { authApi }        from '@/lib/api'
+
+const ERR_INPUT = '!border-red-500 focus-visible:!border-red-500 focus-visible:ring-red-200'
+const EMAIL_RE  = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 export function ForgotPasswordPage({ onNavigate, onEmailSent }) {
   const [email, setEmail]     = useState('')
   const [loading, setLoading] = useState(false)
-  const [error, setError]     = useState('')
+  const [errors, setErrors]   = useState({})
+
+  const clearFieldError = (field) =>
+    setErrors(prev => ({ ...prev, [field]: '' }))
 
   const handleSend = async () => {
-    if (!email) { setError('Email wajib diisi'); return }
-    setError(''); setLoading(true)
+    const next = {}
+    if (!email)                 next.email = 'Email wajib diisi.'
+    else if (!EMAIL_RE.test(email)) next.email = 'Format email tidak valid.'
+    if (Object.keys(next).length) { setErrors(next); return }
+
+    setErrors({}); setLoading(true)
     try {
       await authApi.forgotPassword(email)
       onEmailSent(email)
     } catch (e) {
-      setError(e.message)
+      setErrors({ email: e.message })
     } finally {
       setLoading(false)
     }
@@ -36,13 +45,14 @@ export function ForgotPasswordPage({ onNavigate, onEmailSent }) {
       </div>
 
       <div className="space-y-4 animate-fade-in-up delay-100">
-        <ErrorAlert message={error} />
         <div className="space-y-1.5">
           <Label>Email</Label>
           <IconInput icon={Mail} type="email" placeholder="Masukkan email Anda"
             value={email}
-            onChange={e => { setEmail(e.target.value); setError('') }}
+            className={errors.email ? ERR_INPUT : ''}
+            onChange={e => { setEmail(e.target.value); clearFieldError('email') }}
             onKeyDown={e => e.key === 'Enter' && handleSend()} />
+          {errors.email && <p className="text-xs text-red-500">{errors.email}</p>}
         </div>
         <Button className="w-full" onClick={handleSend} disabled={loading}>
           {loading ? <><Loader2 size={16} className="animate-spin" /> Mengirim...</> : 'Kirim Tautan'}

@@ -145,6 +145,11 @@ export default function App() {
           }
           setSessionChecked(true);
           return;
+        } else {
+          // Akses /revise tanpa token JWT
+          setPage("revise-error");
+          setSessionChecked(true);
+          return;
         }
       }
 
@@ -183,7 +188,7 @@ export default function App() {
 
       if (pathname.includes("/register")) {
         setPage("login");
-        clearUrlParams();
+        window.history.replaceState({}, "", "/");
         setSessionChecked(true);
         return;
       }

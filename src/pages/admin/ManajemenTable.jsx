@@ -1,6 +1,102 @@
 import { useState, useRef, useEffect } from 'react'
-import { ArrowDownUp, Copy, MoreHorizontal, Edit, Gift, Trash2 } from 'lucide-react'
+import { createPortal } from 'react-dom'
+import { ArrowDownUp, MoreHorizontal, Edit, Trash2, Clock, CheckCircle2, History, SearchX } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { getTableScrollProps } from './tableScroll'
+
+// Menu aksi per tab. `type` dipetakan ke handler di AdminDashboardPage.
+const MENU_BY_TAB = {
+  'Disetujui': [
+    { type: 'ubah-role',       label: 'Ubah Role',       Icon: Edit,         danger: false },
+    { type: 'tangguhkan-akun', label: 'Tangguhkan Akun', Icon: Clock,        danger: false },
+    { type: 'hapus-akun',      label: 'Hapus Akun',      Icon: Trash2,       danger: true },
+  ],
+  'Ditolak': [
+    { type: 'setujui-akun',    label: 'Setujui Akun',    Icon: CheckCircle2, danger: false },
+    { type: 'hapus-akun',      label: 'Hapus Akun',      Icon: Trash2,       danger: true },
+  ],
+  'Ditangguhkan': [
+    { type: 'pulihkan-akun',   label: 'Pulihkan Akun',   Icon: History,      danger: false },
+    { type: 'hapus-akun',      label: 'Hapus Akun',      Icon: Trash2,       danger: true },
+  ],
+  'Baru Dihapus': [
+    { type: 'pulihkan-akun',   label: 'Pulihkan Akun',   Icon: History,      danger: false },
+  ],
+}
+
+const MENU_W = 208
+
+// Menu aksi baris. Di-portal ke body + posisi fixed supaya tidak terpotong
+// container scroll tabel (overflow-auto). Buka ke atas bila mepet bawah viewport.
+function RowActionMenu({ tab, user, onAction }) {
+  const [open, setOpen] = useState(false)
+  const [pos, setPos] = useState({ top: 0, left: 0 })
+  const btnRef = useRef(null)
+  const menuRef = useRef(null)
+  const items = MENU_BY_TAB[tab] || MENU_BY_TAB['Disetujui']
+
+  useEffect(() => {
+    if (!open) return
+    const onDoc = (e) => {
+      if (menuRef.current?.contains(e.target) || btnRef.current?.contains(e.target)) return
+      setOpen(false)
+    }
+    const close = () => setOpen(false)
+    document.addEventListener('mousedown', onDoc)
+    window.addEventListener('resize', close)
+    window.addEventListener('scroll', close, true)
+    return () => {
+      document.removeEventListener('mousedown', onDoc)
+      window.removeEventListener('resize', close)
+      window.removeEventListener('scroll', close, true)
+    }
+  }, [open])
+
+  const toggle = () => {
+    const r = btnRef.current.getBoundingClientRect()
+    const height = items.length * 40 + 12
+    const openUp = r.bottom + height > window.innerHeight
+    setPos({
+      top: openUp ? r.top - height - 6 : r.bottom + 6,
+      left: Math.max(12, r.right - MENU_W),
+    })
+    setOpen(o => !o)
+  }
+
+  return (
+    <>
+      <button
+        ref={btnRef}
+        onClick={toggle}
+        className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-gray-100 border border-gray-200 text-gray-500 transition-colors mx-auto"
+      >
+        <MoreHorizontal size={16} />
+      </button>
+      {open && createPortal(
+        <div
+          ref={menuRef}
+          style={{ position: 'fixed', top: pos.top, left: pos.left, width: MENU_W }}
+          className="bg-white border border-gray-100 shadow-xl rounded-xl py-2 z-[200] flex flex-col text-left"
+        >
+          {items.map(({ type, label, Icon, danger }) => (
+            <button
+              key={type}
+              onClick={() => { onAction && onAction(type, user); setOpen(false) }}
+              className={cn(
+                'flex items-center gap-3 px-4 py-2 text-sm transition-colors',
+                danger ? 'text-red-500 hover:bg-red-50' : 'text-[#0A1128] hover:bg-gray-50'
+              )}
+            >
+              <Icon size={16} className={danger ? 'text-red-500' : 'text-blue-500'} />
+              {label}
+            </button>
+          ))}
+        </div>,
+        document.body
+      )}
+    </>
+  )
+}
 
 function SortableHeader({ label, sortKey, sortConfig, onSort }) {
   return (
@@ -46,30 +142,17 @@ const SUBSCRIPTION_CLASSES = {
 }
 
 export function ManajemenTable({ users, sortConfig, onSort, searchQuery, activeFilter, onActionClick }) {
-  const [openMenuId, setOpenMenuId] = useState(null)
-  const menuRef = useRef(null)
-
   const isReducedView = activeFilter === 'Rejected' || activeFilter === 'Deleted' || activeFilter === 'Ditolak' || activeFilter === 'Baru Dihapus'
 
-  useEffect(() => {
-    function handleClickOutside(event) {
-      if (menuRef.current && !menuRef.current.contains(event.target)) {
-        setOpenMenuId(null)
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside)
-    return () => document.removeEventListener("mousedown", handleClickOutside)
-  }, [menuRef])
-
   return (
-    <div className="pb-32">
+    <div {...getTableScrollProps()}>
       <table className="w-full text-left text-sm whitespace-nowrap">
-        <thead className="bg-[#0A1128] text-white">
+        <thead className="bg-[#0A1128] text-white sticky top-0 z-20">
           <tr>
-            <th className="px-4 py-4 w-12 text-center sticky left-0 z-20 bg-[#0A1128]">
+            <th className="px-4 py-4 w-12 text-center sticky left-0 z-30 bg-[#0A1128]">
               <div className="w-4 h-4 rounded border border-white/30 mx-auto" />
             </th>
-            <th className="px-4 py-4 font-medium sticky left-[48px] z-20 bg-[#0A1128] shadow-[4px_0_10px_-4px_rgba(0,0,0,0.3)]">
+            <th className="px-4 py-4 font-medium sticky left-[48px] z-30 bg-[#0A1128] shadow-[4px_0_10px_-4px_rgba(0,0,0,0.3)]">
               <SortableHeader label="Nama Pengguna" sortKey="name" sortConfig={sortConfig} onSort={onSort} />
             </th>
             <th className="px-4 py-4 font-medium">
@@ -121,12 +204,11 @@ export function ManajemenTable({ users, sortConfig, onSort, searchQuery, activeF
             <th className="px-4 py-4 font-medium">
               <SortableHeader label="Last Updated" sortKey="lastUpdated" sortConfig={sortConfig} onSort={onSort} />
             </th>
-            <th className="px-4 py-4 font-medium text-center">Action</th>
+            <th className="px-4 py-4 font-medium text-center sticky right-0 z-30 bg-[#0A1128] shadow-[-4px_0_10px_-4px_rgba(0,0,0,0.3)]">Action</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-100">
           {users.length > 0 ? users.map(user => {
-            const isMenuOpen = openMenuId === user.id;
             return (
               <tr key={user.id} className="group hover:bg-[#F9FAFB] transition-colors">
                 <td className="px-4 py-4 text-center sticky left-0 z-10 bg-white group-hover:bg-[#F9FAFB] transition-colors">
@@ -188,52 +270,31 @@ export function ManajemenTable({ users, sortConfig, onSort, searchQuery, activeF
                   ) : '-'}
                 </td>
                 <td className="px-4 py-4 text-[#0A1128] font-medium">{user.birthdate || '-'}</td>
-                <td className="px-4 py-4 text-[#0A1128] font-medium max-w-[200px] truncate" title={user.lokasi}>{user.lokasi || '-'}</td>
-                <td className="px-4 py-4 text-[#0A1128] font-medium max-w-[200px] truncate" title={user.training}>{user.training || '-'}</td>
-                <td className="px-4 py-4 text-[#0A1128] font-medium max-w-[200px] truncate" title={user.alumniDaerah}>{user.alumniDaerah || '-'}</td>
+                <td className="px-4 py-4 text-[#0A1128] font-medium whitespace-normal break-words max-w-[200px] leading-snug align-top">{user.lokasi || '-'}</td>
+                <td className="px-4 py-4 text-[#0A1128] font-medium whitespace-normal break-words max-w-[200px] leading-snug align-top">{user.training || '-'}</td>
+                <td className="px-4 py-4 text-[#0A1128] font-medium whitespace-normal break-words max-w-[200px] leading-snug align-top">{user.alumniDaerah || '-'}</td>
                 <td className="px-4 py-4 text-[#0A1128] font-medium">{user.alumniTanggal || '-'}</td>
-                <td className="px-4 py-4 text-[#0A1128] font-medium max-w-[200px] truncate" title={user.school}>{user.school || '-'}</td>
-                <td className="px-4 py-4 text-[#0A1128] font-medium">
-                  <div className="flex flex-col">
-                    <span>{user.lastUpdatedDate || '-'}</span>
-                    <span className="text-[10px] text-gray-400">{user.lastUpdatedTime || ''}</span>
-                  </div>
-                </td>
-                <td className="px-4 py-4 text-center relative">
-                  <button 
-                    onClick={() => setOpenMenuId(isMenuOpen ? null : user.id)}
-                    className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-gray-100 border border-gray-200 text-gray-500 transition-colors mx-auto"
-                  >
-                    <MoreHorizontal size={16} />
-                  </button>
-
-                  {isMenuOpen && (
-                    <div ref={menuRef} className="absolute right-12 top-2 w-48 bg-white border border-gray-100 shadow-lg rounded-xl py-2 z-50 flex flex-col text-left">
-                      {!isReducedView && (
-                        <>
-                          <button onClick={() => { onActionClick && onActionClick('ubah-role', user); setOpenMenuId(null) }} className="flex items-center gap-3 px-4 py-2 hover:bg-gray-50 text-sm text-[#0A1128] transition-colors">
-                            <Edit size={16} className="text-blue-500" />
-                            Ubah Role
-                          </button>
-                          <button onClick={() => { onActionClick && onActionClick('kirim-voucher', user); setOpenMenuId(null) }} className="flex items-center gap-3 px-4 py-2 hover:bg-gray-50 text-sm text-[#0A1128] transition-colors">
-                            <Gift size={16} className="text-green-500" />
-                            Kirim Voucher
-                          </button>
-                        </>
-                      )}
-                      <button onClick={() => { onActionClick && onActionClick('hapus-akun', user); setOpenMenuId(null) }} className="flex items-center gap-3 px-4 py-2 hover:bg-red-50 text-sm text-red-500 transition-colors">
-                        <Trash2 size={16} />
-                        Hapus Akun
-                      </button>
-                    </div>
-                  )}
+                <td className="px-4 py-4 text-[#0A1128] font-medium whitespace-normal break-words max-w-[200px] leading-snug align-top">{user.school || '-'}</td>
+                <td className="px-4 py-4 text-[#0A1128] font-medium">{user.lastUpdated || '-'}</td>
+                <td className="px-4 py-4 text-center sticky right-0 z-10 bg-white group-hover:bg-[#F9FAFB] transition-colors shadow-[-4px_0_10px_-4px_rgba(0,0,0,0.05)]">
+                  <RowActionMenu tab={activeFilter} user={user} onAction={onActionClick} />
                 </td>
               </tr>
             )
           }) : (
             <tr>
-              <td colSpan="20" className="px-4 py-12 text-center text-gray-500">
-                Tidak ada data yang cocok dengan pencarian <span className="font-semibold">"{searchQuery}"</span>
+              <td colSpan="20" className="px-4 py-16">
+                {searchQuery ? (
+                  <div className="flex flex-col items-center text-center gap-2">
+                    <div className="w-14 h-14 rounded-full border border-gray-200 flex items-center justify-center text-gray-300 mb-1">
+                      <SearchX size={26} />
+                    </div>
+                    <p className="font-bold text-[#0A1128]">Tidak bisa menemukan "{searchQuery}"</p>
+                    <p className="text-sm text-gray-400">Coba cari lagi menggunakan ejaan atau kata kunci berbeda.</p>
+                  </div>
+                ) : (
+                  <p className="text-center text-gray-500">Tidak ada data pada tab ini.</p>
+                )}
               </td>
             </tr>
           )}

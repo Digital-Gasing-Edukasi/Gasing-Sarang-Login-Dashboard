@@ -1,9 +1,13 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { adminApi, discourseApi, regionsApi, appConfigApi, trainingSessionsApi } from '@/lib/api'
-import { mapToVerifikasi, mapToManajemen, mapToRiwayat, fmtDate } from './admin/mappers'
+import { adminApi, discourseApi, regionsApi, appConfigApi, trainingSessionsApi, trainingHistoriesApi, queueApi } from '@/lib/api'
+import { mapToVerifikasi, mapToManajemen, mapToRiwayat, fmtDate, computeIsNew } from './admin/mappers'
 import { AdminSidebar }    from './admin/AdminSidebar'
 import { AdminToast }      from './admin/AdminToast'
 import { RejectModal, ApproveModal } from './admin/ConfirmModal'
+import { BulkApproveModal } from './admin/BulkApproveModal'
+import { BulkRejectModal } from './admin/BulkRejectModal'
+import { PendingVoucherTable } from './admin/PendingVoucherTable'
+import { KonfirmasiVoucherModal, BulkVoucherModal } from './admin/VoucherModals'
 import { VerifikasiControls, ManajemenControls, PendaftaranTrainerControls, RiwayatPelatihanControls } from './admin/TableControls'
 import { VerifikasiTable } from './admin/VerifikasiTable'
 import { ManajemenTable }  from './admin/ManajemenTable'
@@ -12,9 +16,10 @@ import { RiwayatPelatihanTable } from './admin/RiwayatPelatihanTable'
 import { AddPendaftaranTrainerModal } from './admin/AddPendaftaranTrainerModal'
 import { AddPelatihanModal } from './admin/AddPelatihanModal'
 import { PerbaruiRiwayatModal } from './admin/PerbaruiRiwayatModal'
+import { DaftarPesertaModal } from './admin/DaftarPesertaModal'
 import { UbahRoleModal } from './admin/UbahRoleModal'
+import { HapusAkunModal, PulihkanAkunModal } from './admin/AccountActionModals'
 import { KirimVoucherModal } from './admin/KirimVoucherModal'
-import { HapusRiwayatModal } from './admin/HapusRiwayatModal'
 
 
 // ─── Pendaftaran Trainer (app-config hero_banner-home-v2) ───────────────────────
@@ -48,6 +53,8 @@ function threadsToRows(value) {
     batasWaktu: t.batasWaktu || '',
     isActive: !!t.enabled,
     headerText: t.headerText || '',
+    createdAt: t.createdAt || null,
+    isNew: computeIsNew(t.createdAt),
   }))
 }
 
@@ -62,6 +69,7 @@ function rowsToValue(rows, sharedContent) {
       periode: r.periode,
       batasWaktu: r.batasWaktu,
       url: r.url,
+      createdAt: r.createdAt || null,
     }
   })
   return { threads, shared_content: sharedContent || DEFAULT_SHARED }
@@ -83,7 +91,10 @@ function applySortToList(list, sortConfig) {
   return [...list].sort((a, b) => {
     let valA = a[sortConfig.key] || ''
     let valB = b[sortConfig.key] || ''
-    if (sortConfig.key === 'birthdate' || sortConfig.key === 'endDate') {
+    if (sortConfig.key === 'lastUpdated') {
+      valA = a.lastUpdatedMs || 0
+      valB = b.lastUpdatedMs || 0
+    } else if (sortConfig.key === 'birthdate' || sortConfig.key === 'endDate') {
       valA = valA ? new Date(valA).getTime() : 0
       valB = valB ? new Date(valB).getTime() : 0
     } else if (typeof valA === 'string') {
@@ -109,6 +120,12 @@ function buildCsvContent(tab, users) {
   return [headers.join(','), ...rows.map(r => r.map(escapeCsv).join(','))].join('\n')
 }
 
+// Generate kode voucher (placeholder FE). TODO(be): kode asli mestinya dari backend
+// saat approve (auto-generate). Ganti pemanggilan ini begitu endpoint tersedia.
+function genVoucherCode() {
+  return 'SUB' + Math.random().toString(36).slice(2, 8).toUpperCase()
+}
+
 export default function AdminDashboardPage({ user, onSignOut }) {
   const [activeTab, setActiveTab] = useState('verifikasi')
   const [users, setUsers]                   = useState([])
@@ -125,19 +142,36 @@ export default function AdminDashboardPage({ user, onSignOut }) {
 
   // States for Riwayat Pelatihan (di-load dari GET /training-sessions)
   const [riwayatPelatihanData, setRiwayatPelatihanData] = useState([])
-  const [riwayatToDelete, setRiwayatToDelete] = useState(null)
   const [isAddPelatihanModalOpen, setIsAddPelatihanModalOpen] = useState(false)
   const [perbaruiSession, setPerbaruiSession] = useState(null)
+  const [pesertaSession, setPesertaSession] = useState(null)
 
   const [discourseGroups, setDiscourseGroups] = useState([])
+  // Ref agar mapToManajemen selalu baca daftar group terbaru tanpa memicu ulang loadUsers.
+  const discourseGroupsRef = useRef([])
   const [trainingRegions, setTrainingRegions] = useState([])
+  const [trainingSessions, setTrainingSessions] = useState([])
   const [rejectCandidate, setRejectCandidate] = useState(null)
   const [approveCandidate, setApproveCandidate] = useState(null)
+
+  // ── Bulk verifikasi ────────────────────────────────────────────────────────
+  const BULK_LIMIT = 10 // keputusan #2: hard limit 10 akun sekaligus
+  const [selectedIds, setSelectedIds] = useState([])
+  const [verifSubTab, setVerifSubTab] = useState('pending') // 'pending' | 'voucher'
+  const [bulkModal, setBulkModal] = useState(null) // 'approve' | 'reject' | 'confirm' | null
+
+  // Sub-tab Pending Voucher Setup (task b). Diisi FE dari hasil approve tab Pending
+  // (opsi B — belum ada state backend). TODO(be): list dari endpoint saat tersedia.
+  const [pendingVoucherUsers, setPendingVoucherUsers] = useState([])
+  const [voucherCandidate, setVoucherCandidate] = useState(null) // konfirmasi voucher tunggal
+  const [limitHit, setLimitHit] = useState(false)
+  const limitTimeoutRef = useRef(null)
   const [toast, setToast]                   = useState(null)
   const [toastTimeoutId, setToastTimeoutId] = useState(null)
-  const [activeFilter, setActiveFilter]     = useState('Semua')
+  const [activeFilter, setActiveFilter]     = useState('Disetujui') // tab Manajemen aktif
   const [selectedRoles, setSelectedRoles]   = useState([])
   const [selectedSubscriptions, setSelectedSubscriptions] = useState([])
+  const [selectedPlans, setSelectedPlans] = useState([]) // filter Jenis Paket (Tahunan/Bulanan)
   const [actionModal, setActionModal]       = useState({ type: null, user: null })
   const executeActionRef = useRef(true)
   const { sortConfig, handleSort, resetSort } = useSort()
@@ -164,9 +198,10 @@ export default function AdminDashboardPage({ user, onSignOut }) {
         // Defensif: kalau server tidak memfilter, saring lagi di klien.
         const pendingUsers = rawList.filter(u => u.verifiedStatus != 1 && u.verifiedStatus != -1 || u.verifiedStatus === 'waiting')
         setUsers(pendingUsers.map(u => mapToVerifikasi(u, regions)))
+        setSelectedIds([]) // buang seleksi lama setelah reload
       } else {
         const res = await adminApi.getUsers({})
-        setManagementUsers((Array.isArray(res) ? res : res.data || []).map(u => mapToManajemen(u, regions)))
+        setManagementUsers((Array.isArray(res) ? res : res.data || []).map(u => mapToManajemen(u, regions, discourseGroupsRef.current)))
       }
     } catch (err) {
       setApiError(err.message || 'Gagal memuat data')
@@ -223,7 +258,26 @@ export default function AdminDashboardPage({ user, onSignOut }) {
         regionMap[id] = [reg.name, prov?.name].filter(Boolean).join(', ')
       }))
 
-      setRiwayatPelatihanData(list.map(s => mapToRiwayat(s, regionMap)))
+      // Ringkasan peserta per session (limit=1 → total + nama pertama) buat
+      // kolom Nama Peserta. Scope = filter lastTrainingSessionId (bisa parsial).
+      const partMap = {}
+      await Promise.all(list.map(async (s) => {
+        try {
+          const pr = await adminApi.getSessionParticipants(s.id, { limit: 1 })
+          const data = Array.isArray(pr) ? pr : (pr?.data || [])
+          partMap[s.id] = { total: pr?.meta?.total ?? data.length, firstName: data[0]?.name || '' }
+        } catch { partMap[s.id] = { total: 0, firstName: '' } }
+      }))
+
+      setRiwayatPelatihanData(list.map(s => {
+        const row = mapToRiwayat(s, regionMap)
+        const p = partMap[s.id]
+        if (p && p.total > 0) {
+          row.pesertaNama = p.firstName || `${p.total} peserta`
+          row.pesertaLainnya = Math.max(0, p.total - 1)
+        }
+        return row
+      }))
     } catch (e) {
       setRiwayatPelatihanData([])
     }
@@ -233,16 +287,59 @@ export default function AdminDashboardPage({ user, onSignOut }) {
     if (activeTab === 'riwayat-pelatihan') loadRiwayat()
   }, [activeTab, loadRiwayat])
 
+  // Muat semua dataset sekali di mount supaya titik biru navbar akurat walau
+  // tab-nya belum pernah dibuka (dot = ada baris isNew / ada akun pending).
+  useEffect(() => {
+    loadUsers('manajemen')
+    loadRiwayat()
+    loadPendaftaran()
+  }, [loadUsers, loadRiwayat, loadPendaftaran])
+
   useEffect(() => {
     discourseApi.getGroups()
       .then(res => setDiscourseGroups(Array.isArray(res) ? res : (res.data || [])))
       .catch(err => console.error("Failed to load discourse groups", err))
   }, [])
 
+  // Sinkron ref + re-map kolom Role begitu daftar group siap (jika user datang
+  // sebelum groups selesai di-load, nama role tetap terisi setelah ini).
+  useEffect(() => {
+    discourseGroupsRef.current = discourseGroups
+    if (discourseGroups.length) loadUsers('manajemen', trainingRegions)
+  }, [discourseGroups, loadUsers])
+
+  // Opsi "Nama Pelatihan Terbaru" untuk modal approve (single & bulk). Load sekali.
+  useEffect(() => {
+    trainingSessionsApi.list({ page: 1, limit: 100 })
+      .then(res => {
+        const list = Array.isArray(res) ? res : (res?.data || res?.items || [])
+        setTrainingSessions(list.map(s => ({ id: s.id, name: s.name || '-' })))
+      })
+      .catch(err => console.error("Failed to load training sessions", err))
+  }, [])
+
   const handleTabChange = (tab) => {
     setActiveTab(tab); setSearchQuery(''); resetSort()
-    setActiveFilter('Semua'); setSelectedRoles([]); setSelectedSubscriptions([])
+    setActiveFilter('Disetujui'); setSelectedRoles([]); setSelectedSubscriptions([]); setSelectedPlans([])
+    setSelectedIds([]); setBulkModal(null)
   }
+
+  // ── Seleksi baris verifikasi ────────────────────────────────────────────────
+  const flashLimit = () => {
+    setLimitHit(true)
+    if (limitTimeoutRef.current) clearTimeout(limitTimeoutRef.current)
+    limitTimeoutRef.current = setTimeout(() => setLimitHit(false), 2500)
+  }
+
+  const toggleSelect = (id) => {
+    setSelectedIds(prev => {
+      if (prev.includes(id)) return prev.filter(x => x !== id)
+      if (prev.length >= BULK_LIMIT) { flashLimit(); return prev } // hard limit
+      return [...prev, id]
+    })
+  }
+
+  const clearSelection = () => setSelectedIds([])
 
   const persistPendaftaran = (rows) =>
     appConfigApi.set(PENDAFTARAN_KEY, rowsToValue(rows, sharedContent))
@@ -263,6 +360,8 @@ export default function AdminDashboardPage({ user, onSignOut }) {
       batasWaktu: data.batasWaktu,
       isActive: false,
       headerText: HEADER_BASE + (data.periode || ''),
+      createdAt: Date.now(),
+      isNew: true,
     }
     // Ganti kalau threadId sama sudah ada.
     const next = [newRow, ...pendaftaranData.filter(r => r.threadId !== threadId)]
@@ -317,8 +416,11 @@ export default function AdminDashboardPage({ user, onSignOut }) {
       pesertaLainnya: 0,
       pesertaEmail: '-',
       langganan: '-',
-      lastUpdatedDate: fmtDate(Date.now()),
-      lastUpdatedTime: '',
+      lastUpdated: (() => { const d = new Date(); let h = d.getHours(); const ap = h >= 12 ? 'PM' : 'AM'; h = h % 12 || 12; return `${h}:${String(d.getMinutes()).padStart(2, '0')} ${ap}` })(),
+      lastUpdatedMs: Date.now(),
+      regionId: data.regionId,
+      startMs: data.startDate ? new Date(data.startDate).getTime() : null,
+      endMs: data.endDate ? new Date(data.endDate).getTime() : null,
     }
     setRiwayatPelatihanData(prev => [baseRow, ...prev])
 
@@ -331,9 +433,27 @@ export default function AdminDashboardPage({ user, onSignOut }) {
       })
       const sessionId = res?.id || res?.data?.id || tempId
       setRiwayatPelatihanData(prev =>
-        prev.map(r => (r.id === tempId ? { ...r, id: sessionId, status: 'Saved' } : r))
+        prev.map(r => (r.id === tempId ? { ...r, id: sessionId } : r))
       )
-      setToast({ message: <>Pelatihan <span className="font-medium">{data.name}</span> berhasil ditambahkan</> })
+
+      // Kalau ada CSV peserta: upload → validasi → push (row invalid/duplikat di-skip).
+      // Session tetap dibuat meski import gagal → row Saved + toast peringatan.
+      let pesertaWarn = ''
+      if (data.pesertaFile) {
+        try {
+          const up = await trainingHistoriesApi.upload(data.pesertaFile, sessionId)
+          await queueApi.waitJob(up.trackId)
+          const pushRes = await trainingHistoriesApi.push(up.importId)
+          await queueApi.waitJob(pushRes.trackId)
+        } catch (impErr) {
+          pesertaWarn = ` (import peserta gagal: ${impErr.message || 'error'})`
+        }
+      }
+
+      setRiwayatPelatihanData(prev =>
+        prev.map(r => (r.id === sessionId ? { ...r, status: 'Saved' } : r))
+      )
+      setToast({ message: <>Pelatihan <span className="font-medium">{data.name}</span> berhasil ditambahkan{pesertaWarn}</> })
       if (toastTimeoutId) clearTimeout(toastTimeoutId)
       const tid = setTimeout(() => setToast(null), 5000)
       setToastTimeoutId(tid)
@@ -345,22 +465,61 @@ export default function AdminDashboardPage({ user, onSignOut }) {
     }
   }
 
-  const handleDeleteRiwayat = (item) => {
-    const target = item || riwayatToDelete
-    if (!target) return
-    const idx = riwayatPelatihanData.findIndex(r => r.id === target.id)
-    setRiwayatPelatihanData(prev => prev.filter(r => r.id !== target.id))
-    setRiwayatToDelete(null)
-    setToast({ message: 'Berhasil menghapus riwayat pelatihan', riwayat: target, riwayatIndex: idx })
-    if (toastTimeoutId) clearTimeout(toastTimeoutId)
-    const id = setTimeout(() => setToast(null), 5000)
-    setToastTimeoutId(id)
+  // Hapus session → DELETE /admin/training-sessions/:id (optimistic + revert).
+  // Dipicu dari tombol "Hapus Riwayat" di modal edit (ketik DELETE).
+  const handleDeleteRiwayat = async (item) => {
+    if (!item) return
+    const prev = riwayatPelatihanData
+    setRiwayatPelatihanData(p => p.filter(r => r.id !== item.id))
+    try {
+      await adminApi.deleteTrainingSession(item.id)
+      setToast({ message: 'Berhasil menghapus riwayat pelatihan' })
+      if (toastTimeoutId) clearTimeout(toastTimeoutId)
+      const id = setTimeout(() => setToast(null), 5000)
+      setToastTimeoutId(id)
+    } catch (err) {
+      setRiwayatPelatihanData(prev) // revert
+      setApiError(err.message || 'Gagal menghapus riwayat pelatihan.')
+    }
+  }
+
+  // Simpan perubahan session → PATCH + (opsional) ganti CSV peserta (upload+push).
+  const handleUpdatePelatihan = async (data) => {
+    const prev = riwayatPelatihanData
+    // Optimistic: update tampilan + status Processing selama request jalan.
+    setRiwayatPelatihanData(p => p.map(r => r.id === data.id
+      ? { ...r, nama: data.name, daerah: data.daerahLabel, tglMulai: data.tglMulaiLabel, regionId: data.regionId, status: 'Processing' }
+      : r))
+    try {
+      await adminApi.updateTrainingSession(data.id, {
+        name: data.name, regionId: data.regionId, startDate: data.startDate, endDate: data.endDate,
+      })
+      let pesertaWarn = ''
+      if (data.pesertaFile) {
+        try {
+          const up = await trainingHistoriesApi.upload(data.pesertaFile, data.id)
+          await queueApi.waitJob(up.trackId)
+          const pushRes = await trainingHistoriesApi.push(up.importId)
+          await queueApi.waitJob(pushRes.trackId)
+        } catch (impErr) {
+          pesertaWarn = ` (import peserta gagal: ${impErr.message || 'error'})`
+        }
+      }
+      setRiwayatPelatihanData(p => p.map(r => r.id === data.id ? { ...r, status: 'Saved' } : r))
+      setToast({ message: <>Berhasil menyimpan riwayat <span className="font-medium">{data.name}</span>{pesertaWarn}</> })
+      if (toastTimeoutId) clearTimeout(toastTimeoutId)
+      const tid = setTimeout(() => setToast(null), 5000)
+      setToastTimeoutId(tid)
+    } catch (err) {
+      setRiwayatPelatihanData(prev) // revert
+      setApiError(err.message || 'Gagal menyimpan riwayat pelatihan.')
+    }
   }
 
   const handleDownloadRiwayat = (item) => {
     const csv = [
-      'Nama Pelatihan,Daerah Pelatihan,Tgl. Mulai,Status,Nama Peserta',
-      `"${item.nama}","${item.daerah}","${item.tglMulai}","${item.status}","${item.pesertaNama}"`
+      'Nama Pelatihan,Daerah Pelatihan,Tgl. Mulai,Status,Nama Peserta,Last Updated',
+      `"${item.nama}","${item.daerah}","${item.tglMulai}","${item.status}","${item.pesertaNama}","${item.lastUpdated}"`
     ].join('\n')
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
     const url = URL.createObjectURL(blob)
@@ -383,29 +542,102 @@ export default function AdminDashboardPage({ user, onSignOut }) {
     setToastTimeoutId(id)
   }
 
-  const handleVerify = (id) => {
-    const user = users.find(u => u.id === id)
-    if (!user.role) {
-      setRoleErrors(prev => ({ ...prev, [id]: true }))
-      setTimeout(() => setRoleErrors(prev => ({ ...prev, [id]: false })), 30000)
-      return
-    }
-    setApproveCandidate(user)
+  // Toast dengan undo untuk aksi FE-only (tanpa API): perubahan state langsung,
+  // `undo` mengembalikan state, auto-dismiss 5 detik.
+  const showUndoToast = (message, undo) => {
+    setToast({ message, undo })
+    if (toastTimeoutId) clearTimeout(toastTimeoutId)
+    const id = setTimeout(() => setToast(null), 5000)
+    setToastTimeoutId(id)
   }
 
-  const handleConfirmApprove = () => {
+  // Role + Pelatihan kini dipilih di dalam ApproveModal (bukan lagi di baris tabel),
+  // jadi klik centang langsung buka modal — validasi wajib ada di modal.
+  const handleVerify = (id) => {
+    setApproveCandidate(users.find(u => u.id === id))
+  }
+
+  // Approve (opsi B): TIDAK memanggil backend. Akun dipindah ke sub-tab Pending
+  // Voucher + kode voucher di-generate FE. Konfirmasi final terjadi di tab voucher.
+  // TODO(be): panggil verifyUser(approved) di sini bila backend ingin dicatat lebih awal.
+  const handleConfirmApprove = ({ discourseGroupId, lastTrainingSessionId }) => {
     if (!approveCandidate) return
     const target = approveCandidate
-    setUsers(prev => prev.filter(u => u.id !== target.id))
     setApproveCandidate(null)
-    setToast({ message: <>Akun {target.name} telah <span className="text-green-500 font-medium">disetujui</span></>, user: target })
-    
-    // Pastikan discourseGroupId berupa angka (integer)
-    const groupId = target.role ? parseInt(target.role, 10) : null;
-    
-    scheduleAction(() => adminApi.verifyUser(target.id, { status: 'approved', discourseGroupId: groupId }), () => {
-      setUsers(prev => [target, ...prev]); setApiError('Gagal menyetujui akun. Silakan coba lagi.')
+    const vUser = { ...target, discourseGroupId, lastTrainingSessionId, voucherCode: genVoucherCode() }
+    setUsers(prev => prev.filter(u => u.id !== target.id))
+    setPendingVoucherUsers(prev => [vUser, ...prev])
+    showUndoToast(
+      <>Akun {target.name} <span className="text-green-500 font-medium">disetujui</span>, menunggu setup voucher</>,
+      () => {
+        setPendingVoucherUsers(prev => prev.filter(u => u.id !== target.id))
+        setUsers(prev => [target, ...prev])
+      }
+    )
+  }
+
+  // Konfirmasi voucher tunggal → akun final + email ke user. FE remove baris.
+  // TODO(be): panggil endpoint konfirmasi/kirim-email di sini (pending).
+  const handleConfirmVoucher = () => {
+    if (!voucherCandidate) return
+    const target = voucherCandidate
+    setVoucherCandidate(null)
+    setPendingVoucherUsers(prev => prev.filter(u => u.id !== target.id))
+    showUndoToast(
+      <>Akun {target.name} telah <span className="text-green-500 font-medium">dikonfirmasi</span></>,
+      () => setPendingVoucherUsers(prev => [target, ...prev])
+    )
+  }
+
+  const handleBulkConfirmVoucher = (rows) => {
+    const ids = rows.map(r => r.id)
+    const removed = pendingVoucherUsers.filter(u => ids.includes(u.id))
+    setPendingVoucherUsers(prev => prev.filter(u => !ids.includes(u.id)))
+    setBulkModal(null); setSelectedIds([])
+    // TODO(be): endpoint konfirmasi batch + email (pending).
+    showUndoToast(
+      <>{rows.length} akun telah <span className="text-green-500 font-medium">dikonfirmasi</span></>,
+      () => setPendingVoucherUsers(prev => [...removed, ...prev])
+    )
+  }
+
+  // ── Bulk approve / reject ───────────────────────────────────────────────────
+  // Pola sama dengan single: optimistic remove + toast undo 5 detik + commit batch
+  // (Promise.all). Undo membatalkan timer, jadi API tak pernah dipanggil.
+  // Bulk approve (opsi B): pindah semua ke Pending Voucher + generate kode. FE-only.
+  const handleBulkApprove = (rows) => {
+    const ids = rows.map(r => r.id)
+    const removed = users.filter(u => ids.includes(u.id))
+    const vUsers = rows.map(r => {
+      const base = removed.find(u => u.id === r.id) || {}
+      return { ...base, discourseGroupId: r.discourseGroupId, lastTrainingSessionId: r.lastTrainingSessionId, voucherCode: genVoucherCode() }
     })
+    setUsers(prev => prev.filter(u => !ids.includes(u.id)))
+    setPendingVoucherUsers(prev => [...vUsers, ...prev])
+    setBulkModal(null); setSelectedIds([])
+    showUndoToast(
+      <>{rows.length} akun <span className="text-green-500 font-medium">disetujui</span>, menunggu setup voucher</>,
+      () => {
+        setPendingVoucherUsers(prev => prev.filter(u => !ids.includes(u.id)))
+        setUsers(prev => [...removed, ...prev])
+      }
+    )
+  }
+
+  const handleBulkReject = (rows) => {
+    const ids = rows.map(r => r.id)
+    const removed = users.filter(u => ids.includes(u.id))
+    setUsers(prev => prev.filter(u => !ids.includes(u.id)))
+    setBulkModal(null); setSelectedIds([])
+    setToast({ message: <>{rows.length} akun telah <span className="text-red-500 font-medium">ditolak</span></>, users: removed })
+
+    scheduleAction(
+      () => Promise.all(rows.map(r => r.status === 'rejected'
+        ? adminApi.rejectUser(r.id, { rejectedReason: r.reason })
+        : adminApi.reviseUser(r.id, { rejectedReason: r.reason, fieldsToRevise: r.invalidFields })
+      )),
+      () => { setUsers(prev => [...removed, ...prev]); setApiError('Gagal menolak sebagian akun. Silakan coba lagi.') }
+    )
   }
 
   const handleConfirmReject = ({ status, invalidFields, reason }) => {
@@ -436,16 +668,61 @@ export default function AdminDashboardPage({ user, onSignOut }) {
   }
 
   const handleActionClick = (type, user) => {
+    // Part 2 (belum di-wire): setujui-akun, tangguhkan-akun, dan hapus-akun dari
+    // tab Ditangguhkan. Menu tetap tampil (fidelity), tapi belum membuka modal.
+    if (type === 'setujui-akun' || type === 'tangguhkan-akun') return
+    if (type === 'hapus-akun' && activeFilter === 'Ditangguhkan') return
     setActionModal({ type, user })
   }
 
   const handleConfirmUbahRole = (newRole) => {
     const target = actionModal.user
+    const prevRole = target.role
     handleRoleChange(target.id, newRole)
     setActionModal({ type: null, user: null })
-    setToast({ message: <>Role {target.name} telah diubah menjadi <span className="font-bold">{newRole}</span></> })
-    // Call API here...
-    // adminApi.updateDiscourseGroup(...)
+    setToast({
+      message: <>Berhasil mengubah role akun <span className="font-bold">{target.name}</span></>,
+      roleUndo: { id: target.id, prevRole },
+    })
+    // Commit ke backend (resolve nama role → discourseGroupId). Undo membatalkan timer.
+    const grp = discourseGroups.find(g => (g.name || g) === newRole)
+    const gid = grp ? (grp.id ?? grp) : null
+    scheduleAction(
+      () => (gid != null ? adminApi.updateDiscourseGroup(target.id, gid) : Promise.resolve()),
+      () => { handleRoleChange(target.id, prevRole); setApiError('Gagal mengubah role.') }
+    )
+  }
+
+  // Hapus akun (tab Disetujui/Ditolak) → pindah ke "Baru Dihapus" (deletion-request).
+  const handleConfirmHapusAkun = () => {
+    const target = actionModal.user
+    if (!target) return
+    setActionModal({ type: null, user: null })
+    const prevStatus = target.accountStatus
+    setManagementUsers(prev => prev.map(u => u.id === target.id ? { ...u, accountStatus: 'Baru Dihapus' } : u))
+    setToast({ message: <>Akun {target.name} telah <span className="text-red-500 font-medium">dihapus</span></>, statusUndo: { id: target.id, prevStatus } })
+    scheduleAction(
+      () => adminApi.requestUserDeletion(target.id),
+      () => { setManagementUsers(prev => prev.map(u => u.id === target.id ? { ...u, accountStatus: prevStatus } : u)); setApiError('Gagal menghapus akun.') }
+    )
+  }
+
+  // Pulihkan akun → kembali "Disetujui". Sumber "Baru Dihapus" = cancelDeletion,
+  // sumber "Ditangguhkan" = unsuspend.
+  const handleConfirmPulihkanAkun = () => {
+    const target = actionModal.user
+    if (!target) return
+    setActionModal({ type: null, user: null })
+    const prevStatus = target.accountStatus
+    setManagementUsers(prev => prev.map(u => u.id === target.id ? { ...u, accountStatus: 'Disetujui' } : u))
+    setToast({ message: <>Akun {target.name} telah <span className="text-green-500 font-medium">dipulihkan</span></>, statusUndo: { id: target.id, prevStatus } })
+    const apiCall = prevStatus === 'Baru Dihapus'
+      ? () => adminApi.cancelUserDeletion(target.id)
+      : () => adminApi.unsuspendUser(target.id)
+    scheduleAction(
+      apiCall,
+      () => { setManagementUsers(prev => prev.map(u => u.id === target.id ? { ...u, accountStatus: prevStatus } : u)); setApiError('Gagal memulihkan akun.') }
+    )
   }
 
   const handleConfirmKirimVoucher = (voucherCode) => {
@@ -458,6 +735,30 @@ export default function AdminDashboardPage({ user, onSignOut }) {
   }
 
   const handleUndoToast = () => {
+    // Aksi FE-only (approve→voucher, konfirmasi voucher) menyimpan closure undo.
+    if (toast?.undo) {
+      toast.undo()
+      setToast(null)
+      if (toastTimeoutId) clearTimeout(toastTimeoutId)
+      return
+    }
+    // Undo ubah role: kembalikan role lama + batalkan commit.
+    if (toast?.roleUndo) {
+      executeActionRef.current = false
+      handleRoleChange(toast.roleUndo.id, toast.roleUndo.prevRole)
+      setToast(null)
+      if (toastTimeoutId) clearTimeout(toastTimeoutId)
+      return
+    }
+    // Undo hapus/pulihkan: kembalikan status akun + batalkan commit.
+    if (toast?.statusUndo) {
+      executeActionRef.current = false
+      const { id, prevStatus } = toast.statusUndo
+      setManagementUsers(prev => prev.map(u => u.id === id ? { ...u, accountStatus: prevStatus } : u))
+      setToast(null)
+      if (toastTimeoutId) clearTimeout(toastTimeoutId)
+      return
+    }
     if (toast?.riwayat) {
       const { riwayat, riwayatIndex } = toast
       setRiwayatPelatihanData(prev => {
@@ -465,6 +766,14 @@ export default function AdminDashboardPage({ user, onSignOut }) {
         next.splice(riwayatIndex, 0, riwayat)
         return next
       })
+      setToast(null)
+      if (toastTimeoutId) clearTimeout(toastTimeoutId)
+      return
+    }
+    if (toast?.users) {
+      // Undo batch: kembalikan semua baris, batalkan commit.
+      executeActionRef.current = false
+      setUsers(prev => [...toast.users, ...prev])
       setToast(null)
       if (toastTimeoutId) clearTimeout(toastTimeoutId)
       return
@@ -477,22 +786,46 @@ export default function AdminDashboardPage({ user, onSignOut }) {
     }
   }
 
-  const currentData = activeTab === 'verifikasi' ? users : managementUsers
+  // Titik biru navbar per menu.
+  //  - verifikasi: selalu muncul kalau ada akun di tabel Pending / Pending Voucher.
+  //  - menu lain : muncul hanya kalau ada baris "komponen baru" (isNew, < 3 hari).
+  const navFlags = {
+    'verifikasi':          users.length > 0 || pendingVoucherUsers.length > 0,
+    'manajemen':           managementUsers.some(u => u.isNew),
+    'riwayat-pelatihan':   riwayatPelatihanData.some(r => r.isNew),
+    'pendaftaran-trainer': pendaftaranData.some(r => r.isNew),
+  }
+
+  const currentData = activeTab === 'manajemen'
+    ? managementUsers
+    : (verifSubTab === 'voucher' ? pendingVoucherUsers : users)
 
   const filteredUsers = currentData.filter(user => {
     if (activeTab === 'manajemen') {
-      if (activeFilter !== 'Semua' && user.accountStatus !== activeFilter) return false
+      // Tiap tab = 1 tabel utama → hanya baris dgn status == tab aktif.
+      if (user.accountStatus !== activeFilter) return false
       if (selectedRoles.length > 0 && !selectedRoles.includes(user.role)) return false
       if (selectedSubscriptions.length > 0 && !selectedSubscriptions.includes(user.subscription)) return false
+      if (selectedPlans.length > 0 && !selectedPlans.includes(user.plan)) return false
     }
     if (!searchQuery) return true
     const q = searchQuery.toLowerCase()
-    return ['name', 'username', 'email', 'training', 'school', 'voucher'].some(k =>
+    return ['name', 'username', 'email', 'training', 'school', 'voucher', 'voucherCode'].some(k =>
       (user[k] || '').toLowerCase().includes(q)
     )
   })
 
   const sortedUsers = applySortToList(filteredUsers, sortConfig)
+
+  // "Pilih semua" dibatasi BULK_LIMIT (keputusan #2): pilih maksimal 10 baris teratas.
+  const selectableIds = sortedUsers.slice(0, BULK_LIMIT).map(u => u.id)
+  const allSelected = selectableIds.length > 0 && selectableIds.every(id => selectedIds.includes(id))
+  const toggleSelectAll = () => {
+    if (allSelected) { setSelectedIds([]); return }
+    if (sortedUsers.length > BULK_LIMIT) flashLimit()
+    setSelectedIds(selectableIds)
+  }
+  const selectedUsers = currentData.filter(u => selectedIds.includes(u.id))
 
   const handleExport = () => {
     const csv = buildCsvContent(activeTab, sortedUsers)
@@ -506,11 +839,11 @@ export default function AdminDashboardPage({ user, onSignOut }) {
 
   return (
     <div className="h-screen bg-white flex font-sans overflow-hidden">
-      <AdminSidebar activeTab={activeTab} onTabChange={handleTabChange} onSignOut={onSignOut} user={user} />
+      <AdminSidebar activeTab={activeTab} onTabChange={handleTabChange} onSignOut={onSignOut} user={user} navFlags={navFlags} />
 
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <header className="px-10 py-8 border-b border-gray-100 shrink-0">
-          <h1 className="text-2xl font-bold text-[#0A1128]">
+        <header className="px-10 py-8 border-b border-gray-100 shrink-0 bg-white">
+          <h1 className="text-3xl font-bold text-[#0A1128]">
             {activeTab === 'verifikasi' && 'Verifikasi Akun'}
             {activeTab === 'manajemen' && 'Manajemen Akun'}
             {activeTab === 'pendaftaran-trainer' && 'Pendaftaran Pelatihan Trainer'}
@@ -518,7 +851,7 @@ export default function AdminDashboardPage({ user, onSignOut }) {
           </h1>
         </header>
 
-        <div className="flex-1 overflow-auto p-10 bg-white">
+        <div className="flex-1 overflow-auto p-10 bg-[#F7F8FC]">
           {apiError && (
             <div className="mb-4 px-4 py-3 rounded-lg bg-red-50 text-red-700 text-sm border border-red-200">
               {apiError}
@@ -527,10 +860,21 @@ export default function AdminDashboardPage({ user, onSignOut }) {
 
           {activeTab === 'verifikasi' && (
             <VerifikasiControls
-              totalCount={sortedUsers.length}
               searchQuery={searchQuery}
               onSearchChange={setSearchQuery}
               onExport={handleExport}
+              subTab={verifSubTab}
+              onSubTabChange={(t) => { setVerifSubTab(t); setSelectedIds([]) }}
+              pendingCount={users.length}
+              voucherCount={pendingVoucherUsers.length}
+              selectedCount={selectedIds.length}
+              bulkLimit={BULK_LIMIT}
+              limitHit={limitHit}
+              onBulkApprove={() => setBulkModal('approve')}
+              onBulkReject={() => setBulkModal('reject')}
+              onBulkConfirm={() => setBulkModal('confirm')}
+              onClearSelection={clearSelection}
+              onDismissLimit={() => setLimitHit(false)}
             />
           )}
           {activeTab === 'manajemen' && (
@@ -538,6 +882,7 @@ export default function AdminDashboardPage({ user, onSignOut }) {
               activeFilter={activeFilter} onFilterChange={setActiveFilter}
               selectedRoles={selectedRoles} onRolesChange={setSelectedRoles}
               selectedSubscriptions={selectedSubscriptions} onSubscriptionsChange={setSelectedSubscriptions}
+              selectedPlans={selectedPlans} onPlansChange={setSelectedPlans}
               searchQuery={searchQuery} onSearchChange={setSearchQuery}
               onExport={handleExport}
             />
@@ -556,8 +901,8 @@ export default function AdminDashboardPage({ user, onSignOut }) {
               onAdd={() => setIsAddPelatihanModalOpen(true)}
               onExport={() => {
                 const csv = [
-                  'Nama Pelatihan,Daerah Pelatihan,Tgl. Mulai,Status,Nama Peserta',
-                  ...riwayatPelatihanData.map(item => `"${item.nama}","${item.daerah}","${item.tglMulai}","${item.status}","${item.pesertaNama}"`)
+                  'Nama Pelatihan,Daerah Pelatihan,Tgl. Mulai,Status,Nama Peserta,Last Updated',
+                  ...riwayatPelatihanData.map(item => `"${item.nama}","${item.daerah}","${item.tglMulai}","${item.status}","${item.pesertaNama}","${item.lastUpdated}"`)
                 ].join('\n')
                 const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
                 const url = URL.createObjectURL(blob)
@@ -569,19 +914,33 @@ export default function AdminDashboardPage({ user, onSignOut }) {
             />
           )}
 
-          <div className="border border-gray-200 rounded-2xl overflow-hidden shadow-sm">
+          <div className="border border-gray-200 rounded-2xl overflow-hidden shadow-sm bg-white">
             <div className="overflow-x-auto">
-              {activeTab === 'verifikasi' && (
+              {activeTab === 'verifikasi' && verifSubTab === 'pending' && (
                 <VerifikasiTable
                   users={sortedUsers}
                   sortConfig={sortConfig}
                   onSort={handleSort}
-                  onRoleChange={handleRoleChange}
                   onApprove={handleVerify}
                   onReject={setRejectCandidate}
-                  roleErrors={roleErrors}
                   searchQuery={searchQuery}
-                  discourseGroups={discourseGroups}
+                  selectedIds={selectedIds}
+                  onToggleSelect={toggleSelect}
+                  onToggleSelectAll={toggleSelectAll}
+                  allSelected={allSelected}
+                />
+              )}
+              {activeTab === 'verifikasi' && verifSubTab === 'voucher' && (
+                <PendingVoucherTable
+                  users={sortedUsers}
+                  sortConfig={sortConfig}
+                  onSort={handleSort}
+                  onConfirm={setVoucherCandidate}
+                  searchQuery={searchQuery}
+                  selectedIds={selectedIds}
+                  onToggleSelect={toggleSelect}
+                  onToggleSelectAll={toggleSelectAll}
+                  allSelected={allSelected}
                 />
               )}
               {activeTab === 'manajemen' && (
@@ -607,8 +966,8 @@ export default function AdminDashboardPage({ user, onSignOut }) {
                   data={riwayatPelatihanData}
                   searchQuery={searchQuery}
                   onEdit={setPerbaruiSession}
-                  onDelete={setRiwayatToDelete}
                   onDownload={handleDownloadRiwayat}
+                  onViewPeserta={setPesertaSession}
                 />
               )}
             </div>
@@ -617,7 +976,41 @@ export default function AdminDashboardPage({ user, onSignOut }) {
       </main>
 
       <RejectModal  candidate={rejectCandidate}  onConfirm={handleConfirmReject} onCancel={() => setRejectCandidate(null)} />
-      <ApproveModal candidate={approveCandidate} onConfirm={handleConfirmApprove} onCancel={() => setApproveCandidate(null)} />
+      <ApproveModal
+        candidate={approveCandidate}
+        discourseGroups={discourseGroups}
+        trainingSessions={trainingSessions}
+        onConfirm={handleConfirmApprove}
+        onCancel={() => setApproveCandidate(null)}
+      />
+      {bulkModal === 'approve' && (
+        <BulkApproveModal
+          candidates={selectedUsers}
+          discourseGroups={discourseGroups}
+          trainingSessions={trainingSessions}
+          onConfirm={handleBulkApprove}
+          onCancel={() => setBulkModal(null)}
+        />
+      )}
+      {bulkModal === 'reject' && (
+        <BulkRejectModal
+          candidates={selectedUsers}
+          onConfirm={handleBulkReject}
+          onCancel={() => setBulkModal(null)}
+        />
+      )}
+      {bulkModal === 'confirm' && (
+        <BulkVoucherModal
+          candidates={selectedUsers}
+          onConfirm={handleBulkConfirmVoucher}
+          onCancel={() => setBulkModal(null)}
+        />
+      )}
+      <KonfirmasiVoucherModal
+        candidate={voucherCandidate}
+        onConfirm={handleConfirmVoucher}
+        onCancel={() => setVoucherCandidate(null)}
+      />
       <AddPendaftaranTrainerModal
         isOpen={isAddPendaftaranModalOpen}
         onClose={() => setIsAddPendaftaranModalOpen(false)}
@@ -631,10 +1024,24 @@ export default function AdminDashboardPage({ user, onSignOut }) {
         />
       )}
       {actionModal.type === 'kirim-voucher' && (
-        <KirimVoucherModal 
-          user={actionModal.user} 
-          onConfirm={handleConfirmKirimVoucher} 
-          onCancel={() => setActionModal({ type: null, user: null })} 
+        <KirimVoucherModal
+          user={actionModal.user}
+          onConfirm={handleConfirmKirimVoucher}
+          onCancel={() => setActionModal({ type: null, user: null })}
+        />
+      )}
+      {actionModal.type === 'hapus-akun' && (
+        <HapusAkunModal
+          user={actionModal.user}
+          onConfirm={handleConfirmHapusAkun}
+          onCancel={() => setActionModal({ type: null, user: null })}
+        />
+      )}
+      {actionModal.type === 'pulihkan-akun' && (
+        <PulihkanAkunModal
+          user={actionModal.user}
+          onConfirm={handleConfirmPulihkanAkun}
+          onCancel={() => setActionModal({ type: null, user: null })}
         />
       )}
       <AddPelatihanModal
@@ -646,17 +1053,13 @@ export default function AdminDashboardPage({ user, onSignOut }) {
         isOpen={!!perbaruiSession}
         session={perbaruiSession}
         onClose={() => setPerbaruiSession(null)}
-        onDone={(session, count) => {
-          setToast({ message: <>Berhasil menambahkan <span className="font-medium">{count}</span> peserta ke <span className="font-medium">{session.nama}</span></> })
-          if (toastTimeoutId) clearTimeout(toastTimeoutId)
-          const tid = setTimeout(() => setToast(null), 5000)
-          setToastTimeoutId(tid)
-        }}
+        onSave={handleUpdatePelatihan}
+        onDelete={handleDeleteRiwayat}
       />
-      <HapusRiwayatModal
-        item={riwayatToDelete}
-        onConfirm={handleDeleteRiwayat}
-        onCancel={() => setRiwayatToDelete(null)}
+      <DaftarPesertaModal
+        isOpen={!!pesertaSession}
+        session={pesertaSession}
+        onClose={() => setPesertaSession(null)}
       />
       <AdminToast toast={toast} onUndo={handleUndoToast} />
     </div>

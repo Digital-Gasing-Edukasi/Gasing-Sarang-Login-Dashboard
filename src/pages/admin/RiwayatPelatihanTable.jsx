@@ -1,13 +1,7 @@
 import { useState } from 'react'
-import { ArrowDownUp, Pencil, Download, Trash2 } from 'lucide-react'
+import { ArrowDownUp, Pencil, Download } from 'lucide-react'
 import { cn } from '@/lib/utils'
-
-const STATUS_CLASSES = {
-  Saved:      'bg-green-50 text-green-600',
-  Processing: 'bg-amber-50 text-amber-600',
-  Pending:    'bg-purple-50 text-purple-500',
-  Error:      'bg-red-50 text-red-500',
-}
+import { getTableScrollProps } from './tableScroll'
 
 const ID_MONTHS = {
   jan: 0, feb: 1, mar: 2, apr: 3, mei: 4, jun: 5,
@@ -39,7 +33,7 @@ function SortableHeader({ label, sublabel, sortKey, sortConfig, onSort }) {
   )
 }
 
-export function RiwayatPelatihanTable({ data, searchQuery, onEdit, onDownload, onDelete, onViewPeserta }) {
+export function RiwayatPelatihanTable({ data, searchQuery, onEdit, onDownload, onViewPeserta }) {
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' })
 
   const handleSort = (key) => {
@@ -64,7 +58,9 @@ export function RiwayatPelatihanTable({ data, searchQuery, onEdit, onDownload, o
     ? [...filteredData].sort((a, b) => {
         let valA = a[sortConfig.key] ?? ''
         let valB = b[sortConfig.key] ?? ''
-        if (sortConfig.key === 'tglMulai' || sortConfig.key === 'lastUpdatedDate') {
+        if (sortConfig.key === 'lastUpdated') {
+          valA = a.lastUpdatedMs ?? 0; valB = b.lastUpdatedMs ?? 0
+        } else if (sortConfig.key === 'tglMulai') {
           valA = parseIdDate(valA); valB = parseIdDate(valB)
         } else if (typeof valA === 'string') {
           valA = valA.toLowerCase(); valB = valB.toLowerCase()
@@ -76,8 +72,9 @@ export function RiwayatPelatihanTable({ data, searchQuery, onEdit, onDownload, o
     : filteredData
 
   return (
+    <div {...getTableScrollProps()}>
     <table className="w-full text-left text-sm whitespace-nowrap">
-      <thead className="bg-[#0A1128] text-white">
+      <thead className="bg-[#0A1128] text-white sticky top-0 z-20">
         <tr>
           <th className="px-4 py-4 font-medium align-bottom">
             <SortableHeader label="Nama Pelatihan" sortKey="nama" sortConfig={sortConfig} onSort={handleSort} />
@@ -89,10 +86,10 @@ export function RiwayatPelatihanTable({ data, searchQuery, onEdit, onDownload, o
             <SortableHeader label="Tgl. Mulai" sortKey="tglMulai" sortConfig={sortConfig} onSort={handleSort} />
           </th>
           <th className="px-4 py-4 font-medium align-bottom">
-            <SortableHeader label="Status" sortKey="status" sortConfig={sortConfig} onSort={handleSort} />
+            <SortableHeader label="Nama Peserta" sublabel="Peserta Guru Pelatihan" sortKey="pesertaNama" sortConfig={sortConfig} onSort={handleSort} />
           </th>
           <th className="px-4 py-4 font-medium align-bottom">
-            <SortableHeader label="Nama Peserta" sublabel="Peserta Guru Pelatihan" sortKey="pesertaNama" sortConfig={sortConfig} onSort={handleSort} />
+            <SortableHeader label="Last Updated" sortKey="lastUpdated" sortConfig={sortConfig} onSort={handleSort} />
           </th>
           <th className="px-4 py-4 font-medium align-bottom text-center">Action</th>
         </tr>
@@ -112,21 +109,23 @@ export function RiwayatPelatihanTable({ data, searchQuery, onEdit, onDownload, o
               <td className="px-4 py-4 text-[#0A1128] font-medium">{item.daerah}</td>
               <td className="px-4 py-4 text-[#0A1128] font-medium">{item.tglMulai}</td>
               <td className="px-4 py-4">
-                <span className={cn('inline-flex items-center px-3 py-1 rounded-full text-xs font-bold', STATUS_CLASSES[item.status] || 'bg-gray-100 text-gray-500')}>
-                  {item.status}
-                </span>
-              </td>
-              <td className="px-4 py-4">
-                <div className="font-medium text-[#0A1128]">{item.pesertaNama || '-'}</div>
-                {item.pesertaLainnya > 0 && (
+                {item.pesertaNama && item.pesertaNama !== '-' ? (
+                  <button onClick={() => onViewPeserta && onViewPeserta(item)} className="text-left">
+                    <div className="font-medium text-[#0A1128] hover:underline">{item.pesertaNama}</div>
+                    {item.pesertaLainnya > 0 && (
+                      <span className="text-xs text-blue-500 hover:underline">{item.pesertaLainnya}+ lainnya</span>
+                    )}
+                  </button>
+                ) : (
                   <button
                     onClick={() => onViewPeserta && onViewPeserta(item)}
-                    className="text-xs text-blue-500 hover:underline"
+                    className="text-sm text-blue-500 hover:underline"
                   >
-                    {item.pesertaLainnya}+ lainnya
+                    Lihat peserta
                   </button>
                 )}
               </td>
+              <td className="px-4 py-4 text-[#0A1128] font-medium">{item.lastUpdated || '-'}</td>
               <td className="px-4 py-4">
                 <div className="flex items-center justify-center gap-1">
                   <button
@@ -143,25 +142,19 @@ export function RiwayatPelatihanTable({ data, searchQuery, onEdit, onDownload, o
                   >
                     <Download size={15} />
                   </button>
-                  <button
-                    onClick={() => onDelete && onDelete(item)}
-                    className="w-8 h-8 rounded-full flex items-center justify-center text-red-500 hover:bg-red-50 transition-colors"
-                    title="Hapus riwayat pelatihan"
-                  >
-                    <Trash2 size={15} />
-                  </button>
                 </div>
               </td>
             </tr>
           ))
         ) : (
           <tr>
-            <td colSpan="6" className="px-4 py-12 text-center text-gray-500">
+            <td colSpan="7" className="px-4 py-12 text-center text-gray-500">
               Tidak ada data riwayat pelatihan {searchQuery ? `untuk pencarian "${searchQuery}"` : ''}.
             </td>
           </tr>
         )}
       </tbody>
     </table>
+    </div>
   )
 }

@@ -1,6 +1,6 @@
 // src/pages/SubscriptionPage.jsx
 import { useState, useEffect } from "react";
-import { LogOut, Loader2, AlertCircle } from "lucide-react";
+import { LogOut, Loader2, AlertCircle, Users, Video, BookOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { subscriptionApi } from "@/lib/api";
 
@@ -14,6 +14,16 @@ import iconStarsBlue from "@/assets/subscription/icon_stars_blue.png";
 import iconStarsYellow from "@/assets/subscription/icon_stars_yellow.png";
 import stripeGreenOne from "@/assets/subscription/icon_stripe_green_one.png";
 import stripeGreenTwo from "@/assets/subscription/icon_stripe_green_two.png";
+// Ambil angka positif pertama dari beberapa kemungkinan field (nama field
+// diskon backend belum final — coba beberapa alias umum).
+function pickNumber(...vals) {
+  for (const v of vals) {
+    const n = Number(v);
+    if (Number.isFinite(n) && n > 0) return n;
+  }
+  return null;
+}
+
 // Transform API package response → UI plan format
 function transformPlan(pkg) {
   const isAnnual =
@@ -22,6 +32,15 @@ function transformPlan(pkg) {
   const months =
     pkg.durationUnit === "year" ? pkg.duration * 12 : pkg.duration || 1;
 
+  // Field diskon/harga-coret bila backend menyediakannya (fallback: dihitung
+  // di withComparison dengan membandingkan paket tahunan vs bulanan).
+  const explicitDiscount = pickNumber(
+    pkg.discountPercentage, pkg.discountPercent, pkg.discount, pkg.savePercentage
+  );
+  const explicitOriginal = pickNumber(
+    pkg.originalPrice, pkg.normalPrice, pkg.strikePrice, pkg.priceBeforeDiscount
+  );
+
   if (isAnnual) {
     return {
       id: pkg.id,
@@ -29,9 +48,9 @@ function transformPlan(pkg) {
       billingCycle: "annual",
       priceMonthly: Math.round(pkg.price / months),
       priceTotal: pkg.price,
-      originalPrice: null,
-      discount: null,
-      label: null,
+      originalPrice: explicitOriginal,
+      discount: explicitDiscount,
+      label: explicitDiscount ? `Kamu Hemat ${explicitDiscount}%` : null,
       recommended: true,
       planLabel: pkg.name,
     };
@@ -42,12 +61,36 @@ function transformPlan(pkg) {
     billingCycle: "monthly",
     priceMonthly: pkg.price,
     priceTotal: null,
-    originalPrice: null,
-    discount: null,
+    originalPrice: explicitOriginal,
+    discount: explicitDiscount,
     label: null,
     recommended: false,
     planLabel: pkg.name,
   };
+}
+
+// Lengkapi harga-coret & label "Kamu Hemat X%" paket tahunan dengan
+// membandingkan harga per-bulan efektifnya terhadap paket bulanan. Hanya
+// mengisi bila backend belum menyediakan angka diskon eksplisit.
+function withComparison(plans) {
+  const monthly = plans.find((p) => p.billingCycle === "monthly");
+  if (!monthly) return plans;
+
+  return plans.map((p) => {
+    if (p.billingCycle !== "annual") return p;
+
+    const originalPrice = p.originalPrice ?? monthly.priceMonthly;
+    let discount = p.discount;
+    if (!discount && originalPrice > p.priceMonthly) {
+      discount = Math.round((1 - p.priceMonthly / originalPrice) * 100);
+    }
+    return {
+      ...p,
+      originalPrice,
+      discount: discount || null,
+      label: discount ? `Kamu Hemat ${discount}%` : p.label,
+    };
+  });
 }
 
 // ─── DATA DUMMY (fallback jika API tidak tersedia) ────────────────────────────
@@ -57,7 +100,7 @@ const DUMMY_PLANS = [
     name: "Tahunan",
     billingCycle: "annual",
     priceMonthly: 33000,
-    priceTotal: 400000,
+    priceTotal: 396000,
     originalPrice: 39900,
     discount: 20,
     label: "Kamu Hemat 20%",
@@ -79,9 +122,18 @@ const DUMMY_PLANS = [
 ];
 
 const BENEFITS = [
-  "Bergabung dan nikmati semua diskusi, materi, serta kolaborasi eksklusif di dalam komunitas.",
-  "Belajar langsung dari sesi webinar rutin yang membahas topik-topik penting dan terbaru.",
-  "Akses berbagai bonus konten materi spesial yang hanya tersedia untuk member.",
+  {
+    icon: Users,
+    text: "Ikut diskusi dan belajar materi matematika dan AI bersama guru-guru dari seluruh Indonesia!",
+  },
+  {
+    icon: Video,
+    text: "Hadiri webinar interaktif dan bahas topik-topik edukasi terkini bersama guru-guru terbaik Indonesia.",
+  },
+  {
+    icon: BookOpen,
+    text: "Akses berbagai konten eksklusif untuk membantu pengajaran matematika yang asyik dan menyenangkan.",
+  },
 ];
 
 // Format harga ke Rupiah
@@ -110,24 +162,26 @@ function PlanCard({ plan, selected, onSelect }) {
     <div
       onClick={() => onSelect(plan.id)}
       className={cn(
-        "rounded-[24px] border-2 p-8 cursor-pointer transition-all duration-300 bg-white",
+        "relative rounded-[24px] border-2 p-8 cursor-pointer transition-all duration-300 bg-white",
         selected
           ? "border-blue-600 shadow-[0_0_40px_rgba(59,130,246,0.15)]"
           : "border-gray-200 hover:border-gray-300"
       )}
     >
+      {/* Badge hemat mengambang di atas kartu */}
+      {plan.label && (
+        <span className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-gradient-to-r from-[#4b7bff] to-[#48b2ff] text-white text-[13px] font-semibold px-4 py-1.5 rounded-full whitespace-nowrap shadow-sm">
+          {plan.label}
+        </span>
+      )}
+
       <div className="flex items-center justify-between">
         <div>
-          {/* Nama paket + Badge hemat inline */}
-          <div className="flex items-center gap-2 mb-3">
+          {/* Nama paket */}
+          <div className="mb-3">
             <p className="text-gray-500 text-[15px] font-semibold">
               {plan.name}
             </p>
-            {plan.label && (
-              <span className="bg-[#48b2ff] text-white text-xs font-medium px-3 py-1 rounded-full whitespace-nowrap">
-                {plan.label}
-              </span>
-            )}
           </div>
 
           {/* Harga */}
@@ -212,7 +266,9 @@ export default function SubscriptionPage({ user, onSignOut, onPaymentSuccess, on
     subscriptionApi.getPlans()
       .then((data) => {
         const pkgs = Array.isArray(data) ? data : (data.data || []);
-        const mapped = pkgs.filter((p) => p.isActive !== false).map(transformPlan);
+        const mapped = withComparison(
+          pkgs.filter((p) => p.isActive !== false).map(transformPlan)
+        );
 
         // Jika API berhasil tapi tidak mengembalikan data, gunakan dummy
         const finalPlans = mapped.length > 0 ? mapped : DUMMY_PLANS;
@@ -281,7 +337,7 @@ export default function SubscriptionPage({ user, onSignOut, onPaymentSuccess, on
             className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-gray-50 border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors"
           >
             <LogOut size={16} />
-            Sign Out
+            Log Out
           </button>
           <Avatar name={user?.name || user?.profile?.namaLengkap || "HK"} />
         </div>
@@ -291,13 +347,10 @@ export default function SubscriptionPage({ user, onSignOut, onPaymentSuccess, on
       <div className="relative z-10 max-w-[1100px] mx-auto px-6 pt-16 pb-32 grid lg:grid-cols-2 gap-20 items-center">
         {/* Kiri — copywriting */}
         <div className="animate-fade-in-up pr-4">
-          <span className="inline-block border border-[#7db3ff] text-blue-600 text-[13px] font-medium px-4 py-1.5 rounded-full mb-8 bg-white/50">
-            Satu Akses, Semua Benefit
-          </span>
           <h1 className="text-[44px] lg:text-[52px] font-medium text-[#111827] leading-[1.1] mb-10 tracking-tight">
-            Berkembang Lebih
+            Bertumbuh
             <br />
-            Cepat Bersama
+            Bersama Dengan
             <br />
             <span className="font-bold relative inline-block mt-1">
               Gasing Circle
@@ -305,17 +358,16 @@ export default function SubscriptionPage({ user, onSignOut, onPaymentSuccess, on
               <img src={stripeGreenOne} className="absolute w-[110%] h-auto -bottom-1 -left-2 object-contain" alt="" />
             </span>
           </h1>
-          <ul className="space-y-5">
-            {BENEFITS.map((b, i) => (
-              <li key={i} className="flex items-start gap-4">
-                <div className="w-6 h-6 rounded-full bg-[#22c55e] flex items-center justify-center shrink-0 mt-0.5">
-                  <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                  </svg>
-                </div>
-                <p className="text-gray-600 text-[15px] leading-relaxed font-medium">{b}</p>
-              </li>
-            ))}
+          <ul className="space-y-6">
+            {BENEFITS.map((b, i) => {
+              const Icon = b.icon;
+              return (
+                <li key={i} className="flex items-start gap-4">
+                  <Icon className="w-6 h-6 text-[#22c55e] shrink-0 mt-0.5" strokeWidth={2} />
+                  <p className="text-gray-600 text-[15px] leading-relaxed font-medium">{b.text}</p>
+                </li>
+              );
+            })}
           </ul>
         </div>
 

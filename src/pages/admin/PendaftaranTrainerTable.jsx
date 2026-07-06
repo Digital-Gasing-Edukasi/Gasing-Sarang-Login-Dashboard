@@ -1,5 +1,6 @@
 import { ExternalLink } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { getTableScrollProps } from './tableScroll'
 
 function fmtBatasWaktu(v) {
   if (!v) return '-'
@@ -18,8 +19,9 @@ export function PendaftaranTrainerTable({ data, onToggleStatus, searchQuery }) {
   })
 
   return (
+    <div {...getTableScrollProps()}>
     <table className="w-full text-left text-sm whitespace-nowrap">
-      <thead className="bg-[#0A1128] text-white">
+      <thead className="bg-[#0A1128] text-white sticky top-0 z-20">
         <tr>
           <th className="px-4 py-4 font-medium rounded-tl-lg">Nama Pelatihan</th>
           <th className="px-4 py-4 font-medium">Link</th>
@@ -34,7 +36,12 @@ export function PendaftaranTrainerTable({ data, onToggleStatus, searchQuery }) {
           filteredData.map(item => (
             <tr key={item.id} className="group hover:bg-[#F9FAFB] transition-colors">
               <td className="px-4 py-4">
-                <div className="font-bold text-[#0A1128]">{item.nama}</div>
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-[#0A1128]">{item.nama}</span>
+                  {item.isNew && (
+                    <span className="bg-blue-600 text-white text-[10px] px-2 py-0.5 rounded-full font-bold shrink-0">New</span>
+                  )}
+                </div>
               </td>
               <td className="px-4 py-4">
                 {item.url ? (
@@ -92,5 +99,6 @@ export function PendaftaranTrainerTable({ data, onToggleStatus, searchQuery }) {
         )}
       </tbody>
     </table>
+    </div>
   )
 }
