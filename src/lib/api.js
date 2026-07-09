@@ -18,6 +18,54 @@ export const tokenStorage = {
   },
 };
 
+// ─── Concurrency limiter + in-flight GET dedupe ───────────────────────────────
+// Backend pakai NestJS ThrottlerException (429) kalau kena burst request. Batasi
+// jumlah request paralel global + gabungkan GET identik yang lagi in-flight biar
+// halaman yang nembak banyak endpoint sekaligus (mis. dashboard) nggak kena limit.
+const MAX_CONCURRENT = 4;
+let activeRequests = 0;
+const waitQueue = [];
+
+function acquireSlot() {
+  if (activeRequests < MAX_CONCURRENT) {
+    activeRequests++;
+    return Promise.resolve();
+  }
+  return new Promise((resolve) => waitQueue.push(resolve));
+}
+
+function releaseSlot() {
+  const next = waitQueue.shift();
+  if (next) next(); // slot langsung dipakai antrean berikut (activeRequests tetap)
+  else activeRequests--;
+}
+
+async function limitedFetch(url, options) {
+  await acquireSlot();
+  try {
+    return await fetch(url, options);
+  } finally {
+    releaseSlot();
+  }
+}
+
+// Dedupe: dua pemanggil GET URL sama yang barengan → satu request jaringan, tiap
+// pemanggil dapat clone response-nya sendiri (body cuma bisa dibaca sekali).
+const inflightGets = new Map();
+
+function dedupeFetch(url, options = {}) {
+  const method = (options.method || "GET").toUpperCase();
+  if (method !== "GET") return limitedFetch(url, options);
+
+  if (inflightGets.has(url)) {
+    return inflightGets.get(url).then((res) => res.clone());
+  }
+  const p = limitedFetch(url, options);
+  inflightGets.set(url, p);
+  p.finally(() => inflightGets.delete(url));
+  return p.then((res) => res.clone());
+}
+
 // ─── Core fetch wrapper ───────────────────────────────────────────────────────
 async function request(endpoint, options = {}) {
   const headers = {
@@ -29,7 +77,7 @@ async function request(endpoint, options = {}) {
   const token = tokenStorage.getAccess();
   if (token) headers["Authorization"] = `Bearer ${token}`;
 
-  const res = await fetch(`${BASE_URL}${endpoint}`, {
+  const res = await dedupeFetch(`${BASE_URL}${endpoint}`, {
     ...options,
     headers,
     body: options.body ? JSON.stringify(options.body) : undefined,
@@ -39,7 +87,7 @@ async function request(endpoint, options = {}) {
     const refreshed = await tryRefreshToken();
     if (refreshed) {
       headers["Authorization"] = `Bearer ${tokenStorage.getAccess()}`;
-      const retryRes = await fetch(`${BASE_URL}${endpoint}`, {
+      const retryRes = await dedupeFetch(`${BASE_URL}${endpoint}`, {
         ...options,
         headers,
         body: options.body ? JSON.stringify(options.body) : undefined,
@@ -61,7 +109,7 @@ async function requestMultipart(endpoint, formData) {
   const headers = { Accept: "application/json" };
   if (token) headers["Authorization"] = `Bearer ${token}`;
 
-  const res = await fetch(`${BASE_URL}${endpoint}`, {
+  const res = await limitedFetch(`${BASE_URL}${endpoint}`, {
     method: "POST",
     headers,
     body: formData,
@@ -87,7 +135,7 @@ async function handleResponse(res) {
 
 async function tryRefreshToken() {
   try {
-    const res = await fetch(`${BASE_URL}/auth/refresh`, {
+    const res = await limitedFetch(`${BASE_URL}/auth/refresh`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ refreshToken: tokenStorage.getRefresh() }),
@@ -182,7 +230,7 @@ export const profileApi = {
 export const regionsApi = {
   list: (params = {}) => {
     const q = buildQuery(params);
-    return fetch(`${BASE_URL}/regions${q ? "?" + q : ""}`, {
+    return dedupeFetch(`${BASE_URL}/regions${q ? "?" + q : ""}`, {
       headers: { Accept: "application/json" },
     }).then((r) => r.json());
   },
@@ -196,7 +244,7 @@ export const regionsApi = {
 export const trainingSessionsApi = {
   list: (params = {}) => {
     const q = buildQuery(params);
-    return fetch(`${BASE_URL}/training-sessions${q ? "?" + q : ""}`, {
+    return dedupeFetch(`${BASE_URL}/training-sessions${q ? "?" + q : ""}`, {
       headers: { Accept: "application/json" },
     }).then((r) => r.json());
   },
@@ -271,7 +319,7 @@ export const queueApi = {
 // Dipakai untuk banner Pendaftaran Trainer di Home (key: hero_banner-home-v2).
 export const appConfigApi = {
   get: (key) =>
-    fetch(`${BASE_URL}/app-configs/${key}`, { headers: { Accept: "application/json" } })
+    dedupeFetch(`${BASE_URL}/app-configs/${key}`, { headers: { Accept: "application/json" } })
       .then((r) => r.json()),
 
   set: (key, value) =>
@@ -281,14 +329,14 @@ export const appConfigApi = {
 // ─── TIMEZONE ─────────────────────────────────────────────────────────────────
 export const timezoneApi = {
   list: () =>
-    fetch(`${BASE_URL}/timezones`, { headers: { Accept: "application/json" } })
+    dedupeFetch(`${BASE_URL}/timezones`, { headers: { Accept: "application/json" } })
       .then((r) => r.json()),
 };
 
 // ─── SUBSCRIPTION & PAYMENT ───────────────────────────────────────────────────
 export const subscriptionApi = {
   getPlans: () =>
-    fetch(`${BASE_URL}/packages`, { headers: { Accept: "application/json" } })
+    dedupeFetch(`${BASE_URL}/packages`, { headers: { Accept: "application/json" } })
       .then((r) => r.json()),
 
   getStatus: () => request("/subscription/me"),

@@ -2,14 +2,18 @@ import { ArrowDownUp, Check, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { getTableScrollProps } from './tableScroll'
 
-function SortableHeader({ label, sortKey, sortConfig, onSort }) {
+// Header sortable, dengan opsi sublabel (grup "Alumni Pelatihan").
+function SortableHeader({ label, sublabel, sortKey, sortConfig, onSort }) {
   return (
-    <div
-      className="flex items-center gap-2 cursor-pointer hover:text-white transition-colors select-none"
-      onClick={() => onSort(sortKey)}
-    >
-      {label}
-      <ArrowDownUp size={14} className={sortConfig.key === sortKey ? 'text-white' : 'text-white/50'} />
+    <div className="select-none whitespace-nowrap">
+      {sublabel && <div className="text-[11px] font-normal text-white/40 mb-0.5">{sublabel}</div>}
+      <div
+        className="flex items-center gap-2 cursor-pointer hover:text-white transition-colors"
+        onClick={() => onSort(sortKey)}
+      >
+        {label}
+        <ArrowDownUp size={14} className={sortConfig.key === sortKey ? 'text-white' : 'text-white/50'} />
+      </div>
     </div>
   )
 }
@@ -23,7 +27,7 @@ export function VerifikasiTable({
     <table className="w-full text-left text-sm whitespace-nowrap">
       <thead className="bg-[#0A1128] text-white sticky top-0 z-20">
         <tr>
-          <th className="px-4 py-4 w-12 text-center sticky left-0 z-30 bg-[#0A1128]">
+          <th className="px-4 py-4 w-12 text-center sticky left-0 z-30 bg-[#0A1128] align-bottom">
             <button
               onClick={onToggleSelectAll}
               className={cn(
@@ -34,18 +38,27 @@ export function VerifikasiTable({
               {allSelected && <Check size={11} className="text-white" strokeWidth={3} />}
             </button>
           </th>
-          <th className="px-4 py-4 font-medium sticky left-[48px] z-30 bg-[#0A1128] shadow-[4px_0_10px_-4px_rgba(0,0,0,0.3)]">
+          <th className="px-4 py-4 font-medium sticky left-[48px] z-30 bg-[#0A1128] shadow-[4px_0_10px_-4px_rgba(0,0,0,0.3)] align-bottom">
             <SortableHeader label="Nama Pengguna" sortKey="name" sortConfig={sortConfig} onSort={onSort} />
           </th>
-          <th className="px-4 py-4 font-medium">Email</th>
-          <th className="px-4 py-4 font-medium">Status</th>
-          <th className="px-4 py-4 font-medium">
+          <th className="px-4 py-4 font-medium align-bottom">Email</th>
+          <th className="px-4 py-4 font-medium align-bottom">Status</th>
+          <th className="px-4 py-4 font-medium align-bottom">
             <SortableHeader label="Tgl. Lahir" sortKey="birthdate" sortConfig={sortConfig} onSort={onSort} />
           </th>
-          <th className="px-4 py-4 font-medium">
+          <th className="px-4 py-4 font-medium align-bottom">
             <SortableHeader label="Lokasi" sortKey="lokasi" sortConfig={sortConfig} onSort={onSort} />
           </th>
-          {selectedIds.length === 0 && <th className="px-4 py-4 font-medium text-center">Setuju?</th>}
+          <th className="px-4 py-4 font-medium align-bottom">
+            <SortableHeader label="Daerah" sublabel="Alumni Pelatihan" sortKey="alumniDaerah" sortConfig={sortConfig} onSort={onSort} />
+          </th>
+          <th className="px-4 py-4 font-medium align-bottom">
+            <SortableHeader label="Tanggal Mulai" sublabel="Alumni Pelatihan" sortKey="alumniTanggal" sortConfig={sortConfig} onSort={onSort} />
+          </th>
+          <th className="px-4 py-4 font-medium align-bottom">
+            <SortableHeader label="Asal Sekolah" sortKey="school" sortConfig={sortConfig} onSort={onSort} />
+          </th>
+          {selectedIds.length === 0 && <th className="px-4 py-4 font-medium text-center align-bottom">Setuju?</th>}
         </tr>
       </thead>
       <tbody className="divide-y divide-gray-100">
@@ -83,6 +96,9 @@ export function VerifikasiTable({
               </td>
               <td className="px-4 py-4 text-[#0A1128] font-medium">{user.birthdate}</td>
               <td className="px-4 py-4 text-[#0A1128] font-medium whitespace-normal max-w-[220px]" title={user.lokasi}>{user.lokasi}</td>
+              <td className="px-4 py-4 text-[#0A1128] font-medium whitespace-normal max-w-[200px]" title={user.alumniDaerah}>{user.alumniDaerah || '-'}</td>
+              <td className="px-4 py-4 text-[#0A1128] font-medium">{user.alumniTanggal || '-'}</td>
+              <td className="px-4 py-4 text-[#0A1128] font-medium whitespace-normal max-w-[220px]" title={user.school}>{user.school || '-'}</td>
               {selectedIds.length === 0 && (
                 <td className="px-4 py-4">
                   <div className="flex items-center justify-center gap-2">
@@ -105,7 +121,7 @@ export function VerifikasiTable({
           )
         }) : (
           <tr>
-            <td colSpan="7" className="px-4 py-12 text-center text-gray-500">
+            <td colSpan="10" className="px-4 py-12 text-center text-gray-500">
               Tidak ada data yang cocok dengan pencarian <span className="font-semibold">"{searchQuery}"</span>
             </td>
           </tr>

@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { adminApi, discourseApi, regionsApi, appConfigApi, trainingSessionsApi, trainingHistoriesApi, queueApi } from '@/lib/api'
-import { mapToVerifikasi, mapToManajemen, mapToRiwayat, fmtDate, computeIsNew } from './admin/mappers'
+import { mapToVerifikasi, mapToManajemen, mapToRiwayat, fmtDate, computeIsNew, isManajemenEligible } from './admin/mappers'
 import { AdminSidebar }    from './admin/AdminSidebar'
 import { AdminToast }      from './admin/AdminToast'
 import { RejectModal, ApproveModal } from './admin/ConfirmModal'
@@ -157,7 +157,7 @@ export default function AdminDashboardPage({ user, onSignOut }) {
   const [approveCandidate, setApproveCandidate] = useState(null)
 
   // ── Bulk verifikasi ────────────────────────────────────────────────────────
-  const BULK_LIMIT = 100 // keputusan #2: hard limit 100 akun sekaligus
+  const BULK_LIMIT = 10 // keputusan #2: hard limit 10 akun sekaligus
   const [selectedIds, setSelectedIds] = useState([])
   const [verifSubTab, setVerifSubTab] = useState('pending') // 'pending' | 'voucher'
   const [bulkSuspendOpen, setBulkSuspendOpen] = useState(false) // modal tangguhkan bulk (Manajemen)
@@ -204,7 +204,10 @@ export default function AdminDashboardPage({ user, onSignOut }) {
         setSelectedIds([]) // buang seleksi lama setelah reload
       } else {
         const res = await adminApi.getUsers({})
-        setManagementUsers((Array.isArray(res) ? res : res.data || []).map(u => mapToManajemen(u, regions, discourseGroupsRef.current)))
+        const rawList = Array.isArray(res) ? res : res.data || []
+        // Hanya akun ber-keputusan final (approved/rejected) + voucher beres yang
+        // masuk Manajemen. WAITING/REVISE/pending-voucher disaring keluar.
+        setManagementUsers(rawList.filter(isManajemenEligible).map(u => mapToManajemen(u, regions, discourseGroupsRef.current)))
       }
     } catch (err) {
       setApiError(err.message || 'Gagal memuat data')
@@ -232,55 +235,20 @@ export default function AdminDashboardPage({ user, onSignOut }) {
     if (activeTab === 'pendaftaran-trainer') loadPendaftaran()
   }, [activeTab, loadPendaftaran])
 
+  // Cukup 1 request: list training-sessions. mapToRiwayat auto-pakai region yang
+  // di-embed backend (s.region/s.regency) kalau ada.
+  //
+  // CATATAN 429: dulu di sini ada 2 loop per-session — resolve region (GET
+  // /regions/:id per id) + ringkasan peserta (getSessionParticipants per id).
+  // Untuk 100 session itu ~200 request → backend NestJS throttler (default
+  // ~10 req/60s) langsung balikin ThrottlerException 429. Loop dibuang. Kolom
+  // "Daerah" & "Peserta" harus di-embed backend di response list (lihat gap
+  // manajemen-akun-data-gaps), bukan disintesis lewat N+1 fetch dari FE.
   const loadRiwayat = useCallback(async () => {
     try {
       const res = await trainingSessionsApi.list({ page: 1, limit: 100 })
       const list = Array.isArray(res) ? res : (res?.data || res?.items || [])
-
-      // Session cuma bawa regionId. Resolve "Kab/Kota, Provinsi":
-      // GET /regions/:id → { name, parentId }, lalu parentId → nama provinsi.
-      // Dedupe + cache (parentId sering sama). Best-effort; gagal = biarin '-'.
-      const cache = {}
-      const getRegion = async (id) => {
-        if (!id) return null
-        if (id in cache) return cache[id]
-        try {
-          const r = await regionsApi.get(id)
-          const reg = r?.data || r
-          cache[id] = { name: reg?.name || reg?.regionName || '', parentId: reg?.parentId || null }
-        } catch { cache[id] = null }
-        return cache[id]
-      }
-
-      const ids = [...new Set(list.map(s => s.regionId).filter(Boolean))]
-      const regionMap = {}
-      await Promise.all(ids.map(async (id) => {
-        const reg = await getRegion(id)
-        if (!reg) return
-        const prov = reg.parentId ? await getRegion(reg.parentId) : null
-        regionMap[id] = [reg.name, prov?.name].filter(Boolean).join(', ')
-      }))
-
-      // Ringkasan peserta per session (limit=1 → total + nama pertama) buat
-      // kolom Nama Peserta. Scope = filter lastTrainingSessionId (bisa parsial).
-      const partMap = {}
-      await Promise.all(list.map(async (s) => {
-        try {
-          const pr = await adminApi.getSessionParticipants(s.id, { limit: 1 })
-          const data = Array.isArray(pr) ? pr : (pr?.data || [])
-          partMap[s.id] = { total: pr?.meta?.total ?? data.length, firstName: data[0]?.name || '' }
-        } catch { partMap[s.id] = { total: 0, firstName: '' } }
-      }))
-
-      setRiwayatPelatihanData(list.map(s => {
-        const row = mapToRiwayat(s, regionMap)
-        const p = partMap[s.id]
-        if (p && p.total > 0) {
-          row.pesertaNama = p.firstName || `${p.total} peserta`
-          row.pesertaLainnya = Math.max(0, p.total - 1)
-        }
-        return row
-      }))
+      setRiwayatPelatihanData(list.map(s => mapToRiwayat(s)))
     } catch (e) {
       setRiwayatPelatihanData([])
     }
@@ -563,11 +531,17 @@ export default function AdminDashboardPage({ user, onSignOut }) {
   // Approve (opsi B): TIDAK memanggil backend. Akun dipindah ke sub-tab Pending
   // Voucher + kode voucher di-generate FE. Konfirmasi final terjadi di tab voucher.
   // TODO(be): panggil verifyUser(approved) di sini bila backend ingin dicatat lebih awal.
+  // Resolve nama role (discourse group) dari id — untuk kolom Role di tabel voucher.
+  const roleNameFromId = (id) => {
+    const g = discourseGroups.find(x => String(x.id ?? x.groupId) === String(id))
+    return g?.name || g?.title || g?.groupName || ''
+  }
+
   const handleConfirmApprove = ({ discourseGroupId, lastTrainingSessionId }) => {
     if (!approveCandidate) return
     const target = approveCandidate
     setApproveCandidate(null)
-    const vUser = { ...target, discourseGroupId, lastTrainingSessionId, voucherCode: genVoucherCode() }
+    const vUser = { ...target, discourseGroupId, lastTrainingSessionId, role: roleNameFromId(discourseGroupId) || target.role, voucherCode: genVoucherCode() }
     setUsers(prev => prev.filter(u => u.id !== target.id))
     setPendingVoucherUsers(prev => [vUser, ...prev])
     showUndoToast(
@@ -613,7 +587,7 @@ export default function AdminDashboardPage({ user, onSignOut }) {
     const removed = users.filter(u => ids.includes(u.id))
     const vUsers = rows.map(r => {
       const base = removed.find(u => u.id === r.id) || {}
-      return { ...base, discourseGroupId: r.discourseGroupId, lastTrainingSessionId: r.lastTrainingSessionId, voucherCode: genVoucherCode() }
+      return { ...base, discourseGroupId: r.discourseGroupId, lastTrainingSessionId: r.lastTrainingSessionId, role: roleNameFromId(r.discourseGroupId) || base.role, voucherCode: genVoucherCode() }
     })
     setUsers(prev => prev.filter(u => !ids.includes(u.id)))
     setPendingVoucherUsers(prev => [...vUsers, ...prev])

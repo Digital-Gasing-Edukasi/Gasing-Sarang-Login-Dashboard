@@ -5,7 +5,9 @@ import { Label }    from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
 import { RightPanel, Divider } from '@/components/layout/RightPanel'
 import { IconInput, TogglePassword } from '@/components/shared/IconInput'
+import { LoginStatusModal } from '@/components/shared/LoginStatusModal'
 import { authApi, profileApi, tokenStorage } from '@/lib/api'
+import { evaluateLoginGate } from '@/lib/loginGate'
 
 const ERR_INPUT = '!border-red-500 focus-visible:!border-red-500 focus-visible:ring-red-200'
 const EMAIL_RE  = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -17,6 +19,8 @@ export function LoginPage({ onNavigate, onLoginSuccess, isSsoMode = false }) {
   const [remember, setRemember] = useState(false)
   const [loading, setLoading]   = useState(false)
   const [errors, setErrors]     = useState({})
+  // gate: { type, profile } — status akun yang memblokir login (pending/expired/suspended).
+  const [gate, setGate]         = useState(null)
 
   const clearFieldError = (field) =>
     setErrors(prev => ({ ...prev, [field]: '' }))
@@ -33,6 +37,9 @@ export function LoginPage({ onNavigate, onLoginSuccess, isSsoMode = false }) {
       const data = await authApi.login(email, password)
       tokenStorage.setTokens(data.accessToken, data.refreshToken, remember)
       const profile = await profileApi.getMe()
+      // Cek status akun sebelum masuk: pending / expired / suspended → tampilkan modal.
+      const blocked = evaluateLoginGate(profile)
+      if (blocked) { setGate({ ...blocked, profile }); return }
       onLoginSuccess(profile)
     } catch (e) {
       setErrors({ password: e.message })
@@ -108,6 +115,14 @@ export function LoginPage({ onNavigate, onLoginSuccess, isSsoMode = false }) {
           </button>
         </p>
       </div>
+
+      {gate && (
+        <LoginStatusModal
+          type={gate.type}
+          onClose={() => { tokenStorage.clear(); setGate(null) }}
+          onRenew={() => { const p = gate.profile; setGate(null); onLoginSuccess(p) }}
+        />
+      )}
     </RightPanel>
   )
 }

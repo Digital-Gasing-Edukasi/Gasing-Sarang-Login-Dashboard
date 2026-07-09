@@ -159,6 +159,18 @@ export function mapToVerifikasi(u, regions = []) {
   const createdMs = parseCreatedAtMs(u.createdAt)
   const isNew = createdMs ? (Date.now() - createdMs) < 7 * 24 * 60 * 60 * 1000 : false
 
+  // Kolom tambahan untuk tabel Pending Voucher (sama seperti mapToManajemen):
+  // Alumni Pelatihan (sesi yang diikuti user), jumlah riwayat, kode voucher.
+  const lts = u.lastTrainingSession || u.trainingSession || {}
+  const ltsMs = dateFieldMs(lts.startDate)
+  const alumniNama    = lts.name || '-'
+  const alumniTanggal = ltsMs ? fmtDate(ltsMs) : '-'
+  const alumniDaerah  = resolveRegionLabel(lts.region || lts.regency, lts.regionId, regions)
+  const riwayatCount =
+    u.trainingHistoriesCount ?? u.trainingHistoryCount ?? u._count?.trainingHistories ??
+    (Array.isArray(u.trainingHistories) ? u.trainingHistories.length : 0)
+  const voucherCode = u.lastVoucher?.code || u.activeVoucher?.code || u.voucher?.code || u.voucherCode || ''
+
   return {
     id:       u.id,
     name:     u.name || '-',
@@ -169,6 +181,11 @@ export function mapToVerifikasi(u, regions = []) {
     lokasi,
     isNew,
     training:  regionName,
+    alumniNama,
+    alumniDaerah,
+    alumniTanggal,
+    riwayatCount,
+    voucherCode,
     year:      parseCreatedAtYear(u.createdAt),
     school:    u.schoolName || '-',
     role:      u.discourseGroup?.name || u.discourseGroupName || '',
@@ -195,6 +212,19 @@ function parseManajemenStatus(u) {
   const vs = u.verifiedStatus
   if (vs === -1 || vs === 'rejected') return 'Ditolak'
   return 'Disetujui'
+}
+
+// Syarat masuk Manajemen Akun (semua tab). Akun yang BELUM diputus verifikasi
+// (WAITING/REVISE) atau BELUM verifikasi voucher TIDAK masuk table manapun —
+// mereka masih di alur Verifikasi Akun. Hanya akun ber-keputusan final:
+//   approved (1) → Disetujui/Ditangguhkan/Baru Dihapus, rejected (-1) → Ditolak.
+export function isManajemenEligible(u) {
+  const vs = u.verifiedStatus
+  const decided = vs === 1 || vs === 'approved' || vs === -1 || vs === 'rejected'
+  if (!decided) return false
+  // Belum verifikasi voucher (bila backend menyediakan flag) → belum masuk.
+  if (u.voucherVerified === false || u.pendingVoucher === true || u.pendingVoucherSetup === true) return false
+  return true
 }
 
 // Jenis Paket → 'Tahunan' | 'Bulanan' | '-'. Diturunkan dari durasi paket.
