@@ -1,3 +1,5 @@
+import { canonicalRole } from './roleOptions'
+
 // Window "komponen baru": badge New + titik biru navbar hilang setelah 3 hari.
 export const NEW_WINDOW_MS = 3 * 24 * 60 * 60 * 1000
 
@@ -129,10 +131,12 @@ export function mapToPeserta(u) {
   }
 }
 
-// verifiedStatus dari API (NUMBER): 1=approved, 2=revise, -1=rejected, lainnya=waiting.
+// verifiedStatus dari API (NUMBER): 1=approved, 2=revise, 3=pending_voucher,
+// -1=rejected, lainnya=waiting.
 function parseVerifiedStatus(v) {
   if (v === 1 || v === 'approved') return 'Approved'
   if (v === 2 || v === 'revise') return 'Revise'
+  if (v === 3 || v === 'pending_voucher') return 'Pending Voucher'
   if (v === -1 || v === 'rejected') return 'Rejected'
   return 'Pending'
 }
@@ -176,7 +180,10 @@ export function mapToVerifikasi(u, regions = []) {
     name:     u.name || '-',
     username: u.username ? `@${u.username}` : `@${(u.email || '').split('@')[0]}`,
     email:    u.email || '-',
+    // `status` = label tampilan; `verifiedStatus` = enum mentah, dipakai handler
+    // approve untuk memindahkan baris ke PENDING_VOUCHER tanpa reload.
     status:   parseVerifiedStatus(u.verifiedStatus),
+    verifiedStatus: u.verifiedStatus,
     birthdate: parseBirthdate(u.birthdate),
     lokasi,
     isNew,
@@ -188,7 +195,7 @@ export function mapToVerifikasi(u, regions = []) {
     voucherCode,
     year:      parseCreatedAtYear(u.createdAt),
     school:    u.schoolName || '-',
-    role:      u.discourseGroup?.name || u.discourseGroupName || '',
+    role:      resolveRole(u),
     // Id mentah untuk membangun link perbaikan data (prefill di FixDataPage).
     raw: {
       birthdate:  (u.birthdate && typeof u.birthdate === 'object') ? (u.birthdate.date || '') : (u.birthdate || ''),
@@ -257,13 +264,15 @@ function fmtLastUpdated24h(raw) {
 }
 
 // Nama role (discourse group). Prioritas embedded; fallback resolve id → daftar groups.
+// Discourse `name` itu slug ("TrainerUtama"), jadi selalu lewat canonicalRole()
+// supaya tabel menampilkan "Trainer Utama". Grup non-role (subscriber) → ''.
 function resolveRole(u, groups = []) {
-  const embedded = u.discourseGroup?.name || u.discourseGroupName
-  if (embedded) return embedded
+  const embedded = u.discourseGroup || u.discourseGroupName
+  if (embedded) return canonicalRole(embedded) || ''
   const gid = u.discourseGroupId
   if (gid != null) {
     const g = groups.find(x => String(x.id) === String(gid))
-    if (g) return g.name
+    if (g) return canonicalRole(g) || ''
   }
   return ''
 }

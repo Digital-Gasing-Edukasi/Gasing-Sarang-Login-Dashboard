@@ -14,7 +14,10 @@ import { RightPanel, Divider } from "@/components/layout/RightPanel";
 import { StepIndicator } from "@/components/layout/StepIndicator";
 import { IconInput, TogglePassword } from "@/components/shared/IconInput";
 import { authApi, regionsApi, trainingSessionsApi } from "@/lib/api";
-import { Filter } from 'bad-words';
+// Dipin ke bad-words 3.x: rilis 4.0.0 (masih `latest` di npm) di-publish tanpa
+// folder `dist/` yang ditunjuk package.json-nya, jadi build gagal me-resolve-nya.
+// v3 mengekspor Filter sebagai default, bukan named export.
+import Filter from 'bad-words';
 
 const filter = new Filter();
 const indonesianBadWords = [

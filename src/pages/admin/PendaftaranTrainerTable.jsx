@@ -2,6 +2,13 @@ import { ExternalLink, Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { getTableScrollProps } from './tableScroll'
 
+function isPastDeadline(v) {
+  if (!v) return false
+  const t = new Date(v).getTime()
+  if (isNaN(t)) return false
+  return t <= Date.now()
+}
+
 function fmtBatasWaktu(v) {
   if (!v) return '-'
   const d = new Date(v)
@@ -44,6 +51,7 @@ export function PendaftaranTrainerTable({
         {filteredData.length > 0 ? (
           filteredData.map(item => {
             const selected = selectedIds.includes(item.id);
+            const expired = isPastDeadline(item.batasWaktu);
             return (
             <tr key={item.id} className={cn('group transition-colors', selected ? 'bg-[#F4F6FB]' : 'hover:bg-[#F9FAFB]')}>
               <td className={cn('px-4 py-4 text-center sticky left-0 z-10 transition-colors', selected ? 'bg-[#F4F6FB]' : 'bg-white group-hover:bg-[#F9FAFB]')}>
@@ -81,7 +89,9 @@ export function PendaftaranTrainerTable({
                 )}
               </td>
               <td className="px-4 py-4 text-[#0A1128] font-medium">{item.periode}</td>
-              <td className="px-4 py-4 text-[#0A1128] font-medium">{fmtBatasWaktu(item.batasWaktu)}</td>
+              <td className={cn('px-4 py-4 font-medium', expired ? 'text-gray-400' : 'text-[#0A1128]')}>
+                {fmtBatasWaktu(item.batasWaktu)}
+              </td>
               <td className="px-4 py-4">
                 <span
                   className={cn(
@@ -96,9 +106,12 @@ export function PendaftaranTrainerTable({
                 <div className="flex items-center justify-center">
                   <button
                     onClick={() => onToggleStatus(item.id)}
+                    disabled={expired}
+                    title={expired ? 'Batas waktu pendaftaran sudah lewat' : undefined}
                     className={cn(
                       "relative inline-flex h-6 w-11 items-center rounded-full transition-colors",
-                      item.isActive ? "bg-green-500" : "bg-gray-300"
+                      item.isActive ? "bg-green-500" : "bg-gray-300",
+                      expired && "cursor-not-allowed opacity-50"
                     )}
                   >
                     <span

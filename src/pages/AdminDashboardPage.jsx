@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { adminApi, discourseApi, regionsApi, appConfigApi, trainingSessionsApi, trainingHistoriesApi, queueApi } from '@/lib/api'
-import { mapToVerifikasi, mapToManajemen, mapToRiwayat, fmtDate, computeIsNew, isManajemenEligible } from './admin/mappers'
+import { mapToVerifikasi, mapToManajemen, mapToRiwayat, fmtDate, computeIsNew, isManajemenEligible, VERIFIED_STATUS } from './admin/mappers'
+import { canonicalRole } from './admin/roleOptions'
 import { AdminSidebar }    from './admin/AdminSidebar'
 import { AdminToast }      from './admin/AdminToast'
 import { RejectModal, ApproveModal } from './admin/ConfirmModal'
@@ -31,6 +32,29 @@ const DEFAULT_SHARED = {
   modalBody: 'Tim Gasing akan menghubungi members yang terpilih menjadi Trainer untuk pengimbasan, berikut informasi lainnya. Pastikan nomor HP kamu aktif ya!',
   modalTitle: 'Yuk, daftar jadi Trainer pengimbasan Gasing!',
   modalSuccess: 'Terima kasih sudah mendaftar sebagai Trainer!',
+}
+
+// Batas waktu pendaftaran sudah lewat? String kosong / tanggal invalid = belum lewat
+// (jangan auto-matikan baris yang datanya memang tidak punya batas waktu).
+function isPastDeadline(batasWaktu) {
+  if (!batasWaktu) return false
+  const t = new Date(batasWaktu).getTime()
+  if (isNaN(t)) return false
+  return t <= Date.now()
+}
+
+// Matikan semua baris aktif yang batas waktunya sudah lewat.
+// Balikin { rows, changed } supaya caller tahu perlu persist atau tidak.
+function autoOffExpired(rows) {
+  let changed = false
+  const next = rows.map(r => {
+    if (r.isActive && isPastDeadline(r.batasWaktu)) {
+      changed = true
+      return { ...r, isActive: false }
+    }
+    return r
+  })
+  return { rows: changed ? next : rows, changed }
 }
 
 // Ambil id topik dari URL Discourse (mis .../t/slug/143 atau .../t/slug/143/5 → 143).
@@ -195,12 +219,26 @@ export default function AdminDashboardPage({ user, onSignOut }) {
       }
 
       if (tab === 'verifikasi') {
-        // Backend: list user yang butuh verifikasi = filter[verifiedStatus]=waiting.
+        // Dua sub-tab = dua request: WAITING(0) → tabel Pending, PENDING_VOUCHER(3) →
+        // tabel Pending Voucher Setup. Tidak bisa satu request tanpa filter karena
+        // /admin/users dipaginasi (limit default 20).
         const res = await adminApi.getUsers({ 'filter[verifiedStatus]': 'waiting' })
         const rawList = Array.isArray(res) ? res : res.data || []
         // Defensif: kalau server tidak memfilter, saring lagi di klien.
-        const pendingUsers = rawList.filter(u => u.verifiedStatus != 1 && u.verifiedStatus != -1 || u.verifiedStatus === 'waiting')
-        setUsers(pendingUsers.map(u => mapToVerifikasi(u, regions)))
+        const isWaiting = (u) => u.verifiedStatus === 0 || u.verifiedStatus === 'waiting' ||
+          (u.verifiedStatus != 1 && u.verifiedStatus != -1 && u.verifiedStatus != 3)
+        setUsers(rawList.filter(isWaiting).map(u => mapToVerifikasi(u, regions)))
+
+        // Sub-tab Pending Voucher Setup. Dibungkus try/catch supaya kegagalan di sini
+        // (mis. nilai filter tidak dikenal server) tidak ikut mengosongkan tabel Pending.
+        try {
+          const vRes = await adminApi.getUsers({ 'filter[verifiedStatus]': 'pending_voucher' })
+          const vRaw = Array.isArray(vRes) ? vRes : vRes.data || []
+          const isPendingVoucher = (u) => u.verifiedStatus === 3 || u.verifiedStatus === 'pending_voucher'
+          setPendingVoucherUsers(vRaw.filter(isPendingVoucher).map(u => mapToVerifikasi(u, regions)))
+        } catch (e) {
+          console.error('Failed to load pending voucher users', e)
+        }
         setSelectedIds([]) // buang seleksi lama setelah reload
       } else {
         const res = await adminApi.getUsers({})
@@ -222,8 +260,17 @@ export default function AdminDashboardPage({ user, onSignOut }) {
     try {
       const res = await appConfigApi.get(PENDAFTARAN_KEY)
       const value = res?.value ?? res?.data?.value ?? res ?? {}
-      setSharedContent(value.shared_content || DEFAULT_SHARED)
-      setPendaftaranData(threadsToRows(value))
+      const shared = value.shared_content || DEFAULT_SHARED
+      setSharedContent(shared)
+
+      // Batas waktu bisa terlewat saat dashboard tidak dibuka sama sekali, jadi
+      // status hasil baca dinormalisasi dulu lalu ditulis balik ke app-config —
+      // kalau tidak, Home masih menampilkan pendaftaran yang sudah tutup.
+      const { rows, changed } = autoOffExpired(threadsToRows(value))
+      setPendaftaranData(rows)
+      if (changed) {
+        appConfigApi.set(PENDAFTARAN_KEY, rowsToValue(rows, shared)).catch(() => {})
+      }
     } catch (e) {
       // Belum dikonfigurasi / gagal baca → mulai dari kosong.
       setPendaftaranData([])
@@ -349,11 +396,30 @@ export default function AdminDashboardPage({ user, onSignOut }) {
     }
   }
 
+  // Dashboard bisa dibiarkan terbuka melewati batas waktu, jadi status juga
+  // dicek berkala, bukan cuma saat load.
+  useEffect(() => {
+    const tick = () => {
+      setPendaftaranData(prev => {
+        const { rows, changed } = autoOffExpired(prev)
+        if (changed) persistPendaftaran(rows).catch(() => {})
+        return rows
+      })
+    }
+    const timer = setInterval(tick, 30_000)
+    return () => clearInterval(timer)
+  }, [sharedContent])
+
   // Aturan: hanya 1 pelatihan boleh aktif. Nyalakan 1 → matikan sisanya.
+  // Baris yang batas waktunya lewat tidak boleh dinyalakan lagi.
   const handleTogglePendaftaranStatus = async (id) => {
     const target = pendaftaranData.find(r => r.id === id)
     if (!target) return
     const turningOn = !target.isActive
+    if (turningOn && isPastDeadline(target.batasWaktu)) {
+      setApiError('Batas waktu pendaftaran sudah lewat. Perbarui batas waktu sebelum mengaktifkan kembali.')
+      return
+    }
     const next = pendaftaranData.map(r => ({
       ...r,
       isActive: turningOn ? r.id === id : (r.id === id ? false : r.isActive),
@@ -528,22 +594,20 @@ export default function AdminDashboardPage({ user, onSignOut }) {
     setApproveCandidate(users.find(u => u.id === id))
   }
 
-  // Approve (opsi B): TIDAK memanggil backend. Akun dipindah ke sub-tab Pending
-  // Voucher + kode voucher di-generate FE. Konfirmasi final terjadi di tab voucher.
-  // TODO(be): panggil verifyUser(approved) di sini bila backend ingin dicatat lebih awal.
   // Resolve nama role (discourse group) dari id — untuk kolom Role di tabel voucher.
   const roleNameFromId = (id) => {
     const g = discourseGroups.find(x => String(x.id ?? x.groupId) === String(id))
-    return g?.name || g?.title || g?.groupName || ''
+    return canonicalRole(g) || ''
   }
 
-  // Approve langkah-1: WAITING(0) → PENDING_VOUCHER(3). Kirim payload ke backend
-  // dengan discourseGroupId + lastTrainingSessionId. Optimistic + toast undo 5s.
+  // Approve langkah-1 ("Approve Main Data"): WAITING(0) → PENDING_VOUCHER(3).
+  // discourseGroupId + lastTrainingSessionId WAJIB di payload — kehadirannya yang
+  // menandai request ini sebagai langkah-1. Optimistic + toast undo 5s.
   const handleConfirmApprove = ({ discourseGroupId, lastTrainingSessionId }) => {
     if (!approveCandidate) return
     const target = approveCandidate
     setApproveCandidate(null)
-    const vUser = { ...target, discourseGroupId, lastTrainingSessionId, role: roleNameFromId(discourseGroupId) || target.role, voucherCode: genVoucherCode() }
+    const vUser = { ...target, verifiedStatus: VERIFIED_STATUS.PENDING_VOUCHER, status: 'Pending Voucher', discourseGroupId, lastTrainingSessionId, role: roleNameFromId(discourseGroupId) || target.role, voucherCode: genVoucherCode() }
     setUsers(prev => prev.filter(u => u.id !== target.id))
     setPendingVoucherUsers(prev => [vUser, ...prev])
     setToast({
@@ -563,8 +627,11 @@ export default function AdminDashboardPage({ user, onSignOut }) {
     )
   }
 
-  // Konfirmasi voucher tunggal → finalize langkah-2: PENDING_VOUCHER(3) → APPROVED(1).
-  // Optimistic remove baris + toast undo 5s; commit verifyUser(approved) tertunda.
+  // Konfirmasi voucher → langkah-2 ("Finalize"): PENDING_VOUCHER(3) → APPROVED(1).
+  // Payload HANYA { status }. Jangan sertakan discourseGroupId/lastTrainingSessionId:
+  // backend membaca field itu sebagai penanda langkah-1, dan karena WAITING→APPROVED
+  // bukan transisi sah, akun malah balik ke PENDING_VOUCHER. Keduanya sudah tersimpan
+  // di backend sejak langkah-1. Optimistic remove baris + toast undo 5s.
   const handleConfirmVoucher = () => {
     if (!voucherCandidate) return
     const target = voucherCandidate
@@ -604,7 +671,7 @@ export default function AdminDashboardPage({ user, onSignOut }) {
     const removed = users.filter(u => ids.includes(u.id))
     const vUsers = rows.map(r => {
       const base = removed.find(u => u.id === r.id) || {}
-      return { ...base, discourseGroupId: r.discourseGroupId, lastTrainingSessionId: r.lastTrainingSessionId, role: roleNameFromId(r.discourseGroupId) || base.role, voucherCode: genVoucherCode() }
+      return { ...base, verifiedStatus: VERIFIED_STATUS.PENDING_VOUCHER, status: 'Pending Voucher', discourseGroupId: r.discourseGroupId, lastTrainingSessionId: r.lastTrainingSessionId, role: roleNameFromId(r.discourseGroupId) || base.role, voucherCode: genVoucherCode() }
     })
     setUsers(prev => prev.filter(u => !ids.includes(u.id)))
     setPendingVoucherUsers(prev => [...vUsers, ...prev])
@@ -673,20 +740,22 @@ export default function AdminDashboardPage({ user, onSignOut }) {
     setActionModal({ type, user })
   }
 
-  const handleConfirmUbahRole = (newRole) => {
+  // gid = discourseGroupId dari dropdown (opsinya sudah berasal dari backend, jadi
+  // id-nya selalu sah). Nama role cuma dipakai untuk tampilan optimistic.
+  const handleConfirmUbahRole = (gid) => {
     const target = actionModal.user
     const prevRole = target.role
-    handleRoleChange(target.id, newRole)
     setActionModal({ type: null, user: null })
+
+    const newRole = roleNameFromId(gid)
+    handleRoleChange(target.id, newRole)
     setToast({
       message: <>Berhasil mengubah role akun <span className="font-bold">{target.name}</span></>,
       roleUndo: { id: target.id, prevRole },
     })
-    // Commit ke backend (resolve nama role → discourseGroupId). Undo membatalkan timer.
-    const grp = discourseGroups.find(g => (g.name || g) === newRole)
-    const gid = grp ? (grp.id ?? grp) : null
+    // Commit ke backend. Undo membatalkan timer.
     scheduleAction(
-      () => (gid != null ? adminApi.updateDiscourseGroup(target.id, gid) : Promise.resolve()),
+      () => adminApi.updateDiscourseGroup(target.id, gid),
       () => { handleRoleChange(target.id, prevRole); setApiError('Gagal mengubah role.') }
     )
   }
@@ -729,7 +798,7 @@ export default function AdminDashboardPage({ user, onSignOut }) {
     if (!target) return
     setActionModal({ type: null, user: null })
     const prevStatus = target.accountStatus
-    const roleName = discourseGroups.find(g => String(g.id ?? g) === String(discourseGroupId))?.name
+    const roleName = roleNameFromId(discourseGroupId)
     setManagementUsers(prev => prev.map(u => u.id === target.id
       ? { ...u, accountStatus: 'Disetujui', role: roleName || u.role, voucher: voucherCode || u.voucher }
       : u))
@@ -1122,10 +1191,11 @@ export default function AdminDashboardPage({ user, onSignOut }) {
         onSave={handleAddPendaftaran}
       />
       {actionModal.type === 'ubah-role' && (
-        <UbahRoleModal 
-          user={actionModal.user} 
-          onConfirm={handleConfirmUbahRole} 
-          onCancel={() => setActionModal({ type: null, user: null })} 
+        <UbahRoleModal
+          user={actionModal.user}
+          discourseGroups={discourseGroups}
+          onConfirm={handleConfirmUbahRole}
+          onCancel={() => setActionModal({ type: null, user: null })}
         />
       )}
       {actionModal.type === 'kirim-voucher' && (
