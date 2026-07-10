@@ -214,17 +214,18 @@ function parseManajemenStatus(u) {
   return 'Disetujui'
 }
 
-// Syarat masuk Manajemen Akun (semua tab). Akun yang BELUM diputus verifikasi
-// (WAITING/REVISE) atau BELUM verifikasi voucher TIDAK masuk table manapun —
-// mereka masih di alur Verifikasi Akun. Hanya akun ber-keputusan final:
-//   approved (1) → Disetujui/Ditangguhkan/Baru Dihapus, rejected (-1) → Ditolak.
+// verifiedStatus (enum backend):
+//   REJECTED = -1 | WAITING = 0 | APPROVED = 1 | REVISE = 2 | PENDING_VOUCHER = 3
+// WAITING/REVISE/PENDING_VOUCHER = masih di alur Verifikasi Akun.
+export const VERIFIED_STATUS = { REJECTED: -1, WAITING: 0, APPROVED: 1, REVISE: 2, PENDING_VOUCHER: 3 }
+
+// Syarat masuk Manajemen Akun (semua tab). Hanya akun ber-keputusan FINAL:
+//   APPROVED(1) = voucher sudah diproses (done) → Disetujui/Ditangguhkan/Baru Dihapus
+//   REJECTED(-1) → Ditolak
+// WAITING(0) / REVISE(2) / PENDING_VOUCHER(3) TIDAK masuk table manapun.
 export function isManajemenEligible(u) {
   const vs = u.verifiedStatus
-  const decided = vs === 1 || vs === 'approved' || vs === -1 || vs === 'rejected'
-  if (!decided) return false
-  // Belum verifikasi voucher (bila backend menyediakan flag) → belum masuk.
-  if (u.voucherVerified === false || u.pendingVoucher === true || u.pendingVoucherSetup === true) return false
-  return true
+  return vs === 1 || vs === 'approved' || vs === -1 || vs === 'rejected'
 }
 
 // Jenis Paket → 'Tahunan' | 'Bulanan' | '-'. Diturunkan dari durasi paket.

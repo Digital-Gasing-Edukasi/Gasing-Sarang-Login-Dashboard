@@ -3,6 +3,7 @@ import { Check, ChevronDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { FIELD_DEFS } from '@/lib/fixLink'
 import { getRoleOptions, resolveRoleValue } from './roleOptions'
+import { RoleSelect } from './RoleSelect'
 
 export function RejectModal({ candidate, onConfirm, onCancel }) {
   // checked: { [fieldKey]: true } — field yang dicentang salah oleh admin.
@@ -157,7 +158,7 @@ export function ApproveModal({ candidate, discourseGroups = [], trainingSessions
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm">
-      <div className="bg-white rounded-[24px] w-full max-w-[440px] shadow-2xl mx-4 overflow-hidden flex flex-col">
+      <div className="bg-white rounded-[24px] w-full max-w-[440px] shadow-2xl mx-4 flex flex-col">
         <div className="p-8 pb-5">
           <h3 className="text-2xl font-bold text-[#0A1128] mb-1.5">Setujui Akun ini?</h3>
           <p className="text-gray-500 text-sm mb-6">
@@ -165,13 +166,10 @@ export function ApproveModal({ candidate, discourseGroups = [], trainingSessions
           </p>
 
           <div className="space-y-4">
-            <Dropdown
-              label="Role"
-              value={role}
-              onChange={setRole}
-              options={roleOptions}
-              placeholder="Pilih role"
-            />
+            <div>
+              <label className="block text-sm font-medium text-[#0A1128] mb-1.5">Role</label>
+              <RoleSelect value={role} onChange={setRole} options={roleOptions} placeholder="Pilih role" />
+            </div>
             <Dropdown
               label="Nama Pelatihan Terbaru"
               value={session}
@@ -182,7 +180,7 @@ export function ApproveModal({ candidate, discourseGroups = [], trainingSessions
           </div>
         </div>
 
-        <div className="flex items-center gap-4 p-6 bg-gray-50/70 border-t border-gray-100">
+        <div className="flex items-center gap-4 p-6 bg-gray-50/70 border-t border-gray-100 rounded-b-[24px]">
           <button
             onClick={onCancel}
             className="flex-1 font-semibold text-[#0A1128] border border-gray-200 bg-white hover:bg-gray-50 px-6 py-3.5 rounded-full transition-colors"

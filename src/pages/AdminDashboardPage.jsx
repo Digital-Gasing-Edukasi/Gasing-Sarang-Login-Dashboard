@@ -537,6 +537,8 @@ export default function AdminDashboardPage({ user, onSignOut }) {
     return g?.name || g?.title || g?.groupName || ''
   }
 
+  // Approve langkah-1: WAITING(0) → PENDING_VOUCHER(3). Kirim payload ke backend
+  // dengan discourseGroupId + lastTrainingSessionId. Optimistic + toast undo 5s.
   const handleConfirmApprove = ({ discourseGroupId, lastTrainingSessionId }) => {
     if (!approveCandidate) return
     const target = approveCandidate
@@ -544,25 +546,37 @@ export default function AdminDashboardPage({ user, onSignOut }) {
     const vUser = { ...target, discourseGroupId, lastTrainingSessionId, role: roleNameFromId(discourseGroupId) || target.role, voucherCode: genVoucherCode() }
     setUsers(prev => prev.filter(u => u.id !== target.id))
     setPendingVoucherUsers(prev => [vUser, ...prev])
-    showUndoToast(
-      <>Akun {target.name} <span className="text-green-500 font-medium">disetujui</span>, menunggu setup voucher</>,
+    setToast({
+      message: <>Akun {target.name} <span className="text-green-500 font-medium">disetujui</span>, menunggu setup voucher</>,
+      undo: () => {
+        setPendingVoucherUsers(prev => prev.filter(u => u.id !== target.id))
+        setUsers(prev => [target, ...prev])
+      },
+    })
+    scheduleAction(
+      () => adminApi.verifyUser(target.id, { status: 'approved', discourseGroupId, lastTrainingSessionId }),
       () => {
         setPendingVoucherUsers(prev => prev.filter(u => u.id !== target.id))
         setUsers(prev => [target, ...prev])
+        setApiError('Gagal menyetujui akun.')
       }
     )
   }
 
-  // Konfirmasi voucher tunggal → akun final + email ke user. FE remove baris.
-  // TODO(be): panggil endpoint konfirmasi/kirim-email di sini (pending).
+  // Konfirmasi voucher tunggal → finalize langkah-2: PENDING_VOUCHER(3) → APPROVED(1).
+  // Optimistic remove baris + toast undo 5s; commit verifyUser(approved) tertunda.
   const handleConfirmVoucher = () => {
     if (!voucherCandidate) return
     const target = voucherCandidate
     setVoucherCandidate(null)
     setPendingVoucherUsers(prev => prev.filter(u => u.id !== target.id))
-    showUndoToast(
-      <>Akun {target.name} telah <span className="text-green-500 font-medium">dikonfirmasi</span></>,
-      () => setPendingVoucherUsers(prev => [target, ...prev])
+    setToast({
+      message: <>Akun {target.name} telah <span className="text-green-500 font-medium">disetujui</span></>,
+      undo: () => setPendingVoucherUsers(prev => [target, ...prev]),
+    })
+    scheduleAction(
+      () => adminApi.verifyUser(target.id, { status: 'approved' }),
+      () => { setPendingVoucherUsers(prev => [target, ...prev]); setApiError('Gagal menyetujui akun.') }
     )
   }
 
@@ -571,17 +585,20 @@ export default function AdminDashboardPage({ user, onSignOut }) {
     const removed = pendingVoucherUsers.filter(u => ids.includes(u.id))
     setPendingVoucherUsers(prev => prev.filter(u => !ids.includes(u.id)))
     setBulkModal(null); setSelectedIds([])
-    // TODO(be): endpoint konfirmasi batch + email (pending).
-    showUndoToast(
-      <>{rows.length} akun telah <span className="text-green-500 font-medium">dikonfirmasi</span></>,
-      () => setPendingVoucherUsers(prev => [...removed, ...prev])
+    setToast({
+      message: <>{rows.length} akun telah <span className="text-green-500 font-medium">disetujui</span></>,
+      undo: () => setPendingVoucherUsers(prev => [...removed, ...prev]),
+    })
+    scheduleAction(
+      () => Promise.all(ids.map(id => adminApi.verifyUser(id, { status: 'approved' }))),
+      () => { setPendingVoucherUsers(prev => [...removed, ...prev]); setApiError('Gagal menyetujui sebagian akun.') }
     )
   }
 
   // ── Bulk approve / reject ───────────────────────────────────────────────────
   // Pola sama dengan single: optimistic remove + toast undo 5 detik + commit batch
   // (Promise.all). Undo membatalkan timer, jadi API tak pernah dipanggil.
-  // Bulk approve (opsi B): pindah semua ke Pending Voucher + generate kode. FE-only.
+  // Bulk approve langkah-1: kirim discourseGroupId + lastTrainingSessionId per baris.
   const handleBulkApprove = (rows) => {
     const ids = rows.map(r => r.id)
     const removed = users.filter(u => ids.includes(u.id))
@@ -592,11 +609,19 @@ export default function AdminDashboardPage({ user, onSignOut }) {
     setUsers(prev => prev.filter(u => !ids.includes(u.id)))
     setPendingVoucherUsers(prev => [...vUsers, ...prev])
     setBulkModal(null); setSelectedIds([])
-    showUndoToast(
-      <>{rows.length} akun <span className="text-green-500 font-medium">disetujui</span>, menunggu setup voucher</>,
+    setToast({
+      message: <>{rows.length} akun <span className="text-green-500 font-medium">disetujui</span>, menunggu setup voucher</>,
+      undo: () => {
+        setPendingVoucherUsers(prev => prev.filter(u => !ids.includes(u.id)))
+        setUsers(prev => [...removed, ...prev])
+      },
+    })
+    scheduleAction(
+      () => Promise.all(rows.map(r => adminApi.verifyUser(r.id, { status: 'approved', discourseGroupId: r.discourseGroupId, lastTrainingSessionId: r.lastTrainingSessionId }))),
       () => {
         setPendingVoucherUsers(prev => prev.filter(u => !ids.includes(u.id)))
         setUsers(prev => [...removed, ...prev])
+        setApiError('Gagal menyetujui sebagian akun.')
       }
     )
   }

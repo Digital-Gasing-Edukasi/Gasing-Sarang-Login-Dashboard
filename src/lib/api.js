@@ -128,7 +128,9 @@ async function handleResponse(res) {
         message = Object.values(data.errors).flat().join(", ");
       }
     }
-    throw new Error(Array.isArray(message) ? message.join(", ") : message);
+    const err = new Error(Array.isArray(message) ? message.join(", ") : message);
+    err.status = res.status; // dipakai UI untuk bedakan 5xx (server error) vs 4xx.
+    throw err;
   }
   return data;
 }
@@ -343,6 +345,26 @@ export const subscriptionApi = {
 
   checkout: (packageId) =>
     request("/subscription/checkout", { method: "POST", body: { packageId } }),
+
+  // ── Manual Transfer (dipakai sementara selama Midtrans belum siap) ──────────
+  // Idempotent per user: bila sudah ada payment pending tanpa bukti, endpoint ini
+  // meng-update payment yang sama (bukan bikin baru). Balik detail payment.
+  checkoutManual: (packageId) =>
+    request("/subscription/checkout-manual", { method: "POST", body: { packageId } }),
+
+  // Lampirkan bukti transfer ke sebuah payment. fileId didapat dari
+  // fileManagerApi.upload(). Setelah ini payment menunggu verifikasi admin.
+  uploadReceipt: (paymentId, fileId) =>
+    request(`/subscription/payments/${paymentId}/upload-receipt`, {
+      method: "POST",
+      body: { fileId },
+    }),
+
+  // Payment manual_transfer terakhir milik user (status apapun). 404 bila belum ada.
+  getLatestPayment: () => request("/subscription/payments/latest"),
+
+  // Detail satu payment milik user. 404 bila bukan milik user / tidak ada.
+  getPayment: (paymentId) => request(`/subscription/payments/${paymentId}`),
 
   subscribe: (packageId) =>
     request("/subscription/subscribe", { method: "POST", body: { packageId } }),

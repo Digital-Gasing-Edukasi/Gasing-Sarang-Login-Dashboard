@@ -2,8 +2,9 @@
 // Landing page untuk PG_MIDTRANS_FINISH_URL
 // Midtrans redirect ke sini setelah user menyelesaikan / melewati halaman pembayaran
 // Query params: order_id, status_code, transaction_status, payment_type
-import { CheckCircle, Clock, ExternalLink } from 'lucide-react'
+import { CheckCircle, Clock, ArrowRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { webAppApi } from '@/lib/api'
 
 function Decorations({ color }) {
   return (
@@ -33,7 +34,6 @@ export default function PaymentFinishPage() {
   const isSuccess = ['settlement', 'capture'].includes(transactionStatus)
   const isPending = transactionStatus === 'pending'
 
-  const DISCOURSE_URL = import.meta.env.VITE_DISCOURSE_URL || '#'
   const WA_NUMBER     = import.meta.env.VITE_WA_NUMBER || '628123456789'
   const waUrl         = `https://wa.me/${WA_NUMBER}`
   const BASE          = import.meta.env.BASE_URL || '/register/'
@@ -69,18 +69,16 @@ export default function PaymentFinishPage() {
             {orderId && (
               <p className="text-xs text-gray-400 mb-10 font-mono">Order ID: {orderId}</p>
             )}
-            <a
-              href={DISCOURSE_URL}
-              target="_blank"
-              rel="noopener noreferrer"
+            <button
+              onClick={() => webAppApi.redirectWithTokens()}
               className={cn(
                 'px-10 py-3.5 rounded-full font-semibold text-white text-[15px]',
                 'bg-[#003cf9] hover:bg-blue-700 active:scale-[0.98] transition-all duration-200 shadow-md',
                 'flex items-center gap-2 mb-10'
               )}
             >
-              Jelajahi Gasing Circle <ExternalLink size={16} />
-            </a>
+              Gasing Web App <ArrowRight size={16} />
+            </button>
           </>
         ) : isPending ? (
           <>

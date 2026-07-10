@@ -5,17 +5,24 @@
 // Hanya role ini yang boleh dipilih admin saat approve.
 export const ALLOWED_ROLES = ['Trainer Utama', 'Trainer Kelas', 'Guru', 'Trainer Aula']
 
-// discourseGroups (array of {id,name} atau string) → [{ value, label }].
-// value = id grup (string), label = nama role.
+// Normalisasi nama grup agar toleran casing/underscore/spasi ("trainer_utama",
+// "Trainer  Utama", "TRAINER-UTAMA" → "trainer utama").
+const norm = (s) => String(s || '').toLowerCase().replace(/[_-]+/g, ' ').replace(/\s+/g, ' ').trim()
+const CANON = ALLOWED_ROLES.reduce((m, r) => { m[norm(r)] = r; return m }, {})
+
+// discourseGroups (array of {id,name,...} atau string) → [{ value, label }].
+// value = id grup (string), label = nama role kanonik. Match toleran +
+// baca beberapa kemungkinan field nama (Discourse pakai slug `name` + `full_name`).
 export function getRoleOptions(discourseGroups = []) {
   return discourseGroups
     .map((g, idx) => {
       const isStr = typeof g === 'string'
-      const label = isStr ? g : (g.name || g.title || g.groupName || '')
-      const value = isStr ? g : (g.id || g.groupId || idx)
-      return { value: String(value), label }
+      const rawLabel = isStr ? g : (g.name || g.full_name || g.fullName || g.displayName || g.title || g.groupName || '')
+      const value = isStr ? g : (g.id ?? g.groupId ?? idx)
+      const canonical = CANON[norm(rawLabel)]
+      return { value: String(value), label: canonical || rawLabel, canonical }
     })
-    .filter((o) => ALLOWED_ROLES.includes(o.label))
+    .filter((o) => o.canonical) // hanya 4 role sah yang lolos
 }
 
 // Cocokkan nilai role user (bisa berupa id ATAU nama) ke value opsi yang valid.

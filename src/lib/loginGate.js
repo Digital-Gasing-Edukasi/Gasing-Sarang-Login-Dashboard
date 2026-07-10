@@ -11,8 +11,15 @@ export function evaluateLoginGate(profile) {
   const p = profile?.user || profile?.data || profile || {}
 
   // 1. Ditangguhkan — admin men-suspend akun (paling tinggi prioritas).
+  //    until  : suspendedUntil ("YYYY-MM-DD HH:mm:ss" / ISO) — lihat SuspendModal.
+  //    reason : alasan penangguhan (dropdown REASONS di SuspendModal).
   if (p.suspendedUntil || p.suspended) {
-    return { type: 'suspended', until: p.suspendedUntil || null }
+    const s = typeof p.suspended === 'object' ? p.suspended : {}
+    return {
+      type: 'suspended',
+      until: p.suspendedUntil || s.until || s.suspendedUntil || null,
+      reason: p.suspendReason || p.suspensionReason || s.reason || '',
+    }
   }
 
   // 2. Pending — akun belum di-approve admin (verifiedStatus = waiting).

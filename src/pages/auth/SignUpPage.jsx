@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Mail, Lock, LogIn, Calendar, Loader2, Check, Circle, ChevronLeft } from "lucide-react";
+import { Mail, Lock, LogIn, Calendar, Loader2, Check, Circle, ChevronLeft, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -244,21 +244,30 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
 
   return (
     <RightPanel>
-      {step === 2 && (
+      <div className="relative animate-fade-in-up">
+        {step === 2 && (
+          <button
+            onClick={() => setStep(1)}
+            className="absolute left-0 top-0 flex items-center gap-1 text-sm font-bold text-blue-600 hover:text-blue-700 transition-colors"
+          >
+            <ChevronLeft size={18} /> Kembali
+          </button>
+        )}
         <button
-          onClick={() => setStep(1)}
-          className="animate-fade-in-up mb-6 flex items-center gap-1 text-sm font-bold text-blue-600 hover:text-blue-700 transition-colors"
+          onClick={() => onNavigate("login")}
+          className="absolute right-0 top-0 text-muted-foreground hover:text-foreground transition-colors"
+          aria-label="Tutup"
         >
-          <ChevronLeft size={18} /> Kembali
+          <X size={22} />
         </button>
-      )}
+      </div>
       <StepIndicator currentStep={step === 1 ? 1 : 2} />
 
       {step === 1 ? (
         <>
           <div className="animate-fade-in-up delay-100 text-center">
             <h1 className="text-[22px] font-bold text-foreground mb-1.5">
-              Buat Akun Baru
+              Data Akun
             </h1>
           </div>
 
@@ -427,7 +436,7 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
         <>
           <div className="animate-fade-in-up delay-100 text-center">
             <h1 className="text-[22px] font-bold text-foreground mb-1.5">
-              Verifikasi Data
+              Data Pribadi
             </h1>
           </div>
 

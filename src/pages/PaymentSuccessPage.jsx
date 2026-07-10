@@ -57,7 +57,35 @@ export default function PaymentSuccessPage({ user, onSignOut, activePlanName }) 
   }, [activePlanName])
 
   return (
-    <div className="min-h-screen relative overflow-hidden font-sans z-0 flex flex-col">
+    <div className="min-h-screen relative overflow-hidden font-sans z-0">
+      {/* ═══════════════ MOBILE (tema gelap, sesuai reference) ═══════════════ */}
+      <div
+        className="lg:hidden relative min-h-screen flex flex-col items-center justify-center text-center text-white px-8 animate-fade-in-up"
+        style={{
+          background:
+            'radial-gradient(ellipse at 50% 35%, #4c1d95 0%, #2e1065 45%, #150a35 100%)',
+        }}
+      >
+        <h1 className="text-[30px] font-bold leading-tight mb-10">
+          Pembayaran Kamu{' '}
+          <span className="text-[#4ADE80]">Berhasil!</span>
+        </h1>
+        <button
+          onClick={handleRedirectDefault}
+          className="px-10 py-3.5 rounded-full bg-white text-[#1a0b3d] font-bold text-[15px] hover:bg-white/90 active:scale-[0.98] transition-all shadow-lg"
+        >
+          Jelajahi Sarang Gasing
+        </button>
+        <p className="text-[13px] text-white/50 mt-10">
+          Butuh bantuan?{' '}
+          <a href={waUrl} target="_blank" rel="noopener noreferrer" className="font-semibold text-white/80 underline hover:text-white transition-colors">
+            Hubungi Kami
+          </a>
+        </p>
+      </div>
+
+      {/* ═══════════════════════════ DESKTOP ═══════════════════════════ */}
+      <div className="hidden lg:flex relative min-h-screen flex-col">
       <Decorations />
 
       {/* ── NAVBAR ── */}
@@ -132,6 +160,7 @@ export default function PaymentSuccessPage({ user, onSignOut, activePlanName }) 
       <footer className="relative z-10 pb-8 text-center mt-auto">
         <p className="text-[13px] text-gray-400">©2026 Gasing Circle. All rights reserved.</p>
       </footer>
+      </div>
     </div>
   )
 }

@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
-import { Calendar, Loader2, LogIn, UserSearch, HelpCircle } from "lucide-react";
+import { Calendar, Loader2, LogIn, UserSearch, HelpCircle, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { MobileReviewNotice } from "@/components/shared/MobileReviewNotice";
 import {
   Select,
   SelectContent,
@@ -212,6 +213,22 @@ export function FixDataPage({ fixData, reviseToken, onNavigate }) {
   // ── Sukses: perbaikan terkirim, akun masuk antrian review ────────────────────
   if (submitted) {
     return (
+      <>
+        {/* MOBILE — layar gelap "Akunmu Sedang Ditinjau Kembali" */}
+        <MobileReviewNotice
+          icon={UserSearch}
+          title="Akunmu Sedang Ditinjau Kembali"
+          onButton={() => onNavigate("login")}
+        >
+          Terima kasih telah mengajukan perbaikan data. Tim kami akan segera
+          memeriksa informasi yang kamu kirimkan. Proses peninjauan akan memakan
+          waktu <span className="font-semibold text-white">24 - 48 jam</span>.
+          <br /><br />
+          Mohon cek email secara berkala untuk status perbaikan akunmu.
+        </MobileReviewNotice>
+
+        {/* DESKTOP — versi terang existing */}
+        <div className="hidden lg:block">
       <RightPanel>
         <div className="animate-fade-in-up text-center space-y-5 max-w-[380px] mx-auto">
           <div className="mx-auto w-16 h-16 rounded-full bg-orange-50 border border-dashed border-orange-400 flex items-center justify-center">
@@ -240,14 +257,24 @@ export function FixDataPage({ fixData, reviseToken, onNavigate }) {
           </Button>
         </div>
       </RightPanel>
+        </div>
+      </>
     );
   }
 
   return (
     <RightPanel>
-      <div className="animate-fade-in-up delay-100 text-center">
-        <h1 className="text-[22px] font-bold text-foreground mb-1.5">Perbaikan Data</h1>
-        <p className="text-[13px] text-muted-foreground mb-6 px-2">
+      {/* Header dengan tombol tutup (X) — muncul di mobile & desktop */}
+      <div className="animate-fade-in-up delay-100 relative mb-2">
+        <button
+          onClick={() => onNavigate("login")}
+          className="absolute right-0 top-0 text-muted-foreground hover:text-foreground transition-colors"
+          aria-label="Tutup"
+        >
+          <X size={22} />
+        </button>
+        <h1 className="text-[22px] font-bold text-foreground text-center mb-1.5">Perbaikan Data</h1>
+        <p className="text-[13px] text-muted-foreground text-center px-6">
           Silakan lengkapi dan perbaiki data berikut sesuai tindakan perbaikan yang
           diperlukan.
         </p>

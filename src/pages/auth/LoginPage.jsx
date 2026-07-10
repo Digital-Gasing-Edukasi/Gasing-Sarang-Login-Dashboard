@@ -4,13 +4,21 @@ import { Button }   from '@/components/ui/button'
 import { Label }    from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
 import { RightPanel, Divider } from '@/components/layout/RightPanel'
+import { MobileHero } from '@/components/layout/MobileHero'
 import { IconInput, TogglePassword } from '@/components/shared/IconInput'
 import { LoginStatusModal } from '@/components/shared/LoginStatusModal'
+import { NoConnectionBanner } from '@/components/shared/NoConnectionBanner'
 import { authApi, profileApi, tokenStorage } from '@/lib/api'
 import { evaluateLoginGate } from '@/lib/loginGate'
 
 const ERR_INPUT = '!border-red-500 focus-visible:!border-red-500 focus-visible:ring-red-200'
 const EMAIL_RE  = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+// Deteksi kegagalan jaringan (offline / server tak terjangkau) → banner flow 5.
+const isNetworkError = (e) =>
+  e instanceof TypeError ||
+  (typeof navigator !== 'undefined' && navigator.onLine === false) ||
+  /failed to fetch|networkerror|load failed|fetch/i.test(e?.message || '')
 
 export function LoginPage({ onNavigate, onLoginSuccess, isSsoMode = false }) {
   const [email, setEmail]       = useState('')
@@ -19,8 +27,10 @@ export function LoginPage({ onNavigate, onLoginSuccess, isSsoMode = false }) {
   const [remember, setRemember] = useState(false)
   const [loading, setLoading]   = useState(false)
   const [errors, setErrors]     = useState({})
-  // gate: { type, profile } — status akun yang memblokir login (pending/expired/suspended).
+  // gate: { type, profile } — status akun yang memblokir login (pending/expired/suspended/error).
   const [gate, setGate]         = useState(null)
+  // noConn: banner "Tidak Ada Koneksi" (flow 5).
+  const [noConn, setNoConn]     = useState(false)
 
   const clearFieldError = (field) =>
     setErrors(prev => ({ ...prev, [field]: '' }))
@@ -32,7 +42,7 @@ export function LoginPage({ onNavigate, onLoginSuccess, isSsoMode = false }) {
     if (!password)              next.password = 'Pastikan password tidak kosong.'
     if (Object.keys(next).length) { setErrors(next); return }
 
-    setErrors({}); setLoading(true)
+    setErrors({}); setNoConn(false); setLoading(true)
     try {
       const data = await authApi.login(email, password)
       tokenStorage.setTokens(data.accessToken, data.refreshToken, remember)
@@ -42,20 +52,29 @@ export function LoginPage({ onNavigate, onLoginSuccess, isSsoMode = false }) {
       if (blocked) { setGate({ ...blocked, profile }); return }
       onLoginSuccess(profile)
     } catch (e) {
-      setErrors({ password: e.message })
+      if (isNetworkError(e)) {
+        setNoConn(true)                    // flow 5 — tidak ada koneksi
+      } else if (e?.status >= 500) {
+        setGate({ type: 'error' })         // flow 4 — server bermasalah
+      } else {
+        setErrors({ password: e.message }) // salah kredensial / validasi
+      }
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <RightPanel>
-      <div className="flex items-center justify-center gap-2.5 mb-8 animate-fade-in-up">
+    <RightPanel mobileHero={<MobileHero />}>
+      <div className="hidden lg:flex items-center justify-center gap-2.5 mb-8 animate-fade-in-up">
         <div className="w-10 h-10 rounded-full bg-gray-200 shrink-0" />
         <span className="font-semibold text-foreground text-base">Logo</span>
       </div>
-      <div className="animate-fade-in-up delay-100 text-center">
-        <h1 className="text-2xl font-bold text-foreground mb-8">Selamat Datang Kembali</h1>
+      <div className="animate-fade-in-up delay-100 text-center lg:text-center">
+        <h1 className="text-2xl font-bold text-foreground mb-8 lg:mt-0 mt-2">
+          <span className="lg:hidden">Selamat Datang!</span>
+          <span className="hidden lg:inline">Selamat Datang Kembali</span>
+        </h1>
       </div>
 
       {isSsoMode && (
@@ -116,11 +135,15 @@ export function LoginPage({ onNavigate, onLoginSuccess, isSsoMode = false }) {
         </p>
       </div>
 
+      {noConn && <NoConnectionBanner onClose={() => setNoConn(false)} />}
+
       {gate && (
         <LoginStatusModal
           type={gate.type}
+          meta={gate}
           onClose={() => { tokenStorage.clear(); setGate(null) }}
           onRenew={() => { const p = gate.profile; setGate(null); onLoginSuccess(p) }}
+          onRetry={() => setGate(null)}
         />
       )}
     </RightPanel>

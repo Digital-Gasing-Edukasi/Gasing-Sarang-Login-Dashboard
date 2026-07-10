@@ -59,6 +59,7 @@ import { SsoCallbackPage } from "@/pages/auth/SsoCallbackPage";
 import { AuthChoicePage } from "@/pages/auth/AuthChoicePage";
 
 import SubscriptionPage from "@/pages/SubscriptionPage";
+import TransferBankPage from "@/pages/TransferBankPage";
 import PaymentSuccessPage from "@/pages/PaymentSuccessPage";
 import PaymentFinishPage from "@/pages/PaymentFinishPage";
 import PaymentUnfinishPage from "@/pages/PaymentUnfinishPage";
@@ -79,6 +80,10 @@ export default function App() {
   const [reviseToken, setReviseToken] = useState("");
   const [currentUser, setCurrentUser] = useState(null);
   const [activePlanName, setActivePlanName] = useState("");
+  // Transfer manual: paket terpilih + payment pending yang diteruskan ke halaman
+  // Transfer Bank (unggah bukti).
+  const [checkoutPlan, setCheckoutPlan] = useState(null);
+  const [manualPayment, setManualPayment] = useState(null);
   const [sessionChecked, setSessionChecked] = useState(false);
 
   useEffect(() => {
@@ -277,6 +282,13 @@ export default function App() {
     setPage("payment-success");
   };
 
+  // Checkout manual berhasil → simpan paket + payment, buka halaman Transfer Bank.
+  const handleCheckoutManual = (plan, payment) => {
+    setCheckoutPlan(plan);
+    setManualPayment(payment);
+    setPage("transfer-bank");
+  };
+
   // ── Session check loading ─────────────────────────────────────────────────
   if (!sessionChecked) return null;
 
@@ -292,6 +304,17 @@ export default function App() {
         onSignOut={handleSignOut}
         onPaymentSuccess={handlePaymentSuccess}
         onPaymentPending={() => setPage("admin-dashboard")}
+        onCheckoutManual={handleCheckoutManual}
+      />
+    );
+  if (page === "transfer-bank")
+    return (
+      <TransferBankPage
+        user={currentUser}
+        plan={checkoutPlan}
+        payment={manualPayment}
+        onSignOut={handleSignOut}
+        onBack={() => setPage("subscription")}
       />
     );
   if (page === "payment-success")

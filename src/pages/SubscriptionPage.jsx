@@ -233,6 +233,60 @@ function PlanCard({ plan, selected, onSelect }) {
   );
 }
 
+// ─── MOBILE PLAN CARD (tema gelap, sesuai reference mobile) ───────────────────
+function MobilePlanCard({ plan, selected, onSelect }) {
+  return (
+    <div
+      onClick={() => onSelect(plan.id)}
+      className={cn(
+        "relative rounded-[22px] border p-5 cursor-pointer transition-all duration-300",
+        selected
+          ? "border-[#8b7bff] bg-white/[0.06] shadow-[0_0_30px_rgba(124,58,237,0.25)]"
+          : "border-white/10 bg-white/[0.03]"
+      )}
+    >
+      {plan.label && (
+        <span className="absolute -top-3 right-4 bg-gradient-to-r from-[#4b7bff] to-[#48b2ff] text-white text-[11px] font-semibold px-3 py-1 rounded-full whitespace-nowrap shadow-sm">
+          {plan.label}
+        </span>
+      )}
+      <div className="flex items-center justify-between">
+        <div className="min-w-0">
+          <p className="text-white/60 text-[13px] font-semibold mb-1.5">{plan.name}</p>
+          <div className="flex items-baseline gap-1.5 flex-wrap">
+            <span className="text-[26px] font-bold text-white leading-none">
+              Rp{formatRp(plan.priceMonthly)}
+            </span>
+            <span className="text-[13px] font-medium text-white/70">/bln</span>
+            {plan.originalPrice && (
+              <span className="text-[13px] font-medium text-red-300/80 line-through">
+                Rp{formatRp(plan.originalPrice)}
+              </span>
+            )}
+          </div>
+          {plan.priceTotal && (
+            <p className="text-[11px] font-medium text-white/40 mt-1.5">
+              Tagihan per-tahun Rp{formatRp(plan.priceTotal)}
+            </p>
+          )}
+        </div>
+        <div
+          className={cn(
+            "w-6 h-6 rounded-md flex items-center justify-center border-2 transition-all shrink-0 ml-3",
+            selected ? "bg-[#6366f1] border-[#6366f1]" : "border-white/25 bg-transparent"
+          )}
+        >
+          {selected && (
+            <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+            </svg>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── BACKGROUND DECORATIONS ──────────────────────────────────────────────────
 function Decorations() {
   return (
@@ -255,7 +309,7 @@ function Decorations() {
 }
 
 // ─── MAIN PAGE ────────────────────────────────────────────────────────────────
-export default function SubscriptionPage({ user, onSignOut, onPaymentSuccess, onPaymentPending }) {
+export default function SubscriptionPage({ user, onSignOut, onPaymentSuccess, onPaymentPending, onCheckoutManual }) {
   const [selectedPlan, setSelectedPlan] = useState(null);
   const [plans, setPlans] = useState([]);
   const [loadingPlans, setLoadingPlans] = useState(true);
@@ -290,28 +344,13 @@ export default function SubscriptionPage({ user, onSignOut, onPaymentSuccess, on
     setError("");
     setLoading(true);
     try {
-      const data = await subscriptionApi.checkout(selectedPlan);
-
-      // ── Snap Redirect: redirect browser ke halaman pembayaran Midtrans ──
-      // Backend mengembalikan redirect_url langsung dari Midtrans API
-      if (data.redirectUrl || data.redirect_url) {
-        window.location.href = data.redirectUrl || data.redirect_url;
-        return;
-      }
-
-      // Fallback: jika backend hanya mengembalikan token, buat redirect URL manual
-      if (data.token || data.snapToken) {
-        const snapToken = data.token || data.snapToken;
-        const isSandbox = import.meta.env.VITE_MIDTRANS_CLIENT_KEY?.startsWith('SB-') ||
-                          import.meta.env.VITE_MIDTRANS_CLIENT_KEY?.startsWith('Mid-client-');
-        const baseSnap  = isSandbox
-          ? 'https://app.sandbox.midtrans.com/snap/v2/vtweb/'
-          : 'https://app.midtrans.com/snap/v2/vtweb/';
-        window.location.href = baseSnap + snapToken;
-        return;
-      }
-
-      throw new Error("Data pembayaran tidak valid dari server");
+      // ── Transfer manual (Midtrans belum siap) ──────────────────────────────
+      // Buat payment pending manual_transfer, lalu arahkan ke halaman Transfer
+      // Bank untuk unggah bukti. Verifikasi dilakukan admin di dashboard.
+      const plan = plans.find((p) => p.id === selectedPlan) || null;
+      const res = await subscriptionApi.checkoutManual(selectedPlan);
+      const payment = res?.data || res || null;
+      onCheckoutManual?.(plan, payment);
     } catch (e) {
       setError(e.message || "Gagal memproses pembayaran, coba lagi");
     } finally {
@@ -321,6 +360,83 @@ export default function SubscriptionPage({ user, onSignOut, onPaymentSuccess, on
 
   return (
     <div className="min-h-screen relative overflow-hidden font-sans z-0">
+      {/* ═══════════════ MOBILE (tema gelap, sesuai reference) ═══════════════ */}
+      <div
+        className="lg:hidden relative min-h-screen flex flex-col text-white"
+        style={{
+          background:
+            'radial-gradient(ellipse at 50% 0%, #4c1d95 0%, #2e1065 40%, #1a0b3d 75%, #120833 100%)',
+        }}
+      >
+        <div className="flex items-center justify-between px-5 pt-7 pb-2 shrink-0">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-full bg-white/90" />
+            <span className="font-semibold text-[15px]">Logo</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-[13px] text-white/70">Profile</span>
+            <Avatar name={user?.name || user?.profile?.namaLengkap || 'HK'} />
+          </div>
+        </div>
+
+        <div className="flex-1 px-6 pt-4 pb-6 overflow-y-auto">
+          <h1 className="text-[27px] font-bold leading-tight mb-6">
+            Ada apa di Sarang Gasing?
+          </h1>
+          <ul className="space-y-4 mb-8">
+            {BENEFITS.map((b, i) => {
+              const Icon = b.icon;
+              return (
+                <li key={i} className="flex items-start gap-3">
+                  <Icon className="w-5 h-5 text-[#22d3ee] shrink-0 mt-0.5" strokeWidth={2} />
+                  <p className="text-white/75 text-[13.5px] leading-relaxed">{b.text}</p>
+                </li>
+              );
+            })}
+          </ul>
+
+          <div className="space-y-5">
+            {loadingPlans ? (
+              <div className="flex justify-center py-10 text-white/40">
+                <Loader2 size={26} className="animate-spin" />
+              </div>
+            ) : (
+              plans.map((plan) => (
+                <MobilePlanCard
+                  key={plan.id}
+                  plan={plan}
+                  selected={selectedPlan === plan.id}
+                  onSelect={setSelectedPlan}
+                />
+              ))
+            )}
+          </div>
+
+          {error && (
+            <div className="flex items-start gap-2 rounded-xl bg-red-500/10 border border-red-500/30 px-4 py-3 text-sm text-red-300 mt-5">
+              <AlertCircle size={16} className="mt-0.5 shrink-0" />
+              <span>{error}</span>
+            </div>
+          )}
+        </div>
+
+        <div className="sticky bottom-0 px-6 pb-7 pt-3 bg-gradient-to-t from-[#120833] via-[#120833]/95 to-transparent shrink-0">
+          <button
+            onClick={handleCheckout}
+            disabled={loading}
+            className="w-full py-4 rounded-2xl font-bold text-[15px] bg-white text-[#1a0b3d] hover:bg-white/90 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-all"
+          >
+            {loading ? (
+              <><Loader2 size={18} className="animate-spin" /> Memproses...</>
+            ) : (
+              'Mulai Berlangganan'
+            )}
+          </button>
+        </div>
+      </div>
+
+      {/* ═══════════════════════════ DESKTOP ═══════════════════════════ */}
+      <div className="hidden lg:block">
       <Decorations />
 
       {/* ── NAVBAR ── */}
@@ -427,6 +543,7 @@ export default function SubscriptionPage({ user, onSignOut, onPaymentSuccess, on
             </button>
           </div>
         </div>
+      </div>
       </div>
     </div>
   );
