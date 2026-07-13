@@ -382,7 +382,11 @@ export function FixDataPage({ fixData, reviseToken, onNavigate }) {
           <FieldError message={fieldErrors.namaSekolah} />
         </div>
 
-        <Button className="w-full rounded-full" onClick={handleSubmit} disabled={loading}>
+        <Button
+          className="w-full rounded-full"
+          onClick={handleSubmit}
+          disabled={loading || !birthdate || !regionId || !lastTrainingSessionId || !schoolName}
+        >
           {loading ? (
             <><Loader2 size={16} className="animate-spin" /> Mengirim...</>
           ) : (

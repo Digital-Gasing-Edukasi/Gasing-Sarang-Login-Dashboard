@@ -2,19 +2,16 @@ import { ArrowLeft } from "lucide-react";
 import { LeftPanel } from "@/components/layout/LeftPanel";
 
 // Layout dasar halaman legal (Ketentuan Layanan / Kebijakan Privasi).
-// Dibuka di tab baru dari SignUpPage (target="_blank" href="/register/id/TOS" | "/register/id/privacy").
-// Tombol "Kembali ke Pendaftaran" mengarahkan tab ke /register (halaman signup).
-export function LegalLayout({ title, updatedAt, children }) {
-  const goRegister = () => {
-    window.location.href = "/register";
-  };
+// Dibuka di tab baru dari SignUpPage (target="_blank" href="/id/TOS" | "/id/privacy").
+// Tombol "Kembali ke Pendaftaran" mengalihkan SPA di tab itu ke halaman signup.
+export function LegalLayout({ title, updatedAt, children, onNavigate }) {
   return (
     <div className="flex h-screen overflow-hidden">
       <LeftPanel />
       <div className="flex-1 flex flex-col min-h-screen bg-background overflow-y-auto">
         <div className="flex-1 w-full max-w-2xl mx-auto px-6 lg:px-16 pt-10 lg:pt-16 pb-8">
           <button
-            onClick={goRegister}
+            onClick={() => onNavigate("signup")}
             className="flex items-center gap-1.5 text-sm font-bold text-foreground hover:text-foreground/80 transition-colors mb-8"
           >
             <ArrowLeft size={16} /> Kembali ke Pendaftaran
@@ -33,11 +30,11 @@ export function LegalLayout({ title, updatedAt, children }) {
 
           <div className="mt-12 pt-6 border-t border-border">
             <button
-              onClick={goRegister}
+              onClick={() => onNavigate("signup")}
               className="flex items-center gap-1.5 text-sm font-bold text-foreground hover:text-foreground/80 transition-colors"
             >
               <ArrowLeft size={16} /> Kembali ke Pendaftaran
-            </button>
+            </button> 
           </div>
         </div>
         <div className="pb-6">

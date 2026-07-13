@@ -182,7 +182,7 @@ export function ResetPasswordPage({ token, email, onNavigate }) {
 
               <button
                 onClick={handleReset}
-                disabled={loading}
+                disabled={loading || !password || !confirm}
                 className="w-full py-4 rounded-2xl font-bold text-[15px] bg-white text-[#1a0b3d] hover:bg-white/90 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-all"
               >
                 {loading ? <><Loader2 size={18} className="animate-spin" /> Memproses...</> : 'Ubah Password'}
@@ -229,7 +229,7 @@ export function ResetPasswordPage({ token, email, onNavigate }) {
                   iconRight={<TogglePassword show={showConfirm} onToggle={() => setShowConfirm(v => !v)} />} />
                 {errors.confirm && <p className="text-xs text-red-500">{errors.confirm}</p>}
               </div>
-              <Button className="w-full" onClick={handleReset} disabled={loading || success}>
+              <Button className="w-full" onClick={handleReset} disabled={loading || success || !password || !confirm}>
                 {loading ? <><Loader2 size={16} className="animate-spin" /> Memproses...</> : 'Ubah Password'}
               </Button>
 

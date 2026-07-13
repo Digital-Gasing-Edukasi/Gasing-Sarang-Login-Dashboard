@@ -12,22 +12,23 @@ import { useState, useRef } from "react";
 import {
   Copy,
   Check,
-  Info,
   UploadCloud,
   Loader2,
   LogOut,
   AlertCircle,
   FileText,
   ArrowRight,
+  ChevronLeft,
   Download,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { subscriptionApi, fileManagerApi } from "@/lib/api";
+import mandiriLogo from "@/assets/subscription/mandiri-logo.png";
 
 // Rekening tujuan. Default statis (backend belum mengembalikan detail rekening);
 // bila payment membawa field rekening, nilai itu dipakai lebih dulu.
 const DEFAULT_BANK = {
-  accountNumber: "8810-1234-567",
+  accountNumber: "1760007700071",
   accountName: "Yayasan Teknologi Indonesia Jaya",
 };
 
@@ -271,15 +272,34 @@ export default function TransferBankPage({
         <div className="relative z-10 max-w-[1180px] mx-auto px-6 lg:px-10 pt-4 pb-24 grid lg:grid-cols-2 gap-8 lg:gap-14 items-start animate-fade-in-up">
           {/* ── KIRI ── */}
           <div>
+            {onBack && (
+              <button
+                onClick={onBack}
+                className="flex items-center gap-2 text-[14px] text-white/60 hover:text-white transition-colors mb-4"
+              >
+                <ChevronLeft size={18} />
+                Kembali ke Pilihan Paket
+              </button>
+            )}
             <h1 className="text-[40px] lg:text-[46px] font-bold tracking-tight leading-none mb-3">
-              Transfer Bank
+              Transfer Pembayaran
             </h1>
             <p className="text-white/50 text-[15px] mb-8">
-              Transfer ke rekening bank berikut
+              Mohon transfer ke rekening bank berikut:
             </p>
 
             {/* Kartu rekening */}
             <div className="relative rounded-3xl border border-[#7c3aed]/60 bg-gradient-to-br from-[#7c3aed]/25 to-[#4338ca]/10 p-7 mb-6 shadow-[0_0_40px_rgba(124,58,237,0.15)]">
+              <div className="flex items-center gap-4 mb-6">
+                <div className="h-8 w-15 bg-white rounded-md flex items-center justify-center overflow-hidden p-1">
+                  <img
+                    src={mandiriLogo}
+                    alt="Bank Mandiri"
+                    className="w-full h-full"
+                  />
+                </div>
+                <span className="text-lg font-bold">Bank Mandiri</span>
+              </div>
               <p className="text-white/50 text-sm mb-2">No. Rekening</p>
               <div className="flex items-center justify-between gap-4">
                 <span className="text-[30px] font-bold tracking-wide">
@@ -302,11 +322,11 @@ export default function TransferBankPage({
               <p className="font-semibold mb-4">Cara Pembayaran:</p>
               <ol className="space-y-3">
                 {[
-                  "Salin nomor rekening yang tertera di atas",
-                  `Transfer nominal Rp${formatRp(total)} ke rekening yang dipilih`,
-                  "Sertakan nama lengkap akun yang terdaftar di Gasing Circle pada keterangan transfer",
-                  "Simpan bukti transfer berupa screenshot atau struk",
-                  "Upload bukti pembayaran pada kotak di sebelah",
+                  "Salin nomor rekening di atas",
+                  'Transfer nominal sesuai "Total Bayar" ke rekening tersebut',
+                  "Cantumkan nama lengkap kamu di kolom keterangan transfer",
+                  "Simpan bukti transfer (screenshot/struk)",
+                  "Unggah bukti pembayaran",
                 ].map((step, i) => (
                   <li key={i} className="flex gap-3 text-[14px] text-white/70 leading-relaxed">
                     <span className="text-[#22d3ee] font-semibold shrink-0">
@@ -317,15 +337,6 @@ export default function TransferBankPage({
                 ))}
               </ol>
             </div>
-
-            {/* Info */}
-            <div className="flex gap-3 rounded-2xl border border-amber-400/20 bg-amber-400/[0.06] px-5 py-4">
-              <Info size={18} className="text-amber-400 shrink-0 mt-0.5" />
-              <p className="text-[14px] text-white/70 leading-relaxed">
-                Sertakan nama lengkap yang terdaftar di Sarang Gasing pada
-                keterangan/berita transfer
-              </p>
-            </div>
           </div>
 
           {/* ── KANAN ── */}
@@ -334,7 +345,7 @@ export default function TransferBankPage({
             <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-7">
               <p className="text-xl font-bold mb-5">Ringkasan Pesanan</p>
               <SummaryRow label={packageLabel} value={`Rp${formatRp(total)}`} />
-              <SummaryRow label="Durasi" value={`${durationMonths} Bulan`} />
+              <SummaryRow label="Durasi Subkripsi" value={`${durationMonths} Bulan`} />
               <div className="border-t border-white/10 my-4" />
               <div className="flex items-center justify-between">
                 <span className="text-lg font-bold">Total Bayar</span>
@@ -352,7 +363,7 @@ export default function TransferBankPage({
               <input
                 value={senderName}
                 onChange={(e) => setSenderName(e.target.value)}
-                placeholder="Contoh: John Doe"
+                placeholder="Contoh: Budi Santoso"
                 className={inputCls}
               />
             </div>
@@ -428,10 +439,10 @@ export default function TransferBankPage({
             {/* CTA */}
             <button
               onClick={handleSubmit}
-              disabled={loading}
+              disabled={loading || !senderName.trim() || !senderBank.trim() || !transferDate || !file}
               className={cn(
                 "w-full py-4 rounded-2xl font-bold text-[15px] transition-all duration-200",
-                "bg-white text-[#0b0a1f] hover:bg-white/90 active:scale-[0.98]",
+                "bg-gradient-to-r from-[#7c3aed] to-[#4338ca] text-white hover:opacity-90 active:scale-[0.98]",
                 "disabled:opacity-60 disabled:cursor-not-allowed",
                 "flex items-center justify-center gap-2"
               )}
@@ -444,16 +455,6 @@ export default function TransferBankPage({
                 "Konfirmasi Pembayaran"
               )}
             </button>
-
-            {onBack && (
-              <button
-                onClick={onBack}
-                disabled={loading}
-                className="w-full text-center text-[14px] text-white/50 hover:text-white/80 transition-colors disabled:opacity-50"
-              >
-                Kembali ke Pilihan Paket
-              </button>
-            )}
           </div>
         </div>
       )}

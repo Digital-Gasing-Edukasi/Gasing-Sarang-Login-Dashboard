@@ -120,7 +120,7 @@ export function LoginPage({ onNavigate, onLoginSuccess, isSsoMode = false }) {
           </button>
         </div>
 
-        <Button className="w-full" onClick={handleLogin} disabled={loading}>
+        <Button className="w-full" onClick={handleLogin} disabled={loading || !email || !password}>
           {loading ? <><Loader2 size={16} className="animate-spin" /> Memproses...</> : 'Login'}
         </Button>
       </div>

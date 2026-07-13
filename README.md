@@ -1,6 +1,6 @@
 # GASING CIRCLE — Frontend SPA
 
-> **Versi:** 2.9.0 · **Tanggal:** 25 Juni 2026 · **Stack:** React 18 + Vite + Tailwind CSS + shadcn/ui
+> **Versi:** 2.9.1 · **Tanggal:** 13 Juli 2026 · **Stack:** React 18 + Vite + Tailwind CSS + shadcn/ui
 
 > 📚 Cari dokumen lain? Mulai dari **[peta dokumentasi](docs/README.md)** — arsitektur,
 > deployment, skenario tes, modul admin, dan ADR.
@@ -945,6 +945,23 @@ Ubah CSS variables di `src/index.css`:
 ---
 
 ## 17. Changelog
+
+### v2.9.1 — 13 Juli 2026
+
+- ✅ **Tombol submit di-disable saat field wajib belum lengkap** — tombol aksi utama
+  kini nonaktif (`disabled`) sampai semua field yang wajib terisi, mencegah submit
+  prematur sebelum validasi jalan. Pola: `disabled={loading || !<field> || ...}`.
+
+  | Halaman | Tombol | Syarat aktif |
+  | ------- | ------ | ------------ |
+  | `LoginPage.jsx` | Login | Email & password terisi |
+  | `ForgotPasswordPage.jsx` | Kirim Tautan | Email terisi |
+  | `ResetPasswordPage.jsx` (mobile + desktop) | Ubah Password | Password baru & konfirmasi terisi |
+  | `FixDataPage.jsx` | Kirim Perbaikan Data | Tanggal lahir, lokasi, sesi pelatihan & nama sekolah terisi |
+  | `TransferBankPage.jsx` | Konfirmasi Pembayaran | Nama pengirim, bank asal, tanggal transfer & bukti transfer terisi |
+
+  > `SignUpPage.jsx` (`step1Complete` / `step2Complete`) dan `SignUpOtpPage.jsx`
+  > (cek 6 digit OTP) sudah menerapkan pola ini sebelumnya — tidak berubah.
 
 ### v2.9.0 — 25 Juni 2026
 

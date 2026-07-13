@@ -207,10 +207,23 @@ export default function App() {
         return;
       }
 
+      // Link reset password dari email: /register/reset-password?token=...
+      // Harus dicek SEBELUM /register generic (yang mengandung "/register").
+      if (pathname.includes("/reset-password") || token) {
+        if (token) {
+          setResetToken(token);
+          if (emailParam) setResetEmail(decodeURIComponent(emailParam));
+        }
+        setPage("reset-password");
+        clearUrlParams();
+        setSessionChecked(true);
+        return;
+      }
+
       // /register → halaman Pendaftaran (signup). URL dibiarkan tetap /register
       // (tujuan tombol "Kembali ke Pendaftaran" dari halaman legal).
       if (pathname.includes("/register")) {
-        setPage("signup");
+        setPage("login");
         setSessionChecked(true);
         return;
       }
@@ -219,15 +232,6 @@ export default function App() {
         const planName = params.get("plan");
         if (planName) setActivePlanName(decodeURIComponent(planName));
         setPage("payment-success");
-        clearUrlParams();
-        setSessionChecked(true);
-        return;
-      }
-
-      if (token) {
-        setResetToken(token);
-        if (emailParam) setResetEmail(decodeURIComponent(emailParam));
-        setPage("reset-password");
         clearUrlParams();
         setSessionChecked(true);
         return;
