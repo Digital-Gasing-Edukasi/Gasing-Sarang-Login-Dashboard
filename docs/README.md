@@ -20,6 +20,7 @@ GASING CIRCLE. Backend NestJS terpisah. 71 file `.js`/`.jsx` di `src/`.
 | Bikin tabel admin baru | [`docs/ADMIN_TABLE_LIMITS.md`](ADMIN_TABLE_LIMITS.md), [`docs/ADMIN_TABLE_SCROLL.md`](ADMIN_TABLE_SCROLL.md) | Limit, bulk action, aturan scroll |
 | Kerja di alur revisi akun | [`docs/FIX_DATA_FLOW.md`](FIX_DATA_FLOW.md) + [ADR-0003](adr/0003-revise-token-flow.md) | Token JWT one-time dari email |
 | Kerja di tampilan mobile | [`docs/MOBILE_RESPONSIVE.md`](MOBILE_RESPONSIVE.md) | 1 codebase, breakpoint `lg:` |
+| Kerja di halaman legal (TOS/Privacy) | [`docs/LEGAL_PAGES.md`](LEGAL_PAGES.md) | Route `/register/id/TOS` & `/id/privacy`, tab baru dari signup |
 | Mau tau kenapa desainnya begitu | [`docs/adr/`](adr/) | Keputusan + trade-off |
 
 ---
@@ -42,6 +43,7 @@ docs/
   ADMIN_TABLE_SCROLL.md ... `getTableScrollProps` — aturan scroll tabel
   FIX_DATA_FLOW.md ........ Alur perbaikan data / revise
   MOBILE_RESPONSIVE.md .... Strategi responsive auth & payment
+  LEGAL_PAGES.md .......... Halaman TOS & Privacy — routing, file, cara ubah isi
   adr/
     0001-fix-data-flow.md ................ Superseded by ADR-0003
     0002-refactor-junior-maintainability.md  Accepted
@@ -129,5 +131,6 @@ Baca [`.env.example`](../.env.example) sebelum ngisi environment.
 | `bad-words` dipin di v3 | `package.json` | Jangan upgrade ke 4.x — tarball tanpa `dist/`, build mati |
 | `VITE_DISCOURSE_URL` tidak dibaca kode | README, DEPLOYMENT_GUIDE | Disebut di dokumen tapi ga ada di `src/` — redirect datang dari `redirectUrl` response backend |
 | Belum ada test runner | — | `TEST_SCENARIOS.md` masih manual, belum ada Vitest/RTL |
+| Isi halaman legal masih placeholder | `pages/legal/TermsPage.jsx`, `PrivacyPage.jsx` | Lorem ipsum — ganti teks legal final sebelum produksi, [LEGAL_PAGES.md](LEGAL_PAGES.md) |
 
 Selengkapnya: [ARCHITECTURE.md §11](../ARCHITECTURE.md).
