@@ -2,6 +2,9 @@
 
 > **Versi:** 2.9.0 · **Tanggal:** 25 Juni 2026 · **Stack:** React 18 + Vite + Tailwind CSS + shadcn/ui
 
+> 📚 Cari dokumen lain? Mulai dari **[peta dokumentasi](docs/README.md)** — arsitektur,
+> deployment, skenario tes, modul admin, dan ADR.
+
 ---
 
 ## Daftar Isi
@@ -307,23 +310,67 @@ Setiap halaman auth berdiri sendiri sebagai file terpisah. `App.jsx` hanya bertu
 
 ### 8.2 Dashboard Admin (`src/pages/admin/`)
 
+**Helper & data mapping**
+
 | File                  | Keterangan                                              |
 | --------------------- | ------------------------------------------------------- |
 | `mappers.js`          | Fungsi `mapToVerifikasi` & `mapToManajemen` (API → UI)  |
+| `roleOptions.js`      | Daftar opsi role untuk `<RoleSelect>` & `<UbahRoleModal>` |
+| `tableScroll.js`      | `getTableScrollProps` — aturan scroll tabel ([docs/ADMIN_TABLE_SCROLL.md](docs/ADMIN_TABLE_SCROLL.md)) |
+
+**Navigasi & toolbar**
+
+| File                  | Keterangan                                              |
+| --------------------- | ------------------------------------------------------- |
 | `AdminSidebar.jsx`    | Sidebar navigasi (logo, tab, profil, logout)            |
-| `ConfirmModal.jsx`    | Modal konfirmasi: `<RejectModal>` & `<ApproveModal>`    |
 | `AdminToast.jsx`      | Toast undo 5 detik setelah approve/reject               |
 | `TableControls.jsx`   | `<VerifikasiControls>`, `<ManajemenControls>`, `<PendaftaranTrainerControls>`, `<RiwayatPelatihanControls>` (toolbar per tab) |
+| `CalendarRangePicker.jsx` | Filter rentang tanggal + helper `toYMD`, `formatIdDate` |
+| `RoleSelect.jsx`      | Dropdown role inline di dalam tabel                     |
+
+**Tabel**
+
+| File                  | Keterangan                                              |
+| --------------------- | ------------------------------------------------------- |
 | `VerifikasiTable.jsx` | Tabel tab Verifikasi Akun dengan role select & action   |
 | `ManajemenTable.jsx`  | Tabel tab Manajemen Akun dengan status, voucher, dst.   |
-| `UbahRoleModal.jsx`   | Modal ubah role pengguna (Manajemen Akun)               |
-| `KirimVoucherModal.jsx` | Modal kirim voucher personal (Manajemen Akun)         |
+| `PendingVoucherTable.jsx` | Tabel akun berstatus `PENDING_VOUCHER` (langkah 2 verifikasi) |
 | `PendaftaranTrainerTable.jsx` | Tabel tab Pendaftaran Trainer + toggle status   |
-| `AddPendaftaranTrainerModal.jsx` | Modal tambah pendaftaran pelatihan trainer   |
 | `RiwayatPelatihanTable.jsx` | Tabel tab Riwayat Pelatihan: sort per-kolom, badge status & langganan, action edit/download/hapus |
-| `HapusRiwayatModal.jsx` | Modal konfirmasi hapus riwayat (wajib ketik `DELETE`) + undo via toast |
+
+**Modal — verifikasi & aksi akun**
+
+| File                  | Keterangan                                              |
+| --------------------- | ------------------------------------------------------- |
+| `ConfirmModal.jsx`    | Modal konfirmasi: `<RejectModal>` & `<ApproveModal>`    |
+| `SetujuiAkunModal.jsx` | Modal setujui akun (langkah 1 → `PENDING_VOUCHER`)      |
+| `SuspendModal.jsx`    | Modal tangguhkan akun (pilih alasan + tanggal berakhir) |
+| `AccountActionModals.jsx` | `<HapusAkunModal>` & `<PulihkanAkunModal>`           |
+| `UbahRoleModal.jsx`   | Modal ubah role pengguna (Manajemen Akun)               |
+| `BulkApproveModal.jsx` / `BulkRejectModal.jsx` | Aksi massal ([docs/ADMIN_TABLE_LIMITS.md](docs/ADMIN_TABLE_LIMITS.md)) |
+
+**Modal — voucher**
+
+| File                  | Keterangan                                              |
+| --------------------- | ------------------------------------------------------- |
+| `KirimVoucherModal.jsx` | Modal kirim voucher personal (Manajemen Akun)         |
+| `VoucherModals.jsx`   | `<KonfirmasiVoucherModal>` & `<BulkVoucherModal>`       |
+
+**Modal — pelatihan & trainer**
+
+| File                  | Keterangan                                              |
+| --------------------- | ------------------------------------------------------- |
+| `AddPelatihanModal.jsx` | Modal tambah pelatihan                                |
+| `AddPendaftaranTrainerModal.jsx` | Modal tambah pendaftaran pelatihan trainer   |
+| `PerbaruiRiwayatModal.jsx` | Modal perbarui riwayat pelatihan                   |
+| `DaftarPesertaModal.jsx` | Modal daftar peserta pelatihan                       |
+| `EditPesertaModal.jsx` | Modal edit data peserta                                |
 
 `AdminDashboardPage.jsx` adalah orchestrator yang menggabungkan semua komponen admin di atas.
+
+> ⚠️ **Kode mati:** `AccountActionModals.jsx` juga mengekspor `SetujuiAkunModal` &
+> `TangguhkanAkunModal`, tapi keduanya tidak diimpor di mana pun. Versi yang aktif ada di
+> `SetujuiAkunModal.jsx` dan `SuspendModal.jsx`.
 
 #### Tab Riwayat Pelatihan
 
@@ -370,6 +417,9 @@ Tabel menampilkan kolom: **Nama Pelatihan** (+ badge `New`), **Daerah Pelatihan*
 | `<OtpInput />`      | 6-kotak OTP dengan auto-focus dan paste support |
 | `<ErrorAlert />`    | Alert merah untuk error dari API                |
 | `<SuccessToast />`  | Toast notifikasi hijau (reset password)         |
+| `<LoginStatusModal />` | Modal blokir login: suspended / pending / expired (lihat §8.7 `loginGate.js`) |
+| `<MobileReviewNotice />` | Notice khusus tampilan mobile ([docs/MOBILE_RESPONSIVE.md](docs/MOBILE_RESPONSIVE.md)) |
+| `<NoConnectionBanner />` | Banner saat koneksi ke backend putus        |
 
 ### 8.6 Custom Hook (`src/hooks/`)
 
@@ -382,6 +432,18 @@ Tabel menampilkan kolom: **Nama Pelatihan** (+ badge `New`), **Daerah Pelatihan*
 | `reset()` | `function` | Restart timer ke nilai awal |
 
 Digunakan di `SignUpOtpPage` (OTP 10 menit) dan `CheckEmailPage` (resend 30 detik).
+
+### 8.7 Modul Library (`src/lib/`)
+
+Logika non-UI dipusatkan di sini supaya `App.jsx` dan komponen tetap tipis.
+
+| File           | Ekspor                                                                 | Kegunaan |
+| -------------- | ---------------------------------------------------------------------- | -------- |
+| `api.js`       | 16 grup API (`authApi`, `profileApi`, `adminApi`, dst) + `tokenStorage` | Semua HTTP call, auto-refresh token, dedupe request — lihat §9 |
+| `roles.js`     | `ADMIN_CAPABILITIES`, `isSuperAdmin()`, `isOperationalAdmin()`          | Aturan "siapa boleh ke mana" pasca-login. Admin operasional = punya **semua** 6 capability dan bukan superadmin |
+| `loginGate.js` | `evaluateLoginGate(profile)`                                           | Tentukan apakah login diblokir. Prioritas: **suspended > pending > expired**. Return `null` kalau lolos |
+| `fixLink.js`   | `FIELD_DEFS`, `FIELD_LABEL`, `encodeFixPayload()`, `decodeFixPayload()`, `buildFixUrl()`, `defaultFieldMessage()` | Payload & URL alur perbaikan data — lihat [docs/FIX_DATA_FLOW.md](docs/FIX_DATA_FLOW.md) |
+| `utils.js`     | `cn()`                                                                 | Merge className Tailwind (clsx + tailwind-merge) |
 
 ---
 

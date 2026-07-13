@@ -134,17 +134,10 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
   const yearOptions = [...new Set(sessions.map(sessionYear).filter(Boolean))]
     .sort()
     .reverse();
-  const monthOptions = [
-    ...new Set(
-      sessions
-        .filter((s) => sessionYear(s) === kapanYear)
-        .map(sessionMonth)
-        .filter(Boolean),
-    ),
-  ].sort((a, b) => Number(a) - Number(b));
-  const dimanaOptions = sessions.filter(
-    (s) => sessionYear(s) === kapanYear && sessionMonth(s) === kapanMonth,
-  );
+  // Tampilkan 12 bulan penuh dalam dropdown (per tahun), bukan hanya bulan yang ada sesi.
+  const monthOptions = MONTHS.map((_, i) => String(i));
+  // Filter daerah cukup pakai tahun;
+  const dimanaOptions = sessions.filter((s) => sessionYear(s) === kapanYear);
 
   const passwordRules = [
     { label: "Minimal 8 karakter", ok: password.length >= 8 },
@@ -155,6 +148,18 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
     },
   ];
   const allRulesOk = passwordRules.every((r) => r.ok);
+
+  // Tombol Lanjutkan aktif hanya kalau semua field step terisi (urut atas→bawah).
+  const step1Complete =
+    name && username && email && password && allRulesOk && confirm;
+  const step2Complete =
+    birthdate &&
+    provinceId &&
+    regionId &&
+    kapanYear &&
+    kapanMonth &&
+    lastTrainingSessionId &&
+    schoolName;
   const showPasswordRules = passwordFocused || password.length > 0;
 
   const handleNextToData = () => {
@@ -399,11 +404,21 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
                   />
                 }
               />
-              {errors.confirm && (
+              {errors.confirm ? (
                 <p className="text-xs text-red-500">{errors.confirm}</p>
-              )}
+              ) : confirm && confirm !== password ? (
+                <p className="text-xs text-red-500">Password tidak cocok.</p>
+              ) : confirm && confirm === password ? (
+                <p className="flex items-center gap-1 text-xs text-green-600">
+                  <Check size={12} strokeWidth={3} /> Password cocok.
+                </p>
+              ) : null}
             </div>
-            <Button className="w-full" onClick={handleNextToData}>
+            <Button
+              className="w-full"
+              onClick={handleNextToData}
+              disabled={!step1Complete}
+            >
               Lanjutkan
             </Button>
           </div>
@@ -413,14 +428,18 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
             <p className="text-[13px] text-muted-foreground text-center px-4">
               Dengan mendaftar akun, kamu menyetujui{" "}
               <a
-                href="#"
+                href="/register/id/TOS"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="underline font-medium text-blue-500 hover:text-blue-600"
               >
                 Ketentuan Layanan
               </a>{" "}
               dan{" "}
               <a
-                href="#"
+                href="/register/id/privacy"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="underline font-medium text-blue-500 hover:text-blue-600"
               >
                 Kebijakan Privasi
@@ -570,7 +589,7 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
                   setLastTrainingSessionId(v);
                   clearFieldError("session");
                 }}
-                disabled={!kapanMonth}
+                disabled={!kapanYear}
               >
                 <SelectTrigger className={errors.session ? ERR_INPUT : ""}>
                   <SelectValue placeholder="Pilih Daerah" />
@@ -608,7 +627,7 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
             <Button
               className="w-full"
               onClick={handleRegister}
-              disabled={loading}
+              disabled={loading || !step2Complete}
             >
               {loading ? (
                 <>
@@ -624,14 +643,18 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
             <p className="text-[13px] text-muted-foreground text-center px-4">
               Dengan mengklik lanjutkan, kamu menyetujui{" "}
               <a
-                href="#"
+                href="/register/id/TOS"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="underline font-medium text-blue-500 hover:text-blue-600"
               >
                 Ketentuan Layanan
               </a>{" "}
               dan{" "}
               <a
-                href="#"
+                href="/register/id/privacy"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="underline font-medium text-blue-500 hover:text-blue-600"
               >
                 Kebijakan Privasi

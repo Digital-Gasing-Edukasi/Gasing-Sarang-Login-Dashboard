@@ -57,6 +57,8 @@ import { CheckEmailPage } from "@/pages/auth/CheckEmailPage";
 import { ResetPasswordPage } from "@/pages/auth/ResetPasswordPage";
 import { SsoCallbackPage } from "@/pages/auth/SsoCallbackPage";
 import { AuthChoicePage } from "@/pages/auth/AuthChoicePage";
+import { TermsPage } from "@/pages/legal/TermsPage";
+import { PrivacyPage } from "@/pages/legal/PrivacyPage";
 
 import SubscriptionPage from "@/pages/SubscriptionPage";
 import TransferBankPage from "@/pages/TransferBankPage";
@@ -90,6 +92,20 @@ export default function App() {
     const init = async () => {
       const params = new URLSearchParams(window.location.search);
       const pathname = window.location.pathname;
+
+      // ── Halaman legal (dibuka di tab baru dari SignUpPage) ────────────────
+      // URL: /id/privacy → Kebijakan Privasi, /id/TOS → Ketentuan Layanan.
+      const legalPath = pathname.toLowerCase();
+      if (legalPath.includes("/id/privacy")) {
+        setPage("privacy");
+        setSessionChecked(true);
+        return;
+      }
+      if (legalPath.includes("/id/tos")) {
+        setPage("terms");
+        setSessionChecked(true);
+        return;
+      }
 
       // ── Snap Redirect landing pages (Midtrans redirects browser ke sini) ────
       if (pathname.includes("/payment/finish")) {
@@ -191,9 +207,10 @@ export default function App() {
         return;
       }
 
+      // /register → halaman Pendaftaran (signup). URL dibiarkan tetap /register
+      // (tujuan tombol "Kembali ke Pendaftaran" dari halaman legal).
       if (pathname.includes("/register")) {
-        setPage("login");
-        window.history.replaceState({}, "", "/");
+        setPage("signup");
         setSessionChecked(true);
         return;
       }
@@ -297,6 +314,8 @@ export default function App() {
   if (page === "payment-unfinish") return <PaymentUnfinishPage />;
   if (page === "payment-error") return <PaymentErrorPage />;
   if (page === "midtrans-test") return <MidtransTestPage />;
+  if (page === "privacy") return <PrivacyPage onNavigate={setPage} />;
+  if (page === "terms") return <TermsPage onNavigate={setPage} />;
   if (page === "subscription")
     return (
       <SubscriptionPage

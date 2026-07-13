@@ -57,7 +57,9 @@ export function LoginPage({ onNavigate, onLoginSuccess, isSsoMode = false }) {
       } else if (e?.status >= 500) {
         setGate({ type: 'error' })         // flow 4 — server bermasalah
       } else {
-        setErrors({ password: e.message }) // salah kredensial / validasi
+        setErrors({
+          password: "Password salah. Coba lagi atau pilih “Lupa Password?”",
+        }); // salah kredensial / validasi
       }
     } finally {
       setLoading(false)
