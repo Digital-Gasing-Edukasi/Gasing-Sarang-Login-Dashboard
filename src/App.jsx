@@ -2,6 +2,8 @@ import { useState, useEffect, lazy, Suspense } from "react";
 import { tokenStorage, subscriptionApi, profileApi, authApi, regionsApi } from "@/lib/api";
 import { isSuperAdmin, isOperationalAdmin } from "@/lib/roles";
 import { decodeFixPayload } from "@/lib/fixLink";
+import { evaluateLoginGate } from "@/lib/loginGate";
+import { LoginStatusModal } from "@/components/shared/LoginStatusModal";
 
 // Normalisasi respons `POST /auth/revise` → bentuk prefill FixDataPage.
 // TODO(verify): sesuaikan nama field dengan respons `/auth/revise` yang sebenarnya
@@ -87,6 +89,9 @@ export default function App() {
   const [checkoutPlan, setCheckoutPlan] = useState(null);
   const [manualPayment, setManualPayment] = useState(null);
   const [sessionChecked, setSessionChecked] = useState(false);
+  // gate: status akun yang memblokir masuk app (suspended/pending/expired).
+  // Berlaku untuk login manual DAN restore sesi (reload dgn token tersimpan).
+  const [gate, setGate] = useState(null);
 
   useEffect(() => {
     const init = async () => {
@@ -136,6 +141,25 @@ export default function App() {
 
       const clearUrlParams = () =>
         window.history.replaceState({}, "", window.location.pathname);
+
+      // ── DEV: uji modal gate tanpa backend ────────────────────────────────
+      // ?gatetest=suspended | pending | expired → paksa tampil LoginStatusModal.
+      const gatetest = params.get("gatetest");
+      if (gatetest) {
+        const meta =
+          gatetest === "suspended"
+            ? {
+                type: "suspended",
+                until: "2026-08-14 13:05:00",
+                reason: "Melanggar panduan komunitas",
+              }
+            : { type: gatetest };
+        setGate(meta);
+        setPage("login");
+        clearUrlParams();
+        setSessionChecked(true);
+        return;
+      }
 
       // ── Link "Revisi Data" dari email (token JWT dari backend) ────────────
       // Route: /register/revise?token=<JWT>. Prefill diambil dari server (bukan URL).
@@ -262,6 +286,15 @@ export default function App() {
   //   - Superadmin         → auth-choice
   //   - User biasa         → auth-choice bila langganan aktif, else subscription
   const handleLoginSuccess = async (user) => {
+    // Guard status akun sebelum masuk: suspended / pending / expired → modal,
+    // jangan set currentUser / jangan routing ke halaman app.
+    const blocked = evaluateLoginGate(user);
+    if (blocked) {
+      setGate({ ...blocked, profile: user });
+      setPage("login");
+      return;
+    }
+
     setCurrentUser(user);
 
     if (isOperationalAdmin(user)) {
@@ -457,6 +490,27 @@ export default function App() {
     <div className="flex h-screen overflow-hidden">
       <LeftPanel />
       {authPages[page] ?? authPages["login"]}
+
+      {gate && (
+        <LoginStatusModal
+          type={gate.type}
+          meta={gate}
+          // Tutup/logout/dismiss → bersihkan sesi, kembali ke login.
+          onClose={() => {
+            tokenStorage.clear();
+            setCurrentUser(null);
+            setGate(null);
+            setPage("login");
+          }}
+          // "Perbarui Langganan" (expired) → lanjut ke halaman langganan.
+          onRenew={() => {
+            const p = gate.profile;
+            setGate(null);
+            setCurrentUser(p);
+            setPage("subscription");
+          }}
+        />
+      )}
     </div>
   );
 }

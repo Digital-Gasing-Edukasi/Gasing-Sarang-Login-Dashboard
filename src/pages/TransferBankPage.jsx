@@ -105,6 +105,7 @@ export default function TransferBankPage({
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [receiptFileId, setReceiptFileId] = useState(null);
+  const [txnId, setTxnId] = useState(null);
   const fileInputRef = useRef(null);
 
   const WA_NUMBER = import.meta.env.VITE_WA_NUMBER || "628123456789";
@@ -154,9 +155,17 @@ export default function TransferBankPage({
       // 2. Tentukan paymentId. Bila tidak diteruskan dari checkout, ambil payment
       //    manual terakhir milik user.
       let paymentId = pick(payment, "id", "paymentId") || pick(payment?.data, "id", "paymentId");
-      if (!paymentId) {
+      // ID transaksi untuk ditampilkan di layar konfirmasi (utamakan orderId).
+      let resolvedTxnId =
+        pick(payment, "orderId", "orderNumber", "id") ||
+        pick(payment?.data, "orderId", "orderNumber", "id");
+      if (!paymentId || !resolvedTxnId) {
         const latest = await subscriptionApi.getLatestPayment().catch(() => null);
-        paymentId = pick(latest, "id", "paymentId") || pick(latest?.data, "id", "paymentId");
+        paymentId = paymentId || pick(latest, "id", "paymentId") || pick(latest?.data, "id", "paymentId");
+        resolvedTxnId =
+          resolvedTxnId ||
+          pick(latest, "orderId", "orderNumber", "id") ||
+          pick(latest?.data, "orderId", "orderNumber", "id");
       }
       if (!paymentId) throw new Error("Data pembayaran tidak ditemukan.");
 
@@ -165,6 +174,7 @@ export default function TransferBankPage({
       //    dikirim ke backend saat skema field tersebut sudah tersedia.
       await subscriptionApi.uploadReceipt(paymentId, fileId);
       setReceiptFileId(fileId);
+      setTxnId(resolvedTxnId || paymentId);
       setSubmitted(true);
     } catch (e) {
       setError(e.message || "Gagal mengirim bukti, coba lagi.");
@@ -219,7 +229,7 @@ export default function TransferBankPage({
           <div className="w-full rounded-3xl border border-white/10 bg-white/[0.03] p-7 text-left mb-8">
             <div className="flex items-center justify-between mb-4">
               <span className="text-lg font-bold">Rincian Transaksi</span>
-              <span className="text-sm text-white/40">ID: {orderId}</span>
+              <span className="text-sm text-white/40">ID: {txnId || orderId}</span>
             </div>
             <div className="border-t border-white/10 mb-4" />
             <SummaryRow label="Paket Langganan" value={packageLabel} />

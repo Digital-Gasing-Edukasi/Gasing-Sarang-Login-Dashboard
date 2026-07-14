@@ -2,21 +2,20 @@ import { useState } from 'react'
 import { Clock, UserSearch, ShieldAlert, LogOut, AlertCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
-// URL panduan komunitas (TODO(verify): ganti dengan tautan asli).
-const COMMUNITY_URL = '#'
+// "panduan komunitas" → halaman Ketentuan Layanan (TOS). Dibuka di tab baru,
+// sama seperti tautan TOS di SignUpPage.
+const COMMUNITY_URL = '/register/id/TOS'
 
-const ID_MONTHS_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des']
+const ID_MONTHS = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember']
 
-// "14 Agu 2026, 2:00 pm"
+// "14 Agustus 2026, 13:05" (nama bulan penuh, jam 24)
 function fmtDateID(value) {
   if (!value) return '-'
   const d = new Date(typeof value === 'string' ? value.replace(' ', 'T') : value)
   if (isNaN(d)) return '-'
-  let h = d.getHours()
-  const ampm = h >= 12 ? 'pm' : 'am'
-  h = h % 12 || 12
+  const hh = String(d.getHours()).padStart(2, '0')
   const mm = String(d.getMinutes()).padStart(2, '0')
-  return `${d.getDate()} ${ID_MONTHS_SHORT[d.getMonth()]} ${d.getFullYear()}, ${h}:${mm} ${ampm}`
+  return `${d.getDate()} ${ID_MONTHS[d.getMonth()]} ${d.getFullYear()}, ${hh}:${mm}`
 }
 
 // Durasi manusiawi dari sekarang → until: "1 Bulan" / "1 Minggu" / "3 Hari" / "6 Jam".
@@ -80,7 +79,7 @@ export function LoginStatusModal({ type, meta = {}, onClose, onRenew, onRetry })
       title: 'Kami Sedang Meninjau Akunmu',
       body: (
         <>
-          <span className="font-semibold text-foreground">Akun kamu sedang kami tinjau maksimal dalam waktu 24-48 jam</span>{' '}
+          <span className="font-semibold text-foreground">Akun kamu sedang kami tinjau maksimal dalam waktu 24 jam</span>{' '}
           untuk memastikan kamu sudah terdaftar sebagai Trainer di Gasing Academy.
           <br /><br />
           <span className="font-semibold text-foreground">Mohon cek email secara berkala</span>{' '}
@@ -92,7 +91,7 @@ export function LoginStatusModal({ type, meta = {}, onClose, onRenew, onRetry })
     expired: {
       icon: Clock,
       title: 'Masa Berlangganan Berakhir',
-      body: 'Masa berlangganan kamu telah habis. Ayo perbarui langgananmu untuk kembali mendapatkan akses ke Gasing Circle!',
+      body: 'Masa berlangganan kamu telah habis. Ayo perbarui langgananmu untuk kembali mendapatkan akses ke Sarang Gasing!',
       actions: [
         { label: 'Log Out', variant: 'outline', icon: LogOut, kind: 'logout' },
         { label: 'Perbarui Langganan', variant: 'primary', kind: 'renew' },
@@ -130,18 +129,18 @@ function SuspendedModal({ meta, onClose }) {
   return (
     <Shell tone="red" icon={ShieldAlert}>
       <h2 className="text-2xl font-bold text-foreground mb-3">
-        Akun Kamu Ditangguhkan{dur ? ` ${dur}` : ''}
+        Akun Kamu Ditangguhkan
       </h2>
       <p className="text-[15px] text-muted-foreground leading-relaxed mb-6">
-        Akun kamu ditangguhkan hingga <span className="text-foreground">{untilStr}</span> karena {reason.toLowerCase()}. Silakan baca{' '}
-        <a href={COMMUNITY_URL} className="font-semibold text-blue-600 hover:underline">panduan komunitas</a>{' '}
+        Akun kamu ditangguhkan karena {reason.toLowerCase()}. Silakan baca{' '}
+        <a href={COMMUNITY_URL} target="_blank" rel="noopener noreferrer" className="font-semibold text-blue-600 hover:underline">panduan komunitas</a>{' '}
         kami untuk menghindari pelanggaran serupa.
       </p>
 
       <div className="space-y-2 mb-8 text-left">
         <DetailRow label="Alasan:" value={reason} />
-        {dur && <DetailRow label="Masa tangguhan:" value={dur} />}
-        <DetailRow label="Berakhir:" value={untilStr} />
+        {dur && <DetailRow label="Durasi tangguhan:" value={dur} />}
+        <DetailRow label="Ditangguhkan hingga:" value={untilStr} />
       </div>
 
       <div className="flex items-center gap-4">

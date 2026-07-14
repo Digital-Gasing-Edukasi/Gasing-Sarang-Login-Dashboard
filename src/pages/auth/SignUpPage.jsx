@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Mail, Lock, LogIn, Calendar, Loader2, Check, Circle, ChevronLeft, X } from "lucide-react";
+import { Mail, Lock, LogIn, Calendar, Loader2, Check, Circle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,7 +11,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { RightPanel, Divider } from "@/components/layout/RightPanel";
-import { StepIndicator } from "@/components/layout/StepIndicator";
+import { StepBar } from "@/components/layout/StepIndicator";
 import { IconInput, TogglePassword } from "@/components/shared/IconInput";
 import { authApi, regionsApi, trainingSessionsApi } from "@/lib/api";
 // Dipin ke bad-words 3.x: rilis 4.0.0 (masih `latest` di npm) di-publish tanpa
@@ -252,24 +252,11 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
 
   return (
     <RightPanel>
-      <div className="relative animate-fade-in-up">
-        {step === 2 && (
-          <button
-            onClick={() => setStep(1)}
-            className="absolute left-0 top-0 flex items-center gap-1 text-sm font-bold text-blue-600 hover:text-blue-700 transition-colors"
-          >
-            <ChevronLeft size={18} /> Kembali
-          </button>
-        )}
-        <button
-          onClick={() => onNavigate("login")}
-          className="absolute right-0 top-0 text-muted-foreground hover:text-foreground transition-colors"
-          aria-label="Tutup"
-        >
-          <X size={22} />
-        </button>
-      </div>
-      <StepIndicator currentStep={step === 1 ? 1 : 2} />
+      <StepBar
+        current={step === 1 ? 1 : 2}
+        total={3}
+        onBack={step === 2 ? () => setStep(1) : undefined}
+      />
 
       {step === 1 ? (
         <>

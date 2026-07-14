@@ -1,4 +1,5 @@
 import illustrationForgotImg from '@/assets/illustrasi_forgotPassword.png'
+import logo from '@/assets/logo-saranggasing.png'
 import { MobileHero } from '@/components/layout/MobileHero'
 
 function EnvelopeCluster({ flip = false, className = '' }) {
@@ -37,9 +38,8 @@ export function AuthFullLayout({ children, illustration = 'robot' }) {
   return (
     <div className="min-h-screen flex flex-col bg-white">
       {/* Header desktop — di mobile diganti MobileHero */}
-      <header className="hidden lg:flex items-center gap-2.5 px-8 py-5 shrink-0">
-        <div className="w-10 h-10 rounded-full bg-gray-200 shrink-0" />
-        <span className="font-semibold text-foreground">Gasing Circle</span>
+      <header className="hidden lg:flex items-center px-8 py-5 shrink-0">
+        <img src={logo} alt="Sarang Gasing" className="h-10 w-auto object-contain shrink-0" />
       </header>
       <div className="hidden lg:block h-px bg-border shrink-0" />
 

@@ -422,7 +422,10 @@ export default function AdminDashboardPage({ user, onSignOut }) {
       undo: () => setPembayaranMenunggu(prev => [target, ...prev]),
     })
     scheduleAction(
-      () => adminApi.approveManualPayment(target.id),
+      // Approve sukses → langganan aktif di BE. Refresh Manajemen supaya user
+      // approved + status langganannya ikut muncul (state Manajemen kalau tidak
+      // di-refetch tetap basi sampai pindah tab / hard reload).
+      async () => { await adminApi.approveManualPayment(target.id); loadUsers('manajemen') },
       () => { setPembayaranMenunggu(prev => [target, ...prev]); setApiError('Gagal mengonfirmasi pembayaran.') }
     )
   }

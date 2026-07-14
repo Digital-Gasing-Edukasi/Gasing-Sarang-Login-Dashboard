@@ -93,7 +93,16 @@ Aksi:
 
 Method di `adminApi`: `listManualPayments`, `approveManualPayment`, `rejectManualPayment`, `getManualPaymentStats`.
 
-Dipanggil saat `activeTab === 'verifikasi-pembayaran'` **dan** sekali di mount (agar titik biru navbar akurat sebelum tab dibuka). Titik biru muncul bila `pembayaranMenunggu.length > 0`.
+`loadPembayaran()` (full list) dipanggil **hanya saat tab dibuka** (`activeTab === 'verifikasi-pembayaran'`), bukan di mount — biar burst request mount kecil.
+
+**Titik biru navbar** (sebelum tab pernah dibuka) pakai `getManualPaymentStats()` di mount (1 request ringan, ambil count `receipt_uploaded`), bukan full list. Setelah tab dibuka, `pembayaranLoaded=true` → titik biru pindah ke list live:
+
+```
+navFlags['verifikasi-pembayaran'] =
+  pembayaranLoaded ? pembayaranMenunggu.length > 0 : pembayaranMenungguCount > 0
+```
+
+**Dedupe request (`api.js`):** ada 3 lapis anti-429 — concurrency limiter (`MAX_CONCURRENT=4`), in-flight GET dedupe (request barengan → 1 network), dan TTL cache GET (`RESPONSE_TTL=4000ms`, request identik berdekatan reuse hasil; mutasi non-GET membuang cache). `clearApiCache()` di-export untuk pembersihan manual bila perlu.
 
 ---
 

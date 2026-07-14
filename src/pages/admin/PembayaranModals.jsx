@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { X, CheckCircle2, Download } from 'lucide-react'
+import { X, ImageOff, Download } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 function Field({ label, value }) {
@@ -45,23 +45,32 @@ export function KonfirmasiPembayaranModal({ candidate, onConfirm, onReject, onCa
               <Field label="Paket" value={p.packageName} />
             </div>
 
-            {/* Kanan: preview bukti */}
+            {/* Kanan: preview bukti — gambar asli yang diunggah user. */}
             <div>
               <div className="text-xs text-gray-400 mb-2">Bukti Transfer</div>
-              <div className="border border-gray-200 rounded-2xl p-5 flex flex-col items-center text-center">
-                <CheckCircle2 size={40} className="text-green-500 mb-2" />
-                <div className="text-sm text-gray-500">Transfer Berhasil</div>
-                <div className="text-2xl font-bold text-blue-600 mb-3">{p.amount}</div>
-                <div className="w-full rounded-lg bg-gray-50 border border-gray-100 p-3 text-left text-[11px] text-gray-500 leading-relaxed">
-                  <div>Bank: {p.bank}</div>
-                  <div>Pengirim: {p.senderName}</div>
-                  <div>Tanggal: {p.transferDate}</div>
-                  <div>Nominal: {p.amount}</div>
-                </div>
+              <div className="border border-gray-200 rounded-2xl p-3 flex flex-col items-center text-center">
+                {p.receiptUrl ? (
+                  <button
+                    onClick={handleUnduh}
+                    className="w-full rounded-lg overflow-hidden bg-gray-50 border border-gray-100 cursor-zoom-in"
+                    title="Klik untuk buka gambar penuh"
+                  >
+                    <img
+                      src={p.receiptUrl}
+                      alt="Bukti transfer"
+                      className="w-full max-h-[280px] object-contain"
+                    />
+                  </button>
+                ) : (
+                  <div className="w-full rounded-lg bg-gray-50 border border-gray-100 py-10 flex flex-col items-center text-gray-400">
+                    <ImageOff size={36} className="mb-2" />
+                    <div className="text-sm">Bukti belum diunggah</div>
+                  </div>
+                )}
                 <button
                   onClick={handleUnduh}
                   disabled={!p.receiptUrl}
-                  className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-[#0A1128] border border-gray-200 hover:bg-gray-50 px-5 py-2 rounded-full transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="mt-3 inline-flex items-center gap-2 text-sm font-semibold text-[#0A1128] border border-gray-200 hover:bg-gray-50 px-5 py-2 rounded-full transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   <Download size={16} /> Unduh
                 </button>

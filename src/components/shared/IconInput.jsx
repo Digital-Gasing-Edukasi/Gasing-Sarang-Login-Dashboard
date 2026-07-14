@@ -20,7 +20,7 @@ export function TogglePassword({ show, onToggle }) {
   return (
     <button type="button" onClick={onToggle}
       className="absolute right-3 z-10 text-muted-foreground hover:text-foreground transition-colors">
-      {show ? <EyeOff size={16} /> : <Eye size={16} />}
+      {show ? <Eye size={16} /> : <EyeOff size={16} />}
     </button>
   )
 }

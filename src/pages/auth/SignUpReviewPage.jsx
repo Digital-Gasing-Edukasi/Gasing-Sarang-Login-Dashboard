@@ -1,7 +1,6 @@
 import { CheckCircle2, LogIn } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { RightPanel } from '@/components/layout/RightPanel'
-import { StepIndicator } from '@/components/layout/StepIndicator'
 import { MobileReviewNotice } from '@/components/shared/MobileReviewNotice'
 
 export function SignUpReviewPage({ onNavigate }) {
@@ -24,7 +23,6 @@ export function SignUpReviewPage({ onNavigate }) {
       {/* DESKTOP — versi terang existing */}
       <div className="hidden lg:block">
         <RightPanel>
-          <StepIndicator currentStep={3} />
           <div className="animate-fade-in-up delay-100 text-center">
             <div className="w-16 h-16 rounded-full bg-primary flex items-center justify-center mx-auto mb-6">
               <CheckCircle2 size={32} className="text-primary-foreground" />

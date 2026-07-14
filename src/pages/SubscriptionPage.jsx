@@ -1,19 +1,10 @@
 // src/pages/SubscriptionPage.jsx
 import { useState, useEffect } from "react";
-import { LogOut, Loader2, AlertCircle, Users, Video, BookOpen } from "lucide-react";
+import { Loader2, AlertCircle, Users, Video, BookOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { subscriptionApi } from "@/lib/api";
 
-import waveLeft from "@/assets/subscription/wave_blue_left.png";
-import waveRight from "@/assets/subscription/wave_blue_right.png";
-import iconBook from "@/assets/subscription/icon_book.png";
-import iconLightbulb from "@/assets/subscription/icon_lightbulb.png";
-import iconPlane from "@/assets/subscription/icon_plane.png";
-import iconThumbsup from "@/assets/subscription/icon_thumbsup.png";
-import iconStarsBlue from "@/assets/subscription/icon_stars_blue.png";
-import iconStarsYellow from "@/assets/subscription/icon_stars_yellow.png";
-import stripeGreenOne from "@/assets/subscription/icon_stripe_green_one.png";
-import stripeGreenTwo from "@/assets/subscription/icon_stripe_green_two.png";
+import bgDark from "@/assets/dark-mode/Background.png";
 // Ambil angka positif pertama dari beberapa kemungkinan field (nama field
 // diskon backend belum final — coba beberapa alias umum).
 function pickNumber(...vals) {
@@ -156,40 +147,36 @@ function Avatar({ name = "" }) {
   );
 }
 
-// ─── PLAN CARD ────────────────────────────────────────────────────────────────
+// ─── PLAN CARD (desktop, tema gelap) ─────────────────────────────────────────
 function PlanCard({ plan, selected, onSelect }) {
   return (
     <div
       onClick={() => onSelect(plan.id)}
       className={cn(
-        "relative rounded-[24px] border-2 p-8 cursor-pointer transition-all duration-300 bg-white",
+        "relative rounded-[24px] border p-7 cursor-pointer transition-all duration-300",
         selected
-          ? "border-blue-600 shadow-[0_0_40px_rgba(59,130,246,0.15)]"
-          : "border-gray-200 hover:border-gray-300"
+          ? "border-[#8b7bff]/70 bg-white/[0.07] shadow-[0_0_45px_rgba(124,58,237,0.28)]"
+          : "border-white/10 bg-white/[0.04] hover:border-white/20"
       )}
     >
       {/* Badge hemat mengambang di atas kartu */}
       {plan.label && (
-        <span className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-gradient-to-r from-[#4b7bff] to-[#48b2ff] text-white text-[13px] font-semibold px-4 py-1.5 rounded-full whitespace-nowrap shadow-sm">
+        <span className="absolute -top-3.5 right-6 bg-gradient-to-r from-[#4b7bff] to-[#22d3ee] text-white text-[13px] font-semibold px-4 py-1.5 rounded-full whitespace-nowrap shadow-sm">
           {plan.label}
         </span>
       )}
 
       <div className="flex items-center justify-between">
-        <div>
-          {/* Nama paket */}
-          <div className="mb-3">
-            <p className="text-gray-500 text-[15px] font-semibold">
-              {plan.name}
-            </p>
-          </div>
+        <div className="min-w-0">
+          <p className="text-white/55 text-[15px] font-semibold mb-2.5">
+            {plan.name}
+          </p>
 
-          {/* Harga */}
-          <div className="flex items-baseline gap-2 mb-2">
-            <span className="text-[32px] font-bold text-gray-900 leading-none">
+          <div className="flex items-baseline gap-2 flex-wrap">
+            <span className="text-[34px] font-bold text-white leading-none">
               Rp{formatRp(plan.priceMonthly)}
             </span>
-            <span className="text-sm font-medium text-gray-900">/bln</span>
+            <span className="text-sm font-medium text-white/70">/bln</span>
             {plan.originalPrice && (
               <span className="text-sm font-medium text-red-400 line-through ml-1">
                 Rp{formatRp(plan.originalPrice)}
@@ -197,10 +184,9 @@ function PlanCard({ plan, selected, onSelect }) {
             )}
           </div>
 
-          {/* Tagihan tahunan */}
-          <div className="min-h-[20px]">
+          <div className="min-h-[20px] mt-2">
             {plan.priceTotal && (
-              <p className="text-xs font-medium text-gray-400">
+              <p className="text-xs font-medium text-white/40">
                 Tagihan per-tahun Rp{formatRp(plan.priceTotal)}
               </p>
             )}
@@ -210,15 +196,13 @@ function PlanCard({ plan, selected, onSelect }) {
         {/* Checkbox */}
         <div
           className={cn(
-            "w-7 h-7 rounded-md flex items-center justify-center border-[2px] transition-all shrink-0 ml-4",
-            selected
-              ? "bg-blue-600 border-blue-600"
-              : "border-gray-200 bg-white"
+            "w-7 h-7 rounded-md flex items-center justify-center border-2 transition-all shrink-0 ml-4",
+            selected ? "bg-white border-white" : "border-white/25 bg-transparent"
           )}
         >
           {selected && (
             <svg
-              className="w-4 h-4 text-white"
+              className="w-4 h-4 text-blue-600"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -284,27 +268,6 @@ function MobilePlanCard({ plan, selected, onSelect }) {
         </div>
       </div>
     </div>
-  );
-}
-
-// ─── BACKGROUND DECORATIONS ──────────────────────────────────────────────────
-function Decorations() {
-  return (
-    <>
-      {/* Background putih */}
-      <div className="absolute inset-0 bg-white pointer-events-none -z-20" />
-      
-      {/* Left and Right Waves */}
-      <img src={waveLeft} className="absolute bottom-0 left-0 w-full sm:w-[45%] lg:w-[40%] object-contain object-bottom pointer-events-none -z-10" alt="" />
-      <img src={waveRight} className="absolute bottom-0 right-0 w-full sm:w-[45%] lg:w-[40%] object-contain object-bottom pointer-events-none -z-10" alt="" />
-
-      {/* Floating Elements */}
-      <img src={iconBook} className="absolute w-[clamp(60px,7vw,140px)] bottom-[clamp(20px,8vh,100px)] left-[clamp(16px,4.6vw,80px)] object-contain pointer-events-none z-0" alt="" />
-      <img src={iconPlane} className="absolute w-[clamp(90px,9.9vw,202px)] bottom-[clamp(10px,2vh,40px)] left-1/2 -translate-x-1/2 object-contain pointer-events-none -z-10" alt="" />
-      <img src={iconLightbulb} className="absolute w-[clamp(60px,7.3vw,140px)] top-[clamp(60px,20vh,200px)] left-[clamp(16px,3.5vw,80px)] object-contain pointer-events-none z-0" alt="" />
-      <img src={iconStarsBlue} className="absolute w-[clamp(45px,5.3vw,100px)] top-[clamp(40px,10vh,120px)] left-[45%] object-contain pointer-events-none -z-10" alt="" />
-      <img src={iconStarsYellow} className="absolute w-[clamp(152px,19.6vw,374px)] bottom-[clamp(60px,16vh,180px)] right-[clamp(30px,7vw,120px)] object-contain pointer-events-none z-10" alt="" />
-    </>
   );
 }
 
@@ -435,115 +398,107 @@ export default function SubscriptionPage({ user, onSignOut, onPaymentSuccess, on
         </div>
       </div>
 
-      {/* ═══════════════════════════ DESKTOP ═══════════════════════════ */}
-      <div className="hidden lg:block">
-      <Decorations />
+      {/* ═══════════════════════════ DESKTOP (dark) ═══════════════════════════ */}
+      <div className="hidden lg:flex relative min-h-screen flex-col bg-[#0D0B2E] text-white">
+        {/* wallpaper bokeh */}
+        <img
+          src={bgDark}
+          alt=""
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 h-full w-full select-none object-cover"
+        />
 
-      {/* ── NAVBAR ── */}
-      <nav className="relative z-10 flex items-center justify-between px-8 py-5">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center">
-            <span className="text-white font-bold text-sm">G</span>
+        {/* ── NAVBAR ── */}
+        <nav className="relative z-10 flex items-center justify-between px-8 py-5 shrink-0">
+          <div className="flex items-center gap-3">
+            {/* Slot logo — ganti div dgn <img src={logo} className="h-9 w-9" /> */}
+            <div className="w-9 h-9 rounded-full bg-white shrink-0" />
+            <span className="font-bold text-white text-lg tracking-tight">Gasing Circle</span>
           </div>
-          <span className="font-bold text-gray-900 text-lg tracking-tight">Gasing Circle</span>
-        </div>
-        <div className="flex items-center gap-4">
           <button
             onClick={onSignOut}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-gray-50 border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors"
+            title="Log Out"
+            className="flex h-10 w-10 items-center justify-center rounded-full bg-[#ef4444] text-white text-sm font-semibold transition-transform hover:scale-105"
           >
-            <LogOut size={16} />
-            Log Out
+            {(user?.name || user?.profile?.namaLengkap || "HK")
+              .split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase()}
           </button>
-          <Avatar name={user?.name || user?.profile?.namaLengkap || "HK"} />
-        </div>
-      </nav>
+        </nav>
 
-      {/* ── CONTENT ── */}
-      <div className="relative z-10 max-w-[1100px] mx-auto px-6 pt-16 pb-32 grid lg:grid-cols-2 gap-20 items-center">
-        {/* Kiri — copywriting */}
-        <div className="animate-fade-in-up pr-4">
-          <h1 className="text-[44px] lg:text-[52px] font-medium text-[#111827] leading-[1.1] mb-10 tracking-tight">
-            Bertumbuh
-            <br />
-            Bersama Dengan
-            <br />
-            <span className="font-bold relative inline-block mt-1">
-              Gasing Circle
-              {/* Green underline image */}
-              <img src={stripeGreenOne} className="absolute w-[110%] h-auto -bottom-1 -left-2 object-contain" alt="" />
-            </span>
-          </h1>
-          <ul className="space-y-6">
-            {BENEFITS.map((b, i) => {
-              const Icon = b.icon;
-              return (
-                <li key={i} className="flex items-start gap-4">
-                  <Icon className="w-6 h-6 text-[#22c55e] shrink-0 mt-0.5" strokeWidth={2} />
-                  <p className="text-gray-600 text-[15px] leading-relaxed font-medium">{b.text}</p>
-                </li>
-              );
-            })}
-          </ul>
-        </div>
-
-        {/* Kanan — plan cards */}
-        <div className="animate-fade-in-up delay-200 space-y-6 relative">
-          
-          <img src={iconThumbsup} className="absolute top-0 right-0 translate-x-[70%] -translate-y-[50%] w-[clamp(70px,8.8vw,160px)] object-contain pointer-events-none z-20" alt="" />
-
-          <div className="space-y-5">
-            {loadingPlans ? (
-              <div className="flex items-center justify-center py-12 text-gray-400">
-                <Loader2 size={28} className="animate-spin" />
-              </div>
-            ) : plans.length === 0 ? (
-              <div className="text-center py-12 text-gray-400 text-sm">
-                Paket langganan tidak tersedia saat ini.
-              </div>
-            ) : (
-              plans.map((plan) => (
-                <PlanCard
-                  key={plan.id}
-                  plan={plan}
-                  selected={selectedPlan === plan.id}
-                  onSelect={setSelectedPlan}
-                />
-              ))
-            )}
-          </div>
-
-          {/* Error */}
-          {error && (
-            <div className="flex items-start gap-2 rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
-              <AlertCircle size={16} className="mt-0.5 shrink-0" />
-              <span>{error}</span>
+        {/* ── CONTENT ── */}
+        <div className="relative z-10 flex-1 flex items-center">
+          <div className="w-full max-w-[1150px] mx-auto px-8 grid lg:grid-cols-2 gap-16 xl:gap-24 items-center">
+            {/* Kiri — copywriting */}
+            <div className="animate-fade-in-up">
+              <h1 className="text-[46px] xl:text-[54px] font-extrabold text-white leading-[1.08] mb-10">
+                Ada apa di Sarang Gasing?
+              </h1>
+              <ul className="space-y-6">
+                {BENEFITS.map((b, i) => {
+                  const Icon = b.icon;
+                  return (
+                    <li key={i} className="flex items-start gap-4">
+                      <Icon className="w-6 h-6 text-[#22d3ee] shrink-0 mt-0.5" strokeWidth={2} />
+                      <p className="text-white/70 text-[15px] leading-relaxed">{b.text}</p>
+                    </li>
+                  );
+                })}
+              </ul>
             </div>
-          )}
 
-          {/* CTA Button */}
-          <div className="pt-2">
-            <button
-              onClick={handleCheckout}
-              disabled={loading}
-              className={cn(
-                "w-full py-4 rounded-[16px] font-bold text-white text-base transition-all duration-200",
-                "bg-[#7a9cfb] hover:bg-[#688ff8] active:scale-[0.98]",
-                "disabled:opacity-60 disabled:cursor-not-allowed",
-                "flex items-center justify-center gap-2 shadow-sm"
+            {/* Kanan — plan cards */}
+            <div className="animate-fade-in-up delay-200 space-y-6">
+              <div className="space-y-6">
+                {loadingPlans ? (
+                  <div className="flex items-center justify-center py-12 text-white/40">
+                    <Loader2 size={28} className="animate-spin" />
+                  </div>
+                ) : plans.length === 0 ? (
+                  <div className="text-center py-12 text-white/40 text-sm">
+                    Paket langganan tidak tersedia saat ini.
+                  </div>
+                ) : (
+                  plans.map((plan) => (
+                    <PlanCard
+                      key={plan.id}
+                      plan={plan}
+                      selected={selectedPlan === plan.id}
+                      onSelect={setSelectedPlan}
+                    />
+                  ))
+                )}
+              </div>
+
+              {error && (
+                <div className="flex items-start gap-2 rounded-xl bg-red-500/10 border border-red-500/30 px-4 py-3 text-sm text-red-300">
+                  <AlertCircle size={16} className="mt-0.5 shrink-0" />
+                  <span>{error}</span>
+                </div>
               )}
-            >
-              {loading ? (
-                <>
-                  <Loader2 size={18} className="animate-spin" /> Memproses...
-                </>
-              ) : (
-                "Mulai Berlangganan"
-              )}
-            </button>
+
+              <div className="pt-2">
+                <button
+                  onClick={handleCheckout}
+                  disabled={loading}
+                  className={cn(
+                    "w-full py-4 rounded-full font-bold text-[#1a0b3d] text-base transition-all duration-200",
+                    "bg-white hover:bg-white/90 active:scale-[0.98]",
+                    "disabled:opacity-60 disabled:cursor-not-allowed",
+                    "flex items-center justify-center gap-2 shadow-sm"
+                  )}
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 size={18} className="animate-spin" /> Memproses...
+                    </>
+                  ) : (
+                    "Mulai Berlangganan"
+                  )}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
       </div>
     </div>
   );

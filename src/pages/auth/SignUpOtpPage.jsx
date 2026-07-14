@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { RightPanel } from '@/components/layout/RightPanel'
-import { StepIndicator } from '@/components/layout/StepIndicator'
+import { StepBar } from '@/components/layout/StepIndicator'
 import { OtpInput }     from '@/components/shared/OtpInput'
 import { ErrorAlert }   from '@/components/shared/ErrorAlert'
 import { useCountdown } from '@/hooks/useCountdown'
@@ -31,7 +31,7 @@ export function SignUpOtpPage({ onNavigate, otpToken, email }) {
 
   return (
     <RightPanel>
-      <StepIndicator currentStep={2} />
+      <StepBar current={3} total={3} onBack={() => onNavigate('signup')} />
       <div className="animate-fade-in-up delay-100 text-center">
         <h1 className="text-2xl font-bold text-foreground mb-1">Verifikasi Email</h1>
         <p className="text-sm text-muted-foreground mb-1">Masukkan kode yang kami kirimkan ke</p>

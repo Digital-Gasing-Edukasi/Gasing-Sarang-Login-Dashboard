@@ -1,42 +1,37 @@
-import React from 'react'
-import { CheckCircle2 } from 'lucide-react'
+import { ArrowLeft } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
-const STEPS = [
-  { n: 1, label: 'Buat Akun' },
-  { n: 2, label: 'Verifikasi Data' },
-  { n: 3, label: 'Review' },
-]
-
-export function StepIndicator({ currentStep }) {
+// Progress bar segmented + sticky (dipakai di flow signup).
+// current = langkah aktif (1..total). onBack: tampil panah bulat di kiri.
+export function StepBar({ current, total = 3, onBack }) {
   return (
-    <div className="flex items-start gap-0 mb-8 animate-fade-in-up">
-      {STEPS.map((s, i) => {
-        const done   = currentStep > s.n
-        const active = currentStep === s.n
-        return (
-          <React.Fragment key={s.n}>
-            <div className="flex flex-col items-center">
-              <div className={cn(
-                'w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold transition-all duration-300',
-                done || active ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
-              )}>
-                {done ? <CheckCircle2 size={16} /> : s.n}
-              </div>
-              <span className={cn(
-                'text-xs mt-1.5 font-medium whitespace-nowrap',
-                active ? 'text-foreground' : 'text-muted-foreground'
-              )}>{s.label}</span>
-            </div>
-            {i < STEPS.length - 1 && (
-              <div className={cn(
-                'h-0.5 flex-1 mt-4 mx-1 transition-all duration-500',
-                currentStep > s.n ? 'bg-primary' : 'bg-muted'
-              )} />
-            )}
-          </React.Fragment>
-        )
-      })}
+    <div className="sticky top-0 z-20 -mx-6 lg:-mx-16 mb-8 bg-background/90 px-6 lg:px-16 pt-2 pb-4 backdrop-blur supports-[backdrop-filter]:bg-background/75">
+      <div className="flex items-center gap-4">
+        {onBack && (
+          <button
+            onClick={onBack}
+            aria-label="Kembali"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-border text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          >
+            <ArrowLeft size={18} />
+          </button>
+        )}
+        <div className="flex flex-1 items-center gap-2">
+          {Array.from({ length: total }).map((_, i) => (
+            <span
+              key={i}
+              className={cn(
+                'h-2 flex-1 rounded-full transition-colors duration-300',
+                i < current ? 'bg-blue-600' : 'bg-muted'
+              )}
+            />
+          ))}
+        </div>
+        <span className="shrink-0 text-sm font-bold text-foreground">
+          {current}/{total}
+        </span>
+      </div>
     </div>
   )
 }
+

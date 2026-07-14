@@ -15,6 +15,10 @@ export const tokenStorage = {
     localStorage.removeItem("refreshToken");
     sessionStorage.removeItem("accessToken");
     sessionStorage.removeItem("refreshToken");
+    // Buang cache GET in-memory (getCache + inflightGets) yang di-key by URL saja
+    // tanpa identitas user. Kalau tidak, data akun lama (mis. /profile/me) nyangkut
+    // ke sesi berikutnya setelah sign out. Semua jalur logout memanggil clear() ini.
+    clearApiCache();
   },
 };
 
@@ -64,6 +68,7 @@ const getCache = new Map(); // url -> { ts, data }
 
 export function clearApiCache() {
   getCache.clear();
+  inflightGets.clear(); // request A-session yang masih in-flight jangan dipakai ulang
 }
 
 function dedupeFetch(url, options = {}) {
@@ -159,6 +164,7 @@ async function handleResponse(res) {
     }
     const err = new Error(Array.isArray(message) ? message.join(", ") : message);
     err.status = res.status; // dipakai UI untuk bedakan 5xx (server error) vs 4xx.
+    err.data = data;         // payload mentah (mis. suspendedUntil/reason saat akun ditangguhkan).
     throw err;
   }
   return data;

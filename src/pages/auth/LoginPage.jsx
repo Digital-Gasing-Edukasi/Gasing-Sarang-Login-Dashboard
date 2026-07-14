@@ -9,7 +9,7 @@ import { IconInput, TogglePassword } from '@/components/shared/IconInput'
 import { LoginStatusModal } from '@/components/shared/LoginStatusModal'
 import { NoConnectionBanner } from '@/components/shared/NoConnectionBanner'
 import { authApi, profileApi, tokenStorage } from '@/lib/api'
-import { evaluateLoginGate } from '@/lib/loginGate'
+import logo from '@/assets/logo-saranggasing.png'
 
 const ERR_INPUT = '!border-red-500 focus-visible:!border-red-500 focus-visible:ring-red-200'
 const EMAIL_RE  = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -27,7 +27,9 @@ export function LoginPage({ onNavigate, onLoginSuccess, isSsoMode = false }) {
   const [remember, setRemember] = useState(false)
   const [loading, setLoading]   = useState(false)
   const [errors, setErrors]     = useState({})
-  // gate: { type, profile } — status akun yang memblokir login (pending/expired/suspended/error).
+  // gate: modal saat proses login gagal — 'error' (server 5xx) atau 'suspended'
+  // (backend tolak akun ditangguhkan). Status pending/expired (login sukses tapi
+  // profil diblokir) di-guard terpusat di App.handleLoginSuccess.
   const [gate, setGate]         = useState(null)
   // noConn: banner "Tidak Ada Koneksi" (flow 5).
   const [noConn, setNoConn]     = useState(false)
@@ -47,13 +49,20 @@ export function LoginPage({ onNavigate, onLoginSuccess, isSsoMode = false }) {
       const data = await authApi.login(email, password)
       tokenStorage.setTokens(data.accessToken, data.refreshToken, remember)
       const profile = await profileApi.getMe()
-      // Cek status akun sebelum masuk: pending / expired / suspended → tampilkan modal.
-      const blocked = evaluateLoginGate(profile)
-      if (blocked) { setGate({ ...blocked, profile }); return }
+      // Guard status akun (pending/expired/suspended) ditangani terpusat di
+      // App.handleLoginSuccess — berlaku juga saat restore sesi (reload).
       onLoginSuccess(profile)
     } catch (e) {
       if (isNetworkError(e)) {
         setNoConn(true)                    // flow 5 — tidak ada koneksi
+      } else if (/suspend|ditangguhkan/i.test(e?.message || '')) {
+        // Backend tolak login akun ditangguhkan (mis. "Account is suspended").
+        const d = e?.data || {}
+        setGate({
+          type: 'suspended',
+          until: d.suspendedUntil || d.until || d.suspended?.until || null,
+          reason: d.suspendReason || d.reason || d.suspended?.reason || 'Melanggar panduan komunitas',
+        })
       } else if (e?.status >= 500) {
         setGate({ type: 'error' })         // flow 4 — server bermasalah
       } else {
@@ -68,9 +77,8 @@ export function LoginPage({ onNavigate, onLoginSuccess, isSsoMode = false }) {
 
   return (
     <RightPanel mobileHero={<MobileHero />}>
-      <div className="hidden lg:flex items-center justify-center gap-2.5 mb-8 animate-fade-in-up">
-        <div className="w-10 h-10 rounded-full bg-gray-200 shrink-0" />
-        <span className="font-semibold text-foreground text-base">Logo</span>
+      <div className="hidden lg:flex items-center justify-center mb-8 animate-fade-in-up">
+        <img src={logo} alt="Sarang Gasing" className="h-10 w-auto object-contain shrink-0" />
       </div>
       <div className="animate-fade-in-up delay-100 text-center lg:text-center">
         <h1 className="text-2xl font-bold text-foreground mb-8 lg:mt-0 mt-2">
