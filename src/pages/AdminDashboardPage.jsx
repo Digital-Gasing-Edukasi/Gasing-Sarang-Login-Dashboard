@@ -1,36 +1,73 @@
-import React, { useState, useRef, useEffect } from 'react'
+import React, { useState, useRef, useEffect, useCallback } from 'react'
 import {
   User, Users, LogOut, Search, Download,
-  ArrowDownUp, Check, X, ChevronDown, UserX, UserCheck, Copy, Filter
+  ArrowDownUp, Check, X, ChevronDown, UserX, UserCheck, Copy, Filter, Loader2
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { adminApi } from '@/lib/api'
 
-// ─── DUMMY DATA MATCHING SCREENSHOT ──────────────────────────────────────────
-const INITIAL_USERS = [
-  { id: 1, name: 'Achmad Fauzi', username: '@achfauzi', email: 'achfauzi@gmail.com', status: 'Review', birthdate: '12 Mar 1995', training: 'Bolaang Mongondow', year: '2012', school: 'Sekolah Model Terpadu (SMT) Bojonegoro', role: 'Trainer Utama' },
-  { id: 2, name: 'Ade Irma', username: '@adeirma', email: 'adeirma@gmail.com', status: 'Review', birthdate: '05 Jul 1998', training: 'Ilugwa Mamberamo Tengah', year: '2019', school: 'SMK Negeri 1 Tenggarong Seberang Kutai Kartagneg...', role: 'Trainer Kelas' },
-  { id: 3, name: 'Adelia Putri Anjayani', username: '@adelputri', email: 'adelputrianjayani@gmail.com', status: 'Review', birthdate: '22 Nov 1999', training: 'MI Pondok Pinang Jakarta', year: '2022', school: 'SMA Negeri 1 Cikarang Utara Kabupaten Bekasi', role: 'Guru' },
-  { id: 4, name: 'Aditya Pratama', username: '@aditprat', email: 'aditprat@gmail.com', status: 'Review', birthdate: '30 Jan 1994', training: 'Soe, Timor Tengah Selatan', year: '2017', school: 'SD Inpres Soe', role: 'Trainer Aula' },
-  { id: 5, name: 'Agus Setiawan', username: '@agusset', email: 'agusset@gmail.com', status: 'Review', birthdate: '15 Aug 1992', training: 'Tapanuli Utara', year: '2024', school: 'SMP Negeri 1 Tarutung', role: 'Trainer Utama' },
-  { id: 6, name: 'Ahmad Hidayat Muslimin', username: '@ahmadhid', email: 'ahmadhidm@gmail.com', status: 'Review', birthdate: '02 Feb 1997', training: 'Ambon', year: '2019', school: 'SD Negeri 1 Pattimura', role: '' },
-]
+// ─── API → UI field mappers ───────────────────────────────────────────────────
+function fmtDate(iso) {
+  if (!iso) return '-'
+  return new Date(iso).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })
+}
 
-const INITIAL_MANAGEMENT_USERS = [
-  { id: 1, name: 'Achmad Fauzi', username: '@achfauzi', email: 'achfauzi@gmail.com', isNew: true, accountStatus: 'Pending', voucher: 'GASI99999', birthdate: '12 Mar 1995', training: 'Bolaang Mongondow', year: '2021', school: 'Sekolah Model Terpadu (SMT) Bojonegoro', role: 'Trainer Utama', subscription: 'Active', plan: 'Paket Tahunan', endDate: '22 Feb 2026', action: 'Konfirmasi' },
-  { id: 2, name: 'Ade Irma', username: '@adeirma', email: 'adeirma@gmail.com', isNew: false, accountStatus: 'Rejected', voucher: '', birthdate: '05 Jul 1998', training: 'Ilugwa Mamberamo Tengah', year: '2022', school: 'SMK Negeri 1 Tenggarong Seberang Kutai Kartagneg...', role: '', subscription: 'Not Active', plan: 'Tidak Terdaftar', endDate: '', action: '-' },
-  { id: 3, name: 'Adelia Putri Anjayani', username: '@adelputri', email: 'adelputrianjayani@gmail.com', isNew: false, accountStatus: 'Approved', voucher: 'GASI99888', birthdate: '22 Nov 1999', training: 'MI Pondok Pinang Jakarta', year: '2022', school: 'SMA Negeri 1 Cikarang Utara Kabupaten Bekasi', role: 'Trainer Kelas', subscription: 'Active', plan: 'Paket Tahunan', endDate: '22 Feb 2026', action: 'Sudah Disalin' },
-  { id: 4, name: 'Aditya Pratama', username: '@aditprat', email: 'aditprat@gmail.com', isNew: false, accountStatus: 'Approved', voucher: 'GASI99777', birthdate: '30 Jan 1994', training: 'Soe, Timor Tengah Selatan', year: '2017', school: 'SD Inpres Soe', role: 'Trainer Aula', subscription: 'Expired', plan: 'Sudah Berakhir', endDate: '', action: 'Sudah Disalin' },
-  { id: 5, name: 'Agus Setiawan', username: '@agusset', email: 'agusset@gmail.com', isNew: false, accountStatus: 'Pending', voucher: 'GASI99555', birthdate: '15 Aug 1992', training: 'Tapanuli Utara', year: '2024', school: 'SMP Negeri 1 Tarutung', role: 'Trainer Utama', subscription: 'Active', plan: 'Paket Tahunan', endDate: '22 Feb 2026', action: 'Sudah Disalin' },
-  { id: 6, name: 'Ahmad Hidayat Muslimin', username: '@ahmadhid', email: 'ahmadhidm@gmail.com', isNew: true, accountStatus: 'Approved', voucher: 'GASI99656', birthdate: '02 Feb 1997', training: 'Ambon', year: '2019', school: 'SD Negeri 1 Pattimura', role: 'Guru', subscription: 'Active', plan: 'Paket Tahunan', endDate: '22 Feb 2026', action: 'Konfirmasi' },
-  { id: 7, name: 'Bianka Nadine Sitomorang', username: '@biankans', email: 'biankandsitomorang@gmail.com', isNew: false, accountStatus: 'Rejected', voucher: '', birthdate: '18 Sep 2001', training: 'Fakfak', year: '2023', school: 'SMP Negeri 1 Fakfak', role: '', subscription: 'Not Active', plan: 'Tidak Terdaftar', endDate: '', action: '-' },
-  { id: 8, name: 'Budi Cahyono', username: '@budicah', email: 'budicah@gmail.com', isNew: false, accountStatus: 'Approved', voucher: 'GASI99444', birthdate: '29 Jun 1994', training: 'Kupang', year: '2020', school: 'SD Negeri 2 Nusa Cendana', role: 'Trainer Aula', subscription: 'Active', plan: 'Paket Tahunan', endDate: '22 Feb 2026', action: 'Sudah Disalin' },
-  { id: 9, name: 'Cahyo Utomo', username: '@cahyouto', email: 'cahyouto@gmail.com', isNew: false, accountStatus: 'Approved', voucher: '', birthdate: '04 May 1997', training: 'Kota Pontianak', year: '2019', school: 'SD Negeri 10 Tanjungpura', role: 'Trainer Utama', subscription: 'Expired', plan: 'Sudah Berakhir', endDate: '', action: '-' },
-]
+function mapToVerifikasi(u) {
+  return {
+    id: u.id,
+    name: u.name || '-',
+    username: u.username ? `@${u.username}` : `@${(u.email || '').split('@')[0]}`,
+    email: u.email || '-',
+    status: 'Review',
+    birthdate: fmtDate(u.birthdate),
+    training: u.trainingRegion?.regionName || '-',
+    year: u.createdAt ? new Date(u.createdAt).getFullYear().toString() : '-',
+    school: u.schoolName || '-',
+    role: u.discourseGroup?.name || '',
+  }
+}
+
+function mapToManajemen(u) {
+  const sub = u.activeSubscription || u.subscription
+  const subStatus =
+    sub?.status === 'active' ? 'Active' :
+    sub?.status === 'expired' ? 'Expired' : 'Not Active'
+  const accountStatus =
+    u.verifiedStatus === 'approved' ? 'Approved' :
+    u.verifiedStatus === 'rejected' ? 'Rejected' : 'Pending'
+  const isNew = u.createdAt
+    ? (Date.now() - new Date(u.createdAt).getTime()) < 7 * 24 * 60 * 60 * 1000
+    : false
+  const voucher = u.activeVoucher?.code || ''
+  const action = voucher ? 'Sudah Disalin' : (accountStatus === 'Approved' ? 'Konfirmasi' : '-')
+
+  return {
+    id: u.id,
+    name: u.name || '-',
+    username: u.username ? `@${u.username}` : `@${(u.email || '').split('@')[0]}`,
+    email: u.email || '-',
+    isNew,
+    accountStatus,
+    voucher,
+    birthdate: fmtDate(u.birthdate),
+    training: u.trainingRegion?.regionName || '-',
+    year: u.createdAt ? new Date(u.createdAt).getFullYear().toString() : '-',
+    school: u.schoolName || '-',
+    role: u.discourseGroup?.name || '',
+    subscription: subStatus,
+    plan: sub ? (sub.package?.name || 'Terdaftar') : 'Tidak Terdaftar',
+    endDate: sub?.expiresAt ? fmtDate(sub.expiresAt) : '',
+    action,
+  }
+}
 
 export default function AdminDashboardPage({ onSignOut }) {
   const [activeTab, setActiveTab] = useState('verifikasi')
-  const [users, setUsers] = useState(INITIAL_USERS)
-  const [managementUsers, setManagementUsers] = useState(INITIAL_MANAGEMENT_USERS)
+  const [users, setUsers] = useState([])
+  const [managementUsers, setManagementUsers] = useState([])
+  const [loadingUsers, setLoadingUsers] = useState(false)
+  const [apiError, setApiError] = useState('')
+  const executeActionRef = useRef(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' })
   const [roleErrors, setRoleErrors] = useState({})
@@ -54,6 +91,29 @@ export default function AdminDashboardPage({ onSignOut }) {
     return () => document.removeEventListener("mousedown", handleClickOutside)
   }, [])
 
+  // ─── Load users from API ──────────────────────────────────────────────────
+  const loadUsers = useCallback(async (tab = activeTab) => {
+    setLoadingUsers(true)
+    setApiError('')
+    try {
+      if (tab === 'verifikasi') {
+        const res = await adminApi.getUsers({ 'filter[verifiedStatus]': 'pending' })
+        const list = Array.isArray(res) ? res : (res.data || [])
+        setUsers(list.map(mapToVerifikasi))
+      } else {
+        const res = await adminApi.getUsers({})
+        const list = Array.isArray(res) ? res : (res.data || [])
+        setManagementUsers(list.map(mapToManajemen))
+      }
+    } catch (err) {
+      setApiError(err.message || 'Gagal memuat data')
+    } finally {
+      setLoadingUsers(false)
+    }
+  }, [activeTab])
+
+  useEffect(() => { loadUsers(activeTab) }, [activeTab])
+
   const handleTabChange = (tab) => {
     setActiveTab(tab)
     setSearchQuery('')
@@ -64,14 +124,14 @@ export default function AdminDashboardPage({ onSignOut }) {
     setSelectedSubscriptions([])
   }
 
-  // Handlers for action buttons
+  // ─── Action handlers ──────────────────────────────────────────────────────
   const handleVerify = (id) => {
     const user = users.find(u => u.id === id)
     if (!user.role) {
       setRoleErrors(prev => ({ ...prev, [id]: true }))
       setTimeout(() => {
         setRoleErrors(prev => ({ ...prev, [id]: false }))
-      }, 30000) // 30 seconds
+      }, 30000)
       return
     }
     setApproveCandidate(user)
@@ -79,22 +139,32 @@ export default function AdminDashboardPage({ onSignOut }) {
 
   const handleConfirmApprove = () => {
     if (!approveCandidate) return
-    setUsers(users.filter(u => u.id !== approveCandidate.id))
-    
-    setToast({
-      message: <>Akun {approveCandidate.name} telah <span className="text-green-500 font-medium">disetujui</span></>,
-      user: approveCandidate
-    })
-    
+    const target = approveCandidate
+    setUsers(prev => prev.filter(u => u.id !== target.id))
     setApproveCandidate(null)
+    executeActionRef.current = true
+
+    setToast({
+      message: <>Akun {target.name} telah <span className="text-green-500 font-medium">disetujui</span></>,
+      user: target,
+    })
+
     if (toastTimeoutId) clearTimeout(toastTimeoutId)
-    const newTimeout = setTimeout(() => setToast(null), 5000)
+    const newTimeout = setTimeout(async () => {
+      if (executeActionRef.current) {
+        try {
+          await adminApi.verifyUser(target.id, { status: 'approved' })
+        } catch {
+          setUsers(prev => [target, ...prev])
+          setApiError('Gagal menyetujui akun. Silakan coba lagi.')
+        }
+      }
+      setToast(null)
+    }, 5000)
     setToastTimeoutId(newTimeout)
   }
 
-  const handleCancelApprove = () => {
-    setApproveCandidate(null)
-  }
+  const handleCancelApprove = () => setApproveCandidate(null)
 
   const handleRoleChange = (id, newRole) => {
     if (activeTab === 'verifikasi') {
@@ -102,40 +172,44 @@ export default function AdminDashboardPage({ onSignOut }) {
     } else {
       setManagementUsers(managementUsers.map(u => u.id === id ? { ...u, role: newRole } : u))
     }
-    if (newRole) {
-      setRoleErrors(prev => ({ ...prev, [id]: false }))
-    }
+    if (newRole) setRoleErrors(prev => ({ ...prev, [id]: false }))
   }
 
-  const handleRejectClick = (user) => {
-    setRejectCandidate(user)
-  }
+  const handleRejectClick = (user) => setRejectCandidate(user)
 
   const handleConfirmReject = () => {
     if (!rejectCandidate) return
-    setUsers(users.filter(u => u.id !== rejectCandidate.id))
-    
-    setToast({
-      message: <>Akun {rejectCandidate.name} telah <span className="text-red-500 font-medium">ditolak</span></>,
-      user: rejectCandidate
-    })
-    
+    const target = rejectCandidate
+    setUsers(prev => prev.filter(u => u.id !== target.id))
     setRejectCandidate(null)
+    executeActionRef.current = true
+
+    setToast({
+      message: <>Akun {target.name} telah <span className="text-red-500 font-medium">ditolak</span></>,
+      user: target,
+    })
 
     if (toastTimeoutId) clearTimeout(toastTimeoutId)
-    const newTimeout = setTimeout(() => {
+    const newTimeout = setTimeout(async () => {
+      if (executeActionRef.current) {
+        try {
+          await adminApi.verifyUser(target.id, { status: 'rejected' })
+        } catch {
+          setUsers(prev => [target, ...prev])
+          setApiError('Gagal menolak akun. Silakan coba lagi.')
+        }
+      }
       setToast(null)
     }, 5000)
     setToastTimeoutId(newTimeout)
   }
 
-  const handleCancelReject = () => {
-    setRejectCandidate(null)
-  }
+  const handleCancelReject = () => setRejectCandidate(null)
 
   const handleUndoToast = () => {
-    if (toast && toast.user) {
-      setUsers(prev => [toast.user, ...prev].sort((a, b) => a.id - b.id))
+    if (toast?.user) {
+      executeActionRef.current = false
+      setUsers(prev => [toast.user, ...prev])
       setToast(null)
       if (toastTimeoutId) clearTimeout(toastTimeoutId)
     }
