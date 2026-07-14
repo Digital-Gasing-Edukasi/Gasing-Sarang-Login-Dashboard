@@ -162,14 +162,18 @@ ls /tmp/gasing-upload/
 
 ### 4.1 Buat folder untuk aplikasi React
 
+> ⚠️ **PENTING:** app di-build dengan `base: '/register'`, jadi file build HARUS
+> ditaruh di **subfolder `register/`**, bukan langsung di root folder web. Ini
+> supaya Nginx bisa pakai `root` (bukan `alias`) — lihat penjelasan di Fase 5.
+
 ```bash
-sudo mkdir -p /var/www/gasing-auth
+sudo mkdir -p /var/www/gasing-auth/register
 ```
 
 ### 4.2 Copy file ke folder web
 
 ```bash
-sudo cp -r /tmp/gasing-upload/* /var/www/gasing-auth/
+sudo cp -r /tmp/gasing-upload/* /var/www/gasing-auth/register/
 ```
 
 ### 4.3 Set permission yang benar
@@ -182,10 +186,10 @@ sudo chmod -R 755 /var/www/gasing-auth
 ### 4.4 Verifikasi file ada di tempatnya
 
 ```bash
-ls /var/www/gasing-auth/
+ls /var/www/gasing-auth/register/
 # Harus terlihat: index.html dan folder assets/
 
-cat /var/www/gasing-auth/index.html | head -5
+cat /var/www/gasing-auth/register/index.html | head -5
 # Harus tampil baris pertama HTML
 ```
 
@@ -210,24 +214,33 @@ server {
     listen 80;
     server_name <IP_SERVER_ATAU_DOMAIN>;
 
-    # Folder tempat file React disimpan
+    # File build ada di /var/www/gasing-auth/register/...
     root /var/www/gasing-auth;
-    index index.html;
 
-    # WAJIB untuk React SPA: semua request diarahkan ke index.html
-    location / {
-        try_files $uri $uri/ /index.html;
+    # Redirect dari root ke /register
+    location = / {
+        return 301 /register/;
     }
 
-    # Cache untuk asset statis (opsional tapi bagus untuk performa)
-    location /assets/ {
-        expires 1y;
-        add_header Cache-Control "public, immutable";
+    # WAJIB untuk React SPA yang di-build dengan base '/register'.
+    # Pakai `root` (bukan `alias`) supaya try_files bekerja benar.
+    location /register/ {
+        try_files $uri $uri/ /register/index.html;
     }
+
+    # Diamkan 404 favicon (index.html tidak punya <link rel=icon>).
+    location = /favicon.ico { access_log off; log_not_found off; }
 }
 ```
 
 > Ganti `<IP_SERVER_ATAU_DOMAIN>` dengan IP server GCE atau domain yang digunakan.
+>
+> ❌ **JANGAN pakai `alias /var/www/gasing-auth;` + `try_files` bareng.** Itu bug
+> lama Nginx: `$uri` masih membawa prefix `/register`, jadi Nginx nyari file di
+> `/var/www/gasing-auth/register/assets/...` (kata `register` kedobel) → semua
+> asset **404**, dan JS di-serve sebagai `text/html` → browser **block**
+> (*"MIME type text/html is not executable"*). Inilah penyebab layar putih di
+> production. Solusinya: `root` + taruh file di subfolder `register/` (Fase 4).
 
 Simpan dan keluar dari nano:
 - Tekan `Ctrl + X`
@@ -271,7 +284,7 @@ Pastikan statusnya `active (running)` berwarna hijau.
 
 Buka browser dan akses:
 ```
-http://<IP_SERVER_GCE>/
+http://<IP_SERVER_GCE>/register
 ```
 
 Kamu seharusnya melihat **halaman Login Gasing Circle**.
@@ -340,9 +353,9 @@ npm run build:staging
 # 2. Upload dist/ yang baru
 scp -r "d:\Gasing Circle\Login page\dist\*" <USER>@<IP>:/tmp/gasing-upload/
 
-# 3. Di server — hapus yang lama, copy yang baru
-sudo rm -rf /var/www/gasing-auth/*
-sudo cp -r /tmp/gasing-upload/* /var/www/gasing-auth/
+# 3. Di server — hapus yang lama, copy yang baru (ke subfolder register/)
+sudo rm -rf /var/www/gasing-auth/register/*
+sudo cp -r /tmp/gasing-upload/* /var/www/gasing-auth/register/
 sudo chown -R www-data:www-data /var/www/gasing-auth
 
 # 4. Tidak perlu restart Nginx
@@ -361,4 +374,4 @@ Dan bagikan ke sini untuk dianalisis lebih lanjut.
 
 ---
 
-*Dibuat: 5 Mei 2026 — Gasing Circle Staging Deployment*
+*Dibuat: 11 Mei 2026 — Gasing Circle Staging Deployment*

@@ -1,6 +1,9 @@
 # GASING CIRCLE — Frontend SPA
 
-> **Versi:** 2.3.0 · **Tanggal:** 5 Mei 2026 · **Stack:** React 18 + Vite + Tailwind CSS + shadcn/ui
+> **Versi:** 2.9.1 · **Tanggal:** 13 Juli 2026 · **Stack:** React 18 + Vite + Tailwind CSS + shadcn/ui
+
+> 📚 Cari dokumen lain? Mulai dari **[peta dokumentasi](docs/README.md)** — arsitektur,
+> deployment, skenario tes, modul admin, dan ADR.
 
 ---
 
@@ -63,35 +66,69 @@ Aplikasi terhubung ke backend **NestJS + Prisma + PostgreSQL** melalui `VITE_API
 
 ```
 Login page/
-├── .env                    ← variabel environment lokal (buat dari template di bawah)
+├── .env                    ← variabel environment lokal
 ├── .env.staging            ← variabel environment untuk build staging
 ├── index.html              ← entry HTML + Midtrans Snap script
 ├── package.json
 ├── vite.config.js          ← path alias + Vite proxy config
 ├── tailwind.config.js
 ├── postcss.config.js
-├── Reference/              ← dokumen referensi / Postman collection (diabaikan git)
 └── src/
     ├── main.jsx            ← entry point React
-    ├── App.jsx             ← router utama + semua halaman auth
+    ├── App.jsx             ← router utama (state-based, ~100 baris)
     ├── index.css           ← global styles + CSS variables shadcn
     ├── lib/
     │   ├── api.js          ← semua HTTP calls ke backend
     │   └── utils.js        ← helper cn()
+    ├── hooks/
+    │   └── useCountdown.js ← countdown timer hook (OTP & resend)
     ├── context/
     │   └── AuthContext.jsx ← global auth state (opsional)
     ├── components/
-    │   └── ui/             ← shadcn/ui components
-    │       ├── button.jsx
-    │       ├── input.jsx
-    │       ├── label.jsx
-    │       ├── checkbox.jsx
-    │       └── select.jsx
+    │   ├── ui/             ← shadcn/ui primitives
+    │   │   ├── button.jsx
+    │   │   ├── input.jsx
+    │   │   ├── label.jsx
+    │   │   ├── checkbox.jsx
+    │   │   └── select.jsx
+    │   ├── layout/         ← komponen layout & struktur halaman
+    │   │   ├── LeftPanel.jsx       ← panel kiri (ilustrasi + branding)
+    │   │   ├── RightPanel.jsx      ← panel kanan + Divider
+    │   │   ├── AuthFullLayout.jsx  ← layout full-width (forgot/reset password)
+    │   │   └── StepIndicator.jsx   ← progress bar 3-langkah Sign Up
+    │   └── shared/         ← komponen UI reusable lintas halaman
+    │       ├── IconInput.jsx       ← input dengan ikon + TogglePassword
+    │       ├── ErrorAlert.jsx      ← alert error dari API
+    │       ├── SuccessToast.jsx    ← toast notifikasi sukses
+    │       └── OtpInput.jsx        ← 6-kotak OTP dengan auto-focus & paste
     └── pages/
-        ├── AdminDashboardPage.jsx  ← dashboard admin (Verifikasi & Manajemen)
+        ├── auth/           ← halaman-halaman autentikasi
+        │   ├── LoginPage.jsx
+        │   ├── SignUpPage.jsx
+        │   ├── SignUpOtpPage.jsx
+        │   ├── SignUpReviewPage.jsx
+        │   ├── ForgotPasswordPage.jsx
+        │   ├── CheckEmailPage.jsx
+        │   ├── ResetPasswordPage.jsx
+        │   └── SsoCallbackPage.jsx
+        ├── admin/          ← komponen dashboard admin
+        │   ├── mappers.js                  ← fungsi transform data API → UI
+        │   ├── AdminSidebar.jsx            ← sidebar navigasi admin
+        │   ├── ConfirmModal.jsx            ← modal approve & reject
+        │   ├── AdminToast.jsx              ← toast undo (5 detik)
+        │   ├── TableControls.jsx           ← toolbar per tab (search, filter, export, add)
+        │   ├── VerifikasiTable.jsx         ← tabel tab Verifikasi Akun
+        │   ├── ManajemenTable.jsx          ← tabel tab Manajemen Akun
+        │   ├── UbahRoleModal.jsx           ← modal ubah role (Manajemen Akun)
+        │   ├── KirimVoucherModal.jsx       ← modal kirim voucher (Manajemen Akun)
+        │   ├── PendaftaranTrainerTable.jsx ← tabel tab Pendaftaran Trainer
+        │   ├── AddPendaftaranTrainerModal.jsx ← modal tambah pendaftaran trainer
+        │   ├── RiwayatPelatihanTable.jsx   ← tabel tab Riwayat Pelatihan (sort + action)
+        │   └── HapusRiwayatModal.jsx       ← modal konfirmasi hapus riwayat (ketik DELETE)
+        ├── AdminDashboardPage.jsx  ← dashboard admin (orchestrator)
         ├── SubscriptionPage.jsx    ← halaman pilih paket
         ├── PaymentSuccessPage.jsx  ← halaman pembayaran berhasil
-        └── MidtransTestPage.jsx    ← halaman test konfigurasi Midtrans (dev only)
+        └── MidtransTestPage.jsx    ← tool test Midtrans (dev only)
 ```
 
 ---
@@ -104,22 +141,22 @@ Login page/
 └─────────────┘                                              │
        │ Belum punya akun                                    │ Login berhasil
        ▼                                                     ▼
+┌─────────────────┐                            ┌────────────────────────┐
+│ Sign Up Step 1  │                            │   Auth Choice Page     │
+│ (Buat Akun)     │                            │(Gasing / SSO Callback) │
+└─────────────────┘                            └────────────────────────┘
+       │                                                 │
+       ▼                                                 ▼
 ┌─────────────────┐                            ┌──────────────────────┐
-│ Sign Up Step 1  │                            │   Subscription Page  │
-│ (Buat Akun)     │                            │  (Pilih paket)       │
+│ Sign Up Step 2  │                            │ Redirect ke Discourse│
+│ (Verifikasi OTP)│                            │ (VITE_DISCOURSE_URL) │
 └─────────────────┘                            └──────────────────────┘
-       │                                                     │ Klik Berlangganan
-       ▼                                                     ▼
-┌─────────────────┐                            ┌──────────────────────┐
-│ Sign Up Step 2  │                            │  Midtrans Snap Popup │
-│ (Verifikasi OTP)│                            │                      │
-└─────────────────┘                            └──────────────────────┘
-       │                                                     │ Bayar berhasil
-       ▼                                                     ▼
-┌─────────────────┐                            ┌──────────────────────┐
-│ Sign Up Step 3  │                            │  Payment Success     │
-│ (Review/Selesai)│                            │  (konfirmasi)        │
-└─────────────────┘                            └──────────────────────┘
+       │                                       
+       ▼                                       
+┌─────────────────┐                            
+│ Sign Up Step 3  │                            
+│ (Review/Selesai)│                            
+└─────────────────┘                            
        │
        ▼
 ┌─────────────────┐       ┌──────────────────┐
@@ -131,8 +168,8 @@ Login page/
                           │  Reset Password  │
                           └──────────────────┘
 
-Discourse SSO:
-/?sso=...&sig=... ──▶ SSO Callback ──▶ Subscription Page
+Alur Discourse SSO & Pembayaran:
+/register?sso=...&sig=... ──▶ SSO Callback ──▶ Subscription Page ──▶ Midtrans Popup ──▶ Payment Success
 ```
 
 ### Route Keys (dikelola via `useState` di App.jsx)
@@ -143,6 +180,7 @@ Discourse SSO:
 | `'signup'`          | Sign Up Step 1 — buat akun                    |
 | `'signup-otp'`      | Sign Up Step 2 — verifikasi OTP                |
 | `'signup-review'`   | Sign Up Step 3 — review selesai                |
+| `'auth-choice'`     | Pilihan navigasi (Gasing / SSO) setelah login  |
 | `'forgot-password'` | Lupa password                                  |
 | `'check-email'`     | Cek email — instruksi setelah kirim reset link |
 | `'reset-password'`  | Reset password — form ubah password baru       |
@@ -204,10 +242,10 @@ Buat file `.env` di root folder (sejajar dengan `package.json`):
 VITE_API_URL=http://localhost:3000
 
 # URL komunitas Discourse
-VITE_DISCOURSE_URL=https://dev-komunitas.gasingacademy.org
+VITE_DISCOURSE_URL=https://<APP_DOMAIN>
 
 # Nomor WhatsApp perusahaan (format internasional tanpa + dan spasi)
-VITE_WA_NUMBER=6287788000305
+VITE_WA_NUMBER=62XXXXXXXXXXX
 
 # ─── Midtrans ─────────────────────────────────────────────────────────────────
 # Client Key → untuk frontend (Snap script di index.html)
@@ -240,7 +278,7 @@ Vite proxy dikonfigurasi di `vite.config.js` sebagai bantuan dev lokal (menghind
 server: {
   proxy: {
     '/api': {
-      target: 'https://dev-dge-comunity.baka.work',
+      target: 'https://<BACKEND_API_HOST>',
       changeOrigin: true,
       secure: true,
     }
@@ -254,17 +292,103 @@ server: {
 
 ## 8. Komponen & Arsitektur
 
-### 8.1 Halaman (Pages)
+### 8.1 Halaman Auth (`src/pages/auth/`)
 
-| File                           | Halaman                                      | Keterangan                                   |
-| ------------------------------ | -------------------------------------------- | -------------------------------------------- |
-| `App.jsx`                      | Login, Sign Up, OTP, Review, Forgot Password, Check Email, Reset Password, SSO Callback | Semua halaman auth + routing utama |
-| `pages/SubscriptionPage.jsx`   | Subscription                                 | Pilih paket Tahunan / Bulanan (data API + fallback dummy) |
-| `pages/PaymentSuccessPage.jsx` | Payment Success                              | Konfirmasi bayar + link Discourse + WhatsApp |
-| `pages/AdminDashboardPage.jsx` | Admin Dashboard                              | Verifikasi & Manajemen Akun pengguna         |
-| `pages/MidtransTestPage.jsx`   | Midtrans Test                                | Tool verifikasi Midtrans Sandbox (dev only)  |
+Setiap halaman auth berdiri sendiri sebagai file terpisah. `App.jsx` hanya bertugas sebagai router.
 
-### 8.2 Komponen shadcn/ui
+| File                    | Halaman                                          |
+| ----------------------- | ------------------------------------------------ |
+| `LoginPage.jsx`         | Login dengan email & password                    |
+| `AuthChoicePage.jsx`    | Pilihan navigasi (Gasing / SSO) setelah login    |
+| `SignUpPage.jsx`        | Register 2-step (buat akun → verifikasi data)    |
+| `SignUpOtpPage.jsx`     | Verifikasi OTP 6 digit                           |
+| `SignUpReviewPage.jsx`  | Konfirmasi pendaftaran selesai                   |
+| `ForgotPasswordPage.jsx`| Form kirim email reset password                  |
+| `CheckEmailPage.jsx`    | Instruksi cek email + tombol kirim ulang         |
+| `ResetPasswordPage.jsx` | Form ubah password baru                          |
+| `SsoCallbackPage.jsx`   | Proses verifikasi SSO dari Discourse             |
+
+### 8.2 Dashboard Admin (`src/pages/admin/`)
+
+**Helper & data mapping**
+
+| File                  | Keterangan                                              |
+| --------------------- | ------------------------------------------------------- |
+| `mappers.js`          | Fungsi `mapToVerifikasi` & `mapToManajemen` (API → UI)  |
+| `roleOptions.js`      | Daftar opsi role untuk `<RoleSelect>` & `<UbahRoleModal>` |
+| `tableScroll.js`      | `getTableScrollProps` — aturan scroll tabel ([docs/ADMIN_TABLE_SCROLL.md](docs/ADMIN_TABLE_SCROLL.md)) |
+
+**Navigasi & toolbar**
+
+| File                  | Keterangan                                              |
+| --------------------- | ------------------------------------------------------- |
+| `AdminSidebar.jsx`    | Sidebar navigasi (logo, tab, profil, logout)            |
+| `AdminToast.jsx`      | Toast undo 5 detik setelah approve/reject               |
+| `TableControls.jsx`   | `<VerifikasiControls>`, `<ManajemenControls>`, `<PendaftaranTrainerControls>`, `<RiwayatPelatihanControls>` (toolbar per tab) |
+| `CalendarRangePicker.jsx` | Filter rentang tanggal + helper `toYMD`, `formatIdDate` |
+| `RoleSelect.jsx`      | Dropdown role inline di dalam tabel                     |
+
+**Tabel**
+
+| File                  | Keterangan                                              |
+| --------------------- | ------------------------------------------------------- |
+| `VerifikasiTable.jsx` | Tabel tab Verifikasi Akun dengan role select & action   |
+| `ManajemenTable.jsx`  | Tabel tab Manajemen Akun dengan status, voucher, dst.   |
+| `PendingVoucherTable.jsx` | Tabel akun berstatus `PENDING_VOUCHER` (langkah 2 verifikasi) |
+| `PendaftaranTrainerTable.jsx` | Tabel tab Pendaftaran Trainer + toggle status   |
+| `RiwayatPelatihanTable.jsx` | Tabel tab Riwayat Pelatihan: sort per-kolom, badge status & langganan, action edit/download/hapus |
+
+**Modal — verifikasi & aksi akun**
+
+| File                  | Keterangan                                              |
+| --------------------- | ------------------------------------------------------- |
+| `ConfirmModal.jsx`    | Modal konfirmasi: `<RejectModal>` & `<ApproveModal>`    |
+| `SetujuiAkunModal.jsx` | Modal setujui akun (langkah 1 → `PENDING_VOUCHER`)      |
+| `SuspendModal.jsx`    | Modal tangguhkan akun (pilih alasan + tanggal berakhir) |
+| `AccountActionModals.jsx` | `<HapusAkunModal>` & `<PulihkanAkunModal>`           |
+| `UbahRoleModal.jsx`   | Modal ubah role pengguna (Manajemen Akun)               |
+| `BulkApproveModal.jsx` / `BulkRejectModal.jsx` | Aksi massal ([docs/ADMIN_TABLE_LIMITS.md](docs/ADMIN_TABLE_LIMITS.md)) |
+
+**Modal — voucher**
+
+| File                  | Keterangan                                              |
+| --------------------- | ------------------------------------------------------- |
+| `KirimVoucherModal.jsx` | Modal kirim voucher personal (Manajemen Akun)         |
+| `VoucherModals.jsx`   | `<KonfirmasiVoucherModal>` & `<BulkVoucherModal>`       |
+
+**Modal — pelatihan & trainer**
+
+| File                  | Keterangan                                              |
+| --------------------- | ------------------------------------------------------- |
+| `AddPelatihanModal.jsx` | Modal tambah pelatihan                                |
+| `AddPendaftaranTrainerModal.jsx` | Modal tambah pendaftaran pelatihan trainer   |
+| `PerbaruiRiwayatModal.jsx` | Modal perbarui riwayat pelatihan                   |
+| `DaftarPesertaModal.jsx` | Modal daftar peserta pelatihan                       |
+| `EditPesertaModal.jsx` | Modal edit data peserta                                |
+
+`AdminDashboardPage.jsx` adalah orchestrator yang menggabungkan semua komponen admin di atas.
+
+> ⚠️ **Kode mati:** `AccountActionModals.jsx` juga mengekspor `SetujuiAkunModal` &
+> `TangguhkanAkunModal`, tapi keduanya tidak diimpor di mana pun. Versi yang aktif ada di
+> `SetujuiAkunModal.jsx` dan `SuspendModal.jsx`.
+
+#### Tab Riwayat Pelatihan
+
+Tabel menampilkan kolom: **Nama Pelatihan** (+ badge `New`), **Daerah Pelatihan**, **Tgl. Mulai**, **Status**, grup **Peserta Guru Pelatihan** (Nama Peserta + link `50+ lainnya`, Email, Langganan), **Last Updated**, dan **Action**.
+
+| Elemen | Nilai / Perilaku |
+| ------ | ---------------- |
+| Badge **Status** | `Saved` (hijau), `Processing` (amber), `Pending` (ungu), `Error` (merah) |
+| Badge **Langganan** | `Aktif` (hijau), `Non-Aktif` / `Berakhir` (abu) |
+| **Sort** | Per-kolom via ikon ↕ (state lokal di komponen tabel); kolom tanggal di-parse format Indonesia (`15 Mar 2026`) |
+| **Search** | Toolbar `Cari riwayat pelatihan...` — cari di nama, daerah, nama/email peserta |
+| **Action — Edit** | Ikon pensil (flow update riwayat — belum tersambung) |
+| **Action — Download** | Ekspor CSV satu baris riwayat |
+| **Action — Hapus** | Buka `<HapusRiwayatModal>`; setelah hapus muncul toast "Berhasil menghapus riwayat pelatihan" dengan **Batalkan** (undo mengembalikan baris ke posisi semula) |
+
+> Data masih dummy (`riwayatPelatihanData` di `AdminDashboardPage.jsx`) — belum terhubung ke endpoint backend.
+
+### 8.3 Komponen shadcn/ui (`src/components/ui/`)
 
 | Komponen     | File              | Kegunaan                                        |
 | ------------ | ----------------- | ----------------------------------------------- |
@@ -274,29 +398,52 @@ server: {
 | `<Checkbox>` | `ui/checkbox.jsx` | Checkbox "Ingatkan saya"                        |
 | `<Select>`   | `ui/select.jsx`   | Dropdown daerah pelatihan GASING                |
 
-### 8.3 Komponen Custom (tetap)
+### 8.4 Komponen Layout (`src/components/layout/`)
+
+| Komponen              | Deskripsi                                               |
+| --------------------- | ------------------------------------------------------- |
+| `<LeftPanel />`       | Panel kiri biru-ungu (ilustrasi + branding), hidden mobile |
+| `<RightPanel />`      | Panel kanan putih + footer copyright                    |
+| `<Divider />`         | Garis pemisah horizontal tipis                          |
+| `<AuthFullLayout />`  | Layout full-width untuk halaman forgot/reset password   |
+| `<StepIndicator />`   | Progress bar 3 langkah Sign Up                          |
+
+### 8.5 Komponen Shared (`src/components/shared/`)
 
 | Komponen            | Deskripsi                                       |
 | ------------------- | ----------------------------------------------- |
 | `<IconInput />`     | Wrapper `<Input>` dengan ikon kiri/kanan        |
-| `<StepIndicator />` | Progress bar 3 langkah Sign Up                  |
+| `<TogglePassword />` | Tombol show/hide password (dipakai di IconInput) |
 | `<OtpInput />`      | 6-kotak OTP dengan auto-focus dan paste support |
-| `<PlanCard />`      | Card pilihan paket di SubscriptionPage          |
-| `<Avatar />`        | Avatar initials user di navbar                  |
 | `<ErrorAlert />`    | Alert merah untuk error dari API                |
-| `<EnvelopeCluster />` | Ilustrasi SVG dekoratif di halaman forgot password |
-| `<AuthFullLayout />` | Layout full-width untuk halaman forgot/reset password |
-| `<SuccessToast />`  | Toast notifikasi hijau (auto-dismiss)           |
+| `<SuccessToast />`  | Toast notifikasi hijau (reset password)         |
+| `<LoginStatusModal />` | Modal blokir login: suspended / pending / expired (lihat §8.7 `loginGate.js`) |
+| `<MobileReviewNotice />` | Notice khusus tampilan mobile ([docs/MOBILE_RESPONSIVE.md](docs/MOBILE_RESPONSIVE.md)) |
+| `<NoConnectionBanner />` | Banner saat koneksi ke backend putus        |
 
-### 8.4 Custom Hook
+### 8.6 Custom Hook (`src/hooks/`)
 
-**`useCountdown(seconds)`**
+**`useCountdown(initialSeconds)`** — `src/hooks/useCountdown.js`
 
 | Return    | Tipe       | Keterangan              |
 | --------- | ---------- | ----------------------- |
 | `display` | `string`   | Format MM:SS            |
 | `expired` | `boolean`  | `true` jika timer habis |
-| `reset()` | `function` | Restart timer           |
+| `reset()` | `function` | Restart timer ke nilai awal |
+
+Digunakan di `SignUpOtpPage` (OTP 10 menit) dan `CheckEmailPage` (resend 30 detik).
+
+### 8.7 Modul Library (`src/lib/`)
+
+Logika non-UI dipusatkan di sini supaya `App.jsx` dan komponen tetap tipis.
+
+| File           | Ekspor                                                                 | Kegunaan |
+| -------------- | ---------------------------------------------------------------------- | -------- |
+| `api.js`       | 16 grup API (`authApi`, `profileApi`, `adminApi`, dst) + `tokenStorage` | Semua HTTP call, auto-refresh token, dedupe request — lihat §9 |
+| `roles.js`     | `ADMIN_CAPABILITIES`, `isSuperAdmin()`, `isOperationalAdmin()`          | Aturan "siapa boleh ke mana" pasca-login. Admin operasional = punya **semua** 6 capability dan bukan superadmin |
+| `loginGate.js` | `evaluateLoginGate(profile)`                                           | Tentukan apakah login diblokir. Prioritas: **suspended > pending > expired**. Return `null` kalau lolos |
+| `fixLink.js`   | `FIELD_DEFS`, `FIELD_LABEL`, `encodeFixPayload()`, `decodeFixPayload()`, `buildFixUrl()`, `defaultFieldMessage()` | Payload & URL alur perbaikan data — lihat [docs/FIX_DATA_FLOW.md](docs/FIX_DATA_FLOW.md) |
+| `utils.js`     | `cn()`                                                                 | Merge className Tailwind (clsx + tailwind-merge) |
 
 ---
 
@@ -340,13 +487,21 @@ Token disimpan di `localStorage`. Request otomatis attach `Authorization: Bearer
 | PATCH  | `/profile/picture`        | Update foto profil (via fileId)              |
 | POST   | `/profile/confirm-email`  | Konfirmasi perubahan email                   |
 
-#### Training Regions (`regionsApi`)
+#### Regions (`regionsApi`)
 
-| Method | Path                              | Keterangan               |
-| ------ | --------------------------------- | ------------------------ |
-| GET    | `/training-regions`               | List semua daerah (public)|
-| GET    | `/training-regions/:id`           | Detail satu daerah       |
-| GET    | `/training-regions/by-area/:id`   | Filter by area ID        |
+Hierarki **Province → Regency**. Tanpa query → daftar provinsi. Untuk kabupaten/kota: `?type=REGENCY&parentId=<provinceId>` (+ `&keyword=` untuk search).
+
+| Method | Path             | Keterangan                                         |
+| ------ | ---------------- | -------------------------------------------------- |
+| GET    | `/regions`       | List region (public). Param: `type`, `parentId`, `keyword` |
+| GET    | `/regions/:id`   | Detail satu region                                 |
+
+#### Training Sessions (`trainingSessionsApi`)
+
+| Method | Path                      | Keterangan                                             |
+| ------ | ------------------------- | ------------------------------------------------------ |
+| GET    | `/training-sessions`      | List sesi (public). `?regionId=` → sesi per kota (tanpa paginasi); tanpa `regionId` → paginasi `{ data, meta }` |
+| GET    | `/training-sessions/:id`  | Detail satu sesi pelatihan                             |
 
 #### Timezone (`timezoneApi`)
 
@@ -389,6 +544,13 @@ Token disimpan di `localStorage`. Request otomatis attach `Authorization: Bearer
 | PATCH  | `/file-manager/commit/:fileId`  | Commit file yang diupload     |
 | GET    | `/file-manager/download/:fileId`| URL download file             |
 
+#### Skills & Endorsements (`skillsApi`)
+
+| Method | Path                       | Keterangan                                  |
+| ------ | -------------------------- | ------------------------------------------- |
+| GET    | `/users/:username/skills`  | List skill milik user + status endorsement  |
+| POST   | `/skills/:skillId/endorse` | Toggle endorse skill `{ user_id }`          |
+
 #### Admin (`adminApi`)
 
 **Users**
@@ -426,13 +588,39 @@ Token disimpan di `localStorage`. Request otomatis attach `Authorization: Bearer
 | ------ | ----------------- | ----------------------- |
 | GET    | `/admin/payments` | List semua transaksi    |
 
-**Training Regions**
+**Regions**
 
-| Method | Path                          | Keterangan             |
-| ------ | ----------------------------- | ---------------------- |
-| POST   | `/admin/training-regions`     | Tambah daerah baru     |
-| PATCH  | `/admin/training-regions/:id` | Update daerah          |
-| DELETE | `/admin/training-regions/:id` | Hapus daerah           |
+| Method | Path                  | Keterangan            |
+| ------ | --------------------- | --------------------- |
+| POST   | `/admin/regions`      | Tambah region (Province/Regency) |
+| PATCH  | `/admin/regions/:id`  | Update region         |
+| DELETE | `/admin/regions/:id`  | Hapus region          |
+
+**Training Sessions**
+
+| Method | Path                            | Keterangan                |
+| ------ | ------------------------------- | ------------------------- |
+| POST   | `/admin/training-sessions`      | Tambah sesi pelatihan     |
+| PATCH  | `/admin/training-sessions/:id`  | Update sesi pelatihan     |
+| DELETE | `/admin/training-sessions/:id`  | Hapus sesi pelatihan      |
+
+**Skills**
+
+| Method | Path                | Keterangan          |
+| ------ | ------------------- | ------------------- |
+| GET    | `/admin/skills`     | List skill (paginasi) |
+| POST   | `/admin/skills`     | Tambah skill        |
+| PATCH  | `/admin/skills/:id` | Update skill        |
+| DELETE | `/admin/skills/:id` | Hapus skill         |
+
+**UAC / IAM** (butuh `superAdmin`)
+
+| Method | Path                       | Keterangan                       |
+| ------ | -------------------------- | -------------------------------- |
+| GET    | `/admin/uac/groups`        | List grup capability             |
+| GET    | `/admin/uac/groups/:id`    | Detail grup + capability         |
+| POST   | `/admin/uac/assignments`   | Assign grup ke user `{ userId, groupId }` |
+| DELETE | `/admin/uac/assignments`   | Lepas grup dari user `{ userId, groupId }` |
 
 **Vouchers**
 
@@ -462,7 +650,9 @@ Login menghasilkan dua token:
 
 ## 10. Integrasi Midtrans
 
-Metode yang digunakan: **Snap Popup** — popup Midtrans muncul di atas halaman (bukan redirect ke halaman lain).
+Metode yang digunakan pada alur produksi: **Snap Redirect** — browser diarahkan ke halaman pembayaran Midtrans, lalu kembali ke salah satu landing page `/payment/finish`, `/payment/unfinish`, atau `/payment/error`.
+
+> **Catatan:** `window.snap.pay` (Snap **Popup**) hanya dipakai di **MidtransTestPage** (tool dev, lihat §11), bukan di alur checkout produksi. Script `snap.js` tetap dimuat di `index.html` karena dibutuhkan oleh halaman test tersebut.
 
 ### Konfigurasi index.html
 
@@ -485,14 +675,21 @@ https://app.midtrans.com/snap/snap.js
 ### Flow
 
 ```
-1. User pilih paket → klik "Berlangganan"
-2. Frontend: POST /subscription/checkout { packageId }
-3. Backend: buat transaksi Midtrans → return { snapToken }
-4. Frontend: window.snap.pay(snapToken, { onSuccess, onPending, onError })
-5. User bayar via popup Midtrans
-6. onSuccess → navigasi ke PaymentSuccessPage
-7. onPending → navigasi ke AdminDashboard (lihat status)
+1. User pilih paket → klik "Mulai Berlangganan"
+2. Frontend: subscriptionApi.checkout(packageId) → POST /subscription/checkout
+3. Backend: buat transaksi Midtrans → return { redirectUrl } (atau { token })
+4. Frontend (SubscriptionPage.handleCheckout):
+     - jika ada redirectUrl/redirect_url → window.location.href = redirectUrl
+     - jika hanya token/snapToken       → bangun snap URL (sandbox/prod) → redirect
+5. User bayar di halaman Midtrans
+6. Midtrans redirect kembali ke:
+     /payment/finish    → PaymentFinishPage
+     /payment/unfinish  → PaymentUnfinishPage
+     /payment/error     → PaymentErrorPage
+   (App.jsx mendeteksi path ini di boot sequence)
 ```
+
+> Diagram sequence lengkap alur ini ada di [`ARCHITECTURE.md` §7.5](ARCHITECTURE.md#75-pembayaran-subscription--midtrans).
 
 ### Endpoint Checkout
 
@@ -546,8 +743,8 @@ App.jsx mendeteksi param tersebut, memproses melalui `discourseApi.gateway()`, m
 
 | Keperluan | URL |
 | --- | --- |
-| **SSO Callback URL** | `https://dev-komunitas.gasingacademy.org/register` |
-| **Midtrans Finish URL** | `https://dev-komunitas.gasingacademy.org/register?payment=success` |
+| **SSO Callback URL** | `https://<APP_DOMAIN>/register` |
+| **Midtrans Finish URL** | `https://<APP_DOMAIN>/register?payment=success` |
 
 ### Flow
 
@@ -568,8 +765,8 @@ App.jsx mendeteksi param tersebut, memproses melalui `discourseApi.gateway()`, m
 
 | Environment | URL | Status |
 | --- | --- | --- |
-| **Staging (domain)** | `https://dev-komunitas.gasingacademy.org/register/` | ✅ Live |
-| **Staging (IP)** | `http://34.101.34.59` | ✅ Live |
+| **Staging (domain)** | `https://<APP_DOMAIN>/register/` | ✅ Live |
+| **Staging (IP)** | `http://<SERVER_IP>/register` | ✅ Live |
 | **Lokal** | `http://localhost:5173` | via `npm run dev` |
 
 ### Infrastruktur GCE
@@ -579,7 +776,7 @@ App.jsx mendeteksi param tersebut, memproses melalui `discourseApi.gateway()`, m
 | **GCP Project** | `sacred-octagon` |
 | **VM Instance** | `discourse-01` |
 | **Zone** | `asia-southeast2-a` (Jakarta) |
-| **IP Publik** | `34.101.34.59` |
+| **IP Publik** | `<SERVER_IP>` |
 | **OS** | Ubuntu 24.04 LTS |
 | **Machine Type** | `e2-medium` (2 vCPU, 4GB RAM) |
 | **Web Server** | Nginx |
@@ -593,11 +790,14 @@ App di-serve melalui dua Nginx config:
 ```nginx
 server {
     listen 80;
-    server_name 34.101.34.59;
-    root /var/www/gasing-auth;
-    index index.html;
-    location / {
-        try_files $uri $uri/ /index.html;
+    server_name <SERVER_IP>;
+    location = / {
+        return 301 /register;
+    }
+    location /register {
+        alias /var/www/gasing-auth;
+        index index.html;
+        try_files $uri $uri/ /register/index.html;
     }
 }
 ```
@@ -621,7 +821,7 @@ Untuk update build ke staging secara manual:
 npm run build:staging
 
 # 2. Upload ke VM
-scp -r "dist\*" ksatriagaberdevelopment@34.101.34.59:/tmp/gasing-upload/
+scp -r "dist\*" ksatriagaberdevelopment@<SERVER_IP>:/tmp/gasing-upload/
 ```
 
 ```bash
@@ -699,7 +899,7 @@ const DUMMY_PLANS = [
 Update `.env`:
 
 ```
-VITE_WA_NUMBER=628111222333
+VITE_WA_NUMBER=62XXXXXXXXXXX
 ```
 
 ### 13.3 Mengganti URL Discourse
@@ -707,7 +907,7 @@ VITE_WA_NUMBER=628111222333
 Update `.env`:
 
 ```
-VITE_DISCOURSE_URL=https://komunitas.gasingcircle.id
+VITE_DISCOURSE_URL=https://<PROD_DOMAIN>
 ```
 
 ### 13.4 Mengganti Tema Warna
@@ -746,14 +946,135 @@ Ubah CSS variables di `src/index.css`:
 
 ## 17. Changelog
 
+### v2.9.1 — 13 Juli 2026
+
+- ✅ **Tombol submit di-disable saat field wajib belum lengkap** — tombol aksi utama
+  kini nonaktif (`disabled`) sampai semua field yang wajib terisi, mencegah submit
+  prematur sebelum validasi jalan. Pola: `disabled={loading || !<field> || ...}`.
+
+  | Halaman | Tombol | Syarat aktif |
+  | ------- | ------ | ------------ |
+  | `LoginPage.jsx` | Login | Email & password terisi |
+  | `ForgotPasswordPage.jsx` | Kirim Tautan | Email terisi |
+  | `ResetPasswordPage.jsx` (mobile + desktop) | Ubah Password | Password baru & konfirmasi terisi |
+  | `FixDataPage.jsx` | Kirim Perbaikan Data | Tanggal lahir, lokasi, sesi pelatihan & nama sekolah terisi |
+  | `TransferBankPage.jsx` | Konfirmasi Pembayaran | Nama pengirim, bank asal, tanggal transfer & bukti transfer terisi |
+
+  > `SignUpPage.jsx` (`step1Complete` / `step2Complete`) dan `SignUpOtpPage.jsx`
+  > (cek 6 digit OTP) sudah menerapkan pola ini sebelumnya — tidak berubah.
+
+### v2.9.0 — 25 Juni 2026
+
+- ✅ **Redesain tab Riwayat Pelatihan** (`RiwayatPelatihanTable.jsx`) menyesuaikan referensi Figma "Dashboard Riwayat Pelatihan":
+  - Kolom baru: **Nama Pelatihan** (+ badge `New`), **Daerah Pelatihan**, **Tgl. Mulai**, **Status**, grup **Peserta Guru Pelatihan** (Nama Peserta + link `50+ lainnya`, Email, Langganan), **Last Updated**, **Action**.
+  - Badge **Status**: `Saved` / `Processing` / `Pending` / `Error`; badge **Langganan**: `Aktif` / `Non-Aktif` / `Berakhir`.
+  - **Sort per-kolom** (state lokal) dengan parsing tanggal format Indonesia.
+  - **Action** per baris: edit (pensil), download (ekspor CSV satu baris), hapus (trash merah).
+- ✅ **Flow Hapus Riwayat** (`HapusRiwayatModal.jsx`, baru): modal konfirmasi dengan input wajib ketik `DELETE`; setelah hapus muncul toast sukses + **Batalkan** (undo mengembalikan baris ke posisi semula).
+- ✅ **`RiwayatPelatihanControls`** (`TableControls.jsx`): tambah tombol **`+ Tambah Pelatihan Baru`** dan placeholder search `Cari riwayat pelatihan...`; `SearchInput` kini menerima prop `placeholder`.
+- ✅ **`AdminDashboardPage.jsx`**: struktur data `riwayatPelatihanData` diperbarui ke field baru, handler `handleDeleteRiwayat` / `handleDownloadRiwayat`, dan dukungan undo riwayat di `handleUndoToast`.
+
+**Yang perlu ditindaklanjuti:**
+
+- Flow **Tambah Pelatihan Baru** (Opsi A & B + date picker) dan **Update Riwayat Pelatihan** (modal multi-step + daftar peserta) belum tersambung — tombol & ikon edit sudah tampil sesuai desain.
+- Pop-up **Lihat Nama Peserta**, **Edit/Hapus Peserta**, dan **Edit Email** belum diimplementasikan.
+- Data riwayat masih dummy — belum terhubung ke endpoint backend.
+
+### v2.8.0 — 02 Juni 2026
+
+- ✅ **Custom Routing Paths**: Konfigurasi ulang struktur routing aplikasi di `App.jsx` dengan memisahkan path Admin Dashboard agar dapat diakses melalui `/admin-dashboard/` dan tetap mempertahankan halaman registrasi pada endpoint `/register/`.
+- ✅ **UI Enhancements pada SignUpPage**:
+  - Menyembunyikan daftar pengecekan (rule) password hingga pengguna fokus (klik) pada field password.
+  - Memperbarui gaya indikator pengecekan password yang belum terpenuhi menjadi lingkaran bergaris putus-putus (`border-dashed`), menyesuaikan dengan desain referensi.
+  - Menyelaraskan skala tipografi (ukuran font) di seluruh halaman SignUp (judul, deskripsi, form label, dan teks lisensi) dengan spesifikasi desain (contoh: judul ke ukuran `text-[22px]`, label form ke `text-[13px] font-semibold`).
+
+### v2.7.0 — 29 Mei 2026 *(Sync API Collection 29/05/26)*
+
+Menyelaraskan `src/lib/api.js` dengan Postman collection terbaru. **Catatan:** hanya API layer + README; UI (SignUp & admin) belum disesuaikan — lihat "Yang perlu ditindaklanjuti".
+
+- ✅ **Password requirement checklist** ditambah di `SignUpPage` (Buat Akun Baru) & `ResetPasswordPage` (Ubah Password): min 8 karakter, min 1 huruf kapital, min 1 angka & 1 karakter spesial — indikator live.
+- ✅ **`regionsApi`** — endpoint `/training-regions` → `/regions` (hierarki Province→Regency, param `type`/`parentId`/`keyword`).
+- ✅ **`trainingSessionsApi`** (baru) — `/training-sessions` (`?regionId=` untuk sesi per kota di form registrasi).
+- ✅ **`authApi.resetPassword`** — kembali ke `POST /auth/reset-password` `{ token, email, newPassword }` sesuai collection.
+- ✅ **`adminApi`** — `/admin/training-regions` → `/admin/regions`; tambah CRUD `/admin/training-sessions`, `/admin/skills`, dan UAC/IAM `/admin/uac/*`.
+- ✅ **`skillsApi`** (baru) — `/users/:username/skills` & `POST /skills/:skillId/endorse`.
+- ✅ **`SignUpPage` "Verifikasi Data"** disesuaikan desain terbaru:
+  - "Nama Lengkap" dipindah ke step 1 (Buat Akun Baru).
+  - "Lokasi kamu saat ini" cascade **Provinsi → Kab/Kota** (`/regions`); Kab/Kota = `regionId`.
+  - "Kapan kamu mendapat pelatihan?" = filter; "Dimana?" = sesi hasil filter (`/training-sessions`); sesi terpilih = `lastTrainingSessionId`.
+  - Payload register: `trainingRegionId` → `regionId` + `lastTrainingSessionId`.
+
+**Yang perlu ditindaklanjuti (UI, di luar scope sesi ini):**
+
+- ✅ ~~`pages/admin/mappers.js` masih membaca `u.trainingRegionId`~~ — sudah diselaraskan ke `firstTrainingRegionId` (nama kanonik) dengan fallback ke `trainingRegionId` lama. Lihat [FIX_DATA_FLOW §8](docs/FIX_DATA_FLOW.md) & [ARCHITECTURE §11](ARCHITECTURE.md).
+- Link reset password dari email hanya membawa `?token=`, tanpa `&email=`; collection mewajibkan `email` di body. Pastikan template email menambahkan `&email=` atau backend mengambil email dari token.
+
+### v2.6.0 — 18 Mei 2026
+
+- ✅ Tambah `AuthChoicePage` — halaman pilihan navigasi (Gasing / SSO Callback) setelah login berhasil.
+- ✅ Update `App.jsx` — memisahkan alur Admin Dashboard berdasar cek `capabilities`.
+- ✅ Integrasi redirect callback URL JWT token.
+
+### v2.5.0 — 12 Mei 2026 *(Refactoring)*
+
+**Tujuan:** Memecah file-file besar agar mudah dibaca dan di-maintain. Tidak ada perubahan fungsional.
+
+**Sebelum refactoring:**
+
+| File | Baris |
+| ---- | ----- |
+| `App.jsx` | 1.059 |
+| `AdminDashboardPage.jsx` | 962 |
+
+**Sesudah refactoring — semua file di bawah 200 baris:**
+
+| File baru | Baris |
+| --------- | ----- |
+| `App.jsx` | ~100 |
+| `pages/auth/LoginPage.jsx` | ~95 |
+| `pages/auth/SignUpPage.jsx` | ~130 |
+| `pages/auth/SignUpOtpPage.jsx` | ~50 |
+| `pages/auth/SignUpReviewPage.jsx` | ~40 |
+| `pages/auth/ForgotPasswordPage.jsx` | ~55 |
+| `pages/auth/CheckEmailPage.jsx` | ~70 |
+| `pages/auth/ResetPasswordPage.jsx` | ~70 |
+| `pages/auth/SsoCallbackPage.jsx` | ~45 |
+| `components/layout/LeftPanel.jsx` | ~40 |
+| `components/layout/RightPanel.jsx` | ~15 |
+| `components/layout/AuthFullLayout.jsx` | ~65 |
+| `components/layout/StepIndicator.jsx` | ~40 |
+| `components/shared/IconInput.jsx` | ~30 |
+| `components/shared/OtpInput.jsx` | ~45 |
+| `components/shared/ErrorAlert.jsx` | ~10 |
+| `components/shared/SuccessToast.jsx` | ~10 |
+| `hooks/useCountdown.js` | ~15 |
+| `pages/AdminDashboardPage.jsx` | ~130 |
+| `pages/admin/mappers.js` | ~50 |
+| `pages/admin/AdminSidebar.jsx` | ~50 |
+| `pages/admin/ConfirmModal.jsx` | ~55 |
+| `pages/admin/AdminToast.jsx` | ~12 |
+| `pages/admin/TableControls.jsx` | ~120 |
+| `pages/admin/VerifikasiTable.jsx` | ~100 |
+| `pages/admin/ManajemenTable.jsx` | ~140 |
+
+---
+
+### v2.4.0 — 11 Mei 2026
+
+- ✅ Update Nginx configuration guidelines di `DEPLOYMENT_GUIDE.md` dan `README.md` untuk sepenuhnya mendukung React Router dengan `base: '/register'`.
+- ✅ Penambahan input field Username pada flow pendaftaran (`SignUpPage`).
+- ✅ **Perbaikan Asset:** Pindah file `illustration.png` dan `illustrasi_forgotPassword.png` dari `public/` ke `src/assets/` agar path build Vite bisa resolve dengan benar (`/register/assets/...`).
+- ✅ **Perubahan Alur (Flow):** Setelah login berhasil, pengguna kini **langsung dialihkan (redirect)** ke url komunitas (`VITE_DISCOURSE_URL`), melewati halaman Subscription (yang kini dikhususkan untuk alur SSO Callback).
+- ✅ **Perbaikan API:** `discourseApi.ssoLogin` di `api.js` kini secara otomatis melakukan *redirect* ketika API me-return `redirectUrl`.
+
 ### v2.3.0 — 5 Mei 2026 *(Staging Deployment Live)*
 
 Sesi ini berfokus pada penyelesaian deployment ke environment staging di GCE dan memastikan app dapat diakses publik via domain Discourse.
 
 **🚀 Deployment**
 
-- App **berhasil live** di `https://dev-komunitas.gasingacademy.org/register/` ✅
-- App juga dapat diakses via IP langsung: `http://34.101.34.59` ✅
+- App **berhasil live** di `https://<APP_DOMAIN>/register/` ✅
+- App juga dapat diakses via IP langsung: `http://<SERVER_IP>` ✅
 - VM: `discourse-01` · Zone: `asia-southeast2-a` · Project: `sacred-octagon`
 - File di-serve dari `/var/www/gasing-auth/` via Nginx
 
@@ -772,8 +1093,8 @@ Sesi ini berfokus pada penyelesaian deployment ke environment staging di GCE dan
 - **[vite.config.js]** `base: '/register'` dikonfirmasi — assets di-build ke path `/register/assets/...`
 
 **📋 Yang Masih Perlu Dilakukan**
-- CORS backend: izinkan origin `https://dev-komunitas.gasingacademy.org` dan `http://34.101.34.59`
-- Konfigurasi SSO Discourse: daftarkan `https://dev-komunitas.gasingacademy.org/register` sebagai callback URL
+- CORS backend: izinkan origin `https://<APP_DOMAIN>` dan `http://<SERVER_IP>`
+- Konfigurasi SSO Discourse: daftarkan `https://<APP_DOMAIN>/register` sebagai callback URL
 - Upload gambar ilustrasi (`illustration.png`, `illustrasi_forgotPassword.png`) ke `/var/www/gasing-auth/` jika belum ada
 
 ---
@@ -796,8 +1117,8 @@ Sesi ini berfokus pada perbaikan bug dan konfigurasi agar project siap dinaikkan
 - Tambah file `.env.staging` dengan variabel khusus environment staging
 - Tambah script `build:staging` di `package.json` → menjalankan `vite build --mode staging`
 - Dokumentasi URL yang perlu didaftarkan ke Backend/Discourse/Midtrans:
-  - **SSO Callback URL:** `https://dev-komunitas.gasingacademy.org/register`
-  - **Midtrans Finish URL:** `https://dev-komunitas.gasingacademy.org/register?payment=success`
+  - **SSO Callback URL:** `https://<APP_DOMAIN>/register`
+  - **Midtrans Finish URL:** `https://<APP_DOMAIN>/register?payment=success`
 
 ---
 

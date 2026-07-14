@@ -1,170 +1,844 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react'
-import {
-  User, Users, LogOut, Search, Download,
-  ArrowDownUp, Check, X, ChevronDown, UserX, UserCheck, Copy, Filter, Loader2
-} from 'lucide-react'
-import { cn } from '@/lib/utils'
-import { adminApi } from '@/lib/api'
+import { useState, useRef, useEffect, useCallback } from 'react'
+import { adminApi, discourseApi, regionsApi, appConfigApi, trainingSessionsApi, trainingHistoriesApi, queueApi } from '@/lib/api'
+import { mapToVerifikasi, mapToManajemen, mapToRiwayat, mapToPembayaran, fmtDate, computeIsNew, isManajemenEligible, VERIFIED_STATUS } from './admin/mappers'
+import { canonicalRole } from './admin/roleOptions'
+import { AdminSidebar }    from './admin/AdminSidebar'
+import { AdminToast }      from './admin/AdminToast'
+import { RejectModal, ApproveModal } from './admin/ConfirmModal'
+import { BulkApproveModal } from './admin/BulkApproveModal'
+import { BulkRejectModal } from './admin/BulkRejectModal'
+import { PendingVoucherTable } from './admin/PendingVoucherTable'
+import { KonfirmasiVoucherModal, BulkVoucherModal } from './admin/VoucherModals'
+import { VerifikasiControls, VerifikasiPembayaranControls, ManajemenControls, PendaftaranTrainerControls, RiwayatPelatihanControls } from './admin/TableControls'
+import { VerifikasiTable } from './admin/VerifikasiTable'
+import { VerifikasiPembayaranTable } from './admin/VerifikasiPembayaranTable'
+import { KonfirmasiPembayaranModal, TolakPembayaranModal } from './admin/PembayaranModals'
+import { ManajemenTable }  from './admin/ManajemenTable'
+import { PendaftaranTrainerTable } from './admin/PendaftaranTrainerTable'
+import { RiwayatPelatihanTable } from './admin/RiwayatPelatihanTable'
+import { AddPendaftaranTrainerModal } from './admin/AddPendaftaranTrainerModal'
+import { AddPelatihanModal } from './admin/AddPelatihanModal'
+import { PerbaruiRiwayatModal } from './admin/PerbaruiRiwayatModal'
+import { DaftarPesertaModal } from './admin/DaftarPesertaModal'
+import { UbahRoleModal } from './admin/UbahRoleModal'
+import { HapusAkunModal, PulihkanAkunModal } from './admin/AccountActionModals'
+import { SuspendModal } from './admin/SuspendModal'
+import { SetujuiAkunModal } from './admin/SetujuiAkunModal'
+import { KirimVoucherModal } from './admin/KirimVoucherModal'
 
-// ─── API → UI field mappers ───────────────────────────────────────────────────
-function fmtDate(iso) {
-  if (!iso) return '-'
-  return new Date(iso).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })
+
+// ─── Pendaftaran Trainer (app-config hero_banner-home-v2) ───────────────────────
+const PENDAFTARAN_KEY = 'hero_banner-home-v2'
+const HEADER_BASE = 'Apa kamu mau daftar menjadi Trainer di pelatihan Gasing tanggal '
+const DEFAULT_SHARED = {
+  modalBody: 'Tim Gasing akan menghubungi members yang terpilih menjadi Trainer untuk pengimbasan, berikut informasi lainnya. Pastikan nomor HP kamu aktif ya!',
+  modalTitle: 'Yuk, daftar jadi Trainer pengimbasan Gasing!',
+  modalSuccess: 'Terima kasih sudah mendaftar sebagai Trainer!',
 }
 
-function mapToVerifikasi(u) {
-  return {
-    id: u.id,
-    name: u.name || '-',
-    username: u.username ? `@${u.username}` : `@${(u.email || '').split('@')[0]}`,
-    email: u.email || '-',
-    status: 'Review',
-    birthdate: fmtDate(u.birthdate),
-    training: u.trainingRegion?.regionName || '-',
-    year: u.createdAt ? new Date(u.createdAt).getFullYear().toString() : '-',
-    school: u.schoolName || '-',
-    role: u.discourseGroup?.name || '',
-  }
+// Batas waktu pendaftaran sudah lewat? String kosong / tanggal invalid = belum lewat
+// (jangan auto-matikan baris yang datanya memang tidak punya batas waktu).
+function isPastDeadline(batasWaktu) {
+  if (!batasWaktu) return false
+  const t = new Date(batasWaktu).getTime()
+  if (isNaN(t)) return false
+  return t <= Date.now()
 }
 
-function mapToManajemen(u) {
-  const sub = u.activeSubscription || u.subscription
-  const subStatus =
-    sub?.status === 'active' ? 'Active' :
-    sub?.status === 'expired' ? 'Expired' : 'Not Active'
-  const accountStatus =
-    u.verifiedStatus === 'approved' ? 'Approved' :
-    u.verifiedStatus === 'rejected' ? 'Rejected' : 'Pending'
-  const isNew = u.createdAt
-    ? (Date.now() - new Date(u.createdAt).getTime()) < 7 * 24 * 60 * 60 * 1000
-    : false
-  const voucher = u.activeVoucher?.code || ''
-  const action = voucher ? 'Sudah Disalin' : (accountStatus === 'Approved' ? 'Konfirmasi' : '-')
-
-  return {
-    id: u.id,
-    name: u.name || '-',
-    username: u.username ? `@${u.username}` : `@${(u.email || '').split('@')[0]}`,
-    email: u.email || '-',
-    isNew,
-    accountStatus,
-    voucher,
-    birthdate: fmtDate(u.birthdate),
-    training: u.trainingRegion?.regionName || '-',
-    year: u.createdAt ? new Date(u.createdAt).getFullYear().toString() : '-',
-    school: u.schoolName || '-',
-    role: u.discourseGroup?.name || '',
-    subscription: subStatus,
-    plan: sub ? (sub.package?.name || 'Terdaftar') : 'Tidak Terdaftar',
-    endDate: sub?.expiresAt ? fmtDate(sub.expiresAt) : '',
-    action,
-  }
+// Matikan semua baris aktif yang batas waktunya sudah lewat.
+// Balikin { rows, changed } supaya caller tahu perlu persist atau tidak.
+function autoOffExpired(rows) {
+  let changed = false
+  const next = rows.map(r => {
+    if (r.isActive && isPastDeadline(r.batasWaktu)) {
+      changed = true
+      return { ...r, isActive: false }
+    }
+    return r
+  })
+  return { rows: changed ? next : rows, changed }
 }
 
-export default function AdminDashboardPage({ onSignOut }) {
-  const [activeTab, setActiveTab] = useState('verifikasi')
-  const [users, setUsers] = useState([])
-  const [managementUsers, setManagementUsers] = useState([])
-  const [loadingUsers, setLoadingUsers] = useState(false)
-  const [apiError, setApiError] = useState('')
-  const executeActionRef = useRef(true)
-  const [searchQuery, setSearchQuery] = useState('')
+// Ambil id topik dari URL Discourse (mis .../t/slug/143 atau .../t/slug/143/5 → 143).
+function parseThreadId(url) {
+  if (!url) return null
+  const s = String(url)
+  const m = s.match(/\/t\/[^/]+\/(\d+)/)
+  if (m) return m[1]
+  const nums = s.match(/\d+/g)
+  return nums ? nums[nums.length - 1] : null
+}
+
+// value.threads (object) → array baris untuk table.
+function threadsToRows(value) {
+  const threads = value?.threads || {}
+  return Object.entries(threads).map(([id, t]) => ({
+    id,
+    threadId: id,
+    nama: t.namaPelatihan || '-',
+    url: t.url || '',
+    periode: t.periode || '-',
+    batasWaktu: t.batasWaktu || '',
+    isActive: !!t.enabled,
+    headerText: t.headerText || '',
+    createdAt: t.createdAt || null,
+    isNew: computeIsNew(t.createdAt),
+  }))
+}
+
+// array baris → value untuk PUT (pertahankan shared_content).
+function rowsToValue(rows, sharedContent) {
+  const threads = {}
+  rows.forEach(r => {
+    threads[r.threadId] = {
+      enabled: r.isActive,
+      headerText: r.headerText,
+      namaPelatihan: r.nama,
+      periode: r.periode,
+      batasWaktu: r.batasWaktu,
+      url: r.url,
+      createdAt: r.createdAt || null,
+    }
+  })
+  return { threads, shared_content: sharedContent || DEFAULT_SHARED }
+}
+
+function useSort() {
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' })
-  const [roleErrors, setRoleErrors] = useState({})
+  const handleSort = (key) => {
+    setSortConfig(prev => ({
+      key,
+      direction: prev.key === key && prev.direction === 'asc' ? 'desc' : 'asc',
+    }))
+  }
+  return { sortConfig, handleSort, resetSort: () => setSortConfig({ key: null, direction: 'asc' }) }
+}
+
+function applySortToList(list, sortConfig) {
+  if (!sortConfig.key) return list
+  return [...list].sort((a, b) => {
+    let valA = a[sortConfig.key] || ''
+    let valB = b[sortConfig.key] || ''
+    if (sortConfig.key === 'lastUpdated') {
+      valA = a.lastUpdatedMs || 0
+      valB = b.lastUpdatedMs || 0
+    } else if (sortConfig.key === 'birthdate' || sortConfig.key === 'endDate') {
+      valA = valA ? new Date(valA).getTime() : 0
+      valB = valB ? new Date(valB).getTime() : 0
+    } else if (typeof valA === 'string') {
+      valA = valA.toLowerCase(); valB = valB.toLowerCase()
+    }
+    if (valA < valB) return sortConfig.direction === 'asc' ? -1 : 1
+    if (valA > valB) return sortConfig.direction === 'asc' ? 1 : -1
+    return 0
+  })
+}
+
+function buildCsvContent(tab, users) {
+  const escapeCsv = (str) => {
+    const s = String(str ?? '')
+    return s.includes(',') || s.includes('"') || s.includes('\n') ? `"${s.replace(/"/g, '""')}"` : s
+  }
+  if (tab === 'verifikasi-pembayaran') {
+    const headers = ['Nama Pengguna', 'Email', 'Status Member', 'Jenis Paket', 'Tgl. Berakhir', 'Kode Voucher', 'Role', 'Riwayat Pelatihan', 'Tgl. Lahir', 'Lokasi', 'Alumni Pelatihan Nama', 'Alumni Pelatihan Daerah', 'Alumni Pelatihan Tanggal Mulai', 'Asal Sekolah', 'Last Updated']
+    const rows = users.map(u => [u.name, u.email, u.statusMember || '-', u.plan || '-', u.endDate || '-', u.voucher || '-', u.role || '-', u.riwayatCount || 0, u.birthdate || '-', u.lokasi || '-', u.training || '-', u.alumniDaerah || '-', u.alumniTanggal || '-', u.school || '-', u.lastUpdated || '-'])
+    return [headers.join(','), ...rows.map(r => r.map(escapeCsv).join(','))].join('\n')
+  }
+  const headers = tab === 'verifikasi'
+    ? ['Nama Pengguna', 'Email', 'Status', 'Tgl.Lahir', 'Alumni Pelatihan', 'Tahun', 'Asal Sekolah', 'Role Pengguna']
+    : ['Nama Pengguna', 'Email', 'Status Akun', 'Kode Voucher', 'Tgl.Lahir', 'Alumni Pelatihan', 'Tahun', 'Asal Sekolah', 'Role Pengguna', 'Berlangganan', 'Tgl Berakhir']
+  const rows = tab === 'verifikasi'
+    ? users.map(u => [u.name, u.email, u.status, u.birthdate, u.training, u.year, u.school, u.role || 'Pilih Role'])
+    : users.map(u => [u.name, u.email, u.accountStatus || '-', u.voucher || '-', u.birthdate || '-', u.training || '-', u.year || '-', u.school || '-', u.role || 'Pilih Role', u.subscription || '-', u.plan || '-'])
+  return [headers.join(','), ...rows.map(r => r.map(escapeCsv).join(','))].join('\n')
+}
+
+// Generate kode voucher (placeholder FE). TODO(be): kode asli mestinya dari backend
+// saat approve (auto-generate). Ganti pemanggilan ini begitu endpoint tersedia.
+function genVoucherCode() {
+  return 'SUB' + Math.random().toString(36).slice(2, 8).toUpperCase()
+}
+
+export default function AdminDashboardPage({ user, onSignOut }) {
+  const [activeTab, setActiveTab] = useState('verifikasi')
+  const [users, setUsers]                   = useState([])
+  const [managementUsers, setManagementUsers] = useState([])
+  const [loadingUsers, setLoadingUsers]     = useState(false)
+  const [apiError, setApiError]             = useState('')
+  const [searchQuery, setSearchQuery]       = useState('')
+  const [roleErrors, setRoleErrors]         = useState({})
+  
+  // States for Pendaftaran Trainer (sumber: app-config hero_banner-home-v2)
+  const [pendaftaranData, setPendaftaranData] = useState([])
+  const [sharedContent, setSharedContent] = useState(DEFAULT_SHARED)
+  const [isAddPendaftaranModalOpen, setIsAddPendaftaranModalOpen] = useState(false)
+
+  // States for Riwayat Pelatihan (di-load dari GET /training-sessions)
+  const [riwayatPelatihanData, setRiwayatPelatihanData] = useState([])
+  const [isAddPelatihanModalOpen, setIsAddPelatihanModalOpen] = useState(false)
+  const [perbaruiSession, setPerbaruiSession] = useState(null)
+  const [pesertaSession, setPesertaSession] = useState(null)
+
+  const [discourseGroups, setDiscourseGroups] = useState([])
+  // Ref agar mapToManajemen selalu baca daftar group terbaru tanpa memicu ulang loadUsers.
+  const discourseGroupsRef = useRef([])
+  const [trainingRegions, setTrainingRegions] = useState([])
+  // Ref regions terbaru → loadPembayaran bisa useCallback([]) (stabil) tanpa
+  // ikut trainingRegions. Kalau ikut, identity-nya berubah saat loadUsers nge-set
+  // regions dan memicu ulang mount-effect → semua loader nembak 2x → 429.
+  const trainingRegionsRef = useRef([])
+  const [trainingSessions, setTrainingSessions] = useState([])
   const [rejectCandidate, setRejectCandidate] = useState(null)
   const [approveCandidate, setApproveCandidate] = useState(null)
-  const [toast, setToast] = useState(null)
+
+  // ── Verifikasi Pembayaran ───────────────────────────────────────────────────
+  // Dua sub-tab = dua dataset: 'menunggu' (payment pending + bukti) & 'ditolak'.
+  const [pembayaranMenunggu, setPembayaranMenunggu] = useState([])
+  const [pembayaranDitolak, setPembayaranDitolak]   = useState([])
+  const [pembayaranSubTab, setPembayaranSubTab]     = useState('menunggu')
+  const [konfirmasiCandidate, setKonfirmasiCandidate] = useState(null) // modal bukti transfer
+  const [tolakCandidate, setTolakCandidate]           = useState(null) // modal pilih alasan tolak
+  // Titik biru navbar: sebelum tab dibuka pakai count ringan dari /stats (1 request
+  // kecil, bukan full list); setelah tab dibuka, pakai list live (pembayaranLoaded).
+  const [pembayaranMenungguCount, setPembayaranMenungguCount] = useState(0)
+  const [pembayaranLoaded, setPembayaranLoaded]     = useState(false)
+
+  // ── Bulk verifikasi ────────────────────────────────────────────────────────
+  const BULK_LIMIT = 10 // keputusan #2: hard limit 10 akun sekaligus
+  const [selectedIds, setSelectedIds] = useState([])
+  const [verifSubTab, setVerifSubTab] = useState('pending') // 'pending' | 'voucher'
+  const [bulkSuspendOpen, setBulkSuspendOpen] = useState(false) // modal tangguhkan bulk (Manajemen)
+  const [bulkModal, setBulkModal] = useState(null) // 'approve' | 'reject' | 'confirm' | null
+
+  // Sub-tab Pending Voucher Setup (task b). Diisi FE dari hasil approve tab Pending
+  // (opsi B — belum ada state backend). TODO(be): list dari endpoint saat tersedia.
+  const [pendingVoucherUsers, setPendingVoucherUsers] = useState([])
+  const [voucherCandidate, setVoucherCandidate] = useState(null) // konfirmasi voucher tunggal
+  const [limitHit, setLimitHit] = useState(false)
+  const limitTimeoutRef = useRef(null)
+  const [toast, setToast]                   = useState(null)
   const [toastTimeoutId, setToastTimeoutId] = useState(null)
-  const [activeFilter, setActiveFilter] = useState('Semua')
-  const [isFilterOpen, setIsFilterOpen] = useState(false)
-  const [selectedRoles, setSelectedRoles] = useState([])
+  const [activeFilter, setActiveFilter]     = useState('Disetujui') // tab Manajemen aktif
+  const [selectedRoles, setSelectedRoles]   = useState([])
   const [selectedSubscriptions, setSelectedSubscriptions] = useState([])
-  const filterRef = useRef(null)
+  const [selectedPlans, setSelectedPlans] = useState([]) // filter Jenis Paket (Tahunan/Bulanan)
+  const [actionModal, setActionModal]       = useState({ type: null, user: null })
+  const executeActionRef = useRef(true)
+  const { sortConfig, handleSort, resetSort } = useSort()
 
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (filterRef.current && !filterRef.current.contains(event.target)) {
-        setIsFilterOpen(false)
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside)
-    return () => document.removeEventListener("mousedown", handleClickOutside)
-  }, [])
-
-  // ─── Load users from API ──────────────────────────────────────────────────
-  const loadUsers = useCallback(async (tab = activeTab) => {
-    setLoadingUsers(true)
-    setApiError('')
+  const loadUsers = useCallback(async (tab, currentRegions = []) => {
+    setLoadingUsers(true); setApiError('')
     try {
+      let regions = currentRegions.length ? currentRegions : [];
+      if (regions.length === 0) {
+        try {
+          const rRes = await regionsApi.list();
+          regions = Array.isArray(rRes) ? rRes : (rRes.data || []);
+          // update state tapi jangan trigger infinite loop
+          setTrainingRegions(regions);
+        } catch (e) {
+          console.error("Failed to load regions", e)
+        }
+      }
+
       if (tab === 'verifikasi') {
-        const res = await adminApi.getUsers({ 'filter[verifiedStatus]': 'pending' })
-        const list = Array.isArray(res) ? res : (res.data || [])
-        setUsers(list.map(mapToVerifikasi))
+        // Dua sub-tab = dua request: WAITING(0) → tabel Pending, PENDING_VOUCHER(3) →
+        // tabel Pending Voucher Setup. Tidak bisa satu request tanpa filter karena
+        // /admin/users dipaginasi (limit default 20).
+        const res = await adminApi.getUsers({ 'filter[verifiedStatus]': 'waiting' })
+        const rawList = Array.isArray(res) ? res : res.data || []
+        // Defensif: kalau server tidak memfilter, saring lagi di klien.
+        const isWaiting = (u) => u.verifiedStatus === 0 || u.verifiedStatus === 'waiting' ||
+          (u.verifiedStatus != 1 && u.verifiedStatus != -1 && u.verifiedStatus != 3)
+        setUsers(rawList.filter(isWaiting).map(u => mapToVerifikasi(u, regions)))
+
+        // Sub-tab Pending Voucher Setup. Dibungkus try/catch supaya kegagalan di sini
+        // (mis. nilai filter tidak dikenal server) tidak ikut mengosongkan tabel Pending.
+        try {
+          const vRes = await adminApi.getUsers({ 'filter[verifiedStatus]': 'pending_voucher' })
+          const vRaw = Array.isArray(vRes) ? vRes : vRes.data || []
+          const isPendingVoucher = (u) => u.verifiedStatus === 3 || u.verifiedStatus === 'pending_voucher'
+          setPendingVoucherUsers(vRaw.filter(isPendingVoucher).map(u => mapToVerifikasi(u, regions)))
+        } catch (e) {
+          console.error('Failed to load pending voucher users', e)
+        }
+        setSelectedIds([]) // buang seleksi lama setelah reload
       } else {
         const res = await adminApi.getUsers({})
-        const list = Array.isArray(res) ? res : (res.data || [])
-        setManagementUsers(list.map(mapToManajemen))
+        const rawList = Array.isArray(res) ? res : res.data || []
+        // Hanya akun ber-keputusan final (approved/rejected) + voucher beres yang
+        // masuk Manajemen. WAITING/REVISE/pending-voucher disaring keluar.
+        setManagementUsers(rawList.filter(isManajemenEligible).map(u => mapToManajemen(u, regions, discourseGroupsRef.current)))
       }
     } catch (err) {
       setApiError(err.message || 'Gagal memuat data')
     } finally {
       setLoadingUsers(false)
     }
-  }, [activeTab])
+  }, [])
 
   useEffect(() => { loadUsers(activeTab) }, [activeTab])
 
+  const loadPendaftaran = useCallback(async () => {
+    try {
+      const res = await appConfigApi.get(PENDAFTARAN_KEY)
+      const value = res?.value ?? res?.data?.value ?? res ?? {}
+      const shared = value.shared_content || DEFAULT_SHARED
+      setSharedContent(shared)
+
+      // Batas waktu bisa terlewat saat dashboard tidak dibuka sama sekali, jadi
+      // status hasil baca dinormalisasi dulu lalu ditulis balik ke app-config —
+      // kalau tidak, Home masih menampilkan pendaftaran yang sudah tutup.
+      const { rows, changed } = autoOffExpired(threadsToRows(value))
+      setPendaftaranData(rows)
+      if (changed) {
+        appConfigApi.set(PENDAFTARAN_KEY, rowsToValue(rows, shared)).catch(() => {})
+      }
+    } catch (e) {
+      // Belum dikonfigurasi / gagal baca → mulai dari kosong.
+      setPendaftaranData([])
+      setSharedContent(DEFAULT_SHARED)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (activeTab === 'pendaftaran-trainer') loadPendaftaran()
+  }, [activeTab, loadPendaftaran])
+
+  // Cukup 1 request: list training-sessions. mapToRiwayat auto-pakai region yang
+  // di-embed backend (s.region/s.regency) kalau ada.
+  //
+  // CATATAN 429: dulu di sini ada 2 loop per-session — resolve region (GET
+  // /regions/:id per id) + ringkasan peserta (getSessionParticipants per id).
+  // Untuk 100 session itu ~200 request → backend NestJS throttler (default
+  // ~10 req/60s) langsung balikin ThrottlerException 429. Loop dibuang. Kolom
+  // "Daerah" & "Peserta" harus di-embed backend di response list (lihat gap
+  // manajemen-akun-data-gaps), bukan disintesis lewat N+1 fetch dari FE.
+  const loadRiwayat = useCallback(async () => {
+    try {
+      const res = await trainingSessionsApi.list({ page: 1, limit: 100 })
+      const list = Array.isArray(res) ? res : (res?.data || res?.items || [])
+      setRiwayatPelatihanData(list.map(s => mapToRiwayat(s)))
+    } catch (e) {
+      setRiwayatPelatihanData([])
+    }
+  }, [])
+
+  useEffect(() => {
+    if (activeTab === 'riwayat-pelatihan') loadRiwayat()
+  }, [activeTab, loadRiwayat])
+
+  // Verifikasi Pembayaran (manual transfer): dua request terpisah.
+  //  - Menunggu = filter 'receipt_uploaded' (bukti diunggah, menunggu review admin).
+  //  - Ditolak  = filter 'rejected'.
+  // try/catch per sub-tab supaya gagal di satu tidak mengosongkan lainnya.
+  const loadPembayaran = useCallback(async (currentRegions = []) => {
+    const regions = currentRegions.length ? currentRegions : trainingRegionsRef.current
+    try {
+      const res = await adminApi.listManualPayments({ filter: 'receipt_uploaded' })
+      const list = Array.isArray(res) ? res : (res?.data || res?.items || [])
+      setPembayaranMenunggu(list.map(p => mapToPembayaran(p, regions, discourseGroupsRef.current)))
+      setPembayaranLoaded(true) // mulai sekarang titik biru pakai list live, bukan count /stats
+    } catch (e) {
+      console.error('Failed to load pending payments', e)
+      setPembayaranMenunggu([])
+    }
+    try {
+      const res = await adminApi.listManualPayments({ filter: 'rejected' })
+      const list = Array.isArray(res) ? res : (res?.data || res?.items || [])
+      setPembayaranDitolak(list.map(p => mapToPembayaran(p, regions, discourseGroupsRef.current)))
+    } catch (e) {
+      console.error('Failed to load rejected payments', e)
+      setPembayaranDitolak([])
+    }
+  }, [])
+
+  useEffect(() => {
+    if (activeTab === 'verifikasi-pembayaran') loadPembayaran()
+  }, [activeTab, loadPembayaran])
+
+  // Muat semua dataset sekali di mount supaya titik biru navbar akurat walau
+  // tab-nya belum pernah dibuka (dot = ada baris isNew / ada akun pending).
+  useEffect(() => {
+    loadUsers('manajemen')
+    loadRiwayat()
+    loadPendaftaran()
+  }, [loadUsers, loadRiwayat, loadPendaftaran])
+
+  // Titik biru Verifikasi Pembayaran: cukup count ringan dari /stats saat mount
+  // (bukan full list). Full list baru di-fetch saat tab dibuka (loadPembayaran).
+  useEffect(() => {
+    adminApi.getManualPaymentStats()
+      .then(res => {
+        const s = res?.data ?? res ?? {}
+        const n = s.receipt_uploaded ?? s.receiptUploaded ?? s.pendingReview ?? 0
+        setPembayaranMenungguCount(Number(n) || 0)
+      })
+      .catch(err => console.error('Failed to load payment stats', err))
+  }, [])
+
+  useEffect(() => {
+    discourseApi.getGroups()
+      .then(res => setDiscourseGroups(Array.isArray(res) ? res : (res.data || [])))
+      .catch(err => console.error("Failed to load discourse groups", err))
+  }, [])
+
+  // Sinkron ref + re-map kolom Role begitu daftar group siap (jika user datang
+  // sebelum groups selesai di-load, nama role tetap terisi setelah ini).
+  // Jaga ref regions selalu terbaru (dipakai loadPembayaran tanpa jadi dep).
+  useEffect(() => { trainingRegionsRef.current = trainingRegions }, [trainingRegions])
+
+  useEffect(() => {
+    discourseGroupsRef.current = discourseGroups
+    if (discourseGroups.length) loadUsers('manajemen', trainingRegions)
+  }, [discourseGroups, loadUsers])
+
+  // Opsi "Nama Pelatihan Terbaru" untuk modal approve (single & bulk). Load sekali.
+  useEffect(() => {
+    trainingSessionsApi.list({ page: 1, limit: 100 })
+      .then(res => {
+        const list = Array.isArray(res) ? res : (res?.data || res?.items || [])
+        setTrainingSessions(list.map(s => ({ id: s.id, name: s.name || '-' })))
+      })
+      .catch(err => console.error("Failed to load training sessions", err))
+  }, [])
+
   const handleTabChange = (tab) => {
-    setActiveTab(tab)
-    setSearchQuery('')
-    setSortConfig({ key: null, direction: 'asc' })
-    setActiveFilter('Semua')
-    setIsFilterOpen(false)
-    setSelectedRoles([])
-    setSelectedSubscriptions([])
+    setActiveTab(tab); setSearchQuery(''); resetSort()
+    setActiveFilter('Disetujui'); setSelectedRoles([]); setSelectedSubscriptions([]); setSelectedPlans([])
+    setSelectedIds([]); setBulkModal(null)
+    setPembayaranSubTab('menunggu'); setKonfirmasiCandidate(null); setTolakCandidate(null)
   }
 
-  // ─── Action handlers ──────────────────────────────────────────────────────
-  const handleVerify = (id) => {
-    const user = users.find(u => u.id === id)
-    if (!user.role) {
-      setRoleErrors(prev => ({ ...prev, [id]: true }))
-      setTimeout(() => {
-        setRoleErrors(prev => ({ ...prev, [id]: false }))
-      }, 30000)
+  // ── Verifikasi Pembayaran: konfirmasi / tolak ──────────────────────────────
+  // Pola sama dgn approve/reject akun: optimistic remove baris + toast undo 5s +
+  // commit via scheduleAction. TODO(be): endpoint confirm/reject belum live.
+  const handleKonfirmasiPembayaran = (target) => {
+    if (!target) return
+    setKonfirmasiCandidate(null)
+    setPembayaranMenunggu(prev => prev.filter(u => u.id !== target.id))
+    setToast({
+      message: <>Berhasil konfirmasi pembayaran akun <span className="font-medium">{target.name}</span></>,
+      undo: () => setPembayaranMenunggu(prev => [target, ...prev]),
+    })
+    scheduleAction(
+      // Approve sukses → langganan aktif di BE. Refresh Manajemen supaya user
+      // approved + status langganannya ikut muncul (state Manajemen kalau tidak
+      // di-refetch tetap basi sampai pindah tab / hard reload).
+      async () => { await adminApi.approveManualPayment(target.id); loadUsers('manajemen') },
+      () => { setPembayaranMenunggu(prev => [target, ...prev]); setApiError('Gagal mengonfirmasi pembayaran.') }
+    )
+  }
+
+  // reasonLabel = teks alasan (dikirim sbg `notes`, wajib untuk endpoint reject).
+  const handleTolakPembayaran = ({ candidate: target, reasonLabel }) => {
+    if (!target) return
+    setTolakCandidate(null)
+    setKonfirmasiCandidate(null)
+    const rejected = { ...target, statusMember: 'Pembayaran Ditolak' }
+    setPembayaranMenunggu(prev => prev.filter(u => u.id !== target.id))
+    setPembayaranDitolak(prev => [rejected, ...prev])
+    setToast({
+      message: <>Pembayaran <span className="font-medium">{target.name}</span> telah <span className="text-red-500 font-medium">ditolak</span></>,
+      undo: () => {
+        setPembayaranDitolak(prev => prev.filter(u => u.id !== target.id))
+        setPembayaranMenunggu(prev => [target, ...prev])
+      },
+    })
+    scheduleAction(
+      () => adminApi.rejectManualPayment(target.id, reasonLabel),
+      () => {
+        setPembayaranDitolak(prev => prev.filter(u => u.id !== target.id))
+        setPembayaranMenunggu(prev => [target, ...prev])
+        setApiError('Gagal menolak pembayaran.')
+      }
+    )
+  }
+
+  // ── Seleksi baris verifikasi ────────────────────────────────────────────────
+  const flashLimit = () => {
+    setLimitHit(true)
+    if (limitTimeoutRef.current) clearTimeout(limitTimeoutRef.current)
+    limitTimeoutRef.current = setTimeout(() => setLimitHit(false), 2500)
+  }
+
+  const toggleSelect = (id) => {
+    setSelectedIds(prev => {
+      if (prev.includes(id)) return prev.filter(x => x !== id)
+      if (prev.length >= BULK_LIMIT) { flashLimit(); return prev } // hard limit
+      return [...prev, id]
+    })
+  }
+
+  const clearSelection = () => setSelectedIds([])
+
+  const persistPendaftaran = (rows) =>
+    appConfigApi.set(PENDAFTARAN_KEY, rowsToValue(rows, sharedContent))
+
+  const handleAddPendaftaran = async (data) => {
+    const threadId = parseThreadId(data.url)
+    if (!threadId) {
+      setApiError('Tautan topik tidak valid. Pastikan URL mengandung id topik Discourse.')
       return
     }
-    setApproveCandidate(user)
+
+    const newRow = {
+      id: threadId,
+      threadId,
+      nama: data.nama,
+      url: data.url,
+      periode: data.periode,
+      batasWaktu: data.batasWaktu,
+      isActive: false,
+      headerText: HEADER_BASE + (data.periode || ''),
+      createdAt: Date.now(),
+      isNew: true,
+    }
+    // Ganti kalau threadId sama sudah ada.
+    const next = [newRow, ...pendaftaranData.filter(r => r.threadId !== threadId)]
+    const prev = pendaftaranData
+
+    setApiError('')
+    setPendaftaranData(next)
+    try {
+      await persistPendaftaran(next)
+      setToast({ message: <>Pelatihan <span className="font-medium">{data.nama}</span> berhasil ditambahkan</> })
+    } catch (err) {
+      setPendaftaranData(prev)
+      setApiError(err.message || 'Gagal menyimpan pendaftaran pelatihan.')
+    }
   }
 
-  const handleConfirmApprove = () => {
-    if (!approveCandidate) return
-    const target = approveCandidate
-    setUsers(prev => prev.filter(u => u.id !== target.id))
-    setApproveCandidate(null)
-    executeActionRef.current = true
+  // Dashboard bisa dibiarkan terbuka melewati batas waktu, jadi status juga
+  // dicek berkala, bukan cuma saat load.
+  useEffect(() => {
+    const tick = () => {
+      setPendaftaranData(prev => {
+        const { rows, changed } = autoOffExpired(prev)
+        if (changed) persistPendaftaran(rows).catch(() => {})
+        return rows
+      })
+    }
+    const timer = setInterval(tick, 30_000)
+    return () => clearInterval(timer)
+  }, [sharedContent])
 
-    setToast({
-      message: <>Akun {target.name} telah <span className="text-green-500 font-medium">disetujui</span></>,
-      user: target,
-    })
+  // Aturan: hanya 1 pelatihan boleh aktif. Nyalakan 1 → matikan sisanya.
+  // Baris yang batas waktunya lewat tidak boleh dinyalakan lagi.
+  const handleTogglePendaftaranStatus = async (id) => {
+    const target = pendaftaranData.find(r => r.id === id)
+    if (!target) return
+    const turningOn = !target.isActive
+    if (turningOn && isPastDeadline(target.batasWaktu)) {
+      setApiError('Batas waktu pendaftaran sudah lewat. Perbarui batas waktu sebelum mengaktifkan kembali.')
+      return
+    }
+    const next = pendaftaranData.map(r => ({
+      ...r,
+      isActive: turningOn ? r.id === id : (r.id === id ? false : r.isActive),
+    }))
+    const prev = pendaftaranData
 
-    if (toastTimeoutId) clearTimeout(toastTimeoutId)
-    const newTimeout = setTimeout(async () => {
-      if (executeActionRef.current) {
+    setApiError('')
+    setPendaftaranData(next)
+    try {
+      await persistPendaftaran(next)
+    } catch (err) {
+      setPendaftaranData(prev)
+      setApiError(err.message || 'Gagal memperbarui status pelatihan.')
+    }
+  }
+
+
+  // Tambah pelatihan baru → POST /admin/training-sessions (optimistic).
+  // Status = state upload: Processing (in-flight) → Saved (sukses) / Error (gagal).
+  // Response cuma balikin session (tanpa peserta/langganan) → kolom itu diisi '-'.
+  const handleAddPelatihan = async (data) => {
+    const tempId = `temp-${Date.now()}`
+    const baseRow = {
+      id: tempId,
+      nama: data.name,
+      isNew: true,
+      daerah: data.daerahLabel,
+      tglMulai: data.tglMulaiLabel,
+      status: 'Processing',
+      pesertaNama: '-',
+      pesertaLainnya: 0,
+      pesertaEmail: '-',
+      langganan: '-',
+      lastUpdated: (() => { const d = new Date(); let h = d.getHours(); const ap = h >= 12 ? 'PM' : 'AM'; h = h % 12 || 12; return `${h}:${String(d.getMinutes()).padStart(2, '0')} ${ap}` })(),
+      lastUpdatedMs: Date.now(),
+      regionId: data.regionId,
+      startMs: data.startDate ? new Date(data.startDate).getTime() : null,
+      endMs: data.endDate ? new Date(data.endDate).getTime() : null,
+    }
+    setRiwayatPelatihanData(prev => [baseRow, ...prev])
+
+    try {
+      const res = await adminApi.createTrainingSession({
+        name: data.name,
+        regionId: data.regionId,
+        startDate: data.startDate,
+        endDate: data.endDate,
+      })
+      const sessionId = res?.id || res?.data?.id || tempId
+      setRiwayatPelatihanData(prev =>
+        prev.map(r => (r.id === tempId ? { ...r, id: sessionId } : r))
+      )
+
+      // Kalau ada CSV peserta: upload → validasi → push (row invalid/duplikat di-skip).
+      // Session tetap dibuat meski import gagal → row Saved + toast peringatan.
+      let pesertaWarn = ''
+      if (data.pesertaFile) {
         try {
-          await adminApi.verifyUser(target.id, { status: 'approved' })
-        } catch {
-          setUsers(prev => [target, ...prev])
-          setApiError('Gagal menyetujui akun. Silakan coba lagi.')
+          const up = await trainingHistoriesApi.upload(data.pesertaFile, sessionId)
+          await queueApi.waitJob(up.trackId)
+          const pushRes = await trainingHistoriesApi.push(up.importId)
+          await queueApi.waitJob(pushRes.trackId)
+        } catch (impErr) {
+          pesertaWarn = ` (import peserta gagal: ${impErr.message || 'error'})`
         }
+      }
+
+      setRiwayatPelatihanData(prev =>
+        prev.map(r => (r.id === sessionId ? { ...r, status: 'Saved' } : r))
+      )
+      setToast({ message: <>Pelatihan <span className="font-medium">{data.name}</span> berhasil ditambahkan{pesertaWarn}</> })
+      if (toastTimeoutId) clearTimeout(toastTimeoutId)
+      const tid = setTimeout(() => setToast(null), 5000)
+      setToastTimeoutId(tid)
+    } catch (err) {
+      setRiwayatPelatihanData(prev =>
+        prev.map(r => (r.id === tempId ? { ...r, status: 'Error' } : r))
+      )
+      setApiError(err.message || 'Gagal menambah pelatihan.')
+    }
+  }
+
+  // Hapus session → DELETE /admin/training-sessions/:id (optimistic + revert).
+  // Dipicu dari tombol "Hapus Riwayat" di modal edit (ketik DELETE).
+  const handleDeleteRiwayat = async (item) => {
+    if (!item) return
+    const prev = riwayatPelatihanData
+    setRiwayatPelatihanData(p => p.filter(r => r.id !== item.id))
+    try {
+      await adminApi.deleteTrainingSession(item.id)
+      setToast({ message: 'Berhasil menghapus riwayat pelatihan' })
+      if (toastTimeoutId) clearTimeout(toastTimeoutId)
+      const id = setTimeout(() => setToast(null), 5000)
+      setToastTimeoutId(id)
+    } catch (err) {
+      setRiwayatPelatihanData(prev) // revert
+      setApiError(err.message || 'Gagal menghapus riwayat pelatihan.')
+    }
+  }
+
+  // Simpan perubahan session → PATCH + (opsional) ganti CSV peserta (upload+push).
+  const handleUpdatePelatihan = async (data) => {
+    const prev = riwayatPelatihanData
+    // Optimistic: update tampilan + status Processing selama request jalan.
+    setRiwayatPelatihanData(p => p.map(r => r.id === data.id
+      ? { ...r, nama: data.name, daerah: data.daerahLabel, tglMulai: data.tglMulaiLabel, regionId: data.regionId, status: 'Processing' }
+      : r))
+    try {
+      await adminApi.updateTrainingSession(data.id, {
+        name: data.name, regionId: data.regionId, startDate: data.startDate, endDate: data.endDate,
+      })
+      let pesertaWarn = ''
+      if (data.pesertaFile) {
+        try {
+          const up = await trainingHistoriesApi.upload(data.pesertaFile, data.id)
+          await queueApi.waitJob(up.trackId)
+          const pushRes = await trainingHistoriesApi.push(up.importId)
+          await queueApi.waitJob(pushRes.trackId)
+        } catch (impErr) {
+          pesertaWarn = ` (import peserta gagal: ${impErr.message || 'error'})`
+        }
+      }
+      setRiwayatPelatihanData(p => p.map(r => r.id === data.id ? { ...r, status: 'Saved' } : r))
+      setToast({ message: <>Berhasil menyimpan riwayat <span className="font-medium">{data.name}</span>{pesertaWarn}</> })
+      if (toastTimeoutId) clearTimeout(toastTimeoutId)
+      const tid = setTimeout(() => setToast(null), 5000)
+      setToastTimeoutId(tid)
+    } catch (err) {
+      setRiwayatPelatihanData(prev) // revert
+      setApiError(err.message || 'Gagal menyimpan riwayat pelatihan.')
+    }
+  }
+
+  const handleDownloadRiwayat = (item) => {
+    const csv = [
+      'Nama Pelatihan,Daerah Pelatihan,Tgl. Mulai,Status,Nama Peserta,Last Updated',
+      `"${item.nama}","${item.daerah}","${item.tglMulai}","${item.status}","${item.pesertaNama}","${item.lastUpdated}"`
+    ].join('\n')
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.setAttribute('href', url)
+    link.setAttribute('download', `${item.nama}-Export data.csv`)
+    document.body.appendChild(link); link.click(); document.body.removeChild(link)
+  }
+
+  const scheduleAction = (apiCall, onError) => {
+    executeActionRef.current = true
+    if (toastTimeoutId) clearTimeout(toastTimeoutId)
+    const id = setTimeout(async () => {
+      if (executeActionRef.current) {
+        try { await apiCall() }
+        catch { onError() }
       }
       setToast(null)
     }, 5000)
-    setToastTimeoutId(newTimeout)
+    setToastTimeoutId(id)
   }
 
-  const handleCancelApprove = () => setApproveCandidate(null)
+  // Toast dengan undo untuk aksi FE-only (tanpa API): perubahan state langsung,
+  // `undo` mengembalikan state, auto-dismiss 5 detik.
+  const showUndoToast = (message, undo) => {
+    setToast({ message, undo })
+    if (toastTimeoutId) clearTimeout(toastTimeoutId)
+    const id = setTimeout(() => setToast(null), 5000)
+    setToastTimeoutId(id)
+  }
+
+  // Role + Pelatihan kini dipilih di dalam ApproveModal (bukan lagi di baris tabel),
+  // jadi klik centang langsung buka modal — validasi wajib ada di modal.
+  const handleVerify = (id) => {
+    setApproveCandidate(users.find(u => u.id === id))
+  }
+
+  // Resolve nama role (discourse group) dari id — untuk kolom Role di tabel voucher.
+  const roleNameFromId = (id) => {
+    const g = discourseGroups.find(x => String(x.id ?? x.groupId) === String(id))
+    return canonicalRole(g) || ''
+  }
+
+  // Approve langkah-1 ("Approve Main Data"): WAITING(0) → PENDING_VOUCHER(3).
+  // discourseGroupId + lastTrainingSessionId WAJIB di payload — kehadirannya yang
+  // menandai request ini sebagai langkah-1. Optimistic + toast undo 5s.
+  const handleConfirmApprove = ({ discourseGroupId, lastTrainingSessionId }) => {
+    if (!approveCandidate) return
+    const target = approveCandidate
+    setApproveCandidate(null)
+    const vUser = { ...target, verifiedStatus: VERIFIED_STATUS.PENDING_VOUCHER, status: 'Pending Voucher', discourseGroupId, lastTrainingSessionId, role: roleNameFromId(discourseGroupId) || target.role, voucherCode: genVoucherCode() }
+    setUsers(prev => prev.filter(u => u.id !== target.id))
+    setPendingVoucherUsers(prev => [vUser, ...prev])
+    setToast({
+      message: <>Akun {target.name} <span className="text-green-500 font-medium">disetujui</span>, menunggu setup voucher</>,
+      undo: () => {
+        setPendingVoucherUsers(prev => prev.filter(u => u.id !== target.id))
+        setUsers(prev => [target, ...prev])
+      },
+    })
+    scheduleAction(
+      () => adminApi.verifyUser(target.id, { status: 'approved', discourseGroupId, lastTrainingSessionId }),
+      () => {
+        setPendingVoucherUsers(prev => prev.filter(u => u.id !== target.id))
+        setUsers(prev => [target, ...prev])
+        setApiError('Gagal menyetujui akun.')
+      }
+    )
+  }
+
+  // Konfirmasi voucher → langkah-2 ("Finalize"): PENDING_VOUCHER(3) → APPROVED(1).
+  // Payload HANYA { status }. Jangan sertakan discourseGroupId/lastTrainingSessionId:
+  // backend membaca field itu sebagai penanda langkah-1, dan karena WAITING→APPROVED
+  // bukan transisi sah, akun malah balik ke PENDING_VOUCHER. Keduanya sudah tersimpan
+  // di backend sejak langkah-1. Optimistic remove baris + toast undo 5s.
+  const handleConfirmVoucher = () => {
+    if (!voucherCandidate) return
+    const target = voucherCandidate
+    setVoucherCandidate(null)
+    setPendingVoucherUsers(prev => prev.filter(u => u.id !== target.id))
+    setToast({
+      message: <>Akun {target.name} telah <span className="text-green-500 font-medium">disetujui</span></>,
+      undo: () => setPendingVoucherUsers(prev => [target, ...prev]),
+    })
+    scheduleAction(
+      () => adminApi.verifyUser(target.id, { status: 'approved' }),
+      () => { setPendingVoucherUsers(prev => [target, ...prev]); setApiError('Gagal menyetujui akun.') }
+    )
+  }
+
+  const handleBulkConfirmVoucher = (rows) => {
+    const ids = rows.map(r => r.id)
+    const removed = pendingVoucherUsers.filter(u => ids.includes(u.id))
+    setPendingVoucherUsers(prev => prev.filter(u => !ids.includes(u.id)))
+    setBulkModal(null); setSelectedIds([])
+    setToast({
+      message: <>{rows.length} akun telah <span className="text-green-500 font-medium">disetujui</span></>,
+      undo: () => setPendingVoucherUsers(prev => [...removed, ...prev]),
+    })
+    scheduleAction(
+      () => Promise.all(ids.map(id => adminApi.verifyUser(id, { status: 'approved' }))),
+      () => { setPendingVoucherUsers(prev => [...removed, ...prev]); setApiError('Gagal menyetujui sebagian akun.') }
+    )
+  }
+
+  // ── Bulk approve / reject ───────────────────────────────────────────────────
+  // Pola sama dengan single: optimistic remove + toast undo 5 detik + commit batch
+  // (Promise.all). Undo membatalkan timer, jadi API tak pernah dipanggil.
+  // Bulk approve langkah-1: kirim discourseGroupId + lastTrainingSessionId per baris.
+  const handleBulkApprove = (rows) => {
+    const ids = rows.map(r => r.id)
+    const removed = users.filter(u => ids.includes(u.id))
+    const vUsers = rows.map(r => {
+      const base = removed.find(u => u.id === r.id) || {}
+      return { ...base, verifiedStatus: VERIFIED_STATUS.PENDING_VOUCHER, status: 'Pending Voucher', discourseGroupId: r.discourseGroupId, lastTrainingSessionId: r.lastTrainingSessionId, role: roleNameFromId(r.discourseGroupId) || base.role, voucherCode: genVoucherCode() }
+    })
+    setUsers(prev => prev.filter(u => !ids.includes(u.id)))
+    setPendingVoucherUsers(prev => [...vUsers, ...prev])
+    setBulkModal(null); setSelectedIds([])
+    setToast({
+      message: <>{rows.length} akun <span className="text-green-500 font-medium">disetujui</span>, menunggu setup voucher</>,
+      undo: () => {
+        setPendingVoucherUsers(prev => prev.filter(u => !ids.includes(u.id)))
+        setUsers(prev => [...removed, ...prev])
+      },
+    })
+    scheduleAction(
+      () => Promise.all(rows.map(r => adminApi.verifyUser(r.id, { status: 'approved', discourseGroupId: r.discourseGroupId, lastTrainingSessionId: r.lastTrainingSessionId }))),
+      () => {
+        setPendingVoucherUsers(prev => prev.filter(u => !ids.includes(u.id)))
+        setUsers(prev => [...removed, ...prev])
+        setApiError('Gagal menyetujui sebagian akun.')
+      }
+    )
+  }
+
+  const handleBulkReject = (rows) => {
+    const ids = rows.map(r => r.id)
+    const removed = users.filter(u => ids.includes(u.id))
+    setUsers(prev => prev.filter(u => !ids.includes(u.id)))
+    setBulkModal(null); setSelectedIds([])
+    setToast({ message: <>{rows.length} akun telah <span className="text-red-500 font-medium">ditolak</span></>, users: removed })
+
+    scheduleAction(
+      () => Promise.all(rows.map(r => r.status === 'rejected'
+        ? adminApi.rejectUser(r.id, { rejectedReason: r.reason })
+        : adminApi.reviseUser(r.id, { rejectedReason: r.reason, fieldsToRevise: r.invalidFields })
+      )),
+      () => { setUsers(prev => [...removed, ...prev]); setApiError('Gagal menolak sebagian akun. Silakan coba lagi.') }
+    )
+  }
+
+  const handleConfirmReject = ({ status, invalidFields, reason }) => {
+    if (!rejectCandidate) return
+    const target = rejectCandidate
+    setUsers(prev => prev.filter(u => u.id !== target.id))
+    setRejectCandidate(null)
+    setToast({ message: <>Akun {target.name} telah <span className="text-red-500 font-medium">ditolak</span></>, user: target })
+
+    // status 'rejected' → tolak final (teks bebas). status 'revise' → minta perbaiki
+    // data (backend generate token JWT + email link revise). Lihat ADR-0003.
+    const apiCall = status === 'rejected'
+      ? () => adminApi.rejectUser(target.id, { rejectedReason: reason })
+      : () => adminApi.reviseUser(target.id, { rejectedReason: reason, fieldsToRevise: invalidFields })
+
+    scheduleAction(apiCall, () => {
+      setUsers(prev => [target, ...prev]); setApiError('Gagal menolak akun. Silakan coba lagi.')
+    })
+  }
 
   const handleRoleChange = (id, newRole) => {
     if (activeTab === 'verifikasi') {
@@ -175,38 +849,156 @@ export default function AdminDashboardPage({ onSignOut }) {
     if (newRole) setRoleErrors(prev => ({ ...prev, [id]: false }))
   }
 
-  const handleRejectClick = (user) => setRejectCandidate(user)
-
-  const handleConfirmReject = () => {
-    if (!rejectCandidate) return
-    const target = rejectCandidate
-    setUsers(prev => prev.filter(u => u.id !== target.id))
-    setRejectCandidate(null)
-    executeActionRef.current = true
-
-    setToast({
-      message: <>Akun {target.name} telah <span className="text-red-500 font-medium">ditolak</span></>,
-      user: target,
-    })
-
-    if (toastTimeoutId) clearTimeout(toastTimeoutId)
-    const newTimeout = setTimeout(async () => {
-      if (executeActionRef.current) {
-        try {
-          await adminApi.verifyUser(target.id, { status: 'rejected' })
-        } catch {
-          setUsers(prev => [target, ...prev])
-          setApiError('Gagal menolak akun. Silakan coba lagi.')
-        }
-      }
-      setToast(null)
-    }, 5000)
-    setToastTimeoutId(newTimeout)
+  const handleActionClick = (type, user) => {
+    setActionModal({ type, user })
   }
 
-  const handleCancelReject = () => setRejectCandidate(null)
+  // gid = discourseGroupId dari dropdown (opsinya sudah berasal dari backend, jadi
+  // id-nya selalu sah). Nama role cuma dipakai untuk tampilan optimistic.
+  const handleConfirmUbahRole = (gid) => {
+    const target = actionModal.user
+    const prevRole = target.role
+    setActionModal({ type: null, user: null })
+
+    const newRole = roleNameFromId(gid)
+    handleRoleChange(target.id, newRole)
+    setToast({
+      message: <>Berhasil mengubah role akun <span className="font-bold">{target.name}</span></>,
+      roleUndo: { id: target.id, prevRole },
+    })
+    // Commit ke backend. Undo membatalkan timer.
+    scheduleAction(
+      () => adminApi.updateDiscourseGroup(target.id, gid),
+      () => { handleRoleChange(target.id, prevRole); setApiError('Gagal mengubah role.') }
+    )
+  }
+
+  // Hapus akun (tab Disetujui/Ditolak) → pindah ke "Baru Dihapus" (deletion-request).
+  const handleConfirmHapusAkun = () => {
+    const target = actionModal.user
+    if (!target) return
+    setActionModal({ type: null, user: null })
+    const prevStatus = target.accountStatus
+    setManagementUsers(prev => prev.map(u => u.id === target.id ? { ...u, accountStatus: 'Baru Dihapus' } : u))
+    setToast({ message: <>Akun {target.name} telah <span className="text-red-500 font-medium">dihapus</span></>, statusUndo: { id: target.id, prevStatus } })
+    scheduleAction(
+      () => adminApi.requestUserDeletion(target.id),
+      () => { setManagementUsers(prev => prev.map(u => u.id === target.id ? { ...u, accountStatus: prevStatus } : u)); setApiError('Gagal menghapus akun.') }
+    )
+  }
+
+  // Pulihkan akun → kembali "Disetujui". Sumber "Baru Dihapus" = cancelDeletion,
+  // sumber "Ditangguhkan" = unsuspend.
+  const handleConfirmPulihkanAkun = () => {
+    const target = actionModal.user
+    if (!target) return
+    setActionModal({ type: null, user: null })
+    const prevStatus = target.accountStatus
+    setManagementUsers(prev => prev.map(u => u.id === target.id ? { ...u, accountStatus: 'Disetujui' } : u))
+    setToast({ message: <>Akun {target.name} telah <span className="text-green-500 font-medium">dipulihkan</span></>, statusUndo: { id: target.id, prevStatus } })
+    const apiCall = prevStatus === 'Baru Dihapus'
+      ? () => adminApi.cancelUserDeletion(target.id)
+      : () => adminApi.unsuspendUser(target.id)
+    scheduleAction(
+      apiCall,
+      () => { setManagementUsers(prev => prev.map(u => u.id === target.id ? { ...u, accountStatus: prevStatus } : u)); setApiError('Gagal memulihkan akun.') }
+    )
+  }
+
+  // Setujui akun (tab Ditolak) → approve dgn role + pelatihan + voucher (dari modal).
+  const handleConfirmSetujuiAkun = ({ discourseGroupId, lastTrainingSessionId, voucherCode }) => {
+    const target = actionModal.user
+    if (!target) return
+    setActionModal({ type: null, user: null })
+    const prevStatus = target.accountStatus
+    const roleName = roleNameFromId(discourseGroupId)
+    setManagementUsers(prev => prev.map(u => u.id === target.id
+      ? { ...u, accountStatus: 'Disetujui', role: roleName || u.role, voucher: voucherCode || u.voucher }
+      : u))
+    setToast({ message: <>Akun {target.name} telah <span className="text-green-500 font-medium">disetujui</span></>, statusUndo: { id: target.id, prevStatus } })
+    scheduleAction(
+      () => adminApi.verifyUser(target.id, { status: 'approved', discourseGroupId, lastTrainingSessionId }),
+      () => { setManagementUsers(prev => prev.map(u => u.id === target.id ? { ...u, accountStatus: prevStatus } : u)); setApiError('Gagal menyetujui akun.') }
+    )
+  }
+
+  // Tangguhkan akun (tab Disetujui) → suspend s/d suspendedUntil (modal preset/manual).
+  // TODO(be): reason & emailMessage belum dikirim — endpoint /suspend hanya terima suspendedUntil.
+  const handleConfirmTangguhkanAkun = ({ suspendedUntil }) => {
+    const target = actionModal.user
+    if (!target) return
+    setActionModal({ type: null, user: null })
+    const prevStatus = target.accountStatus
+    setManagementUsers(prev => prev.map(u => u.id === target.id ? { ...u, accountStatus: 'Ditangguhkan' } : u))
+    setToast({ message: <>Akun {target.name} telah <span className="text-orange-500 font-medium">ditangguhkan</span></>, statusUndo: { id: target.id, prevStatus } })
+    scheduleAction(
+      () => adminApi.suspendUser(target.id, suspendedUntil),
+      () => { setManagementUsers(prev => prev.map(u => u.id === target.id ? { ...u, accountStatus: prevStatus } : u)); setApiError('Gagal menangguhkan akun.') }
+    )
+  }
+
+  const handleConfirmKirimVoucher = (voucherCode) => {
+    const target = actionModal.user
+    setManagementUsers(managementUsers.map(u => u.id === target.id ? { ...u, voucher: voucherCode } : u))
+    setActionModal({ type: null, user: null })
+    setToast({ message: <>Voucher <span className="font-bold">{voucherCode}</span> berhasil dikirim ke {target.name}</> })
+    // Call API here...
+    // adminApi.grantPersonalVoucher(...)
+  }
 
   const handleUndoToast = () => {
+    // Aksi FE-only (approve→voucher, konfirmasi voucher) menyimpan closure undo.
+    if (toast?.undo) {
+      toast.undo()
+      setToast(null)
+      if (toastTimeoutId) clearTimeout(toastTimeoutId)
+      return
+    }
+    // Undo ubah role: kembalikan role lama + batalkan commit.
+    if (toast?.roleUndo) {
+      executeActionRef.current = false
+      handleRoleChange(toast.roleUndo.id, toast.roleUndo.prevRole)
+      setToast(null)
+      if (toastTimeoutId) clearTimeout(toastTimeoutId)
+      return
+    }
+    // Undo hapus/pulihkan: kembalikan status akun + batalkan commit.
+    if (toast?.statusUndo) {
+      executeActionRef.current = false
+      const { id, prevStatus } = toast.statusUndo
+      setManagementUsers(prev => prev.map(u => u.id === id ? { ...u, accountStatus: prevStatus } : u))
+      setToast(null)
+      if (toastTimeoutId) clearTimeout(toastTimeoutId)
+      return
+    }
+    // Undo bulk status: kembalikan status tiap akun + batalkan commit batch.
+    if (toast?.bulkStatusUndo) {
+      executeActionRef.current = false
+      const prevList = toast.bulkStatusUndo
+      setManagementUsers(prev => prev.map(u => { const pr = prevList.find(x => x.id === u.id); return pr ? { ...u, accountStatus: pr.status } : u }))
+      setToast(null)
+      if (toastTimeoutId) clearTimeout(toastTimeoutId)
+      return
+    }
+    if (toast?.riwayat) {
+      const { riwayat, riwayatIndex } = toast
+      setRiwayatPelatihanData(prev => {
+        const next = [...prev]
+        next.splice(riwayatIndex, 0, riwayat)
+        return next
+      })
+      setToast(null)
+      if (toastTimeoutId) clearTimeout(toastTimeoutId)
+      return
+    }
+    if (toast?.users) {
+      // Undo batch: kembalikan semua baris, batalkan commit.
+      executeActionRef.current = false
+      setUsers(prev => [...toast.users, ...prev])
+      setToast(null)
+      if (toastTimeoutId) clearTimeout(toastTimeoutId)
+      return
+    }
     if (toast?.user) {
       executeActionRef.current = false
       setUsers(prev => [toast.user, ...prev])
@@ -215,748 +1007,411 @@ export default function AdminDashboardPage({ onSignOut }) {
     }
   }
 
-  // --- Search & Sort Logic ---
-  const currentData = activeTab === 'verifikasi' ? users : managementUsers;
+  // Titik biru navbar per menu.
+  //  - verifikasi: selalu muncul kalau ada akun di tabel Pending / Pending Voucher.
+  //  - menu lain : muncul hanya kalau ada baris "komponen baru" (isNew, < 3 hari).
+  const navFlags = {
+    'verifikasi':            users.length > 0 || pendingVoucherUsers.length > 0,
+    'verifikasi-pembayaran': pembayaranLoaded ? pembayaranMenunggu.length > 0 : pembayaranMenungguCount > 0,
+    'manajemen':             managementUsers.some(u => u.isNew),
+    'riwayat-pelatihan':     riwayatPelatihanData.some(r => r.isNew),
+    'pendaftaran-trainer':   pendaftaranData.some(r => r.isNew),
+  }
+
+  const currentData = activeTab === 'manajemen'
+    ? managementUsers
+    : activeTab === 'verifikasi-pembayaran'
+      ? (pembayaranSubTab === 'ditolak' ? pembayaranDitolak : pembayaranMenunggu)
+      : (verifSubTab === 'voucher' ? pendingVoucherUsers : users)
 
   const filteredUsers = currentData.filter(user => {
     if (activeTab === 'manajemen') {
-      if (activeFilter !== 'Semua' && user.accountStatus !== activeFilter) return false;
-      if (selectedRoles.length > 0 && !selectedRoles.includes(user.role)) return false;
-      if (selectedSubscriptions.length > 0 && !selectedSubscriptions.includes(user.subscription)) return false;
+      // Tiap tab = 1 tabel utama → hanya baris dgn status == tab aktif.
+      if (user.accountStatus !== activeFilter) return false
+      if (selectedRoles.length > 0 && !selectedRoles.includes(user.role)) return false
+      if (selectedSubscriptions.length > 0 && !selectedSubscriptions.includes(user.subscription)) return false
+      if (selectedPlans.length > 0 && !selectedPlans.includes(user.plan)) return false
     }
-
     if (!searchQuery) return true
     const q = searchQuery.toLowerCase()
-    return (
-      (user.name || '').toLowerCase().includes(q) ||
-      (user.username || '').toLowerCase().includes(q) ||
-      (user.email || '').toLowerCase().includes(q) ||
-      (user.training || '').toLowerCase().includes(q) ||
-      (user.school || '').toLowerCase().includes(q) ||
-      (user.voucher || '').toLowerCase().includes(q)
+    return ['name', 'username', 'email', 'training', 'school', 'voucher', 'voucherCode'].some(k =>
+      (user[k] || '').toLowerCase().includes(q)
     )
   })
 
-  const handleSort = (key) => {
-    let direction = 'asc'
-    if (sortConfig.key === key && sortConfig.direction === 'asc') {
-      direction = 'desc'
-    }
-    setSortConfig({ key, direction })
+  const sortedUsers = applySortToList(filteredUsers, sortConfig)
+
+  // "Pilih semua" dibatasi BULK_LIMIT (keputusan #2): pilih maksimal 10 baris teratas.
+  const selectableIds = sortedUsers.slice(0, BULK_LIMIT).map(u => u.id)
+  const allSelected = selectableIds.length > 0 && selectableIds.every(id => selectedIds.includes(id))
+  const toggleSelectAll = () => {
+    if (allSelected) { setSelectedIds([]); return }
+    if (sortedUsers.length > BULK_LIMIT) flashLimit()
+    setSelectedIds(selectableIds)
+  }
+  const selectedUsers = currentData.filter(u => selectedIds.includes(u.id))
+
+  // ── Bulk aksi Manajemen (mengikuti aksi baris per tab) ──────────────────────
+  // Ubah status banyak akun sekaligus + toast undo 5s. commitEach(id, prevStatus)->Promise.
+  const runBulkStatus = (rows, newStatus, message, commitEach) => {
+    if (!rows.length) return
+    const prev = rows.map(u => ({ id: u.id, status: u.accountStatus }))
+    const ids = rows.map(r => r.id)
+    setManagementUsers(p => p.map(u => ids.includes(u.id) ? { ...u, accountStatus: newStatus } : u))
+    setSelectedIds([])
+    setToast({ message, bulkStatusUndo: prev })
+    scheduleAction(
+      () => Promise.all(ids.map(id => commitEach(id, prev.find(x => x.id === id)?.status))),
+      () => {
+        setManagementUsers(p => p.map(u => { const pr = prev.find(x => x.id === u.id); return pr ? { ...u, accountStatus: pr.status } : u }))
+        setApiError('Gagal memproses sebagian akun.')
+      }
+    )
   }
 
-  const sortedUsers = [...filteredUsers].sort((a, b) => {
-    if (!sortConfig.key) return 0
-    let valA = a[sortConfig.key] || ''
-    let valB = b[sortConfig.key] || ''
-    
-    if (sortConfig.key === 'birthdate' || sortConfig.key === 'endDate') {
-      valA = valA ? new Date(valA).getTime() : 0
-      valB = valB ? new Date(valB).getTime() : 0
-    } else if (typeof valA === 'string') {
-      valA = valA.toLowerCase()
-      valB = valB.toLowerCase()
+  const handleManajemenBulk = (key) => {
+    const rows = selectedUsers
+    if (!rows.length) return
+    if (key === 'hapus') {
+      runBulkStatus(rows, 'Baru Dihapus', <>{rows.length} akun telah <span className="text-red-500 font-medium">dihapus</span></>, (id) => adminApi.requestUserDeletion(id))
+    } else if (key === 'pulihkan') {
+      runBulkStatus(rows, 'Disetujui', <>{rows.length} akun telah <span className="text-green-500 font-medium">dipulihkan</span></>,
+        (id, prevStatus) => prevStatus === 'Baru Dihapus' ? adminApi.cancelUserDeletion(id) : adminApi.unsuspendUser(id))
+    } else if (key === 'setujui') {
+      runBulkStatus(rows, 'Disetujui', <>{rows.length} akun telah <span className="text-green-500 font-medium">disetujui</span></>, (id) => adminApi.verifyUser(id, { status: 'approved' }))
+    } else if (key === 'tangguhkan') {
+      setBulkSuspendOpen(true)
     }
+  }
 
-    if (valA < valB) return sortConfig.direction === 'asc' ? -1 : 1
-    if (valA > valB) return sortConfig.direction === 'asc' ? 1 : -1
-    return 0
-  })
+  // Bulk tangguhkan pakai satu SuspendModal → suspendedUntil sama untuk semua terpilih.
+  const handleBulkTangguhkan = ({ suspendedUntil }) => {
+    const rows = selectedUsers
+    setBulkSuspendOpen(false)
+    runBulkStatus(rows, 'Ditangguhkan', <>{rows.length} akun telah <span className="text-orange-500 font-medium">ditangguhkan</span></>, (id) => adminApi.suspendUser(id, suspendedUntil))
+  }
 
   const handleExport = () => {
-    const escapeCsv = (str) => {
-      if (str === null || str === undefined) return '';
-      const stringStr = String(str);
-      if (stringStr.includes(',') || stringStr.includes('"') || stringStr.includes('\n')) {
-        return `"${stringStr.replace(/"/g, '""')}"`;
-      }
-      return stringStr;
-    };
-
-    let headers = []
-    let rows = []
-
-    if (activeTab === 'verifikasi') {
-      headers = ['Nama Pengguna', 'Email', 'Status', 'Tgl.Lahir', 'Alumni Pelatihan', 'Tahun', 'Asal Sekolah', 'Role Pengguna']
-      rows = sortedUsers.map(user => [
-        user.name,
-        user.email,
-        user.status,
-        user.birthdate,
-        user.training,
-        user.year,
-        user.school,
-        user.role || 'Pilih Role'
-      ])
-    } else {
-      headers = ['Nama Pengguna', 'Email', 'Status Akun', 'Kode Voucher', 'Tgl.Lahir', 'Alumni Pelatihan', 'Tahun', 'Asal Sekolah', 'Role Pengguna', 'Berlangganan', 'Tgl Berakhir']
-      rows = sortedUsers.map(user => [
-        user.name,
-        user.email,
-        user.accountStatus || '-',
-        user.voucher || '-',
-        user.birthdate || '-',
-        user.training || '-',
-        user.year || '-',
-        user.school || '-',
-        user.role || 'Pilih Role',
-        user.subscription || '-',
-        user.plan || '-'
-      ])
-    }
-
-    const csvContent = [
-      headers.join(','),
-      ...rows.map(row => row.map(escapeCsv).join(','))
-    ].join('\n')
-
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const csv = buildCsvContent(activeTab, sortedUsers)
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
     const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
     link.setAttribute('href', url)
-    link.setAttribute('download', activeTab === 'verifikasi' ? 'verifikasi_akun-Export data.csv' : 'manajemen_akun-Export data.csv')
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
+    link.setAttribute('download',
+      activeTab === 'verifikasi' ? 'verifikasi_akun-Export data.csv'
+      : activeTab === 'verifikasi-pembayaran' ? 'verifikasi_pembayaran-Export data.csv'
+      : 'manajemen_akun-Export data.csv')
+    document.body.appendChild(link); link.click(); document.body.removeChild(link)
   }
 
   return (
     <div className="h-screen bg-white flex font-sans overflow-hidden">
-      
-      {/* ─── SIDEBAR ─── */}
-      <aside className="w-[260px] min-w-[260px] max-w-[260px] flex-none bg-[#0A1128] text-white flex flex-col h-full">
-        <div className="p-8 flex items-center gap-4">
-          <div className="w-10 h-10 rounded-full bg-white shrink-0"></div>
-          <span className="text-xl font-bold tracking-wide">Logo</span>
-        </div>
+      <AdminSidebar activeTab={activeTab} onTabChange={handleTabChange} onSignOut={onSignOut} user={user} navFlags={navFlags} />
 
-        <nav className="flex-1 px-4 mt-4 space-y-2">
-          <button
-            onClick={() => handleTabChange('verifikasi')}
-            className={cn(
-              "w-full flex items-center gap-4 px-5 py-3.5 rounded-full transition-colors text-sm font-medium",
-              activeTab === 'verifikasi' ? "bg-white/10" : "text-gray-400 hover:text-white hover:bg-white/5"
-            )}
-          >
-            <User size={18} />
-            Verifikasi Akun
-          </button>
-          
-          <button
-            onClick={() => handleTabChange('manajemen')}
-            className={cn(
-              "w-full flex items-center gap-4 px-5 py-3.5 rounded-full transition-colors text-sm font-medium",
-              activeTab === 'manajemen' ? "bg-white/10" : "text-gray-400 hover:text-white hover:bg-white/5"
-            )}
-          >
-            <Users size={18} />
-            Manajemen Akun
-          </button>
-        </nav>
-
-        <div className="p-6 border-t border-white/10 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-blue-500 overflow-hidden">
-              {/* Profile image placeholder */}
-              <img src="https://i.pravatar.cc/100" alt="Admin" className="w-full h-full object-cover" />
-            </div>
-            <div className="flex flex-col">
-              <span className="text-sm font-semibold">Admin Gasing</span>
-              <span className="text-xs text-gray-400">@admingasing</span>
-            </div>
-          </div>
-          <button onClick={onSignOut} className="text-white hover:text-gray-300 p-2">
-            <LogOut size={18} />
-          </button>
-        </div>
-      </aside>
-
-      {/* ─── MAIN CONTENT ─── */}
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        
-        {/* Header Title */}
-        <header className="px-10 py-8 border-b border-gray-100 shrink-0">
-          <h1 className="text-2xl font-bold text-[#0A1128]">
-            {activeTab === 'verifikasi' ? 'Verifikasi Akun' : 'Manajemen Akun'}
+        <header className="px-10 py-8 border-b border-gray-100 shrink-0 bg-white">
+          <h1 className="text-3xl font-bold text-[#0A1128]">
+            {activeTab === 'verifikasi' && 'Verifikasi Akun'}
+            {activeTab === 'verifikasi-pembayaran' && 'Verifikasi Pembayaran'}
+            {activeTab === 'manajemen' && 'Manajemen Akun'}
+            {activeTab === 'pendaftaran-trainer' && 'Pendaftaran Pelatihan Trainer'}
+            {activeTab === 'riwayat-pelatihan' && 'Riwayat Pelatihan'}
           </h1>
         </header>
 
-        {/* Content Area */}
-        <div className="flex-1 overflow-auto p-10 bg-white">
-          
-          {/* Table Controls */}
-          {activeTab === 'verifikasi' ? (
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center gap-3">
-                <span className="text-sm font-semibold text-[#0A1128]">Total:</span>
-                <div className="flex items-center gap-2 bg-[#FDF4FF] px-3 py-1.5 rounded-full">
-                  <span className="w-6 h-6 rounded-full bg-[#D946EF] text-white text-xs flex items-center justify-center font-bold">
-                    {sortedUsers.length}
-                  </span>
-                  <span className="text-sm font-bold text-[#D946EF]">Review</span>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-4">
-                <div className="relative w-[300px]">
-                  <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
-                  <input 
-                    type="text" 
-                    placeholder="Cari user..." 
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full pl-10 pr-10 py-2.5 bg-white border border-gray-200 rounded-full text-sm outline-none focus:border-[#D946EF] focus:ring-1 focus:ring-[#D946EF] transition-all"
-                  />
-                  {searchQuery && (
-                    <button 
-                      onClick={() => setSearchQuery('')}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                    >
-                      <X size={14} />
-                    </button>
-                  )}
-                </div>
-                <button 
-                  onClick={handleExport}
-                  className="flex items-center gap-2 bg-[#0A1128] hover:bg-[#0A1128]/90 text-white px-5 py-2.5 rounded-full text-sm font-medium transition-colors"
-                >
-                  <Download size={16} />
-                  Export List
-                </button>
-              </div>
-            </div>
-          ) : (
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center gap-2 bg-gray-50/50 border border-gray-100 p-1.5 rounded-full">
-                {['Semua', 'Approved', 'Pending', 'Rejected'].map(status => {
-                  const isSelected = activeFilter === status;
-                  return (
-                    <button 
-                      key={status}
-                      onClick={() => setActiveFilter(status)}
-                      className={cn(
-                        "flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-colors",
-                        isSelected ? "bg-[#0A1128] text-white shadow-sm" : "text-gray-500 hover:text-[#0A1128] bg-transparent"
-                      )}
-                    >
-                      <div className={cn(
-                        "w-4 h-4 rounded flex items-center justify-center border",
-                        isSelected ? "border-blue-600 bg-blue-600" : "border-gray-300 bg-white"
-                      )}>
-                        {isSelected && <Check size={12} className="text-white" strokeWidth={3} />}
-                      </div>
-                      {status}
-                    </button>
-                  )
-                })}
-              </div>
-
-              <div className="flex items-center gap-3 relative" ref={filterRef}>
-                <button 
-                  onClick={() => setIsFilterOpen(!isFilterOpen)}
-                  className={cn(
-                    "w-[42px] h-[42px] rounded-full border flex items-center justify-center transition-colors shrink-0 shadow-sm",
-                    isFilterOpen ? "border-blue-600 text-blue-600 bg-blue-50" : "border-gray-200 text-[#0A1128] hover:bg-gray-50"
-                  )}
-                >
-                  <Filter size={18} strokeWidth={2} />
-                </button>
-
-                {/* Filter Popover */}
-                {isFilterOpen && (
-                  <div className="absolute top-14 left-0 w-[320px] bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-gray-100 p-6 z-50">
-                    
-                    {/* Role Section */}
-                    <div className="mb-6">
-                      <div className="flex items-center gap-2 mb-3">
-                        <div 
-                          className={cn(
-                            "w-4 h-4 rounded border flex items-center justify-center cursor-pointer",
-                            selectedRoles.length === 4 ? "border-blue-600 bg-blue-600" : "border-gray-300 bg-white"
-                          )} 
-                          onClick={() => {
-                            if (selectedRoles.length === 4) setSelectedRoles([])
-                            else setSelectedRoles(['Trainer Utama', 'Trainer Aula', 'Trainer Kelas', 'Guru'])
-                          }}
-                        >
-                          {selectedRoles.length === 4 && <Check size={12} className="text-white" strokeWidth={3} />}
-                        </div>
-                        <span className="font-bold text-[#0A1128]">Role</span>
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        {['Trainer Utama', 'Trainer Aula', 'Trainer Kelas', 'Guru'].map(role => (
-                          <button
-                            key={role}
-                            onClick={() => {
-                              if (selectedRoles.includes(role)) setSelectedRoles(selectedRoles.filter(r => r !== role))
-                              else setSelectedRoles([...selectedRoles, role])
-                            }}
-                            className={cn(
-                              "px-4 py-1.5 rounded-full text-sm transition-colors border",
-                              selectedRoles.includes(role) 
-                                ? "border-blue-600 text-blue-600 bg-blue-50 font-medium" 
-                                : "border-gray-200 text-gray-600 hover:border-gray-300"
-                            )}
-                          >
-                            {role}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Berlangganan Section */}
-                    <div>
-                      <div className="flex items-center gap-2 mb-3">
-                        <div 
-                          className={cn(
-                            "w-4 h-4 rounded border flex items-center justify-center cursor-pointer",
-                            selectedSubscriptions.length === 3 ? "border-blue-600 bg-blue-600" : "border-gray-300 bg-white"
-                          )} 
-                          onClick={() => {
-                            if (selectedSubscriptions.length === 3) setSelectedSubscriptions([])
-                            else setSelectedSubscriptions(['Not Active', 'Active', 'Expired'])
-                          }}
-                        >
-                          {selectedSubscriptions.length === 3 && <Check size={12} className="text-white" strokeWidth={3} />}
-                        </div>
-                        <span className="font-bold text-[#0A1128]">Berlangganan</span>
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        {['Not Active', 'Active', 'Expired'].map(sub => (
-                          <button
-                            key={sub}
-                            onClick={() => {
-                              if (selectedSubscriptions.includes(sub)) setSelectedSubscriptions(selectedSubscriptions.filter(s => s !== sub))
-                              else setSelectedSubscriptions([...selectedSubscriptions, sub])
-                            }}
-                            className={cn(
-                              "px-4 py-1.5 rounded-full text-sm transition-colors border",
-                              selectedSubscriptions.includes(sub) 
-                                ? "border-blue-600 text-blue-600 bg-blue-50 font-medium" 
-                                : "border-gray-200 text-gray-600 hover:border-gray-300"
-                            )}
-                          >
-                            {sub}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                )}
-                <div className="relative w-[280px]">
-                  <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
-                  <input 
-                    type="text" 
-                    placeholder="Cari user..." 
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full pl-10 pr-10 py-2.5 bg-white border border-gray-200 rounded-full text-sm outline-none focus:border-[#D946EF] focus:ring-1 focus:ring-[#D946EF] transition-all"
-                  />
-                  {searchQuery && (
-                    <button 
-                      onClick={() => setSearchQuery('')}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                    >
-                      <X size={14} />
-                    </button>
-                  )}
-                </div>
-                <button 
-                  onClick={handleExport}
-                  className="flex items-center gap-2 bg-[#0A1128] hover:bg-[#0A1128]/90 text-white px-5 py-2.5 rounded-full text-sm font-medium transition-colors shadow-sm"
-                >
-                  <Download size={16} />
-                  Export List
-                </button>
-              </div>
+        <div className="flex-1 overflow-auto p-10 bg-[#F7F8FC]">
+          {apiError && (
+            <div className="mb-4 px-4 py-3 rounded-lg bg-red-50 text-red-700 text-sm border border-red-200">
+              {apiError}
             </div>
           )}
 
-          {/* Table */}
-          <div className="border border-gray-200 rounded-2xl overflow-hidden shadow-sm">
+          {activeTab === 'verifikasi' && (
+            <VerifikasiControls
+              searchQuery={searchQuery}
+              onSearchChange={setSearchQuery}
+              onExport={handleExport}
+              subTab={verifSubTab}
+              onSubTabChange={(t) => { setVerifSubTab(t); setSelectedIds([]) }}
+              pendingCount={users.length}
+              voucherCount={pendingVoucherUsers.length}
+              selectedCount={selectedIds.length}
+              bulkLimit={BULK_LIMIT}
+              limitHit={limitHit}
+              onBulkApprove={() => setBulkModal('approve')}
+              onBulkReject={() => setBulkModal('reject')}
+              onBulkConfirm={() => setBulkModal('confirm')}
+              onClearSelection={clearSelection}
+              onDismissLimit={() => setLimitHit(false)}
+            />
+          )}
+          {activeTab === 'verifikasi-pembayaran' && (
+            <VerifikasiPembayaranControls
+              searchQuery={searchQuery}
+              onSearchChange={setSearchQuery}
+              onExport={handleExport}
+              subTab={pembayaranSubTab}
+              onSubTabChange={setPembayaranSubTab}
+              menungguCount={pembayaranMenunggu.length}
+              ditolakCount={pembayaranDitolak.length}
+            />
+          )}
+          {activeTab === 'pendaftaran-trainer' && (
+            <PendaftaranTrainerControls
+              searchQuery={searchQuery}
+              onSearchChange={setSearchQuery}
+              onAdd={() => setIsAddPendaftaranModalOpen(true)}
+              selectedCount={selectedIds.length}
+              bulkLimit={BULK_LIMIT}
+              limitHit={limitHit}
+              onClearSelection={clearSelection}
+              onDismissLimit={() => setLimitHit(false)}
+            />
+          )}
+          {activeTab === 'manajemen' && (
+            <ManajemenControls
+              activeFilter={activeFilter} onFilterChange={(f) => { setActiveFilter(f); setSelectedIds([]) }}
+              selectedRoles={selectedRoles} onRolesChange={setSelectedRoles}
+              selectedSubscriptions={selectedSubscriptions} onSubscriptionsChange={setSelectedSubscriptions}
+              selectedPlans={selectedPlans} onPlansChange={setSelectedPlans}
+              searchQuery={searchQuery} onSearchChange={setSearchQuery}
+              onExport={handleExport}
+              selectedCount={selectedIds.length}
+              bulkLimit={BULK_LIMIT}
+              limitHit={limitHit}
+              onDismissLimit={() => setLimitHit(false)}
+              onClearSelection={clearSelection}
+              onBulkAction={handleManajemenBulk}
+            />
+          )}
+          {activeTab === 'riwayat-pelatihan' && (
+            <RiwayatPelatihanControls
+              searchQuery={searchQuery}
+              onSearchChange={setSearchQuery}
+              onAdd={() => setIsAddPelatihanModalOpen(true)}
+              onExport={() => {
+                const csv = [
+                  'Nama Pelatihan,Daerah Pelatihan,Tgl. Mulai,Status,Nama Peserta,Last Updated',
+                  ...riwayatPelatihanData.map(item => `"${item.nama}","${item.daerah}","${item.tglMulai}","${item.status}","${item.pesertaNama}","${item.lastUpdated}"`)
+                ].join('\n')
+                const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+                const url = URL.createObjectURL(blob)
+                const link = document.createElement('a')
+                link.setAttribute('href', url)
+                link.setAttribute('download', 'riwayat_pelatihan-Export data.csv')
+                document.body.appendChild(link); link.click(); document.body.removeChild(link)
+              }}
+              selectedCount={selectedIds.length}
+              bulkLimit={BULK_LIMIT}
+              limitHit={limitHit}
+              onClearSelection={clearSelection}
+              onDismissLimit={() => setLimitHit(false)}
+            />
+          )}
+
+          <div className="border border-gray-200 rounded-2xl overflow-hidden shadow-sm bg-white">
             <div className="overflow-x-auto">
-              {activeTab === 'verifikasi' ? (
-                <table className="w-full text-left text-sm whitespace-nowrap">
-                  <thead className="bg-[#0A1128] text-white">
-                    <tr>
-                      <th className="px-4 py-4 w-12 text-center sticky left-0 z-20 bg-[#0A1128]">
-                        <div className="w-4 h-4 rounded border border-white/30 mx-auto"></div>
-                      </th>
-                      <th className="px-4 py-4 font-medium sticky left-[48px] z-20 bg-[#0A1128] shadow-[4px_0_10px_-4px_rgba(0,0,0,0.3)]">
-                        <div className="flex items-center gap-2 cursor-pointer hover:text-white transition-colors select-none" onClick={() => handleSort('name')}>
-                          Nama Pengguna <ArrowDownUp size={14} className={sortConfig.key === 'name' ? "text-white" : "text-white/50"} />
-                        </div>
-                      </th>
-                      <th className="px-4 py-4 font-medium">
-                        <div className="flex items-center gap-2 cursor-pointer hover:text-white transition-colors select-none" onClick={() => handleSort('email')}>
-                          Email <ArrowDownUp size={14} className={sortConfig.key === 'email' ? "text-white" : "text-white/50"} />
-                        </div>
-                      </th>
-                      <th className="px-4 py-4 font-medium">Status</th>
-                      <th className="px-4 py-4 font-medium">
-                        <div className="flex items-center gap-2 cursor-pointer hover:text-white transition-colors select-none" onClick={() => handleSort('birthdate')}>
-                          Tgl.Lahir <ArrowDownUp size={14} className={sortConfig.key === 'birthdate' ? "text-white" : "text-white/50"} />
-                        </div>
-                      </th>
-                      <th className="px-4 py-4 font-medium">
-                        <div className="flex items-center gap-2 cursor-pointer hover:text-white transition-colors select-none" onClick={() => handleSort('training')}>
-                          Alumni Pelatihan <ArrowDownUp size={14} className={sortConfig.key === 'training' ? "text-white" : "text-white/50"} />
-                        </div>
-                      </th>
-                      <th className="px-4 py-4 font-medium">
-                        <div className="flex items-center gap-2 cursor-pointer hover:text-white transition-colors select-none" onClick={() => handleSort('year')}>
-                          Tahun <ArrowDownUp size={14} className={sortConfig.key === 'year' ? "text-white" : "text-white/50"} />
-                        </div>
-                      </th>
-                      <th className="px-4 py-4 font-medium">
-                        <div className="flex items-center gap-2 cursor-pointer hover:text-white transition-colors select-none" onClick={() => handleSort('school')}>
-                          Asal Sekolah asas <ArrowDownUp size={14} className={sortConfig.key === 'school' ? "text-white" : "text-white/50"} />
-                        </div>
-                      </th>
-                      <th className="px-4 py-4 font-medium">Role Pengguna</th>
-                      <th className="px-4 py-4 font-medium text-center">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100">
-                    {sortedUsers.length > 0 ? (
-                      sortedUsers.map((user, idx) => (
-                        <tr key={user.id} className="group hover:bg-[#F9FAFB] transition-colors">
-                          <td className="px-4 py-4 text-center sticky left-0 z-10 bg-white group-hover:bg-[#F9FAFB] transition-colors">
-                            <div className="w-4 h-4 rounded border border-gray-300 bg-gray-50 mx-auto"></div>
-                          </td>
-                          <td className="px-4 py-4 sticky left-[48px] z-10 bg-white group-hover:bg-[#F9FAFB] transition-colors shadow-[4px_0_10px_-4px_rgba(0,0,0,0.05)]">
-                            <div className="font-bold text-[#0A1128]">{user.name}</div>
-                            <div className="text-xs text-gray-400 mt-0.5">{user.username}</div>
-                          </td>
-                        <td className="px-4 py-4 text-[#0A1128] font-medium">{user.email}</td>
-                        <td className="px-4 py-4">
-                          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-[#FDF4FF] text-[#D946EF]">
-                            {user.status}
-                          </span>
-                        </td>
-                        <td className="px-4 py-4 text-[#0A1128] font-medium">{user.birthdate}</td>
-                        <td className="px-4 py-4 text-[#0A1128] font-medium max-w-[200px] truncate" title={user.training}>
-                          {user.training}
-                        </td>
-                        <td className="px-4 py-4 text-[#0A1128] font-medium">{user.year}</td>
-                        <td className="px-4 py-4 text-[#0A1128] font-medium max-w-[250px] truncate" title={user.school}>
-                          {user.school}
-                        </td>
-                        <td className="px-4 py-4">
-                          <div className="relative w-36">
-                            <select 
-                              className={cn(
-                                "w-full appearance-none bg-white border rounded-full py-1.5 pl-4 pr-8 text-sm font-medium outline-none transition-all duration-300",
-                                roleErrors[user.id] 
-                                  ? "border-red-500 ring-[3px] ring-red-500/20 text-red-600" 
-                                  : "border-gray-200 focus:border-[#0A1128] text-[#0A1128]"
-                              )}
-                              value={user.role || ""}
-                              onChange={(e) => handleRoleChange(user.id, e.target.value)}
-                            >
-                              <option value="" disabled>Pilih Role</option>
-                              <option value="Trainer Utama">Trainer Utama</option>
-                              <option value="Trainer Kelas">Trainer Kelas</option>
-                              <option value="Guru">Guru</option>
-                              <option value="Trainer Aula">Trainer Aula</option>
-                            </select>
-                            <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-                          </div>
-                        </td>
-                        <td className="px-4 py-4">
-                          <div className="flex items-center justify-center gap-2">
-                            <button 
-                              onClick={() => handleVerify(user.id)}
-                              className="w-8 h-8 rounded-full bg-blue-600 hover:bg-blue-700 flex items-center justify-center text-white transition-colors"
-                            >
-                              <Check size={16} strokeWidth={3} />
-                            </button>
-                            <button 
-                              onClick={() => handleRejectClick(user)}
-                              className="w-8 h-8 rounded-full bg-white border border-gray-200 hover:bg-gray-50 flex items-center justify-center text-gray-500 transition-colors"
-                            >
-                              <X size={16} strokeWidth={2} />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td colSpan="10" className="px-4 py-12 text-center text-gray-500">
-                        Tidak ada data yang cocok dengan pencarian <span className="font-semibold">"{searchQuery}"</span>
-                      </td>
-                    </tr>
-                  )}
-                  </tbody>
-                </table>
-              ) : (
-                <table className="w-full text-left text-sm whitespace-nowrap">
-                  <thead className="bg-[#0A1128] text-white">
-                    <tr>
-                      <th className="px-4 py-4 w-12 text-center sticky left-0 z-20 bg-[#0A1128]">
-                        <div className="w-4 h-4 rounded border border-white/30 mx-auto"></div>
-                      </th>
-                      <th className="px-4 py-4 font-medium sticky left-[48px] z-20 bg-[#0A1128] shadow-[4px_0_10px_-4px_rgba(0,0,0,0.3)]">
-                        <div className="flex items-center gap-2 cursor-pointer hover:text-white transition-colors select-none" onClick={() => handleSort('name')}>
-                          Nama Pengguna <ArrowDownUp size={14} className={sortConfig.key === 'name' ? "text-white" : "text-white/50"} />
-                        </div>
-                      </th>
-                      <th className="px-4 py-4 font-medium">
-                        <div className="flex items-center gap-2 cursor-pointer hover:text-white transition-colors select-none" onClick={() => handleSort('email')}>
-                          Email <ArrowDownUp size={14} className={sortConfig.key === 'email' ? "text-white" : "text-white/50"} />
-                        </div>
-                      </th>
-                      <th className="px-4 py-4 font-medium">
-                        <div className="flex items-center gap-2 cursor-pointer hover:text-white transition-colors select-none" onClick={() => handleSort('accountStatus')}>
-                          Status Akun <ArrowDownUp size={14} className={sortConfig.key === 'accountStatus' ? "text-white" : "text-white/50"} />
-                        </div>
-                      </th>
-                      <th className="px-4 py-4 font-medium">Kode Voucher</th>
-                      <th className="px-4 py-4 font-medium">
-                        <div className="flex items-center gap-2 cursor-pointer hover:text-white transition-colors select-none" onClick={() => handleSort('birthdate')}>
-                          Tgl.Lahir <ArrowDownUp size={14} className={sortConfig.key === 'birthdate' ? "text-white" : "text-white/50"} />
-                        </div>
-                      </th>
-                      <th className="px-4 py-4 font-medium">
-                        <div className="flex items-center gap-2 cursor-pointer hover:text-white transition-colors select-none" onClick={() => handleSort('training')}>
-                          Alumni Pelatihan <ArrowDownUp size={14} className={sortConfig.key === 'training' ? "text-white" : "text-white/50"} />
-                        </div>
-                      </th>
-                      <th className="px-4 py-4 font-medium">
-                        <div className="flex items-center gap-2 cursor-pointer hover:text-white transition-colors select-none" onClick={() => handleSort('year')}>
-                          Tahun <ArrowDownUp size={14} className={sortConfig.key === 'year' ? "text-white" : "text-white/50"} />
-                        </div>
-                      </th>
-                      <th className="px-4 py-4 font-medium">
-                        <div className="flex items-center gap-2 cursor-pointer hover:text-white transition-colors select-none" onClick={() => handleSort('school')}>
-                          Asal Sekolah asas <ArrowDownUp size={14} className={sortConfig.key === 'school' ? "text-white" : "text-white/50"} />
-                        </div>
-                      </th>
-                      <th className="px-4 py-4 font-medium">
-                        <div className="flex items-center gap-2 cursor-pointer hover:text-white transition-colors select-none" onClick={() => handleSort('role')}>
-                          Role <ArrowDownUp size={14} className={sortConfig.key === 'role' ? "text-white" : "text-white/50"} />
-                        </div>
-                      </th>
-                      <th className="px-4 py-4 font-medium">
-                        <div className="flex items-center gap-2 cursor-pointer hover:text-white transition-colors select-none" onClick={() => handleSort('subscription')}>
-                          Berlangganan <ArrowDownUp size={14} className={sortConfig.key === 'subscription' ? "text-white" : "text-white/50"} />
-                        </div>
-                      </th>
-                      <th className="px-4 py-4 font-medium">
-                        <div className="flex items-center gap-2 cursor-pointer hover:text-white transition-colors select-none" onClick={() => handleSort('plan')}>
-                          Tgl. Berakhir <ArrowDownUp size={14} className={sortConfig.key === 'plan' ? "text-white" : "text-white/50"} />
-                        </div>
-                      </th>
-                      <th className="px-4 py-4 font-medium text-center">
-                        <div className="flex items-center justify-center gap-2 cursor-pointer hover:text-white transition-colors select-none" onClick={() => handleSort('action')}>
-                          Action Voucher <ArrowDownUp size={14} className={sortConfig.key === 'action' ? "text-white" : "text-white/50"} />
-                        </div>
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100">
-                    {sortedUsers.length > 0 ? (
-                      sortedUsers.map((user, idx) => (
-                        <tr key={user.id} className="group hover:bg-[#F9FAFB] transition-colors">
-                          <td className="px-4 py-4 text-center sticky left-0 z-10 bg-white group-hover:bg-[#F9FAFB] transition-colors">
-                            <div className="w-4 h-4 rounded border border-gray-300 bg-gray-50 mx-auto"></div>
-                          </td>
-                          <td className="px-4 py-4 sticky left-[48px] z-10 bg-white group-hover:bg-[#F9FAFB] transition-colors shadow-[4px_0_10px_-4px_rgba(0,0,0,0.05)]">
-                            <div className="flex flex-col">
-                              <div className="font-bold text-[#0A1128] flex items-center">
-                                {user.name}
-                                {user.isNew && (
-                                  <span className="bg-blue-600 text-white text-[10px] px-2 py-0.5 rounded-full font-bold ml-2">New</span>
-                                )}
-                              </div>
-                              <div className="text-xs text-gray-400 mt-0.5">{user.username}</div>
-                            </div>
-                          </td>
-                          <td className="px-4 py-4 text-[#0A1128] font-medium">{user.email}</td>
-                          <td className="px-4 py-4">
-                            <span className={cn(
-                              "inline-flex items-center px-3 py-1 rounded-full text-xs font-bold",
-                              user.accountStatus === 'Pending' ? "bg-orange-50 text-orange-500" :
-                              user.accountStatus === 'Rejected' ? "bg-red-50 text-red-500" :
-                              user.accountStatus === 'Approved' ? "bg-green-50 text-green-500" : ""
-                            )}>
-                              {user.accountStatus}
-                            </span>
-                          </td>
-                          <td className="px-4 py-4">
-                            <div className={cn(
-                              "flex items-center gap-2 px-3 py-1.5 rounded-full text-xs border w-[150px] justify-between",
-                              user.voucher ? "border-gray-200 bg-white" : "border-gray-100 bg-gray-50 opacity-50"
-                            )}>
-                              <div className="flex items-center gap-1">
-                                <span className="text-gray-500">Voucher:</span>
-                                {user.voucher && <span className="font-bold text-blue-600">{user.voucher}</span>}
-                              </div>
-                              <Copy size={12} className={user.voucher ? "text-gray-400 cursor-pointer hover:text-gray-600" : "text-gray-300"} />
-                            </div>
-                          </td>
-                          <td className="px-4 py-4 text-[#0A1128] font-medium">{user.birthdate}</td>
-                          <td className="px-4 py-4 text-[#0A1128] font-medium max-w-[200px] truncate" title={user.training}>
-                            {user.training}
-                          </td>
-                          <td className="px-4 py-4 text-[#0A1128] font-medium">{user.year}</td>
-                          <td className="px-4 py-4 text-[#0A1128] font-medium max-w-[250px] truncate" title={user.school}>
-                            {user.school}
-                          </td>
-                          <td className="px-4 py-4">
-                            <div className="relative w-36">
-                              <select 
-                                className={cn(
-                                  "w-full appearance-none border rounded-full py-1.5 pl-4 pr-8 text-sm font-medium outline-none transition-all duration-300",
-                                  !user.role || user.accountStatus === 'Rejected' ? "bg-gray-50 text-gray-400 border-gray-100" : "bg-white border-gray-200 focus:border-[#0A1128] text-[#0A1128]"
-                                )}
-                                value={user.role || ""}
-                                onChange={(e) => handleRoleChange(user.id, e.target.value)}
-                                disabled={user.accountStatus === 'Rejected'}
-                              >
-                                <option value="" disabled>Pilih Role</option>
-                                <option value="Trainer Utama">Trainer Utama</option>
-                                <option value="Trainer Kelas">Trainer Kelas</option>
-                                <option value="Guru">Guru</option>
-                                <option value="Trainer Aula">Trainer Aula</option>
-                              </select>
-                              <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-                            </div>
-                          </td>
-                          <td className="px-4 py-4">
-                            <span className={cn(
-                              "inline-flex items-center px-3 py-1 rounded-full text-xs font-bold",
-                              user.subscription === 'Active' ? "bg-green-50 text-green-600" :
-                              user.subscription === 'Not Active' ? "bg-gray-100 text-gray-600" :
-                              user.subscription === 'Expired' ? "bg-red-50 text-red-500" : ""
-                            )}>
-                              {user.subscription}
-                            </span>
-                          </td>
-                          <td className="px-4 py-4">
-                            <div className="flex flex-col">
-                              <span className={cn(
-                                "font-medium",
-                                user.subscription === 'Not Active' ? "text-gray-400" :
-                                user.subscription === 'Expired' ? "text-red-500" : "text-[#0A1128]"
-                              )}>{user.plan}</span>
-                              {user.endDate && (
-                                <span className="text-[10px] text-gray-400 mt-0.5">Berakhir: {user.endDate}</span>
-                              )}
-                            </div>
-                          </td>
-                          <td className="px-4 py-4 text-center">
-                            {user.action === 'Konfirmasi' && (
-                              <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-1.5 rounded-full text-xs font-bold transition-colors">
-                                Konfirmasi
-                              </button>
-                            )}
-                            {user.action === 'Sudah Disalin' && (
-                              <span className="bg-green-50 text-green-600 px-4 py-1.5 rounded-full text-xs font-bold">
-                                Sudah Disalin
-                              </span>
-                            )}
-                            {user.action === '-' && (
-                              <span className="text-gray-400 font-bold">-</span>
-                            )}
-                          </td>
-                        </tr>
-                      ))
-                    ) : (
-                      <tr>
-                        <td colSpan="13" className="px-4 py-12 text-center text-gray-500">
-                          Tidak ada data yang cocok dengan pencarian <span className="font-semibold">"{searchQuery}"</span>
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
+              {activeTab === 'verifikasi' && verifSubTab === 'pending' && (
+                <VerifikasiTable
+                  users={sortedUsers}
+                  sortConfig={sortConfig}
+                  onSort={handleSort}
+                  onApprove={handleVerify}
+                  onReject={setRejectCandidate}
+                  searchQuery={searchQuery}
+                  selectedIds={selectedIds}
+                  onToggleSelect={toggleSelect}
+                  onToggleSelectAll={toggleSelectAll}
+                  allSelected={allSelected}
+                />
+              )}
+              {activeTab === 'verifikasi' && verifSubTab === 'voucher' && (
+                <PendingVoucherTable
+                  users={sortedUsers}
+                  sortConfig={sortConfig}
+                  onSort={handleSort}
+                  onConfirm={setVoucherCandidate}
+                  searchQuery={searchQuery}
+                  selectedIds={selectedIds}
+                  onToggleSelect={toggleSelect}
+                  onToggleSelectAll={toggleSelectAll}
+                  allSelected={allSelected}
+                />
+              )}
+              {activeTab === 'verifikasi-pembayaran' && (
+                <VerifikasiPembayaranTable
+                  users={sortedUsers}
+                  sortConfig={sortConfig}
+                  onSort={handleSort}
+                  searchQuery={searchQuery}
+                  subTab={pembayaranSubTab}
+                  onConfirm={setKonfirmasiCandidate}
+                />
+              )}
+              {activeTab === 'manajemen' && (
+                <ManajemenTable
+                  users={sortedUsers}
+                  sortConfig={sortConfig}
+                  onSort={handleSort}
+                  onRoleChange={handleRoleChange}
+                  searchQuery={searchQuery}
+                  activeFilter={activeFilter}
+                  onActionClick={handleActionClick}
+                  selectedIds={selectedIds}
+                  onToggleSelect={toggleSelect}
+                  onToggleSelectAll={toggleSelectAll}
+                  allSelected={allSelected}
+                />
+              )}
+              {activeTab === 'pendaftaran-trainer' && (
+                <PendaftaranTrainerTable
+                  data={pendaftaranData}
+                  onToggleStatus={handleTogglePendaftaranStatus}
+                  selectedIds={selectedIds}
+                  onToggleSelect={toggleSelect}
+                  onToggleSelectAll={() => toggleSelectAll(pendaftaranData.map(d => d.id))}
+                  allSelected={selectedIds.length > 0 && pendaftaranData.every(d => selectedIds.includes(d.id))}
+                  searchQuery={searchQuery}
+                />
+              )}
+              {activeTab === 'riwayat-pelatihan' && (
+                <RiwayatPelatihanTable
+                  data={riwayatPelatihanData}
+                  selectedIds={selectedIds}
+                  onToggleSelect={toggleSelect}
+                  searchQuery={searchQuery}
+                  onEdit={setPerbaruiSession}
+                  onDownload={handleDownloadRiwayat}
+                  onViewPeserta={setPesertaSession}
+                />
               )}
             </div>
           </div>
-
         </div>
       </main>
 
-      {/* ─── MODAL REJECT ─── */}
-      {rejectCandidate && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm">
-          <div className="bg-white rounded-[24px] p-8 max-w-[400px] w-full shadow-2xl flex flex-col items-center text-center mx-4">
-            <div className="w-16 h-16 rounded-full border border-dashed border-red-500 flex items-center justify-center mb-6 bg-red-50">
-              <UserX className="text-red-500" size={28} strokeWidth={1.5} />
-            </div>
-            
-            <h3 className="text-xl font-bold text-[#0A1128] mb-3">Tolak verifikasi akun ini?</h3>
-            
-            <p className="text-gray-500 mb-8 text-sm px-4">
-              Akun <span className="font-bold text-[#0A1128]">{rejectCandidate.name}</span> akan ditolak dan <span className="text-red-500">tidak mendapatkan akses</span> ke GASING Circle.
-            </p>
-            
-            <div className="flex items-center justify-center gap-6 w-full">
-              <button 
-                onClick={handleCancelReject}
-                className="font-semibold text-[#0A1128] hover:text-gray-600 px-6 py-2 transition-colors"
-              >
-                Batalkan
-              </button>
-              <button 
-                onClick={handleConfirmReject}
-                className="font-semibold px-8 py-3 rounded-full bg-[#FEE2E2] text-[#EF4444] hover:bg-white hover:border-[#EF4444] border border-transparent transition-all"
-              >
-                Tolak Akun
-              </button>
-            </div>
-          </div>
-        </div>
+      <RejectModal  candidate={rejectCandidate}  onConfirm={handleConfirmReject} onCancel={() => setRejectCandidate(null)} />
+      <ApproveModal
+        candidate={approveCandidate}
+        discourseGroups={discourseGroups}
+        trainingSessions={trainingSessions}
+        onConfirm={handleConfirmApprove}
+        onCancel={() => setApproveCandidate(null)}
+      />
+      {bulkModal === 'approve' && (
+        <BulkApproveModal
+          candidates={selectedUsers}
+          discourseGroups={discourseGroups}
+          trainingSessions={trainingSessions}
+          onConfirm={handleBulkApprove}
+          onCancel={() => setBulkModal(null)}
+        />
       )}
-
-      {/* ─── MODAL APPROVE ─── */}
-      {approveCandidate && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm">
-          <div className="bg-white rounded-[24px] p-8 max-w-[400px] w-full shadow-2xl flex flex-col items-center text-center mx-4">
-            <div className="w-16 h-16 rounded-full border border-dashed border-green-500 flex items-center justify-center mb-6 bg-green-50">
-              <UserCheck className="text-green-500" size={28} strokeWidth={1.5} />
-            </div>
-            
-            <h3 className="text-xl font-bold text-[#0A1128] mb-3">Setujui verifikasi akun ini?</h3>
-            
-            <p className="text-gray-500 mb-8 text-sm px-4">
-              Akun <span className="font-bold text-[#0A1128]">{approveCandidate.name}</span> akan disetujui dan <span className="text-green-500">mendapatkan akses</span> ke GASING Circle.
-            </p>
-            
-            <div className="flex items-center justify-center gap-6 w-full">
-              <button 
-                onClick={handleCancelApprove}
-                className="font-semibold text-[#0A1128] hover:text-gray-600 px-6 py-2 transition-colors"
-              >
-                Batalkan
-              </button>
-              <button 
-                onClick={handleConfirmApprove}
-                className="font-semibold px-8 py-3 rounded-full bg-blue-600 text-white hover:bg-blue-700 transition-colors"
-              >
-                Setujui Akun
-              </button>
-            </div>
-          </div>
-        </div>
+      {bulkModal === 'reject' && (
+        <BulkRejectModal
+          candidates={selectedUsers}
+          onConfirm={handleBulkReject}
+          onCancel={() => setBulkModal(null)}
+        />
       )}
-
-      {/* ─── TOAST NOTIFICATION ─── */}
-      {toast && (
-        <div className="fixed top-8 left-1/2 -translate-x-1/2 z-[100] bg-[#0A1128] text-white px-6 py-3.5 rounded-full shadow-lg flex items-center gap-6 animate-in slide-in-from-top-4 fade-in duration-300">
-          <span className="text-sm font-light">
-            {toast.message}
-          </span>
-          <button 
-            onClick={handleUndoToast}
-            className="text-sm text-gray-400 hover:text-white transition-colors"
-          >
-            Batalkan
-          </button>
-        </div>
+      {bulkModal === 'confirm' && (
+        <BulkVoucherModal
+          candidates={selectedUsers}
+          onConfirm={handleBulkConfirmVoucher}
+          onCancel={() => setBulkModal(null)}
+        />
       )}
+      <KonfirmasiVoucherModal
+        candidate={voucherCandidate}
+        onConfirm={handleConfirmVoucher}
+        onCancel={() => setVoucherCandidate(null)}
+      />
+      <AddPendaftaranTrainerModal
+        isOpen={isAddPendaftaranModalOpen}
+        onClose={() => setIsAddPendaftaranModalOpen(false)}
+        onSave={handleAddPendaftaran}
+      />
+      {actionModal.type === 'ubah-role' && (
+        <UbahRoleModal
+          user={actionModal.user}
+          discourseGroups={discourseGroups}
+          onConfirm={handleConfirmUbahRole}
+          onCancel={() => setActionModal({ type: null, user: null })}
+        />
+      )}
+      {actionModal.type === 'kirim-voucher' && (
+        <KirimVoucherModal
+          user={actionModal.user}
+          onConfirm={handleConfirmKirimVoucher}
+          onCancel={() => setActionModal({ type: null, user: null })}
+        />
+      )}
+      {actionModal.type === 'hapus-akun' && (
+        <HapusAkunModal
+          user={actionModal.user}
+          onConfirm={handleConfirmHapusAkun}
+          onCancel={() => setActionModal({ type: null, user: null })}
+        />
+      )}
+      {actionModal.type === 'pulihkan-akun' && (
+        <PulihkanAkunModal
+          user={actionModal.user}
+          onConfirm={handleConfirmPulihkanAkun}
+          onCancel={() => setActionModal({ type: null, user: null })}
+        />
+      )}
+      {actionModal.type === 'setujui-akun' && (
+        <SetujuiAkunModal
+          user={actionModal.user}
+          discourseGroups={discourseGroups}
+          trainingSessions={trainingSessions}
+          onConfirm={handleConfirmSetujuiAkun}
+          onCancel={() => setActionModal({ type: null, user: null })}
+        />
+      )}
+      {actionModal.type === 'tangguhkan-akun' && (
+        <SuspendModal
+          user={actionModal.user}
+          onConfirm={handleConfirmTangguhkanAkun}
+          onCancel={() => setActionModal({ type: null, user: null })}
+        />
+      )}
+      {bulkSuspendOpen && (
+        <SuspendModal
+          user={{ name: `${selectedIds.length} akun terpilih` }}
+          onConfirm={handleBulkTangguhkan}
+          onCancel={() => setBulkSuspendOpen(false)}
+        />
+      )}
+      <AddPelatihanModal
+        isOpen={isAddPelatihanModalOpen}
+        onClose={() => setIsAddPelatihanModalOpen(false)}
+        onSave={handleAddPelatihan}
+      />
+      <PerbaruiRiwayatModal
+        isOpen={!!perbaruiSession}
+        session={perbaruiSession}
+        onClose={() => setPerbaruiSession(null)}
+        onSave={handleUpdatePelatihan}
+        onDelete={handleDeleteRiwayat}
+      />
+      <DaftarPesertaModal
+        isOpen={!!pesertaSession}
+        session={pesertaSession}
+        onClose={() => setPesertaSession(null)}
+      />
+      <KonfirmasiPembayaranModal
+        candidate={konfirmasiCandidate}
+        onConfirm={handleKonfirmasiPembayaran}
+        onReject={() => { setTolakCandidate(konfirmasiCandidate); setKonfirmasiCandidate(null) }}
+        onCancel={() => setKonfirmasiCandidate(null)}
+      />
+      <TolakPembayaranModal
+        candidate={tolakCandidate}
+        onConfirm={handleTolakPembayaran}
+        onCancel={() => setTolakCandidate(null)}
+      />
+      <AdminToast toast={toast} onUndo={handleUndoToast} />
     </div>
   )
 }
