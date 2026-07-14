@@ -241,7 +241,7 @@ export function ManajemenTable({
                       <span className="bg-blue-600 text-white text-[10px] px-2 py-0.5 rounded-full font-bold ml-2">New</span>
                     )}
                   </div>
-                  <div className="text-xs text-gray-400 mt-0.5">{user.username || user.email.split('@')[0]}</div>
+                  <div className="text-xs text-gray-400 mt-0.5">{user.username}</div>
                 </td>
                 <td className="px-4 py-4 text-[#0A1128] font-medium">{user.email}</td>
                 <td className="px-4 py-4">

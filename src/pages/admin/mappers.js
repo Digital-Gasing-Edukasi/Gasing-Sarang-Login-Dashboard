@@ -1,5 +1,23 @@
 import { canonicalRole } from './roleOptions'
 
+// Username user (untuk kolom identitas di semua tabel admin).
+// JANGAN pernah menurunkan dari email (mis. email.split('@')[0]): itu MENGARANG
+// handle yang terlihat asli tapi ≠ username di database. Baca defensif lintas
+// varian key/nesting yang mungkin dikirim backend; kalau benar-benar tidak ada,
+// balik '-' (jujur "tidak diketahui") — bukan tebakan.
+function rawUsername(u) {
+  return (
+    u?.username || u?.userName || u?.user_name ||
+    u?.discourseUsername || u?.discourse_username ||
+    u?.user?.username || u?.profile?.username || ''
+  )
+}
+
+export function fmtUsername(u) {
+  const h = rawUsername(u)
+  return h ? `@${h}` : '-'
+}
+
 // Window "komponen baru": badge New + titik biru navbar hilang setelah 3 hari.
 export const NEW_WINDOW_MS = 3 * 24 * 60 * 60 * 1000
 
@@ -178,7 +196,7 @@ export function mapToVerifikasi(u, regions = []) {
   return {
     id:       u.id,
     name:     u.name || '-',
-    username: u.username ? `@${u.username}` : `@${(u.email || '').split('@')[0]}`,
+    username: fmtUsername(u),
     email:    u.email || '-',
     // `status` = label tampilan; `verifiedStatus` = enum mentah, dipakai handler
     // approve untuk memindahkan baris ke PENDING_VOUCHER tanpa reload.
@@ -341,7 +359,7 @@ export function mapToPembayaran(p, regions = [], discourseGroups = []) {
     id:       pay.id || p.id || u.id,   // id payment (target confirm/reject)
     userId:   u.id,
     name:     u.name || '-',
-    username: u.username ? `@${u.username}` : `@${(u.email || '').split('@')[0]}`,
+    username: fmtUsername(u),
     email:    u.email || '-',
     isNew,
     statusMember,
@@ -405,7 +423,7 @@ export function mapToManajemen(u, regions = [], discourseGroups = []) {
   return {
     id:       u.id,
     name:     u.name || '-',
-    username: u.username ? `@${u.username}` : `@${(u.email || '').split('@')[0]}`,
+    username: fmtUsername(u),
     email:    u.email || '-',
     isNew,
     accountStatus,

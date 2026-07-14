@@ -5,13 +5,20 @@ import { LeftPanel } from "@/components/layout/LeftPanel";
 // Dibuka di tab baru dari SignUpPage (target="_blank" href="/id/TOS" | "/id/privacy").
 // Tombol "Kembali ke Pendaftaran" mengalihkan SPA di tab itu ke halaman signup.
 export function LegalLayout({ title, updatedAt, children, onNavigate }) {
+  // Kembali ke Pendaftaran: rewrite URL /register/id/TOS|privacy → /register
+  // supaya alamat konsisten dgn halaman signup sebelum pindah SPA.
+  const handleBack = () => {
+    window.history.replaceState({}, "", "/register");
+    onNavigate("signup");
+  };
+
   return (
     <div className="flex h-screen overflow-hidden">
       <LeftPanel />
       <div className="flex-1 flex flex-col min-h-screen bg-background overflow-y-auto">
         <div className="flex-1 w-full max-w-2xl mx-auto px-6 lg:px-16 pt-10 lg:pt-16 pb-8">
           <button
-            onClick={() => onNavigate("signup")}
+            onClick={handleBack}
             className="flex items-center gap-1.5 text-sm font-bold text-foreground hover:text-foreground/80 transition-colors mb-8"
           >
             <ArrowLeft size={16} /> Kembali ke Pendaftaran
@@ -30,7 +37,7 @@ export function LegalLayout({ title, updatedAt, children, onNavigate }) {
 
           <div className="mt-12 pt-6 border-t border-border">
             <button
-              onClick={() => onNavigate("signup")}
+              onClick={handleBack}
               className="flex items-center gap-1.5 text-sm font-bold text-foreground hover:text-foreground/80 transition-colors"
             >
               <ArrowLeft size={16} /> Kembali ke Pendaftaran

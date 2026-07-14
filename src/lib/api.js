@@ -104,7 +104,10 @@ async function request(endpoint, options = {}) {
     ...options.headers,
   };
 
-  const token = tokenStorage.getAccess();
+  // Endpoint pre-auth (register/login/dll) TIDAK boleh kirim Bearer: token akun
+  // lama yang nyangkut bikin backend mengira user lama, mis. /auth/register →
+  // "Email cannot be changed for existing registration." Set { noAuth: true }.
+  const token = options.noAuth ? null : tokenStorage.getAccess();
   if (token) headers["Authorization"] = `Bearer ${token}`;
 
   const res = await dedupeFetch(url, {
@@ -199,13 +202,13 @@ function buildQuery(params) {
 // ─── AUTH ─────────────────────────────────────────────────────────────────────
 export const authApi = {
   register: (data) =>
-    request("/auth/register", { method: "POST", body: data }),
+    request("/auth/register", { method: "POST", body: data, noAuth: true }),
 
   confirmEmail: (token, otp) =>
-    request("/auth/confirm-email", { method: "POST", body: { token, otp } }),
+    request("/auth/confirm-email", { method: "POST", body: { token, otp }, noAuth: true }),
 
   login: (email, password) =>
-    request("/auth/login", { method: "POST", body: { email, password } }),
+    request("/auth/login", { method: "POST", body: { email, password }, noAuth: true }),
 
   logout: () => request("/auth/logout", { method: "POST" }),
 
@@ -219,12 +222,13 @@ export const authApi = {
     }),
 
   forgotPassword: (email) =>
-    request("/auth/forgot-password", { method: "POST", body: { email } }),
+    request("/auth/forgot-password", { method: "POST", body: { email }, noAuth: true }),
 
   resetPassword: (token, email, newPassword) =>
     request("/auth/reset-password", {
       method: "POST",
       body: { token, email, newPassword },
+      noAuth: true,
     }),
 
   // ── Alur Revise (akun diminta perbaiki data via token JWT dari email) ─────────
@@ -232,10 +236,10 @@ export const authApi = {
   //
   // getRevise: ambil profil + alasan + daftar field yang harus diperbaiki.
   getRevise: (token) =>
-    request("/auth/revise", { method: "POST", body: { token }, headers: {} }),
+    request("/auth/revise", { method: "POST", body: { token }, headers: {}, noAuth: true }),
   // submitRevise: kirim data yang sudah diperbaiki. Token one-time (di-revoke server).
   submitRevise: (data) =>
-    request("/auth/revise/submit", { method: "POST", body: data, headers: {} }),
+    request("/auth/revise/submit", { method: "POST", body: data, headers: {}, noAuth: true }),
 
   // @deprecated — diganti getRevise/submitRevise (alur token-based backend).
   // Lihat ADR-0003. Dihapus setelah FixDataPage migrasi ke token.

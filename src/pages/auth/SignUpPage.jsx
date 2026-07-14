@@ -142,10 +142,8 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
   const passwordRules = [
     { label: "Minimal 8 karakter", ok: password.length >= 8 },
     { label: "Minimal 1 huruf kapital", ok: /[A-Z]/.test(password) },
-    {
-      label: "Minimal 1 angka dan 1 karakter spesial",
-      ok: /\d/.test(password) && /[^A-Za-z0-9]/.test(password),
-    },
+    { label: "Minimal 1 angka", ok: /\d/.test(password) },
+    { label: "Minimal 1 karakter spesial", ok: /[^A-Za-z0-9]/.test(password) },
   ];
   const allRulesOk = passwordRules.every((r) => r.ok);
 
