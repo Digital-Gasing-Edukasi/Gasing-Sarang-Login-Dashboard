@@ -1,16 +1,31 @@
 // src/pages/PaymentSuccessPage.jsx
 import React, { useEffect, useState } from 'react'
-import { CheckCircle2, LogOut, MessageCircle, Loader2 } from 'lucide-react'
+import { LogOut, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { subscriptionApi } from '@/lib/api'
 
 function Avatar({ name = '' }) {
   const initials = name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()
   return (
-    <div className="w-9 h-9 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-sm font-semibold">
+    <div className="w-9 h-9 rounded-full bg-[#fce4e4] text-red-500 flex items-center justify-center text-sm font-semibold">
       {initials || 'U'}
     </div>
   )
+}
+
+// ─── BACKGROUND DECORATIONS ──────────────────────────────────────────────────
+function Decorations() {
+  return (
+    <>
+      {/* Background gradient & blobs */}
+      <div className="absolute inset-0 bg-gradient-to-br from-[#f0f6ff] via-[#f7fafe] to-[#f0f6ff] pointer-events-none -z-20" />
+      
+      {/* Dark Navy Wave Background */}
+      <svg className="absolute bottom-0 left-0 w-full text-[#0a1128] pointer-events-none -z-10" viewBox="0 0 1440 320" preserveAspectRatio="none" style={{height: '40vh', minHeight: '320px'}}>
+        <path fill="currentColor" fillOpacity="1" d="M0,256L48,229.3C96,203,192,149,288,144C384,139,480,181,576,192C672,203,768,181,864,154.7C960,128,1056,96,1152,106.7C1248,117,1344,171,1392,197.3L1440,224L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"></path>
+      </svg>
+    </>
+  );
 }
 
 export default function PaymentSuccessPage({ user, onSignOut, activePlanName }) {
@@ -24,7 +39,6 @@ export default function PaymentSuccessPage({ user, onSignOut, activePlanName }) 
 
   useEffect(() => {
     if (activePlanName) return
-    // Kalau tidak ada props, fetch dari API
     subscriptionApi.getStatus()
       .then(data => setPlanName(data.planName || data.plan?.name || 'Visionary'))
       .catch(() => setPlanName('Visionary'))
@@ -32,78 +46,59 @@ export default function PaymentSuccessPage({ user, onSignOut, activePlanName }) 
   }, [activePlanName])
 
   return (
-    <div className="min-h-screen bg-white flex flex-col">
+    <div className="min-h-screen relative overflow-hidden font-sans z-0 flex flex-col">
+      <Decorations />
 
       {/* ── NAVBAR ── */}
-      <nav className="flex items-center justify-between px-8 py-4 border-b border-gray-100">
-        <div className="flex items-center gap-2.5">
+      <nav className="relative z-10 flex items-center justify-between px-8 py-5">
+        <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center">
             <span className="text-white font-bold text-sm">G</span>
           </div>
-          <span className="font-semibold text-gray-900">Gasing Circle</span>
+          <span className="font-bold text-gray-900 text-lg tracking-tight">Gasing Circle</span>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-4">
           <button
             onClick={onSignOut}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition-colors"
+            className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-gray-50/80 border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors"
           >
-            <LogOut size={15} />
+            <LogOut size={16} />
             Sign Out
           </button>
-          <Avatar name={user?.name || user?.profile?.namaLengkap || ''} />
+          <Avatar name={user?.name || user?.profile?.namaLengkap || 'HK'} />
         </div>
       </nav>
 
       {/* ── CONTENT ── */}
-      <div className="flex-1 flex flex-col items-center justify-center px-8 py-16 animate-fade-in-up">
+      <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-8 pb-32 animate-fade-in-up">
 
-        {/* Icon sukses */}
-        <div className="w-20 h-20 rounded-full bg-blue-50 flex items-center justify-center mb-6">
-          <div className="w-14 h-14 rounded-full bg-blue-100 flex items-center justify-center">
-            <CheckCircle2 size={32} className="text-blue-600" />
-          </div>
-        </div>
-
-        <h1 className="text-3xl font-bold text-gray-900 mb-3">Pembayaran Berhasil</h1>
-        <p className="text-gray-500 text-sm mb-8 text-center max-w-sm">
+        <h1 className="text-[40px] font-bold text-[#10b981] mb-4 tracking-tight">Pembayaran Berhasil</h1>
+        <p className="text-gray-500 text-[15px] mb-12 text-center max-w-md">
           Selamat datang di Gasing Circle, akses Anda sekarang kini telah aktif.
         </p>
 
-        {/* Nama paket aktif */}
-        <div className="bg-green-50 border border-green-100 rounded-full px-5 py-2 mb-10">
-          {loading
-            ? <Loader2 size={16} className="animate-spin text-green-600" />
-            : (
-              <p className="text-sm text-gray-600">
-                Paket Aktif:{' '}
-                <span className="font-semibold text-blue-600">{planName}</span>
-              </p>
-            )
-          }
-        </div>
-
-        {/* CTA — Mulai jelajahi komunitas */}
+        {/* CTA — Jelajahi Gasing Circle */}
         <a
           href={DISCOURSE_URL}
           target="_blank"
           rel="noopener noreferrer"
           className={cn(
-            'w-full max-w-xs py-3.5 rounded-xl font-semibold text-white text-sm text-center',
-            'bg-blue-600 hover:bg-blue-700 active:scale-[0.98] transition-all duration-200',
-            'flex items-center justify-center gap-2 mb-4'
+            'px-10 py-3.5 rounded-full font-semibold text-white text-[15px] text-center',
+            'bg-[#003cf9] hover:bg-blue-700 active:scale-[0.98] transition-all duration-200 shadow-md',
+            'flex items-center justify-center mb-10'
           )}
         >
-          Mulai Jelajahi Komunitas
+          Jelajahi Gasing Circle
         </a>
 
         {/* Hubungi Kami */}
-        <p className="text-sm text-gray-500">
+        <p className="text-[14px] text-gray-500">
           Butuh bantuan?{' '}
           <a
             href={waUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="font-semibold text-gray-900 underline underline-offset-2 hover:text-blue-600 transition-colors"
+            className="font-semibold text-gray-900 hover:text-blue-600 transition-colors"
           >
             Hubungi Kami
           </a>
@@ -111,9 +106,10 @@ export default function PaymentSuccessPage({ user, onSignOut, activePlanName }) 
       </div>
 
       {/* Footer */}
-      <footer className="pb-6 text-center">
-        <p className="text-xs text-gray-400">©2026 Gasing Circle. All rights reserved.</p>
+      <footer className="relative z-10 pb-8 text-center mt-auto">
+        <p className="text-[13px] text-gray-400">©2026 Gasing Circle. All rights reserved.</p>
       </footer>
     </div>
   )
 }
+
