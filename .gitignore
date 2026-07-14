@@ -1,5 +1,6 @@
+node_modules
+dist
 .env
-.env.staging
-dist/
-.claude/
-.env.dev
+.env.*
+!.env.example
+.DS_Store
