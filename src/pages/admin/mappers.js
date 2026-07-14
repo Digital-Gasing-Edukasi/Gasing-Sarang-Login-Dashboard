@@ -289,6 +289,87 @@ function resolveRegionLabel(regionObj, regionId, regions = []) {
   return [regencyName, provinceName].filter(Boolean).join(', ') || '-'
 }
 
+// Format nominal → "Rp 500.000". Angka non-valid → "-".
+function fmtRupiah(raw) {
+  const n = Number(raw)
+  if (!raw || isNaN(n)) return '-'
+  return 'Rp ' + n.toLocaleString('id-ID')
+}
+
+// Payment manual transfer (GET /admin/payments/manual-transfer/list) → row tabel
+// Verifikasi Pembayaran. Diasumsikan record payment membawa `user` ter-embed +
+// field bukti transfer (bank, amount, receipt). Defensif: kalau yang datang
+// object user (payment ter-embed di user), `p.payment` dipakai sebagai sumber
+// detail transfer. Kolom identitas user = reuse logika mapToManajemen.
+// TODO(be): collection belum kasih contoh response — konfirmasi nama field
+// (bank/amount/senderName/receiptUrl) begitu ada payload asli.
+export function mapToPembayaran(p, regions = [], discourseGroups = []) {
+  const u = p.user || p.member || p            // record user (identitas)
+  const pay = p.payment || p                    // record payment (detail transfer)
+
+  // Status member: 'menunggu' → Pending Verifikasi Pembayaran, 'ditolak' → Pembayaran Ditolak.
+  const rawStatus = String(pay.status || p.status || '').toLowerCase()
+  const isRejected = rawStatus === 'rejected' || rawStatus === 'ditolak' || rawStatus === 'failed'
+  const statusMember = isRejected ? 'Pembayaran Ditolak' : 'Pending Verifikasi Pembayaran'
+
+  const sub = u.activeSubscription || u.subscription
+  const isNew = computeIsNew(parseCreatedAtMs(u.createdAt))
+
+  const voucher = u.activeVoucher?.code || u.voucher?.code || u.voucherCode || pay.voucherCode || ''
+  const lokasi = resolveRegionLabel(u.region || u.regency, u.regionId, regions)
+
+  const lts = u.lastTrainingSession || u.trainingSession || {}
+  const ltsMs = dateFieldMs(lts.startDate)
+  const alumniNama    = lts.name || '-'
+  const alumniTanggal = ltsMs ? fmtDate(ltsMs) : '-'
+  const alumniDaerah  = resolveRegionLabel(lts.region || lts.regency, lts.regionId, regions)
+
+  const riwayatCount =
+    u.trainingHistoriesCount ?? u.trainingHistoryCount ?? u._count?.trainingHistories ??
+    (Array.isArray(u.trainingHistories) ? u.trainingHistories.length : 0)
+
+  const subEnd = sub?.expiresAt || sub?.endDate || sub?.currentPeriodEnd || sub?.expiredAt || sub?.expires_at
+  const endMs  = dateFieldMs(subEnd)
+
+  const lu = fmtLastUpdated24h(pay.updatedAt || u.updatedAt)
+
+  // Detail bukti transfer (dipakai KonfirmasiPembayaranModal).
+  const pkg = pay.package || sub?.package || {}
+  const transferMs = dateFieldMs(pay.transferDate || pay.paidAt || pay.createdAt)
+
+  return {
+    id:       pay.id || p.id || u.id,   // id payment (target confirm/reject)
+    userId:   u.id,
+    name:     u.name || '-',
+    username: u.username ? `@${u.username}` : `@${(u.email || '').split('@')[0]}`,
+    email:    u.email || '-',
+    isNew,
+    statusMember,
+    plan:     parsePlan(sub) !== '-' ? parsePlan(sub) : (pkg.name || '-'),
+    endDate:  endMs ? fmtDate(endMs) : '-',
+    voucher,
+    role:     resolveRole(u, discourseGroups),
+    riwayatCount,
+    birthdate: parseBirthdate(u.birthdate),
+    lokasi,
+    training:  alumniNama,       // Alumni Pelatihan Nama
+    alumniDaerah,
+    alumniTanggal,
+    school:    u.schoolName || '-',
+    lastUpdated:   lu.text,
+    lastUpdatedMs: lu.ms,
+    // Detail transfer buat modal konfirmasi:
+    payment: {
+      senderName:   pay.senderName || pay.accountName || u.name || '-',
+      bank:         pay.bankName || pay.senderBank || pay.bank || '-',
+      transferDate: transferMs ? fmtDate(transferMs) : '-',
+      amount:       fmtRupiah(pay.amount ?? pay.total ?? pay.grossAmount),
+      packageName:  pkg.name || pay.packageName || '-',
+      receiptUrl:   pay.receiptUrl || pay.receipt?.url || pay.proofUrl || pay.proof?.url || '',
+    },
+  }
+}
+
 export function mapToManajemen(u, regions = [], discourseGroups = []) {
   const sub = u.activeSubscription || u.subscription
   const subStatus =

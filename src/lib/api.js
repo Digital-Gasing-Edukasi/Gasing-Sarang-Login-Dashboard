@@ -53,6 +53,19 @@ async function limitedFetch(url, options) {
 // pemanggil dapat clone response-nya sendiri (body cuma bisa dibaca sekali).
 const inflightGets = new Map();
 
+// TTL cache GET (di atas in-flight dedupe). Dedupe cuma menyatukan request yang
+// BARENGAN; cache ini menyatukan request identik yang BERDEKATAN tapi tidak overlap
+// — mis. beberapa useEffect di mount menembak endpoint sama berurutan (loadUsers
+// 'manajemen' dipanggil saat mount lalu lagi setelah discourse groups siap).
+// Menyimpan hasil PARSED (bukan Response) supaya bebas dari masalah body sekali baca.
+// Mutasi (non-GET) membuang seluruh cache → pembacaan berikutnya selalu fresh.
+const RESPONSE_TTL = 4000;
+const getCache = new Map(); // url -> { ts, data }
+
+export function clearApiCache() {
+  getCache.clear();
+}
+
 function dedupeFetch(url, options = {}) {
   const method = (options.method || "GET").toUpperCase();
   if (method !== "GET") return limitedFetch(url, options);
@@ -68,6 +81,18 @@ function dedupeFetch(url, options = {}) {
 
 // ─── Core fetch wrapper ───────────────────────────────────────────────────────
 async function request(endpoint, options = {}) {
+  const method = (options.method || "GET").toUpperCase();
+  const url = `${BASE_URL}${endpoint}`;
+
+  // GET: layani dari cache kalau masih fresh. Non-GET (mutasi): buang cache dulu
+  // supaya pembacaan setelahnya tidak mengembalikan data basi.
+  if (method === "GET") {
+    const hit = getCache.get(url);
+    if (hit && Date.now() - hit.ts < RESPONSE_TTL) return hit.data;
+  } else {
+    getCache.clear();
+  }
+
   const headers = {
     "Content-Type": "application/json",
     Accept: "application/json",
@@ -77,7 +102,7 @@ async function request(endpoint, options = {}) {
   const token = tokenStorage.getAccess();
   if (token) headers["Authorization"] = `Bearer ${token}`;
 
-  const res = await dedupeFetch(`${BASE_URL}${endpoint}`, {
+  const res = await dedupeFetch(url, {
     ...options,
     headers,
     body: options.body ? JSON.stringify(options.body) : undefined,
@@ -87,12 +112,14 @@ async function request(endpoint, options = {}) {
     const refreshed = await tryRefreshToken();
     if (refreshed) {
       headers["Authorization"] = `Bearer ${tokenStorage.getAccess()}`;
-      const retryRes = await dedupeFetch(`${BASE_URL}${endpoint}`, {
+      const retryRes = await dedupeFetch(url, {
         ...options,
         headers,
         body: options.body ? JSON.stringify(options.body) : undefined,
       });
-      return handleResponse(retryRes);
+      const data = await handleResponse(retryRes);
+      if (method === "GET") getCache.set(url, { ts: Date.now(), data });
+      return data;
     } else {
       tokenStorage.clear();
       window.location.href = "/";
@@ -100,7 +127,9 @@ async function request(endpoint, options = {}) {
     }
   }
 
-  return handleResponse(res);
+  const data = await handleResponse(res);
+  if (method === "GET") getCache.set(url, { ts: Date.now(), data });
+  return data;
 }
 
 // Multipart (file upload) wrapper
@@ -559,11 +588,34 @@ export const adminApi = {
   syncSubscriptions: () =>
     request("/admin/subscriptions/sync", { method: "POST" }),
 
-  // ── Payments ──
-  getPayments: (params = {}) => {
+  // ── Payments (Manual Transfer) ──
+  // Scope: paymentMethod=manual_transfer saja. filter: all | pending |
+  // receipt_uploaded | paid | rejected.
+  //   - receipt_uploaded = bukti sudah diunggah, menunggu review admin (tab Menunggu).
+  //   - rejected         = pembayaran ditolak admin (tab Pembayaran Ditolak).
+  // Balik envelope { data, meta }.
+  listManualPayments: (params = {}) => {
     const q = buildQuery({ page: 1, limit: 20, ...params });
-    return request(`/admin/payments${q ? "?" + q : ""}`);
+    return request(`/admin/payments/manual-transfer/list${q ? "?" + q : ""}`);
   },
+
+  // Setujui bukti transfer → aktifkan langganan. `notes` opsional.
+  approveManualPayment: (paymentId, notes) =>
+    request(`/admin/payments/manual-transfer/${paymentId}/approve`, {
+      method: "POST",
+      body: { notes },
+    }),
+
+  // Tolak bukti transfer. `notes` WAJIB (alasan penolakan, teks bebas).
+  rejectManualPayment: (paymentId, notes) =>
+    request(`/admin/payments/manual-transfer/${paymentId}/reject`, {
+      method: "POST",
+      body: { notes },
+    }),
+
+  // Statistik manual transfer (jumlah pending/receipt_uploaded/paid/rejected).
+  getManualPaymentStats: () =>
+    request(`/admin/payments/manual-transfer/stats`),
 
   // ── Regions ──
   createRegion: (data) =>

@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { adminApi, discourseApi, regionsApi, appConfigApi, trainingSessionsApi, trainingHistoriesApi, queueApi } from '@/lib/api'
-import { mapToVerifikasi, mapToManajemen, mapToRiwayat, fmtDate, computeIsNew, isManajemenEligible, VERIFIED_STATUS } from './admin/mappers'
+import { mapToVerifikasi, mapToManajemen, mapToRiwayat, mapToPembayaran, fmtDate, computeIsNew, isManajemenEligible, VERIFIED_STATUS } from './admin/mappers'
 import { canonicalRole } from './admin/roleOptions'
 import { AdminSidebar }    from './admin/AdminSidebar'
 import { AdminToast }      from './admin/AdminToast'
@@ -9,8 +9,10 @@ import { BulkApproveModal } from './admin/BulkApproveModal'
 import { BulkRejectModal } from './admin/BulkRejectModal'
 import { PendingVoucherTable } from './admin/PendingVoucherTable'
 import { KonfirmasiVoucherModal, BulkVoucherModal } from './admin/VoucherModals'
-import { VerifikasiControls, ManajemenControls, PendaftaranTrainerControls, RiwayatPelatihanControls } from './admin/TableControls'
+import { VerifikasiControls, VerifikasiPembayaranControls, ManajemenControls, PendaftaranTrainerControls, RiwayatPelatihanControls } from './admin/TableControls'
 import { VerifikasiTable } from './admin/VerifikasiTable'
+import { VerifikasiPembayaranTable } from './admin/VerifikasiPembayaranTable'
+import { KonfirmasiPembayaranModal, TolakPembayaranModal } from './admin/PembayaranModals'
 import { ManajemenTable }  from './admin/ManajemenTable'
 import { PendaftaranTrainerTable } from './admin/PendaftaranTrainerTable'
 import { RiwayatPelatihanTable } from './admin/RiwayatPelatihanTable'
@@ -137,6 +139,11 @@ function buildCsvContent(tab, users) {
     const s = String(str ?? '')
     return s.includes(',') || s.includes('"') || s.includes('\n') ? `"${s.replace(/"/g, '""')}"` : s
   }
+  if (tab === 'verifikasi-pembayaran') {
+    const headers = ['Nama Pengguna', 'Email', 'Status Member', 'Jenis Paket', 'Tgl. Berakhir', 'Kode Voucher', 'Role', 'Riwayat Pelatihan', 'Tgl. Lahir', 'Lokasi', 'Alumni Pelatihan Nama', 'Alumni Pelatihan Daerah', 'Alumni Pelatihan Tanggal Mulai', 'Asal Sekolah', 'Last Updated']
+    const rows = users.map(u => [u.name, u.email, u.statusMember || '-', u.plan || '-', u.endDate || '-', u.voucher || '-', u.role || '-', u.riwayatCount || 0, u.birthdate || '-', u.lokasi || '-', u.training || '-', u.alumniDaerah || '-', u.alumniTanggal || '-', u.school || '-', u.lastUpdated || '-'])
+    return [headers.join(','), ...rows.map(r => r.map(escapeCsv).join(','))].join('\n')
+  }
   const headers = tab === 'verifikasi'
     ? ['Nama Pengguna', 'Email', 'Status', 'Tgl.Lahir', 'Alumni Pelatihan', 'Tahun', 'Asal Sekolah', 'Role Pengguna']
     : ['Nama Pengguna', 'Email', 'Status Akun', 'Kode Voucher', 'Tgl.Lahir', 'Alumni Pelatihan', 'Tahun', 'Asal Sekolah', 'Role Pengguna', 'Berlangganan', 'Tgl Berakhir']
@@ -176,9 +183,25 @@ export default function AdminDashboardPage({ user, onSignOut }) {
   // Ref agar mapToManajemen selalu baca daftar group terbaru tanpa memicu ulang loadUsers.
   const discourseGroupsRef = useRef([])
   const [trainingRegions, setTrainingRegions] = useState([])
+  // Ref regions terbaru → loadPembayaran bisa useCallback([]) (stabil) tanpa
+  // ikut trainingRegions. Kalau ikut, identity-nya berubah saat loadUsers nge-set
+  // regions dan memicu ulang mount-effect → semua loader nembak 2x → 429.
+  const trainingRegionsRef = useRef([])
   const [trainingSessions, setTrainingSessions] = useState([])
   const [rejectCandidate, setRejectCandidate] = useState(null)
   const [approveCandidate, setApproveCandidate] = useState(null)
+
+  // ── Verifikasi Pembayaran ───────────────────────────────────────────────────
+  // Dua sub-tab = dua dataset: 'menunggu' (payment pending + bukti) & 'ditolak'.
+  const [pembayaranMenunggu, setPembayaranMenunggu] = useState([])
+  const [pembayaranDitolak, setPembayaranDitolak]   = useState([])
+  const [pembayaranSubTab, setPembayaranSubTab]     = useState('menunggu')
+  const [konfirmasiCandidate, setKonfirmasiCandidate] = useState(null) // modal bukti transfer
+  const [tolakCandidate, setTolakCandidate]           = useState(null) // modal pilih alasan tolak
+  // Titik biru navbar: sebelum tab dibuka pakai count ringan dari /stats (1 request
+  // kecil, bukan full list); setelah tab dibuka, pakai list live (pembayaranLoaded).
+  const [pembayaranMenungguCount, setPembayaranMenungguCount] = useState(0)
+  const [pembayaranLoaded, setPembayaranLoaded]     = useState(false)
 
   // ── Bulk verifikasi ────────────────────────────────────────────────────────
   const BULK_LIMIT = 10 // keputusan #2: hard limit 10 akun sekaligus
@@ -305,6 +328,35 @@ export default function AdminDashboardPage({ user, onSignOut }) {
     if (activeTab === 'riwayat-pelatihan') loadRiwayat()
   }, [activeTab, loadRiwayat])
 
+  // Verifikasi Pembayaran (manual transfer): dua request terpisah.
+  //  - Menunggu = filter 'receipt_uploaded' (bukti diunggah, menunggu review admin).
+  //  - Ditolak  = filter 'rejected'.
+  // try/catch per sub-tab supaya gagal di satu tidak mengosongkan lainnya.
+  const loadPembayaran = useCallback(async (currentRegions = []) => {
+    const regions = currentRegions.length ? currentRegions : trainingRegionsRef.current
+    try {
+      const res = await adminApi.listManualPayments({ filter: 'receipt_uploaded' })
+      const list = Array.isArray(res) ? res : (res?.data || res?.items || [])
+      setPembayaranMenunggu(list.map(p => mapToPembayaran(p, regions, discourseGroupsRef.current)))
+      setPembayaranLoaded(true) // mulai sekarang titik biru pakai list live, bukan count /stats
+    } catch (e) {
+      console.error('Failed to load pending payments', e)
+      setPembayaranMenunggu([])
+    }
+    try {
+      const res = await adminApi.listManualPayments({ filter: 'rejected' })
+      const list = Array.isArray(res) ? res : (res?.data || res?.items || [])
+      setPembayaranDitolak(list.map(p => mapToPembayaran(p, regions, discourseGroupsRef.current)))
+    } catch (e) {
+      console.error('Failed to load rejected payments', e)
+      setPembayaranDitolak([])
+    }
+  }, [])
+
+  useEffect(() => {
+    if (activeTab === 'verifikasi-pembayaran') loadPembayaran()
+  }, [activeTab, loadPembayaran])
+
   // Muat semua dataset sekali di mount supaya titik biru navbar akurat walau
   // tab-nya belum pernah dibuka (dot = ada baris isNew / ada akun pending).
   useEffect(() => {
@@ -312,6 +364,18 @@ export default function AdminDashboardPage({ user, onSignOut }) {
     loadRiwayat()
     loadPendaftaran()
   }, [loadUsers, loadRiwayat, loadPendaftaran])
+
+  // Titik biru Verifikasi Pembayaran: cukup count ringan dari /stats saat mount
+  // (bukan full list). Full list baru di-fetch saat tab dibuka (loadPembayaran).
+  useEffect(() => {
+    adminApi.getManualPaymentStats()
+      .then(res => {
+        const s = res?.data ?? res ?? {}
+        const n = s.receipt_uploaded ?? s.receiptUploaded ?? s.pendingReview ?? 0
+        setPembayaranMenungguCount(Number(n) || 0)
+      })
+      .catch(err => console.error('Failed to load payment stats', err))
+  }, [])
 
   useEffect(() => {
     discourseApi.getGroups()
@@ -321,6 +385,9 @@ export default function AdminDashboardPage({ user, onSignOut }) {
 
   // Sinkron ref + re-map kolom Role begitu daftar group siap (jika user datang
   // sebelum groups selesai di-load, nama role tetap terisi setelah ini).
+  // Jaga ref regions selalu terbaru (dipakai loadPembayaran tanpa jadi dep).
+  useEffect(() => { trainingRegionsRef.current = trainingRegions }, [trainingRegions])
+
   useEffect(() => {
     discourseGroupsRef.current = discourseGroups
     if (discourseGroups.length) loadUsers('manajemen', trainingRegions)
@@ -340,6 +407,49 @@ export default function AdminDashboardPage({ user, onSignOut }) {
     setActiveTab(tab); setSearchQuery(''); resetSort()
     setActiveFilter('Disetujui'); setSelectedRoles([]); setSelectedSubscriptions([]); setSelectedPlans([])
     setSelectedIds([]); setBulkModal(null)
+    setPembayaranSubTab('menunggu'); setKonfirmasiCandidate(null); setTolakCandidate(null)
+  }
+
+  // ── Verifikasi Pembayaran: konfirmasi / tolak ──────────────────────────────
+  // Pola sama dgn approve/reject akun: optimistic remove baris + toast undo 5s +
+  // commit via scheduleAction. TODO(be): endpoint confirm/reject belum live.
+  const handleKonfirmasiPembayaran = (target) => {
+    if (!target) return
+    setKonfirmasiCandidate(null)
+    setPembayaranMenunggu(prev => prev.filter(u => u.id !== target.id))
+    setToast({
+      message: <>Berhasil konfirmasi pembayaran akun <span className="font-medium">{target.name}</span></>,
+      undo: () => setPembayaranMenunggu(prev => [target, ...prev]),
+    })
+    scheduleAction(
+      () => adminApi.approveManualPayment(target.id),
+      () => { setPembayaranMenunggu(prev => [target, ...prev]); setApiError('Gagal mengonfirmasi pembayaran.') }
+    )
+  }
+
+  // reasonLabel = teks alasan (dikirim sbg `notes`, wajib untuk endpoint reject).
+  const handleTolakPembayaran = ({ candidate: target, reasonLabel }) => {
+    if (!target) return
+    setTolakCandidate(null)
+    setKonfirmasiCandidate(null)
+    const rejected = { ...target, statusMember: 'Pembayaran Ditolak' }
+    setPembayaranMenunggu(prev => prev.filter(u => u.id !== target.id))
+    setPembayaranDitolak(prev => [rejected, ...prev])
+    setToast({
+      message: <>Pembayaran <span className="font-medium">{target.name}</span> telah <span className="text-red-500 font-medium">ditolak</span></>,
+      undo: () => {
+        setPembayaranDitolak(prev => prev.filter(u => u.id !== target.id))
+        setPembayaranMenunggu(prev => [target, ...prev])
+      },
+    })
+    scheduleAction(
+      () => adminApi.rejectManualPayment(target.id, reasonLabel),
+      () => {
+        setPembayaranDitolak(prev => prev.filter(u => u.id !== target.id))
+        setPembayaranMenunggu(prev => [target, ...prev])
+        setApiError('Gagal menolak pembayaran.')
+      }
+    )
   }
 
   // ── Seleksi baris verifikasi ────────────────────────────────────────────────
@@ -898,15 +1008,18 @@ export default function AdminDashboardPage({ user, onSignOut }) {
   //  - verifikasi: selalu muncul kalau ada akun di tabel Pending / Pending Voucher.
   //  - menu lain : muncul hanya kalau ada baris "komponen baru" (isNew, < 3 hari).
   const navFlags = {
-    'verifikasi':          users.length > 0 || pendingVoucherUsers.length > 0,
-    'manajemen':           managementUsers.some(u => u.isNew),
-    'riwayat-pelatihan':   riwayatPelatihanData.some(r => r.isNew),
-    'pendaftaran-trainer': pendaftaranData.some(r => r.isNew),
+    'verifikasi':            users.length > 0 || pendingVoucherUsers.length > 0,
+    'verifikasi-pembayaran': pembayaranLoaded ? pembayaranMenunggu.length > 0 : pembayaranMenungguCount > 0,
+    'manajemen':             managementUsers.some(u => u.isNew),
+    'riwayat-pelatihan':     riwayatPelatihanData.some(r => r.isNew),
+    'pendaftaran-trainer':   pendaftaranData.some(r => r.isNew),
   }
 
   const currentData = activeTab === 'manajemen'
     ? managementUsers
-    : (verifSubTab === 'voucher' ? pendingVoucherUsers : users)
+    : activeTab === 'verifikasi-pembayaran'
+      ? (pembayaranSubTab === 'ditolak' ? pembayaranDitolak : pembayaranMenunggu)
+      : (verifSubTab === 'voucher' ? pendingVoucherUsers : users)
 
   const filteredUsers = currentData.filter(user => {
     if (activeTab === 'manajemen') {
@@ -981,7 +1094,10 @@ export default function AdminDashboardPage({ user, onSignOut }) {
     const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
     link.setAttribute('href', url)
-    link.setAttribute('download', activeTab === 'verifikasi' ? 'verifikasi_akun-Export data.csv' : 'manajemen_akun-Export data.csv')
+    link.setAttribute('download',
+      activeTab === 'verifikasi' ? 'verifikasi_akun-Export data.csv'
+      : activeTab === 'verifikasi-pembayaran' ? 'verifikasi_pembayaran-Export data.csv'
+      : 'manajemen_akun-Export data.csv')
     document.body.appendChild(link); link.click(); document.body.removeChild(link)
   }
 
@@ -993,6 +1109,7 @@ export default function AdminDashboardPage({ user, onSignOut }) {
         <header className="px-10 py-8 border-b border-gray-100 shrink-0 bg-white">
           <h1 className="text-3xl font-bold text-[#0A1128]">
             {activeTab === 'verifikasi' && 'Verifikasi Akun'}
+            {activeTab === 'verifikasi-pembayaran' && 'Verifikasi Pembayaran'}
             {activeTab === 'manajemen' && 'Manajemen Akun'}
             {activeTab === 'pendaftaran-trainer' && 'Pendaftaran Pelatihan Trainer'}
             {activeTab === 'riwayat-pelatihan' && 'Riwayat Pelatihan'}
@@ -1023,6 +1140,17 @@ export default function AdminDashboardPage({ user, onSignOut }) {
               onBulkConfirm={() => setBulkModal('confirm')}
               onClearSelection={clearSelection}
               onDismissLimit={() => setLimitHit(false)}
+            />
+          )}
+          {activeTab === 'verifikasi-pembayaran' && (
+            <VerifikasiPembayaranControls
+              searchQuery={searchQuery}
+              onSearchChange={setSearchQuery}
+              onExport={handleExport}
+              subTab={pembayaranSubTab}
+              onSubTabChange={setPembayaranSubTab}
+              menungguCount={pembayaranMenunggu.length}
+              ditolakCount={pembayaranDitolak.length}
             />
           )}
           {activeTab === 'pendaftaran-trainer' && (
@@ -1105,6 +1233,16 @@ export default function AdminDashboardPage({ user, onSignOut }) {
                   onToggleSelect={toggleSelect}
                   onToggleSelectAll={toggleSelectAll}
                   allSelected={allSelected}
+                />
+              )}
+              {activeTab === 'verifikasi-pembayaran' && (
+                <VerifikasiPembayaranTable
+                  users={sortedUsers}
+                  sortConfig={sortConfig}
+                  onSort={handleSort}
+                  searchQuery={searchQuery}
+                  subTab={pembayaranSubTab}
+                  onConfirm={setKonfirmasiCandidate}
                 />
               )}
               {activeTab === 'manajemen' && (
@@ -1258,6 +1396,17 @@ export default function AdminDashboardPage({ user, onSignOut }) {
         isOpen={!!pesertaSession}
         session={pesertaSession}
         onClose={() => setPesertaSession(null)}
+      />
+      <KonfirmasiPembayaranModal
+        candidate={konfirmasiCandidate}
+        onConfirm={handleKonfirmasiPembayaran}
+        onReject={() => { setTolakCandidate(konfirmasiCandidate); setKonfirmasiCandidate(null) }}
+        onCancel={() => setKonfirmasiCandidate(null)}
+      />
+      <TolakPembayaranModal
+        candidate={tolakCandidate}
+        onConfirm={handleTolakPembayaran}
+        onCancel={() => setTolakCandidate(null)}
       />
       <AdminToast toast={toast} onUndo={handleUndoToast} />
     </div>

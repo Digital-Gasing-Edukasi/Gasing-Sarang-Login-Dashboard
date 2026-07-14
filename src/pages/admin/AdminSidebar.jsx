@@ -1,12 +1,13 @@
 import { useState } from 'react'
-import { UserSearch, Users, Calendar, ClipboardList, LogOut, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
+import { UserSearch, Wallet, Users, Calendar, ClipboardList, LogOut, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const NAV = [
-  { id: 'verifikasi',          label: 'Verifikasi Akun',     icon: UserSearch },
-  { id: 'manajemen',           label: 'Manajemen Akun',      icon: Users },
-  { id: 'riwayat-pelatihan',   label: 'Riwayat Pelatihan',   icon: Calendar },
-  { id: 'pendaftaran-trainer', label: 'Pendaftaran Trainer', icon: ClipboardList },
+  { id: 'verifikasi',            label: 'Verifikasi Akun',       icon: UserSearch },
+  { id: 'verifikasi-pembayaran', label: 'Verifikasi Pembayaran', icon: Wallet },
+  { id: 'manajemen',             label: 'Manajemen Akun',        icon: Users },
+  { id: 'riwayat-pelatihan',     label: 'Riwayat Pelatihan',     icon: Calendar },
+  { id: 'pendaftaran-trainer',   label: 'Pendaftaran Trainer',   icon: ClipboardList },
 ]
 
 export function AdminSidebar({ activeTab, onTabChange, onSignOut, user, navFlags = {} }) {

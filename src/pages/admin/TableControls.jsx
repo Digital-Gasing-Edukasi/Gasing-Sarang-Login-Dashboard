@@ -178,6 +178,61 @@ export function VerifikasiControls({
   )
 }
 
+// Switcher sub-menu Verifikasi Pembayaran: Menunggu Verifikasi & Pembayaran Ditolak.
+function PembayaranSubTabSwitcher({ subTab, onSubTabChange, menungguCount = 0, ditolakCount = 0 }) {
+  const fmt = (n) => (n > 99 ? '99+' : String(n))
+  const tabs = [
+    { id: 'menunggu', label: 'Menunggu Verifikasi', count: menungguCount },
+    { id: 'ditolak',  label: 'Pembayaran Ditolak',  count: ditolakCount },
+  ]
+  return (
+    <div className="flex items-center gap-1 bg-gray-50/70 border border-gray-100 p-1.5 rounded-full">
+      {tabs.map(t => {
+        const active = subTab === t.id
+        return (
+          <button
+            key={t.id}
+            onClick={() => onSubTabChange(t.id)}
+            className={cn(
+              'flex items-center gap-2 px-5 py-2 rounded-full text-sm font-semibold transition-colors',
+              active ? 'bg-[#0A1128] text-white shadow-sm' : 'text-gray-500 hover:text-[#0A1128]'
+            )}
+          >
+            {t.label}
+            <span className="inline-flex items-center justify-center min-w-[24px] h-6 px-1.5 rounded-full bg-blue-600 text-white text-xs font-bold">
+              {fmt(t.count)}
+            </span>
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
+export function VerifikasiPembayaranControls({
+  searchQuery, onSearchChange, onExport,
+  subTab = 'menunggu', onSubTabChange, menungguCount = 0, ditolakCount = 0,
+}) {
+  return (
+    <div className="flex items-center justify-between mb-6">
+      <PembayaranSubTabSwitcher
+        subTab={subTab}
+        onSubTabChange={onSubTabChange}
+        menungguCount={menungguCount}
+        ditolakCount={ditolakCount}
+      />
+      <div className="flex items-center gap-4">
+        <div className="w-[300px]">
+          <SearchInput value={searchQuery} onChange={onSearchChange} />
+        </div>
+        <button onClick={onExport} className="flex items-center gap-2 bg-[#0A1128] hover:bg-[#0A1128]/90 text-white px-5 py-2.5 rounded-full text-sm font-medium transition-colors">
+          <Download size={16} /> Export List
+        </button>
+      </div>
+    </div>
+  )
+}
+
 // Opsi filter (value = nilai yang dicocokkan ke field row; label = tampilan).
 const LANGGANAN_OPTIONS = [
   { value: 'Active',     label: 'Aktif' },
