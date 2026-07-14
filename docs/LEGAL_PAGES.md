@@ -59,47 +59,24 @@ File yang disentuh perubahan ini:
 
 ## 4. Routing (cara kerja internal)
 
-Aplikasi **tidak memakai react-router**. Routing dilakukan manual di `App.jsx` dalam `useEffect` init, dengan mencocokkan `window.location.pathname`. Urutan pengecekan penting.
+> **Diperbarui v3.0.0.** Dulu routing manual berbasis `setPage` + `pathname.includes()`. Sekarang aplikasi memakai **React Router v6** — halaman legal punya route sendiri, dicocokkan exact.
 
-### 4a. Deteksi halaman legal
-
-Ditempatkan **paling awal** di init (sebelum blok `/register`), case-insensitive:
+### 4a. Route
 
 ```jsx
-const legalPath = pathname.toLowerCase();
-if (legalPath.includes("/id/privacy")) {
-  setPage("privacy");
-  setSessionChecked(true);
-  return;
-}
-if (legalPath.includes("/id/tos")) {
-  setPage("terms");
-  setSessionChecked(true);
-  return;
-}
+<Route path="/register/id/TOS"     element={<TermsPage   onNavigate={go} />} />
+<Route path="/register/id/privacy" element={<PrivacyPage onNavigate={go} />} />
 ```
 
-Karena `/register/id/tos` mengandung `/id/tos`, ia cocok di sini lebih dulu dan **tidak** jatuh ke blok `/register`.
+Tidak ada lagi risiko `/register/id/TOS` tertelan blok `/register` generic: router mencocokkan path **persis**, bukan substring.
 
-### 4b. Perilaku `/register`
+### 4b. Tidak butuh cek sesi
 
-```jsx
-// /register → halaman Pendaftaran (signup). URL dibiarkan tetap /register.
-if (pathname.includes("/register")) {
-  setPage("signup");
-  setSessionChecked(true);
-  return;
-}
-```
+Kedua path masuk `PUBLIC_PREFIXES` (`/register/id/`) di [`src/lib/routes.js`](../src/lib/routes.js), jadi `isPublicStaticPath()` bernilai `true` dan boot sequence **berhenti lebih awal** — tidak memanggil `profileApi.getMe()`, tidak me-restore sesi. Halaman legal bisa dibuka siapa pun di tab baru, termasuk pengunjung yang belum punya akun.
 
-> **Perubahan perilaku:** sebelumnya blok ini melakukan `setPage("login")` + `replaceState("/")` (redirect ke login dan membersihkan URL). Sekarang menampilkan **signup** dan **membiarkan URL tetap `/register`**, agar tombol "Kembali ke Pendaftaran" mendarat di halaman yang benar dengan URL yang benar.
+### 4c. Tombol "Kembali ke Pendaftaran"
 
-### 4c. Render full-screen
-
-```jsx
-if (page === "privacy") return <PrivacyPage onNavigate={setPage} />;
-if (page === "terms")   return <TermsPage onNavigate={setPage} />;
-```
+`onNavigate("signup")` → shim `go()` → `navigate("/register")`. Karena URL sekarang nyata, tombol back browser juga bekerja normal.
 
 ---
 

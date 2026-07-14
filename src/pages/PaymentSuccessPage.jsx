@@ -4,6 +4,7 @@ import { LogOut, ArrowRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { subscriptionApi, discourseApi, webAppApi } from '@/lib/api'
 import bgDark from '@/assets/dark-mode/Background.png'
+import { Logo } from '@/components/shared/Logo'
 
 function Avatar({ name = '' }) {
   const initials = name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()
@@ -15,8 +16,8 @@ function Avatar({ name = '' }) {
 }
 
 export default function PaymentSuccessPage({ user, onSignOut, activePlanName }) {
-  const WA_NUMBER = import.meta.env.VITE_WA_NUMBER || '628123456789'
-  const waUrl     = `https://wa.me/${WA_NUMBER}`
+  const ADMIN_EMAIL = import.meta.env.VITE_CONTACT_ADMIN || 'admin@gasingacademy.org'
+  const waUrl       = `mailto:${ADMIN_EMAIL}`
 
   const handleRedirectDefault = () => {
     webAppApi.redirectWithTokens()
@@ -64,7 +65,7 @@ export default function PaymentSuccessPage({ user, onSignOut, activePlanName }) 
         </button>
         <p className="text-[13px] text-white/50 mt-10">
           Butuh bantuan?{' '}
-          <a href={waUrl} target="_blank" rel="noopener noreferrer" className="font-semibold text-white/80 underline hover:text-white transition-colors">
+          <a href={waUrl} target="_blank" rel="noopener noreferrer" className="font-semibold text-white underline hover:text-white/80 transition-colors">
             Hubungi Kami
           </a>
         </p>
@@ -81,12 +82,8 @@ export default function PaymentSuccessPage({ user, onSignOut, activePlanName }) 
         />
 
         {/* ── NAVBAR ── */}
-        <nav className="relative z-10 flex items-center justify-between px-8 py-5 shrink-0">
-          <div className="flex items-center gap-3">
-            {/* Slot logo */}
-            <div className="w-9 h-9 rounded-full bg-white shrink-0" />
-            <span className="font-bold text-white text-lg tracking-tight">Gasing Circle</span>
-          </div>
+        <nav className="relative z-10 flex items-center justify-between px-6 pt-6 pb-5 shrink-0">
+          <Logo variant="full" />
           <div className="flex items-center gap-4">
             <button
               onClick={onSignOut}
@@ -110,7 +107,7 @@ export default function PaymentSuccessPage({ user, onSignOut, activePlanName }) 
 
           <h1 className="text-[42px] font-bold text-white mb-4 tracking-tight">Pembayaran Berhasil!</h1>
           <p className="text-white/55 text-[16px] mb-12 text-center max-w-md leading-relaxed">
-            Selamat datang di Gasing Circle, akses kamu sekarang kini telah aktif.
+            Selamat datang di Sarang Gasing, akses kamu sekarang kini telah aktif.
           </p>
 
           {/* CTA — Pilih Tujuan */}
@@ -146,7 +143,7 @@ export default function PaymentSuccessPage({ user, onSignOut, activePlanName }) 
               href={waUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="font-semibold text-white/80 underline hover:text-white transition-colors"
+              className="font-semibold text-white underline hover:text-white/80 transition-colors"
             >
               Hubungi Kami
             </a>
@@ -155,7 +152,7 @@ export default function PaymentSuccessPage({ user, onSignOut, activePlanName }) 
 
         {/* Footer */}
         <footer className="relative z-10 pb-8 text-center mt-auto">
-          <p className="text-[13px] text-white/30">©2026 Gasing Circle. All rights reserved.</p>
+          <p className="text-[13px] text-white/30">©2026 Gasing Academy. All rights reserved..</p>
         </footer>
       </div>
     </div>

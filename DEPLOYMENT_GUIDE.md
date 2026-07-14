@@ -1,8 +1,12 @@
-# 🚀 Panduan Deploy Staging — Gasing Circle Auth App
+# 🚀 Panduan Deploy Staging — Sarang Gasing Auth App
 
-> **Target:** `https://dev-komunitas.gasingacademy.org`  
-> **Tipe Deploy:** React SPA ke GCE VM via Nginx  
+> **Target:** `https://sarang.gasingacademy.org`  
+> **Tipe Deploy:** React SPA (React Router, `base: '/'`) ke GCE VM via Nginx  
 > **Estimasi Waktu:** 30–60 menit
+>
+> ⚠️ **Sejak v3.0.0:** app di-serve dari **root domain**, bukan `/register`. Nginx
+> **wajib** SPA-fallback semua path ke `index.html` (Fase 5). Kalau server ini pernah
+> dipasangi versi lama, ada langkah migrasi di Fase 4.1.
 
 ---
 
@@ -24,7 +28,7 @@ Tekan `Win + R` → ketik `powershell` → Enter.
 ### 1.2 Masuk ke folder project
 
 ```powershell
-cd "d:\Gasing Circle\Login page"
+cd D:\SarangGasing\Login-Dashboard
 ```
 
 Verifikasi kamu di folder yang benar:
@@ -47,7 +51,7 @@ Pastikan isinya seperti ini (ganti nilai yang ada tanda `← GANTI`):
 ```env
 VITE_API_URL=https://URL-DARI-TIM-BACKEND     ← GANTI INI
 VITE_DISCOURSE_URL=https://dev-komunitas.gasingacademy.org
-VITE_WA_NUMBER=6287788000305
+VITE_CONTACT_ADMIN=admin@gasingacademy.org
 VITE_MIDTRANS_CLIENT_KEY=SB-Mid-client-xxxxxxxx  ← GANTI INI
 ```
 
@@ -137,12 +141,12 @@ Jangan tutup SSH yang tadi, buka PowerShell baru.
 
 ```powershell
 # Ganti <USERNAME> dan <IP_SERVER> dengan milikmu
-scp -r "d:\Gasing Circle\Login page\dist\*" <USERNAME>@<IP_SERVER>:/tmp/gasing-upload/
+scp -r "D:\SarangGasing\Login-Dashboard\dist\*" <USERNAME>@<IP_SERVER>:/tmp/gasing-upload/
 ```
 
 Contoh:
 ```powershell
-scp -r "d:\Gasing Circle\Login page\dist\*" user@34.101.xxx.xxx:/tmp/gasing-upload/
+scp -r "D:\SarangGasing\Login-Dashboard\dist\*" user@34.101.xxx.xxx:/tmp/gasing-upload/
 ```
 
 Tunggu hingga selesai. Akan ada progress upload per file.
@@ -162,18 +166,26 @@ ls /tmp/gasing-upload/
 
 ### 4.1 Buat folder untuk aplikasi React
 
-> ⚠️ **PENTING:** app di-build dengan `base: '/register'`, jadi file build HARUS
-> ditaruh di **subfolder `register/`**, bukan langsung di root folder web. Ini
-> supaya Nginx bisa pakai `root` (bukan `alias`) — lihat penjelasan di Fase 5.
+> ⚠️ **BERUBAH sejak v3.0.0.** App sekarang di-build dengan **`base: '/'`** (dulu
+> `/register`), jadi file build ditaruh **langsung di root folder web** — bukan lagi
+> di subfolder `register/`.
 
 ```bash
-sudo mkdir -p /var/www/gasing-auth/register
+sudo mkdir -p /var/www/gasing-auth
+```
+
+**Kalau server ini pernah dipasangi versi lama** (file ada di `register/`), rapikan dulu:
+
+```bash
+sudo mv /var/www/gasing-auth/register/index.html \
+        /var/www/gasing-auth/register/assets /var/www/gasing-auth/
+sudo rm -rf /var/www/gasing-auth/register
 ```
 
 ### 4.2 Copy file ke folder web
 
 ```bash
-sudo cp -r /tmp/gasing-upload/* /var/www/gasing-auth/register/
+sudo cp -r /tmp/gasing-upload/* /var/www/gasing-auth/
 ```
 
 ### 4.3 Set permission yang benar
@@ -186,10 +198,10 @@ sudo chmod -R 755 /var/www/gasing-auth
 ### 4.4 Verifikasi file ada di tempatnya
 
 ```bash
-ls /var/www/gasing-auth/register/
-# Harus terlihat: index.html dan folder assets/
+ls /var/www/gasing-auth/
+# Harus terlihat: index.html dan folder assets/ (TIDAK ada folder register/)
 
-cat /var/www/gasing-auth/register/index.html | head -5
+head -5 /var/www/gasing-auth/index.html
 # Harus tampil baris pertama HTML
 ```
 
@@ -207,40 +219,53 @@ sudo nano /etc/nginx/sites-available/gasing-auth
 
 ### 5.2 Ketik konfigurasi berikut
 
-Salin-tempel teks di bawah ini ke dalam editor `nano`:
+Versi lengkap (dengan TLS) ada di [`deploy/nginx-gasing-auth.conf`](deploy/nginx-gasing-auth.conf) —
+salin dari sana. Versi minimal HTTP untuk staging:
 
 ```nginx
 server {
     listen 80;
     server_name <IP_SERVER_ATAU_DOMAIN>;
 
-    # File build ada di /var/www/gasing-auth/register/...
+    # File build ada langsung di sini: index.html + assets/
     root /var/www/gasing-auth;
+    index index.html;
 
-    # Redirect dari root ke /register
+    # Root → halaman login.
     location = / {
-        return 301 /register/;
+        return 301 /login;
     }
 
-    # WAJIB untuk React SPA yang di-build dengan base '/register'.
-    # Pakai `root` (bukan `alias`) supaya try_files bekerja benar.
-    location /register/ {
-        try_files $uri $uri/ /register/index.html;
+    # Asset ber-hash aman di-cache lama (nama file berubah tiap build).
+    location /assets/ {
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+        try_files $uri =404;
     }
 
-    # Diamkan 404 favicon (index.html tidak punya <link rel=icon>).
+    # SPA fallback — WAJIB. Path apa pun yang bukan file nyata → index.html,
+    # biar react-router yang menentukan halaman.
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    # Diamkan 404 favicon.
     location = /favicon.ico { access_log off; log_not_found off; }
 }
 ```
 
 > Ganti `<IP_SERVER_ATAU_DOMAIN>` dengan IP server GCE atau domain yang digunakan.
 >
-> ❌ **JANGAN pakai `alias /var/www/gasing-auth;` + `try_files` bareng.** Itu bug
-> lama Nginx: `$uri` masih membawa prefix `/register`, jadi Nginx nyari file di
-> `/var/www/gasing-auth/register/assets/...` (kata `register` kedobel) → semua
-> asset **404**, dan JS di-serve sebagai `text/html` → browser **block**
-> (*"MIME type text/html is not executable"*). Inilah penyebab layar putih di
-> production. Solusinya: `root` + taruh file di subfolder `register/` (Fase 4).
+> ⚠️ **Baris `try_files $uri $uri/ /index.html;` adalah nyawa deploy ini.** App memakai
+> React Router (BrowserRouter) dengan URL nyata (`/login`, `/dashboard-admin`,
+> `/login/reset-password`, …). Tanpa fallback itu, halaman depan jalan tapi **refresh atau
+> deep-link ke path mana pun = 404 dari Nginx**, karena file `/dashboard-admin` memang tidak ada
+> di disk.
+>
+> ❌ **JANGAN pakai `alias` + `try_files` bareng** (pola config lama era `base: '/register'`).
+> `$uri` masih membawa prefix path, jadi Nginx nyari file di direktori yang salah → asset 404,
+> JS di-serve sebagai `text/html` → browser block (*"MIME type text/html is not executable"*) →
+> layar putih. Pakai `root` seperti di atas.
 
 Simpan dan keluar dari nano:
 - Tekan `Ctrl + X`
@@ -284,20 +309,39 @@ Pastikan statusnya `active (running)` berwarna hijau.
 
 Buka browser dan akses:
 ```
-http://<IP_SERVER_GCE>/register
+http://<IP_SERVER_GCE>/
 ```
 
-Kamu seharusnya melihat **halaman Login Gasing Circle**.
+Harus otomatis redirect ke `/login` dan menampilkan **halaman Login Sarang Gasing**.
 
 ### 6.2 Test navigasi
 
-- Coba klik "Daftar" → seharusnya berpindah ke halaman Register
-- Coba klik "Lupa Password" → seharusnya berpindah ke halaman Forgot Password
-- Pastikan halaman tidak menampilkan error 404
+- Klik "Daftar" → pindah ke `/register`
+- Klik "Lupa Password" → pindah ke `/login/forgot-password`
+- Pastikan tidak ada error 404
 
-### 6.3 Cek API terhubung
+### 6.3 Test SPA fallback — JANGAN SKIP
 
-Coba login dengan akun yang ada. Jika muncul error koneksi (bukan error "password salah"), kemungkinan `VITE_API_URL` salah — ulangi dari Fase 1.
+Ini yang paling sering bocor. Buka **langsung** (ketik di address bar, atau tekan F5 di halaman itu):
+
+| URL | Hasil benar | Kalau 404 |
+| --- | --- | --- |
+| `/login/forgot-password` | Halaman Lupa Password | `try_files` belum jalan → cek Fase 5.2 |
+| `/dashboard-admin` | Redirect ke `/login` (belum ada sesi) | idem |
+| `/register/id/TOS` | Halaman Syarat & Ketentuan | idem |
+
+Kalau salah satu memberi **404 Nginx** (bukan halaman app), `location / { try_files … }` belum benar.
+
+### 6.4 Cek asset ter-load
+
+Buka DevTools → tab Network → refresh. File di `/assets/*.js` harus **200** dengan
+`Content-Type: application/javascript`. Kalau `text/html` → config Nginx salah (lihat peringatan
+`alias` di Fase 5.2).
+
+### 6.5 Cek API terhubung
+
+Coba login dengan akun yang ada. Jika muncul error koneksi (bukan error "password salah"),
+kemungkinan `VITE_API_URL` salah — ulangi dari Fase 1.
 
 ---
 
@@ -351,14 +395,15 @@ Untuk update berikutnya, kamu hanya perlu mengulang **Fase 1 + 3 + 4**:
 npm run build:staging
 
 # 2. Upload dist/ yang baru
-scp -r "d:\Gasing Circle\Login page\dist\*" <USER>@<IP>:/tmp/gasing-upload/
+scp -r "D:\SarangGasing\Login-Dashboard\dist\*" <USER>@<IP>:/tmp/gasing-upload/
 
-# 3. Di server — hapus yang lama, copy yang baru (ke subfolder register/)
-sudo rm -rf /var/www/gasing-auth/register/*
-sudo cp -r /tmp/gasing-upload/* /var/www/gasing-auth/register/
+# 3. Di server — hapus yang lama, copy yang baru (langsung ke root, bukan subfolder)
+sudo rm -rf /var/www/gasing-auth/*
+sudo cp -r /tmp/gasing-upload/* /var/www/gasing-auth/
 sudo chown -R www-data:www-data /var/www/gasing-auth
 
-# 4. Tidak perlu restart Nginx
+# 4. Tidak perlu restart Nginx (kecuali config-nya yang berubah:
+#    sudo nginx -t && sudo systemctl reload nginx)
 ```
 
 ---
@@ -374,4 +419,4 @@ Dan bagikan ke sini untuk dianalisis lebih lanjut.
 
 ---
 
-*Dibuat: 11 Mei 2026 — Gasing Circle Staging Deployment*
+*Dibuat: 11 Mei 2026 · Diperbarui: 15 Juli 2026 (migrasi `base: '/'` + SPA fallback) — Sarang Gasing Staging Deployment*

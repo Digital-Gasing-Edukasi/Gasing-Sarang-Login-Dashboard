@@ -79,7 +79,7 @@ export function PendaftaranTrainerTable({
                     href={item.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 font-medium text-blue-600 hover:text-blue-700 hover:underline"
+                    className="inline-flex items-center gap-1 font-medium text-link hover:text-link/80 hover:underline"
                   >
                     {item.threadId}
                     <ExternalLink size={14} />

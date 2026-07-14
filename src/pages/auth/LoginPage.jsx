@@ -9,7 +9,7 @@ import { IconInput, TogglePassword } from '@/components/shared/IconInput'
 import { LoginStatusModal } from '@/components/shared/LoginStatusModal'
 import { NoConnectionBanner } from '@/components/shared/NoConnectionBanner'
 import { authApi, profileApi, tokenStorage } from '@/lib/api'
-import logo from '@/assets/logo-saranggasing.png'
+import { Logo } from '@/components/shared/Logo'
 
 const ERR_INPUT = '!border-red-500 focus-visible:!border-red-500 focus-visible:ring-red-200'
 const EMAIL_RE  = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -78,58 +78,102 @@ export function LoginPage({ onNavigate, onLoginSuccess, isSsoMode = false }) {
   return (
     <RightPanel mobileHero={<MobileHero />}>
       <div className="hidden lg:flex items-center justify-center mb-8 animate-fade-in-up">
-        <img src={logo} alt="Sarang Gasing" className="h-10 w-auto object-contain shrink-0" />
+        <Logo variant="split" />
       </div>
       <div className="animate-fade-in-up delay-100 text-center lg:text-center">
         <h1 className="text-2xl font-bold text-foreground mb-8 lg:mt-0 mt-2">
           <span className="lg:hidden">Selamat Datang!</span>
-          <span className="hidden lg:inline">Selamat Datang Kembali</span>
+          <span className="hidden lg:inline">Selamat Datang!</span>
         </h1>
       </div>
 
       {isSsoMode && (
         <div className="animate-fade-in-up rounded-lg bg-blue-50 border border-blue-200 px-3.5 py-3 text-sm text-blue-700 text-center">
-          Login untuk melanjutkan ke Komunitas Gasing Circle.
+          Login untuk melanjutkan ke Komunitas Sarang Gasing.
         </div>
       )}
 
       <div className="space-y-4 animate-fade-in-up delay-200">
         <div className="space-y-1">
           <Label htmlFor="login-email">Email</Label>
-          <IconInput id="login-email" icon={Mail} type="email"
-            placeholder="Masukkan email Anda" value={email}
-            className={errors.email ? ERR_INPUT : ''}
-            onChange={e => { setEmail(e.target.value); clearFieldError('email') }}
-            onKeyDown={e => e.key === 'Enter' && handleLogin()} />
-          {errors.email && <p className="text-xs text-red-500">{errors.email}</p>}
+          <IconInput
+            id="login-email"
+            icon={Mail}
+            type="email"
+            placeholder="Masukkan email Anda"
+            value={email}
+            className={errors.email ? ERR_INPUT : ""}
+            onChange={(e) => {
+              setEmail(e.target.value);
+              clearFieldError("email");
+            }}
+            onKeyDown={(e) => e.key === "Enter" && handleLogin()}
+          />
+          {errors.email && (
+            <p className="text-xs text-red-500">{errors.email}</p>
+          )}
         </div>
 
         <div className="space-y-1">
           <Label htmlFor="login-pass">Password</Label>
-          <IconInput id="login-pass" icon={Lock} type={showPass ? 'text' : 'password'}
-            placeholder="Masukkan password Anda" value={password}
-            className={errors.password ? ERR_INPUT : ''}
-            onChange={e => { setPassword(e.target.value); clearFieldError('password') }}
-            onKeyDown={e => e.key === 'Enter' && handleLogin()}
-            iconRight={<TogglePassword show={showPass} onToggle={() => setShowPass(v => !v)} />} />
-          {errors.password && <p className="text-xs text-red-500">{errors.password}</p>}
+          <IconInput
+            id="login-pass"
+            icon={Lock}
+            type={showPass ? "text" : "password"}
+            placeholder="Masukkan password Anda"
+            value={password}
+            className={errors.password ? ERR_INPUT : ""}
+            onChange={(e) => {
+              setPassword(e.target.value);
+              clearFieldError("password");
+            }}
+            onKeyDown={(e) => e.key === "Enter" && handleLogin()}
+            iconRight={
+              <TogglePassword
+                show={showPass}
+                onToggle={() => setShowPass((v) => !v)}
+              />
+            }
+          />
+          {errors.password && (
+            <p className="text-xs text-red-500">{errors.password}</p>
+          )}
         </div>
 
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Checkbox id="remember" checked={remember} onCheckedChange={setRemember} />
-            <Label htmlFor="remember" className="font-normal text-muted-foreground cursor-pointer">
+            <Checkbox
+              id="remember"
+              checked={remember}
+              onCheckedChange={setRemember}
+            />
+            <Label
+              htmlFor="remember"
+              className="font-normal text-muted-foreground cursor-pointer"
+            >
               Ingat saya
             </Label>
           </div>
-          <button onClick={() => onNavigate('forgot-password')}
-            className="text-sm text-primary font-medium hover:underline underline-offset-2 transition-colors">
+          <button
+            onClick={() => onNavigate("forgot-password")}
+            className="text-sm text-[#0033EC] font-medium hover:underline underline-offset-2 transition-colors"
+          >
             Lupa Password?
           </button>
         </div>
 
-        <Button className="w-full" onClick={handleLogin} disabled={loading || !email || !password}>
-          {loading ? <><Loader2 size={16} className="animate-spin" /> Memproses...</> : 'Login'}
+        <Button
+          className="w-full"
+          onClick={handleLogin}
+          disabled={loading || !email || !password}
+        >
+          {loading ? (
+            <>
+              <Loader2 size={16} className="animate-spin" /> Memproses...
+            </>
+          ) : (
+            "Login"
+          )}
         </Button>
       </div>
 
@@ -137,9 +181,11 @@ export function LoginPage({ onNavigate, onLoginSuccess, isSsoMode = false }) {
 
       <div className="animate-fade-in-up delay-300 text-center">
         <p className="text-sm text-muted-foreground">
-          Belum punya akun?{' '}
-          <button onClick={() => onNavigate('signup')}
-            className="font-semibold text-primary hover:underline underline-offset-2">
+          Belum punya akun?{" "}
+          <button
+            onClick={() => onNavigate("signup")}
+            className="font-semibold text-[#0033EC] hover:underline underline-offset-2"
+          >
             Daftar Sekarang
           </button>
         </p>
@@ -151,11 +197,18 @@ export function LoginPage({ onNavigate, onLoginSuccess, isSsoMode = false }) {
         <LoginStatusModal
           type={gate.type}
           meta={gate}
-          onClose={() => { tokenStorage.clear(); setGate(null) }}
-          onRenew={() => { const p = gate.profile; setGate(null); onLoginSuccess(p) }}
+          onClose={() => {
+            tokenStorage.clear();
+            setGate(null);
+          }}
+          onRenew={() => {
+            const p = gate.profile;
+            setGate(null);
+            onLoginSuccess(p);
+          }}
           onRetry={() => setGate(null)}
         />
       )}
     </RightPanel>
-  )
+  );
 }

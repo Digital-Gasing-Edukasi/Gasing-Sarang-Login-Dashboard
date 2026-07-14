@@ -6,7 +6,9 @@ import { fileURLToPath } from "url";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
-  base: '/register',
+  // App di-serve dari root domain. Route publik: /login, /register,
+  // /dashboard-admin, /payment/* (lihat src/lib/routes.js).
+  base: '/',
   plugins: [react()],
   resolve: {
     alias: {

@@ -1,5 +1,5 @@
 import illustrationForgotImg from '@/assets/illustrasi_forgotPassword.png'
-import logo from '@/assets/logo-saranggasing.png'
+import { Logo } from '@/components/shared/Logo'
 import { MobileHero } from '@/components/layout/MobileHero'
 
 function EnvelopeCluster({ flip = false, className = '' }) {
@@ -38,8 +38,8 @@ export function AuthFullLayout({ children, illustration = 'robot' }) {
   return (
     <div className="min-h-screen flex flex-col bg-white">
       {/* Header desktop — di mobile diganti MobileHero */}
-      <header className="hidden lg:flex items-center px-8 py-5 shrink-0">
-        <img src={logo} alt="Sarang Gasing" className="h-10 w-auto object-contain shrink-0" />
+      <header className="hidden lg:flex items-center px-6 pt-6 pb-5 shrink-0">
+        <Logo variant="full" />
       </header>
       <div className="hidden lg:block h-px bg-border shrink-0" />
 
@@ -76,7 +76,7 @@ export function AuthFullLayout({ children, illustration = 'robot' }) {
       </div>
 
       <div className="pb-6 shrink-0">
-        <p className="text-xs text-muted-foreground text-center">©2026 Gasing Circle. All rights reserved.</p>
+        <p className="text-xs text-muted-foreground text-center">©2026 Gasing Academy. All rights reserved..</p>
       </div>
     </div>
   )

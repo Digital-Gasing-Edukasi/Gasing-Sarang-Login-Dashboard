@@ -45,7 +45,7 @@ export function SignUpOtpPage({ onNavigate, otpToken, email }) {
         </Button>
         <div className="text-center">
           {expired
-            ? <button onClick={reset} className="text-sm text-foreground font-medium underline underline-offset-2">Kirim ulang kode</button>
+            ? <button onClick={reset} className="text-sm text-[#0033EC] font-medium underline underline-offset-2">Kirim ulang kode</button>
             : <p className="text-sm text-muted-foreground">Kode kedaluwarsa dalam <span className="font-bold text-foreground">{display}</span></p>
           }
         </div>

@@ -5,6 +5,7 @@ export default {
       fontFamily: {
         sans: ['"Poppins"', 'sans-serif'],
         display: ['"Poppins"', 'sans-serif'],
+        'cera-pro': ['"Cera Pro"', '"Poppins"', 'sans-serif'],
       },
       colors: {
         border: "hsl(var(--border))",
@@ -32,6 +33,7 @@ export default {
           DEFAULT: "hsl(var(--destructive))",
           foreground: "hsl(var(--destructive-foreground))",
         },
+        link: "hsl(var(--link))",
       },
       borderRadius: {
         lg: "var(--radius)",

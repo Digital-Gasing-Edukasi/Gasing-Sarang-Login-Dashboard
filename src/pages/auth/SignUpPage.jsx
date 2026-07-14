@@ -416,7 +416,7 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
                 href="/register/id/TOS"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="underline font-medium text-blue-500 hover:text-blue-600"
+                className="underline font-medium text-[#0033EC] hover:text-[#0033EC]/80"
               >
                 Ketentuan Layanan
               </a>{" "}
@@ -425,7 +425,7 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
                 href="/register/id/privacy"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="underline font-medium text-blue-500 hover:text-blue-600"
+                className="underline font-medium text-[#0033EC] hover:text-[#0033EC]/80"
               >
                 Kebijakan Privasi
               </a>{" "}
@@ -631,7 +631,7 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
                 href="/register/id/TOS"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="underline font-medium text-blue-500 hover:text-blue-600"
+                className="underline font-medium text-[#0033EC] hover:text-[#0033EC]/80"
               >
                 Ketentuan Layanan
               </a>{" "}
@@ -640,7 +640,7 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
                 href="/register/id/privacy"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="underline font-medium text-blue-500 hover:text-blue-600"
+                className="underline font-medium text-[#0033EC] hover:text-[#0033EC]/80"
               >
                 Kebijakan Privasi
               </a>{" "}

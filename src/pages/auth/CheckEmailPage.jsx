@@ -88,7 +88,7 @@ export function CheckEmailPage({ email, onNavigate }) {
             <div className="w-20 h-20 rounded-full border-2 border-dashed border-[#4ADE80]/50 bg-[#22c55e]/10 flex items-center justify-center mx-auto mb-7">
               <Mail size={32} className="text-[#4ADE80]" />
             </div>
-            <h1 className="text-[2.6rem] font-extrabold text-white mb-4">Cek Email Kamu</h1>
+            <h1 className="font-cera-pro text-[48px] font-bold text-white mb-4">Cek Email Kamu</h1>
             <p className="text-[15px] text-white/60">
               Kami telah mengirimkan tautan pemulihan ke email
             </p>

@@ -1,9 +1,8 @@
 import { useState } from 'react'
-import { Mail, LogIn, Loader2 } from 'lucide-react'
+import { Mail, LogIn, Loader2, ChevronLeft } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Label }  from '@/components/ui/label'
 import { AuthFullLayout } from '@/components/layout/AuthFullLayout'
-import { Divider }        from '@/components/layout/RightPanel'
 import { IconInput }      from '@/components/shared/IconInput'
 import { AuthDarkLayout, DarkInput, DarkPrimaryButton, DarkGhostButton, DarkDivider } from '@/components/shared/DarkAuth'
 import { authApi }        from '@/lib/api'
@@ -42,16 +41,24 @@ export function ForgotPasswordPage({ onNavigate, onEmailSent }) {
       <div className="lg:hidden">
         <AuthFullLayout illustration="forgotPassword">
           <div className="animate-fade-in-up">
-            <h1 className="text-3xl font-bold text-foreground mb-3">Lupa Password?</h1>
-            <p className="text-sm text-muted-foreground mb-8">
-              Masukkan email Anda dan kami akan mengirimkan tautan untuk mengatur ulang kata sandi Anda.
+            <div className="relative flex items-center justify-center mb-5">
+              <button
+                onClick={() => onNavigate('login')}
+                aria-label="Kembali ke login"
+                className="absolute left-0 text-foreground hover:text-muted-foreground transition-colors">
+                <ChevronLeft size={22} />
+              </button>
+              <h1 className="text-xl font-bold text-foreground">Lupa Password?</h1>
+            </div>
+            <p className="text-sm text-muted-foreground mb-7">
+              Masukkan email kamu yang terdaftar. Kami akan mengirimkan tautan untuk mengubah password kamu.
             </p>
           </div>
 
-          <div className="space-y-4 animate-fade-in-up delay-100">
+          <div className="space-y-5 animate-fade-in-up delay-100">
             <div className="space-y-1.5">
               <Label>Email</Label>
-              <IconInput icon={Mail} type="email" placeholder="Masukkan email Anda"
+              <IconInput icon={Mail} type="email" placeholder="Masukkan email kamu"
                 value={email}
                 className={errors.email ? ERR_INPUT : ''}
                 onChange={e => { setEmail(e.target.value); clearFieldError('email') }}
@@ -62,15 +69,6 @@ export function ForgotPasswordPage({ onNavigate, onEmailSent }) {
               {loading ? <><Loader2 size={16} className="animate-spin" /> Mengirim...</> : 'Kirim Tautan'}
             </Button>
           </div>
-
-          <Divider />
-
-          <div className="text-center">
-            <button onClick={() => onNavigate('login')}
-              className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mx-auto">
-              <LogIn size={15} /> Kembali Ke login
-            </button>
-          </div>
         </AuthFullLayout>
       </div>
 
@@ -78,7 +76,7 @@ export function ForgotPasswordPage({ onNavigate, onEmailSent }) {
       <div className="hidden lg:block">
         <AuthDarkLayout>
           <div className="animate-fade-in-up">
-            <h1 className="text-[2.6rem] font-extrabold text-white mb-4">Lupa Password?</h1>
+            <h1 className="font-cera-pro text-[48px] font-bold text-white mb-4">Lupa Password?</h1>
             <p className="text-[15px] text-white/60 leading-relaxed mb-10 max-w-[440px]">
               Masukkan email kamu yang terdaftar dan kami akan mengirimkan tautan untuk mengatur ulang kata sandi kamu.
             </p>
@@ -94,7 +92,7 @@ export function ForgotPasswordPage({ onNavigate, onEmailSent }) {
               {errors.email && <p className="text-xs text-red-300">{errors.email}</p>}
             </div>
 
-            <DarkPrimaryButton onClick={handleSend} disabled={loading || !email}>
+            <DarkPrimaryButton variant="white" onClick={handleSend} disabled={loading || !email}>
               {loading ? <><Loader2 size={18} className="animate-spin" /> Mengirim...</> : 'Kirim Tautan'}
             </DarkPrimaryButton>
 

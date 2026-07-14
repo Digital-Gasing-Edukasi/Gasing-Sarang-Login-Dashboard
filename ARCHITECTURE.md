@@ -24,15 +24,15 @@
 
 ## 1. Gambaran Arsitektur
 
-Aplikasi adalah **Single Page Application murni client-side**. Tidak ada server-side rendering, tidak ada library router (React Router). Navigasi dikelola sendiri lewat satu state `page` di `App.jsx` (state-based router).
+Aplikasi adalah **Single Page Application murni client-side**. Tidak ada server-side rendering. Navigasi memakai **React Router v6** (`BrowserRouter` di `main.jsx`, `<Routes>` di `App.jsx`), dengan `base: '/'` — semua route adalah path absolut dari root domain. Peta URL terpusat di [`src/lib/routes.js`](src/lib/routes.js).
 
 ```
 ┌──────────────────────────────────────────────────────────────────────┐
 │                            BROWSER (SPA)                                │
 │                                                                        │
-│   main.jsx ──► App.jsx (state router) ──► Halaman aktif (1 komponen)   │
+│   main.jsx ──► BrowserRouter ──► App.jsx (<Routes>) ──► Halaman aktif  │
 │                   │                                                     │
-│                   │ baca window.location (path + query) sekali di boot │
+│                   │ boot: baca pathname + query (deep-link, link email)│
 │                   ▼                                                     │
 │        ┌────────────────────┐   ┌─────────────────┐   ┌─────────────┐  │
 │        │  Pages (auth/admin/ │   │  Components      │   │  Hooks       │  │
@@ -58,7 +58,8 @@ Aplikasi adalah **Single Page Application murni client-side**. Tidak ada server-
 
 **Prinsip desain yang terlihat dari kode:**
 
-- **Satu sumber navigasi.** `App.jsx` memegang `page` (string) dan memilih komponen mana yang dirender. Tidak ada URL berubah saat navigasi internal — URL hanya dibaca **sekali** saat boot untuk menentukan halaman awal (deep-link), lalu query param dibersihkan dengan `history.replaceState`.
+- **URL = sumber kebenaran navigasi.** Setiap halaman punya path sendiri (`/login`, `/register`, `/dashboard-admin`, …). Refresh dan tombol back browser bekerja normal. Daftar path ada di `lib/routes.js`, bukan tersebar di komponen.
+- **Page key masih dipakai sebagai alias.** File page memanggil `onNavigate("login")` seperti dulu; `App.jsx` menerjemahkannya lewat shim `go(key) → navigate(pathForPage(key))`. Jadi migrasi ke React Router tidak menyentuh isi tiap page.
 - **Data layer terpusat.** Semua HTTP call lewat `lib/api.js`. Komponen tidak pernah memanggil `fetch` langsung (kecuali `window.snap.pay` untuk Midtrans).
 - **State lokal, bukan global.** Tidak ada Redux/Zustand. State hidup di komponen masing-masing. `AuthContext` ada tapi **tidak dipakai** di `App.jsx` (lihat [Catatan](#11-catatan--utang-teknis)).
 - **Halaman besar dipecah jadi komponen kecil.** Lihat refactoring v2.5.0 di README — semua file < 200 baris.
@@ -80,97 +81,113 @@ Aplikasi adalah **Single Page Application murni client-side**. Tidak ada server-
 
 ---
 
-## 3. Mesin Routing (`App.jsx`)
+## 3. Mesin Routing (`App.jsx` + `lib/routes.js`)
 
 ### 3.1 Cara kerja
 
-`App.jsx` adalah **state machine** dengan satu variabel utama `page`. Render-nya berupa rangkaian early-return (`if (page === …) return <X/>`), lalu fallback ke "split-layout pages" (login/signup) yang dibungkus `LeftPanel`.
+`App.jsx` merender satu `<Routes>` berisi seluruh path aplikasi. Navigasi = `navigate('/path')` dari React Router.
 
 ```jsx
-const [page, setPage] = useState("login");
-...
-if (page === "payment-finish")   return <PaymentFinishPage />;
-if (page === "subscription")     return <SubscriptionPage .../>;
-if (page === "admin-dashboard")  return <Suspense><AdminDashboardPage .../></Suspense>;
-...
-return <div className="flex h-screen"><LeftPanel/>{authPages[page] ?? authPages["login"]}</div>;
+<Routes>
+  <Route path="/" element={<Navigate to="/login" replace />} />
+  <Route path="/login" element={<SplitLayout><LoginPage onNavigate={go} … /></SplitLayout>} />
+  <Route path="/login/subscription" element={requireAuth(<SubscriptionPage … />)} />
+  <Route path="/dashboard-admin" element={requireAuth(<Suspense><AdminDashboardPage … /></Suspense>)} />
+  <Route path="*" element={<Navigate to="/login" replace />} />   {/* fail-safe */}
+</Routes>
 ```
 
-Setiap halaman menerima `onNavigate={setPage}` sebagai cara berpindah. Jadi "navigasi" = memanggil `setPage('nama-route')`.
+Dua helper penting:
 
-### 3.2 Boot sequence (`useEffect` di mount)
+| Helper | Lokasi | Guna |
+| ------ | ------ | ---- |
+| `go(key)` | `App.jsx` | Shim: page key lama → URL. `go("login")` → `navigate("/login")`. Page tetap memanggil `onNavigate("<key>")` seperti era state-router. |
+| `requireAuth(element)` | `App.jsx` | Route bersesi. Tanpa access token → `<Navigate to="/login" replace />`. Di-bypass oleh `devAdmin` (`?admin=true`). |
 
-Urutan deteksi **berurutan dan return-early** — yang pertama cocok menang:
+`pathForPage(key)` di `lib/routes.js` adalah peta key→path (fail-safe ke `/login` untuk key tak dikenal).
+
+### 3.2 Tabel route
+
+| Path | Komponen | Layout | Sesi |
+| ---- | -------- | ------ | ---- |
+| `/` | → redirect `/login` | — | — |
+| `/login` | `LoginPage` | split (LeftPanel) | publik |
+| `/login/forgot-password` | `ForgotPasswordPage` | dark full-bleed | publik |
+| `/login/check-email` | `CheckEmailPage` | dark full-bleed | publik |
+| `/login/reset-password` | `ResetPasswordPage` | dark full-bleed | publik (token dari email) |
+| `/login/choice` | `AuthChoicePage` | split | **butuh sesi** |
+| `/login/sso-callback` | `SsoCallbackPage` | split | publik (param SSO) |
+| `/login/subscription` | `SubscriptionPage` | full-screen | **butuh sesi** |
+| `/login/subscription/transfer` | `TransferBankPage` | full-screen | **butuh sesi** + state `checkoutPlan` |
+| `/register` | `SignUpPage` (2 step internal) | split | publik |
+| `/register/otp` | `SignUpOtpPage` | split | publik |
+| `/register/review` | `SignUpReviewPage` | dark full-bleed | publik |
+| `/register/revise` | `FixDataPage` (token `/revise`, atau legacy `?fix=`) | split | publik (token dari email) |
+| `/register/revise/invalid` | `ReviseErrorPage` (inline di `App.jsx`) | split | publik |
+| `/register/id/TOS` | `TermsPage` | legal | publik |
+| `/register/id/privacy` | `PrivacyPage` | legal | publik |
+| `/register/reset-password` | → redirect `/login/reset-password` (+`search`) | — | kompat link email lama |
+| `/dashboard-admin` | `AdminDashboardPage` (lazy + `Suspense`) | full-screen | **butuh sesi** |
+| `/admin-dashboard` | → redirect `/dashboard-admin` | — | kompat path lama |
+| `/payment/success` | `PaymentSuccessPage` | full-screen | publik |
+| `/payment/finish` `/unfinish` `/error` | `PaymentFinish/Unfinish/Error Page` | full-screen | publik (landing Midtrans) |
+| `/midtrans-test` | `MidtransTestPage` | full-screen | publik (dev tool) |
+| `*` | → redirect `/login` | — | — |
+
+`AdminDashboardPage` di-`lazy()` (code-split) agar bundle awal ringan; ditampilkan dengan `DashboardSpinner` sebagai fallback.
+
+### 3.3 Boot sequence (`useEffect` di mount)
+
+Router menangani path biasa. Boot sequence hanya menangani **hal yang butuh kerja sebelum render**: query param dari link eksternal (email, Midtrans, Discourse) dan restore sesi. Urutan **return-early** — yang pertama cocok menang:
 
 ```
-1. path /payment/finish|unfinish|error   → halaman landing Midtrans (Snap Redirect)
-2. path /revise + ?token=<JWT>            → getRevise → FixDataPage (revisi data, token-based)
-3. ?fix=<payload>                          → decode → FixDataPage (LEGACY, deprecated — lihat ADR-0003)
-4. ?midtrans-test=true                     → MidtransTestPage (dev tool)
-5. ?sso=&sig=                              → simpan param; jika sudah login → sso-callback, else → login (SSO mode)
-6. ?admin=true  ATAU path /admin-dashboard → admin-dashboard
-7. path /register                          → login (entry point produksi)
-8. ?payment=success (+ ?plan=)             → payment-success
-9. ?token= (+ ?email=)                     → reset-password (link dari email)
-10. token akses tersimpan                  → profileApi.getMe() → handleLoginSuccess(profile)
-11. (default)                              → login
+1. ?gatetest=suspended|pending|expired  → DEV: paksa LoginStatusModal, tanpa backend
+2. isPublicStaticPath(path)             → legal / /payment/* / /midtrans-test → render apa adanya, tanpa cek sesi
+3. path /register/revise + ?token=<JWT> → authApi.getRevise() → prefill FixDataPage
+                                          (gagal → /register/revise/invalid)
+4. ?fix=<payload>                       → decodeFixPayload → FixDataPage (LEGACY, ADR-0003)
+5. ?midtrans-test=true                  → /midtrans-test
+6. ?sso= & ?sig=                        → simpan param; sudah login → /login/sso-callback, else → /login (mode SSO)
+7. ?admin=true                          → DEV: devAdmin=true → /dashboard-admin tanpa sesi
+8. ?token= (+ ?email=)                  → /login/reset-password (link email; token dibuang dari URL)
+9. ?payment=success (+ ?plan=)          → /payment/success (legacy Snap Redirect)
+10. skipSessionRestore(path)            → halaman auth-entry (/register*, /login/{reset,forgot,check-email}):
+                                          JANGAN auto-restore sesi
+11. token akses tersimpan               → profileApi.getMe() → handleLoginSuccess(profile)
+12. (selain itu)                        → biarkan router yang render path saat ini
 ```
 
-> **Urutan penting:** cek `/revise` dan `?fix=` berada **sebelum** `?token=`
-> (reset-password) karena link revisi juga membawa `?token=`; pembeda-nya path `/revise`.
+> **Urutan penting:** cek `/register/revise` dan `?fix=` berada **sebelum** `?token=` (reset-password) karena link revisi juga membawa `?token=`; pembedanya adalah path.
 
-Direpresentasikan sebagai pohon keputusan (yang pertama cocok menang, sisanya tidak dievaluasi):
+> **`skipSessionRestore` (langkah 10) mencegah bug nyata:** user yang sedang mendaftar atau me-reset password, tapi masih menyimpan token akun lama di storage, dulu tiba-tiba dilempar ke dashboard. Prefix-nya ada di `lib/routes.js`.
 
 ```mermaid
 flowchart TD
-    Boot(["App mount: baca pathname + query"]) --> P1{"path /payment/* ?"}
-    P1 -->|ya| PG["Payment Finish/Unfinish/Error"]
+    Boot(["App mount: baca pathname + query"]) --> G{"?gatetest= ?"}
+    G -->|ya| GM2["LoginStatusModal (DEV)"]
+    G -->|tidak| P0{"isPublicStaticPath?<br/>legal / payment / midtrans-test"}
+    P0 -->|ya| RENDER["render path apa adanya"]
+    P0 -->|tidak| P1{"/register/revise + token ?"}
+    P1 -->|ya| RV["getRevise → FixDataPage<br/>(gagal → /revise/invalid)"]
     P1 -->|tidak| P2{"?fix= ?"}
-    P2 -->|ya| FX["FixDataPage"]
-    P2 -->|tidak| P3{"?midtrans-test=true ?"}
-    P3 -->|ya| MT["MidtransTestPage"]
-    P3 -->|tidak| P4{"?sso= dan ?sig= ?"}
-    P4 -->|"ya, sudah login"| SSO["sso-callback"]
-    P4 -->|"ya, belum login"| LG1["login (mode SSO)"]
-    P4 -->|tidak| P5{"?admin=true atau path /admin-dashboard ?"}
-    P5 -->|ya| AD["admin-dashboard"]
-    P5 -->|tidak| P6{"path /register ?"}
-    P6 -->|ya| LG2["login"]
-    P6 -->|tidak| P7{"?payment=success ?"}
-    P7 -->|ya| PS["payment-success"]
-    P7 -->|tidak| P8{"?token= ?"}
-    P8 -->|ya| RP["reset-password"]
-    P8 -->|tidak| P9{"token akses tersimpan ?"}
-    P9 -->|ya| GM["profileApi.getMe → handleLoginSuccess"]
-    P9 -->|tidak| LG3["login (default)"]
+    P2 -->|ya| FX["FixDataPage (legacy)"]
+    P2 -->|tidak| P3{"?sso= & ?sig= ?"}
+    P3 -->|"ya, sudah login"| SSO["/login/sso-callback"]
+    P3 -->|"ya, belum login"| LG1["/login (mode SSO)"]
+    P3 -->|tidak| P4{"?admin=true ?"}
+    P4 -->|ya| AD["/dashboard-admin (devAdmin)"]
+    P4 -->|tidak| P5{"?token= ?"}
+    P5 -->|ya| RP["/login/reset-password"]
+    P5 -->|tidak| P6{"skipSessionRestore(path)?"}
+    P6 -->|ya| KEEP["render path apa adanya<br/>(jangan restore sesi)"]
+    P6 -->|tidak| P7{"token tersimpan ?"}
+    P7 -->|ya| GM["profileApi.getMe → handleLoginSuccess"]
+    P7 -->|tidak| KEEP2["render path apa adanya"]
 ```
 
-Setelah resolusi, `setSessionChecked(true)` membuka render (`if (!sessionChecked) return null` mencegah flicker). Query param dibersihkan via `clearUrlParams()` (`history.replaceState`).
+Setelah resolusi, `setSessionChecked(true)` membuka render (`if (!sessionChecked) return null` mencegah flicker). Query param dibersihkan lewat `navigate(path, { replace: true })` — bukan `history.replaceState`, supaya history React Router tidak putus sinkron.
 
-> **Penting:** Karena URL tidak berubah saat navigasi internal, **refresh browser selalu kembali ke hasil boot sequence** (umumnya login/sesi), bukan ke halaman terakhir.
-
-### 3.3 Tabel route
-
-| `page` | Komponen | Layout |
-| ------ | -------- | ------ |
-| `login` | `LoginPage` | split (LeftPanel + RightPanel) |
-| `signup` | `SignUpPage` (2 step internal) | split |
-| `fix-data` | `FixDataPage` (revisi via token `/revise`, atau legacy `?fix=`) | split |
-| `revise-error` | inline (link revisi invalid/expired) | split |
-| `signup-otp` | `SignUpOtpPage` | split |
-| `signup-review` | `SignUpReviewPage` | split |
-| `auth-choice` | `AuthChoicePage` | split |
-| `sso-callback` | `SsoCallbackPage` | split |
-| `forgot-password` | `ForgotPasswordPage` | full-screen |
-| `check-email` | `CheckEmailPage` | full-screen |
-| `reset-password` | `ResetPasswordPage` | full-screen |
-| `subscription` | `SubscriptionPage` | full-screen |
-| `payment-success` | `PaymentSuccessPage` | full-screen |
-| `payment-finish` / `-unfinish` / `-error` | `PaymentFinish/Unfinish/Error Page` | full-screen |
-| `admin-dashboard` | `AdminDashboardPage` (lazy + `Suspense`) | full-screen |
-| `midtrans-test` | `MidtransTestPage` | full-screen |
-
-`AdminDashboardPage` di-`lazy()` (code-split) agar bundle awal ringan; ditampilkan dengan spinner fallback.
+> **Konsekuensi deploy:** karena URL kini nyata, server **wajib** punya SPA fallback (semua path → `index.html`). Tanpa itu, refresh di `/dashboard-admin` = 404 dari Nginx. Lihat [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md).
 
 ---
 
@@ -186,10 +203,14 @@ State ini "diangkat" ke `App.jsx` karena dipakai untuk mengoper data antar halam
 | `fpEmail` | `ForgotPasswordPage` (via `onEmailSent`) | `CheckEmailPage` |
 | `resetToken`, `resetEmail` | boot sequence (`?token=&email=`) | `ResetPasswordPage` |
 | `ssoParams` | boot sequence (`?sso=&sig=`) | `SsoCallbackPage`, `LoginPage` (mode SSO) |
-| `fixData` | boot sequence (`?fix=`) | `FixDataPage` |
-| `currentUser` | `handleLoginSuccess` | Subscription/PaymentSuccess/Admin |
+| `reviseData`, `reviseToken` | boot sequence (`/register/revise?token=` → `getRevise` → `normalizeRevise`) | `FixDataPage` |
+| `fixData` | boot sequence (`?fix=`, LEGACY) | `FixDataPage` (fallback bila `reviseData` kosong) |
+| `currentUser` | `handleLoginSuccess` | Subscription/TransferBank/PaymentSuccess/Admin |
 | `activePlanName` | `handlePaymentSuccess` / `?plan=` | `PaymentSuccessPage` |
-| `sessionChecked` | boot sequence | gate render |
+| `checkoutPlan`, `manualPayment` | `handleCheckoutManual` (dari `SubscriptionPage`) | `TransferBankPage` — deep-link tanpa state → redirect balik ke `/login/subscription` |
+| `gate` | `evaluateLoginGate` (login & restore sesi) / `?gatetest=` | `LoginStatusModal` (suspended/pending/expired) |
+| `devAdmin` | boot sequence (`?admin=true`) | bypass `requireAuth` untuk preview dashboard tanpa backend |
+| `sessionChecked` | boot sequence | gate render (`null` sampai `true`) |
 
 ### 4.2 State lokal
 
@@ -207,7 +228,15 @@ Pembacaan selalu cek `localStorage` dulu, lalu `sessionStorage`.
 
 ## 5. Data Layer — `lib/api.js`
 
-Satu modul, mengekspor `tokenStorage` + objek API per-domain (`authApi`, `profileApi`, `regionsApi`, `trainingSessionsApi`, `timezoneApi`, `subscriptionApi`, `voucherApi`, `discourseApi`, `webAppApi`, `fileManagerApi`, `skillsApi`, `adminApi`).
+Satu modul, mengekspor `tokenStorage` + objek API per-domain: `authApi`, `profileApi`, `regionsApi`, `trainingSessionsApi`, `trainingHistoriesApi`, `queueApi`, `appConfigApi`, `timezoneApi`, `subscriptionApi`, `voucherApi`, `discourseApi`, `webAppApi`, `fileManagerApi`, `skillsApi`, `adminApi`.
+
+Tiga grup yang lebih baru dan gampang terlewat:
+
+| Grup | Endpoint | Dipakai di |
+| ---- | -------- | ---------- |
+| `trainingHistoriesApi` | `/training-histories/*` — upload CSV peserta, list/detail import, patch/delete baris, `push` ke sistem | Tab Riwayat Pelatihan (impor peserta) |
+| `queueApi` | `/queue/jobs/:id` | Polling status job impor peserta (async) |
+| `appConfigApi` | `GET/POST /app-config/:key` | Tab Pendaftaran Trainer — **datanya disimpan sebagai app-config**, bukan tabel sendiri (lihat §8) |
 
 ### 5.1 Pipeline `request(endpoint, options)`
 
@@ -410,7 +439,31 @@ sequenceDiagram
 
 > **Catatan implementasi:** alur produksi memakai **Snap Redirect** (`window.location.href`) + landing pages `/payment/*`, bukan Snap **Popup**. `window.snap.pay` hanya dipakai di `MidtransTestPage` (dev tool). README §10 sudah diselaraskan dengan perilaku ini.
 
-### 7.6 Perbaikan Data (akun ditolak admin)
+### 7.6 Pembayaran Transfer Manual (Transfer Bank)
+
+Jalur kedua di samping Midtrans: user transfer sendiri ke rekening perusahaan, unggah bukti, admin verifikasi.
+
+```
+SubscriptionPage → pilih paket → metode "Transfer Bank"
+  → subscriptionApi.checkoutManual(packageId)   [POST /subscription/checkout/manual]
+  → { payment } → onCheckoutManual(plan, payment) → /login/subscription/transfer
+
+TransferBankPage
+  isi: nama pengirim, bank asal, tanggal transfer, bukti transfer (file)
+  → fileManagerApi.upload(file) → { fileId }
+  → subscriptionApi.uploadReceipt(paymentId, fileId)
+  → status payment jadi `receipt_uploaded` (menunggu review admin)
+
+Admin (tab Verifikasi Pembayaran)
+  → adminApi.listManualPayments({ filter: 'receipt_uploaded' })
+  → approve → langganan aktif   |   reject (notes WAJIB) → status `rejected`
+```
+
+Detail modul admin-nya: [docs/VERIFIKASI_PEMBAYARAN.md](docs/VERIFIKASI_PEMBAYARAN.md).
+
+> `TransferBankPage` butuh `checkoutPlan` + `manualPayment` dari state `App.jsx`. Deep-link langsung ke `/login/subscription/transfer` (state kosong, mis. setelah refresh) → redirect balik ke `/login/subscription`.
+
+### 7.7 Perbaikan Data (akun ditolak admin)
 
 Link **self-contained** — semua data ada di URL, tidak butuh DB lookup di FE:
 
@@ -430,7 +483,15 @@ Admin reject (RejectModal) → centang field yang salah + catatan
 
 ## 8. Dashboard Admin — Arsitektur Internal
 
-`AdminDashboardPage.jsx` adalah **orchestrator**: memegang semua state, memuat data, dan merakit sub-komponen per tab. Empat tab: **Verifikasi**, **Manajemen**, **Pendaftaran Trainer**, **Riwayat Pelatihan**.
+`AdminDashboardPage.jsx` adalah **orchestrator**: memegang semua state, memuat data, dan merakit sub-komponen per tab. **Lima tab** (urutan sidebar di `AdminSidebar.jsx`):
+
+| Tab (`activeTab`) | Judul | Sumber data | Dokumen |
+| ----------------- | ----- | ----------- | ------- |
+| `verifikasi` | Verifikasi Akun | `adminApi.getUsers({ verifiedStatus: 0 })` — 2 sub-tab: `pending` & `voucher` (`PENDING_VOUCHER`) | — |
+| `verifikasi-pembayaran` | Verifikasi Pembayaran | `adminApi.listManualPayments()` — 2 sub-tab: `receipt_uploaded` & `rejected` | [VERIFIKASI_PEMBAYARAN.md](docs/VERIFIKASI_PEMBAYARAN.md) |
+| `manajemen` | Manajemen Akun | `adminApi.getUsers({})` | [MANAJEMEN_AKUN.md](docs/MANAJEMEN_AKUN.md) |
+| `riwayat-pelatihan` | Riwayat Pelatihan | `trainingSessionsApi.list()` → `mapToRiwayat` | — |
+| `pendaftaran-trainer` | Pendaftaran Pelatihan Trainer | `appConfigApi.get(PENDAFTARAN_KEY)` | — |
 
 ### 8.1 Pemuatan & transformasi data
 
@@ -442,7 +503,22 @@ loadUsers(tab):
   tab 'manajemen'   → adminApi.getUsers({})
                       → map mapToManajemen(u, regions)
 discourseApi.getGroups() (sekali) → opsi role/grup
+
+loadPembayaran():   adminApi.listManualPayments({ filter:'receipt_uploaded' }) → mapToPembayaran
+                    adminApi.listManualPayments({ filter:'rejected' })          → mapToPembayaran
+                    (try/catch terpisah: gagal di satu sub-tab tidak mengosongkan yang lain)
+
+loadRiwayat():      trainingSessionsApi.list({ page:1, limit:100 }) → mapToRiwayat
+
+loadPendaftaran():  appConfigApi.get(PENDAFTARAN_KEY) → threadsToRows → autoOffExpired
+                    (kalau ada yang lewat batas waktu, status dinormalisasi lalu
+                     ditulis balik via appConfigApi.set — supaya Home tidak menampilkan
+                     pendaftaran yang sudah tutup)
 ```
+
+> **Jangan tambah loop fetch per-baris di `loadRiwayat`.** Versi lama meresolve region (`GET /regions/:id`) dan ringkasan peserta per session → ~200 request untuk 100 session → NestJS throttler membalas **429**. Kolom "Daerah" & "Peserta" harus di-**embed backend** di respons list, bukan disintesis lewat N+1 fetch dari FE.
+
+**Pendaftaran Trainer tersimpan di `app-config`, bukan tabel sendiri.** Baris tabel di-serialisasi ke satu value JSON (`threadsToRows` / `rowsToValue`). Konsekuensinya: tidak ada paginasi server, tidak ada audit trail, dan tulis = ganti seluruh value.
 
 `mappers.js` menormalkan respons API yang "berantakan" ke bentuk UI rata:
 - **Tanggal** bisa berupa `{ date, formatted }` atau `{ unix }` → `parseBirthdate`, `parseCreatedAtYear/Ms`, `fmtDate` (locale `id-ID`).
@@ -480,15 +556,20 @@ handleConfirmApprove / handleConfirmReject:
 
 | Komponen | Peran |
 | -------- | ----- |
-| `AdminSidebar` | Navigasi tab + sign out. |
-| `VerifikasiControls` / `ManajemenControls` / `PendaftaranTrainerControls` / `RiwayatPelatihanControls` | Toolbar per tab (search/filter/export/add). |
-| `VerifikasiTable` / `ManajemenTable` / `PendaftaranTrainerTable` / `RiwayatPelatihanTable` | Tabel per tab. |
-| `RejectModal` / `ApproveModal` (`ConfirmModal.jsx`) | Konfirmasi verifikasi. |
-| `UbahRoleModal` / `KirimVoucherModal` | Aksi pada tab manajemen. |
+| `AdminSidebar` | Navigasi 5 tab + sign out + titik biru penanda item baru (`navFlags`). |
+| `TableControls.jsx` | Toolbar per tab: `VerifikasiControls`, `ManajemenControls`, `PendaftaranTrainerControls`, `RiwayatPelatihanControls` (search/filter/export/add). |
+| `VerifikasiTable` / `PendingVoucherTable` | Tab Verifikasi Akun — sub-tab `pending` & `voucher` (`PENDING_VOUCHER`). |
+| `VerifikasiPembayaranTable` + `PembayaranModals` | Tab Verifikasi Pembayaran — konfirmasi / tolak bukti transfer. |
+| `ManajemenTable` | Tab Manajemen Akun. |
+| `RiwayatPelatihanTable` / `PendaftaranTrainerTable` | Tab Riwayat Pelatihan / Pendaftaran Trainer. |
+| `SetujuiAkunModal` / `RejectModal`+`ApproveModal` (`ConfirmModal.jsx`) | Verifikasi akun (langkah 1 → `PENDING_VOUCHER`). |
+| `BulkApproveModal` / `BulkRejectModal` / `VoucherModals` | Aksi massal + voucher ([ADMIN_TABLE_LIMITS.md](docs/ADMIN_TABLE_LIMITS.md)). |
+| `UbahRoleModal` / `KirimVoucherModal` / `SuspendModal` / `AccountActionModals` | Aksi pada tab Manajemen (role, voucher, tangguhkan, hapus/pulihkan). |
+| `AddPelatihanModal` / `PerbaruiRiwayatModal` / `DaftarPesertaModal` / `EditPesertaModal` | Tambah & perbarui pelatihan, kelola peserta. |
 | `AddPendaftaranTrainerModal` / `HapusRiwayatModal` | Tambah pendaftaran / hapus riwayat (ketik `DELETE`). |
 | `AdminToast` | Toast undo 5 detik. |
 
-> Data **Pendaftaran Trainer** & **Riwayat Pelatihan** masih dummy (state lokal di `AdminDashboardPage`), belum tersambung ke backend.
+> **Verifikasi akun = 2 call terpisah.** `WAITING` → *Setujui* → `PENDING_VOUCHER` → *kirim voucher* → `APPROVED`. Langkah kedua mengirim **`{ status }` saja**.
 
 ---
 
@@ -545,12 +626,16 @@ Hal yang **tidak konsisten / perlu diketahui maintainer** (ditemukan langsung da
 
 1. **`AuthContext.jsx` tidak terpakai.** `App.jsx` mengelola auth sendiri (`currentUser` + `handleLoginSuccess`). `AuthProvider`/`useAuth` ada tapi tidak membungkus `<App/>` di `main.jsx`. Pilih salah satu agar tidak membingungkan.
 2. **Midtrans: Popup vs Redirect.** Alur produksi (`SubscriptionPage`) memakai Snap **Redirect** + landing `/payment/*`; `window.snap.pay` (Popup) hanya di `MidtransTestPage` (dev tool). README §10 sudah diperbarui agar sesuai — pastikan perubahan implementasi di masa depan ikut menyelaraskan kedua dokumen ini.
-3. **Routing tanpa URL.** Navigasi internal tidak mengubah URL → refresh/back browser tidak mengembalikan halaman terakhir, dan deep-link hanya untuk skenario di boot sequence.
-4. **Alur revisi data kini token-based** (`revise`): admin `reviseUser`/`rejectUser`, user via link `/register/revise?token=` → `getRevise`/`submitRevise`. Endpoint sudah ada di backend. Legacy `?fix=` + `submitCorrection` masih di kode sebagai fallback **deprecated** — hapus setelah stabil. Lihat [ADR-0003](docs/adr/0003-revise-token-flow.md) & [FIX_DATA_FLOW.md](docs/FIX_DATA_FLOW.md).
-5. **Data dummy admin.** Tab Pendaftaran Trainer & Riwayat Pelatihan belum tersambung backend.
-6. **Nama field region pelatihan sudah diselaraskan ke `firstTrainingRegionId`** (nama kanonik yang dikirim registrasi). `mappers.js` kini membaca `firstTrainingRegionId` dengan fallback ke `trainingRegionId` lama, jadi aman untuk kedua bentuk respons API. Bila respons asli memakai nama lain lagi, ubah di `mapToVerifikasi`/`mapToManajemen`.
-7. **Pesan error 401 → hard redirect `/`.** Saat refresh gagal, `request()` memaksa `window.location.href = "/"`; dengan `base: '/register'`, pastikan reverse-proxy mengarahkan `/` dengan benar (lihat README §7 & §13).
+3. **Routing sudah pindah ke React Router v6 + `base: '/'`** (dulu state-based tanpa URL). Konsekuensi yang masih perlu ditindaklanjuti: **Nginx wajib punya SPA fallback** untuk semua path, bukan cuma `/register`. Config di `deploy/` belum tentu ter-deploy di semua environment — lihat [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md). Link email lama (`/register/reset-password`) ditangani route redirect kompatibilitas di `App.jsx`.
+4. **Page key masih dipakai** (`onNavigate("login")`) walau routing sudah URL-based, disambung shim `go()` + `pathForPage()`. Sengaja, supaya migrasi tidak menyentuh 20+ file page — tapi berarti ada **dua kosakata navigasi** yang harus dijaga sinkron di `lib/routes.js`.
+5. **Alur revisi data kini token-based** (`revise`): admin `reviseUser`/`rejectUser`, user via link `/register/revise?token=` → `getRevise`/`submitRevise`. Endpoint sudah ada di backend. Legacy `?fix=` + `submitCorrection` masih di kode sebagai fallback **deprecated** — hapus setelah stabil. Lihat [ADR-0003](docs/adr/0003-revise-token-flow.md) & [FIX_DATA_FLOW.md](docs/FIX_DATA_FLOW.md).
+6. **`normalizeRevise` masih menebak nama field.** Ada `TODO(verify)` di `App.jsx` — bentuk respons `/auth/revise` belum dikonfirmasi ke backend; normalizer membaca beberapa alias (`user`/`profile`/`data`, `reviseFields`/`fieldsToRevise`) sebagai jaring pengaman.
+7. **Data admin sudah live, dengan catatan.** Riwayat Pelatihan kini dari `trainingSessionsApi.list()` — tapi kolom **Daerah** & **Peserta** menunggu backend meng-embed-nya di respons list (N+1 fetch dari FE memicu 429, jangan diulang). Pendaftaran Trainer disimpan di **`app-config`**, bukan tabel — tanpa paginasi/audit trail, tulis = ganti seluruh value.
+8. **Nama field region pelatihan sudah diselaraskan ke `firstTrainingRegionId`** (nama kanonik yang dikirim registrasi). `mappers.js` kini membaca `firstTrainingRegionId` dengan fallback ke `trainingRegionId` lama, jadi aman untuk kedua bentuk respons API. Bila respons asli memakai nama lain lagi, ubah di `mapToVerifikasi`/`mapToManajemen`.
+9. **401 → hard redirect `/`.** Saat refresh token gagal, `request()` memaksa `window.location.href = "/"`. Dengan `base: '/'`, `/` diarahkan router ke `/login` — perilaku benar, tapi ini reload penuh (state hilang), bukan navigasi React Router.
+10. **Kode mati di `AccountActionModals.jsx`.** Mengekspor `SetujuiAkunModal` & `TangguhkanAkunModal` yang tidak diimpor di mana pun; versi aktif ada di `SetujuiAkunModal.jsx` & `SuspendModal.jsx`.
+11. **`bad-words` dipin di v3.** Jangan upgrade ke 4.x — tarball-nya tanpa `dist/`, dev jalan tapi `npm run build` mati.
 
 ---
 
-© 2026 Gasing Circle. Dokumen arsitektur internal — pendamping [`README.md`](README.md).
+© 2026 Sarang Gasing. Dokumen arsitektur internal — pendamping [`README.md`](README.md).

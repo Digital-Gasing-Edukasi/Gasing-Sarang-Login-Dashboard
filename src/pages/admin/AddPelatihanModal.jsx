@@ -191,7 +191,7 @@ export function AddPelatihanModal({ isOpen, onClose, onSave }) {
                 </span>
               </label>
               <div className="text-center mt-3">
-                <button type="button" onClick={downloadTemplate} className="text-sm font-semibold text-blue-600 hover:underline">
+                <button type="button" onClick={downloadTemplate} className="text-sm font-semibold text-link hover:underline">
                   Download Template Peserta Guru
                 </button>
               </div>

@@ -2,15 +2,13 @@ import { ArrowLeft } from "lucide-react";
 import { LeftPanel } from "@/components/layout/LeftPanel";
 
 // Layout dasar halaman legal (Ketentuan Layanan / Kebijakan Privasi).
-// Dibuka di tab baru dari SignUpPage (target="_blank" href="/id/TOS" | "/id/privacy").
+// Dibuka di tab baru dari SignUpPage (target="_blank" href="/register/id/TOS" |
+// "/register/id/privacy").
 // Tombol "Kembali ke Pendaftaran" mengalihkan SPA di tab itu ke halaman signup.
 export function LegalLayout({ title, updatedAt, children, onNavigate }) {
-  // Kembali ke Pendaftaran: rewrite URL /register/id/TOS|privacy → /register
-  // supaya alamat konsisten dgn halaman signup sebelum pindah SPA.
-  const handleBack = () => {
-    window.history.replaceState({}, "", "/register");
-    onNavigate("signup");
-  };
+  // Kembali ke Pendaftaran: /register/id/TOS|privacy → /register (router yang
+  // menulis ulang URL-nya).
+  const handleBack = () => onNavigate("signup");
 
   return (
     <div className="flex h-screen overflow-hidden">
@@ -46,7 +44,7 @@ export function LegalLayout({ title, updatedAt, children, onNavigate }) {
         </div>
         <div className="pb-6">
           <p className="text-xs text-muted-foreground text-center">
-            ©2026 Gasing Circle. All rights reserved.
+            ©2026 Gasing Academy. All rights reserved..
           </p>
         </div>
       </div>

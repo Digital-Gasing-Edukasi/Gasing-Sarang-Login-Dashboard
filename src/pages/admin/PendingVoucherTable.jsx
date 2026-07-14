@@ -123,7 +123,7 @@ export function PendingVoucherTable({
                   <span className="font-medium text-[#0A1128]">{user.riwayatCount ?? 0}</span>
                   <button
                     onClick={() => onRiwayatDetail?.(user)}
-                    className="text-blue-500 hover:underline text-sm"
+                    className="text-link hover:underline text-sm"
                   >
                     Lihat Detail
                   </button>

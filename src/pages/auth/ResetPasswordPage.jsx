@@ -4,7 +4,7 @@ import { AuthDarkLayout, DarkInput, DarkTogglePassword, DarkPrimaryButton } from
 import { SuccessToast }              from '@/components/shared/SuccessToast'
 import { cn }      from '@/lib/utils'
 import { authApi } from '@/lib/api'
-import logo from '@/assets/logo-saranggasing.png'
+import { Logo } from '@/components/shared/Logo'
 
 
 // Input password bertema gelap khusus layar mobile.
@@ -86,15 +86,15 @@ export function ResetPasswordPage({ token, email, onNavigate }) {
 
       {/* ═══════════════ MOBILE (tema gelap, sesuai reference) ═══════════════ */}
       <div
-        className="lg:hidden relative min-h-screen flex flex-col text-white px-6 pt-8 pb-8"
+        className="lg:hidden relative min-h-screen flex flex-col text-white px-6 pt-4 pb-8"
         style={{
           background:
             'radial-gradient(ellipse at 50% 0%, #4c1d95 0%, #2e1065 40%, #1a0b3d 75%, #120833 100%)',
         }}
       >
-        {/* Logo */}
-        <div className="flex items-center mb-8 shrink-0">
-          <img src={logo} alt="Sarang Gasing" className="h-10 w-auto object-contain" />
+        {/* Logo — padding kiri/atas 16px (px-6 induk dikompensasi -ml-2) */}
+        <div className="flex items-center -ml-2 mb-8 shrink-0">
+          <Logo variant="mobile" />
         </div>
 
         {success ? (
@@ -219,7 +219,7 @@ export function ResetPasswordPage({ token, email, onNavigate }) {
           ) : (
             <>
               <div className="animate-fade-in-up mb-8">
-                <h1 className="text-[2.6rem] font-extrabold text-white">Ubah Password</h1>
+                <h1 className="font-cera-pro text-[48px] font-bold text-white">Ubah Password</h1>
               </div>
 
               <div className="space-y-5 animate-fade-in-up delay-100">

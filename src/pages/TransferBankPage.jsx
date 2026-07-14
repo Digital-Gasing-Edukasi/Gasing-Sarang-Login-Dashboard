@@ -24,6 +24,7 @@ import {
 import { cn } from "@/lib/utils";
 import { subscriptionApi, fileManagerApi } from "@/lib/api";
 import mandiriLogo from "@/assets/subscription/mandiri-logo.png";
+import { Logo } from "@/components/shared/Logo";
 
 // Rekening tujuan. Default statis (backend belum mengembalikan detail rekening);
 // bila payment membawa field rekening, nilai itu dipakai lebih dulu.
@@ -108,7 +109,7 @@ export default function TransferBankPage({
   const [txnId, setTxnId] = useState(null);
   const fileInputRef = useRef(null);
 
-  const WA_NUMBER = import.meta.env.VITE_WA_NUMBER || "628123456789";
+  const ADMIN_EMAIL = import.meta.env.VITE_CONTACT_ADMIN || "admin@gasingacademy.org";
   const orderId =
     pick(payment, "orderId", "orderNumber", "id") ||
     pick(payment?.data, "orderId", "id") ||
@@ -191,11 +192,17 @@ export default function TransferBankPage({
       <Decorations />
 
       {/* ── NAVBAR ── */}
-      <nav className="relative z-10 flex items-center justify-between px-8 lg:px-14 py-6">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-full bg-white flex items-center justify-center" />
-          <span className="font-bold text-lg tracking-tight">Gasing Circle</span>
-        </div>
+      <nav className="relative z-10 flex items-center justify-between px-4 py-4 lg:px-6 lg:py-6">
+        {/* Mobile: pembayaran manual pakai tombol back, bukan logo. Desktop: logo. */}
+        <button
+          type="button"
+          onClick={onBack}
+          aria-label="Kembali ke pilihan paket"
+          className="lg:hidden flex h-9 w-9 items-center justify-center rounded-full text-white/85 transition-colors hover:bg-white/10"
+        >
+          <ChevronLeft size={24} />
+        </button>
+        <Logo variant="full" className="hidden lg:block" />
         <div className="flex items-center gap-4">
           {onSignOut && (
             <button
@@ -238,7 +245,7 @@ export default function TransferBankPage({
             <div className="border-t border-white/10 my-4" />
             <div className="flex items-center justify-between">
               <span className="text-lg font-bold">Total Bayar</span>
-              <span className="text-2xl font-bold text-[#22d3ee]">
+              <span className="text-2xl font-bold text-[#1DF5FF]">
                 Rp{formatRp(total)}
               </span>
             </div>
@@ -269,10 +276,10 @@ export default function TransferBankPage({
           <p className="text-[14px] text-white/40 mt-8">
             Ada kendala?{" "}
             <a
-              href={`https://wa.me/${WA_NUMBER}`}
+              href={`mailto:${ADMIN_EMAIL}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="font-semibold text-white/80 underline hover:text-white transition-colors"
+              className="font-semibold text-white underline hover:text-white/80 transition-colors"
             >
               Hubungi Bantuan
             </a>
@@ -471,7 +478,7 @@ export default function TransferBankPage({
 
       <footer className="relative z-10 pb-8 text-center">
         <p className="text-[13px] text-white/30">
-          ©2026 Gasing Circle. All rights reserved.
+          ©2026 Gasing Academy. All rights reserved..
         </p>
       </footer>
     </div>

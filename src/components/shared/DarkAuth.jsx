@@ -1,7 +1,7 @@
 import { Eye, EyeOff } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import bgImg from '@/assets/dark-mode/Background.png'
-import logo from '@/assets/logo-saranggasing.png'
+import { Logo } from '@/components/shared/Logo'
 
 // Layout auth full-bleed tema gelap (desktop). Wallpaper = Background.png,
 // logo kiri-atas, konten di tengah, footer bawah.
@@ -15,10 +15,10 @@ export function AuthDarkLayout({ children, maxWidth = 'max-w-[520px]' }) {
         className="pointer-events-none absolute inset-0 h-full w-full select-none object-cover"
       />
 
-      {/* Logo */}
-      <header className="relative z-10 px-10 pt-8 shrink-0">
+      {/* Logo — pojok kiri-atas: padding 16px (mobile) / 24px (desktop non-split) */}
+      <header className="relative z-10 px-4 pt-4 lg:px-6 lg:pt-6 shrink-0">
         <div className="flex items-center">
-          <img src={logo} alt="Sarang Gasing" className="h-10 w-auto object-contain shrink-0" />
+          <Logo variant="responsive" />
         </div>
       </header>
 
@@ -29,7 +29,7 @@ export function AuthDarkLayout({ children, maxWidth = 'max-w-[520px]' }) {
 
       {/* Footer */}
       <footer className="relative z-10 pb-6 shrink-0">
-        <p className="text-center text-xs text-white/45">©2026 Gasing Circle. All rights reserved.</p>
+        <p className="text-center text-xs text-white/45">©2026 Gasing Academy. All rights reserved..</p>
       </footer>
     </div>
   )
@@ -71,15 +71,21 @@ export function DarkTogglePassword({ show, onToggle }) {
   )
 }
 
-// Tombol utama pill — gradient ungu saat aktif, glass abu saat disabled.
-export function DarkPrimaryButton({ children, className, ...props }) {
+// Tombol utama pill.
+//   variant "gradient" (default) — gradient ungu aktif, glass abu saat disabled.
+//   variant "white"              — putih solid; opacity 90% aktif, 30% saat disabled.
+export function DarkPrimaryButton({ children, className, variant = 'gradient', ...props }) {
   return (
     <button
       className={cn(
-        'w-full rounded-full py-4 font-bold text-[15px] text-white transition-all active:scale-[0.99]',
-        'bg-gradient-to-r from-[#7c3aed] to-[#a855f7] hover:brightness-110',
-        'disabled:from-white/[0.12] disabled:to-white/[0.12] disabled:text-white/45 disabled:cursor-not-allowed disabled:hover:brightness-100',
+        'w-full rounded-full py-4 font-bold text-[15px] transition-all active:scale-[0.99]',
         'flex items-center justify-center gap-2',
+        variant === 'white'
+          ? 'bg-white text-[#1a0b3d] opacity-90 hover:opacity-100 disabled:opacity-30 disabled:cursor-not-allowed'
+          : cn(
+              'text-white bg-gradient-to-r from-[#7c3aed] to-[#a855f7] hover:brightness-110',
+              'disabled:from-white/[0.12] disabled:to-white/[0.12] disabled:text-white/45 disabled:cursor-not-allowed disabled:hover:brightness-100'
+            ),
         className
       )}
       {...props}
