@@ -25,9 +25,9 @@ export function AuthProvider({ children }) {
     init()
   }, [])
 
-  const login = async (email, password) => {
+  const login = async (email, password, remember = false) => {
     const data = await authApi.login(email, password)
-    tokenStorage.setTokens(data.accessToken, data.refreshToken)
+    tokenStorage.setTokens(data.accessToken, data.refreshToken, remember)
     const profile = await profileApi.getMe()
     setUser(profile)
     return data

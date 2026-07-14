@@ -10,7 +10,7 @@ import React, { useState, useEffect } from "react";
 
 const CLIENT_KEY = import.meta.env.VITE_MIDTRANS_CLIENT_KEY || "";
 const SERVER_KEY = import.meta.env.VITE_MIDTRANS_SERVER_KEY || "";
-const SNAP_API   = "https://app.sandbox.midtrans.com/snap/v1/transactions";
+const SNAP_API   = "/midtrans-api/snap/v1/transactions";
 
 // ─── Status Badge ──────────────────────────────────────────────────────────
 function StatusBadge({ ok, label, detail }) {
