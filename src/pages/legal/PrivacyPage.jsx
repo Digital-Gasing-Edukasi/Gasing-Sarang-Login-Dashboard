@@ -9,7 +9,7 @@ export function PrivacyPage({ onNavigate }) {
       onNavigate={onNavigate}
     >
       <p>
-        Privasi kamu penting bagi Gasing Circle. Kebijakan ini menjelaskan data
+        Privasi kamu penting bagi Sarang Gasing. Kebijakan ini menjelaskan data
         apa yang kami kumpulkan, bagaimana kami menggunakannya, dan hak kamu
         atas data tersebut.
       </p>
@@ -117,7 +117,7 @@ export function PrivacyPage({ onNavigate }) {
           Pertanyaan seputar Kebijakan Privasi dapat dikirim ke{" "}
           <a
             href="mailto:privacy@gasingcircle.com"
-            className="underline font-medium text-blue-500 hover:text-blue-600"
+            className="underline font-medium text-[#0033EC] hover:text-[#0033EC]/80"
           >
             privacy@gasingcircle.com
           </a>

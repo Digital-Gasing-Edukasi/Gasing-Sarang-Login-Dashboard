@@ -18,7 +18,7 @@ export function RightPanel({ children, mobileHero = null }) {
         {children}
       </div>
       <div className="pb-6">
-        <p className="text-xs text-muted-foreground text-center">©2026 Gasing Circle. All rights reserved.</p>
+        <p className="text-xs text-muted-foreground text-center">©2026 Gasing Academy. All rights reserved..</p>
       </div>
     </div>
   )

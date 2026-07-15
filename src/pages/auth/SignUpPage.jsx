@@ -413,19 +413,19 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
             <p className="text-[13px] text-muted-foreground text-center px-4">
               Dengan mendaftar akun, kamu menyetujui{" "}
               <a
-                href="/register/id/TOS"
+                href={`${import.meta.env.BASE_URL === '/' ? '' : import.meta.env.BASE_URL}/register/id/TOS`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="underline font-medium text-blue-500 hover:text-blue-600"
+                className="underline font-medium text-[#0033EC] hover:text-[#0033EC]/80"
               >
                 Ketentuan Layanan
               </a>{" "}
               dan{" "}
               <a
-                href="/register/id/privacy"
+                href={`${import.meta.env.BASE_URL === '/' ? '' : import.meta.env.BASE_URL}/register/id/privacy`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="underline font-medium text-blue-500 hover:text-blue-600"
+                className="underline font-medium text-[#0033EC] hover:text-[#0033EC]/80"
               >
                 Kebijakan Privasi
               </a>{" "}
@@ -628,19 +628,19 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
             <p className="text-[13px] text-muted-foreground text-center px-4">
               Dengan mengklik lanjutkan, kamu menyetujui{" "}
               <a
-                href="/register/id/TOS"
+                href={`${import.meta.env.BASE_URL === '/' ? '' : import.meta.env.BASE_URL}/register/id/TOS`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="underline font-medium text-blue-500 hover:text-blue-600"
+                className="underline font-medium text-[#0033EC] hover:text-[#0033EC]/80"
               >
                 Ketentuan Layanan
               </a>{" "}
               dan{" "}
               <a
-                href="/register/id/privacy"
+                href={`${import.meta.env.BASE_URL === '/' ? '' : import.meta.env.BASE_URL}/register/id/privacy`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="underline font-medium text-blue-500 hover:text-blue-600"
+                className="underline font-medium text-[#0033EC] hover:text-[#0033EC]/80"
               >
                 Kebijakan Privasi
               </a>{" "}

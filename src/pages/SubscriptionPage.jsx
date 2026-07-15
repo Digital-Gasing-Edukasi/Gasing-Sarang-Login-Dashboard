@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import { subscriptionApi } from "@/lib/api";
 
 import bgDark from "@/assets/dark-mode/Background.png";
+import { Logo } from "@/components/shared/Logo";
 // Ambil angka positif pertama dari beberapa kemungkinan field (nama field
 // diskon backend belum final — coba beberapa alias umum).
 function pickNumber(...vals) {
@@ -58,6 +59,15 @@ function transformPlan(pkg) {
     recommended: false,
     planLabel: pkg.name,
   };
+}
+
+// Urutkan agar paket tahunan (annual) selalu tampil paling atas, diikuti
+// paket lain sesuai urutan aslinya.
+function sortAnnualFirst(plans) {
+  return [...plans].sort((a, b) => {
+    const rank = (p) => (p.billingCycle === "annual" ? 0 : 1);
+    return rank(a) - rank(b);
+  });
 }
 
 // Lengkapi harga-coret & label "Kamu Hemat X%" paket tahunan dengan
@@ -115,15 +125,27 @@ const DUMMY_PLANS = [
 const BENEFITS = [
   {
     icon: Users,
-    text: "Ikut diskusi dan belajar materi matematika dan AI bersama guru-guru dari seluruh Indonesia!",
+    text: (
+      <>
+        Gabung dengan <span className="text-[#1DF5FF] font-semibold">komunitas guru</span> seluruh Indonesia dan diskusi materi <span className="text-[#1DF5FF] font-semibold">matematika</span> dan AI.
+      </>
+    ),
   },
   {
     icon: Video,
-    text: "Hadiri webinar interaktif dan bahas topik-topik edukasi terkini bersama guru-guru terbaik Indonesia.",
+    text: (
+      <>
+        Hadiri <span className="text-[#1DF5FF] font-semibold">webinar interaktif</span> dan bahas topik edukasi terkini bersama guru-guru terbaik Indonesia.
+      </>
+    ),
   },
   {
     icon: BookOpen,
-    text: "Akses berbagai konten eksklusif untuk membantu pengajaran matematika yang asyik dan menyenangkan.",
+    text: (
+      <>
+        Akses berbagai <span className="text-[#1DF5FF] font-semibold">konten eksklusif</span> untuk mengajar <span className="text-[#1DF5FF] font-semibold">matematika</span> dengan <span className="text-[#1DF5FF] font-semibold">asyik dan menyenangkan</span>.
+      </>
+    ),
   },
 ];
 
@@ -283,8 +305,10 @@ export default function SubscriptionPage({ user, onSignOut, onPaymentSuccess, on
     subscriptionApi.getPlans()
       .then((data) => {
         const pkgs = Array.isArray(data) ? data : (data.data || []);
-        const mapped = withComparison(
-          pkgs.filter((p) => p.isActive !== false).map(transformPlan)
+        const mapped = sortAnnualFirst(
+          withComparison(
+            pkgs.filter((p) => p.isActive !== false).map(transformPlan)
+          )
         );
 
         // Jika API berhasil tapi tidak mengembalikan data, gunakan dummy
@@ -331,11 +355,8 @@ export default function SubscriptionPage({ user, onSignOut, onPaymentSuccess, on
             'radial-gradient(ellipse at 50% 0%, #4c1d95 0%, #2e1065 40%, #1a0b3d 75%, #120833 100%)',
         }}
       >
-        <div className="flex items-center justify-between px-5 pt-7 pb-2 shrink-0">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-full bg-white/90" />
-            <span className="font-semibold text-[15px]">Logo</span>
-          </div>
+        <div className="flex items-center justify-between px-4 pt-4 pb-2 shrink-0">
+          <Logo variant="mobile" />
           <div className="flex items-center gap-2">
             <span className="text-[13px] text-white/70">Profile</span>
             <Avatar name={user?.name || user?.profile?.namaLengkap || 'HK'} />
@@ -350,9 +371,9 @@ export default function SubscriptionPage({ user, onSignOut, onPaymentSuccess, on
             {BENEFITS.map((b, i) => {
               const Icon = b.icon;
               return (
-                <li key={i} className="flex items-start gap-3">
-                  <Icon className="w-5 h-5 text-[#22d3ee] shrink-0 mt-0.5" strokeWidth={2} />
-                  <p className="text-white/75 text-[13.5px] leading-relaxed">{b.text}</p>
+                <li key={i} className="flex items-start gap-4">
+                  <Icon className="w-6 h-6 text-[#22d3ee] shrink-0 mt-0.5" strokeWidth={2} />
+                  <p className="text-white/70 text-base leading-relaxed">{b.text}</p>
                 </li>
               );
             })}
@@ -409,12 +430,8 @@ export default function SubscriptionPage({ user, onSignOut, onPaymentSuccess, on
         />
 
         {/* ── NAVBAR ── */}
-        <nav className="relative z-10 flex items-center justify-between px-8 py-5 shrink-0">
-          <div className="flex items-center gap-3">
-            {/* Slot logo — ganti div dgn <img src={logo} className="h-9 w-9" /> */}
-            <div className="w-9 h-9 rounded-full bg-white shrink-0" />
-            <span className="font-bold text-white text-lg tracking-tight">Gasing Circle</span>
-          </div>
+        <nav className="relative z-10 flex items-center justify-between px-6 pt-6 pb-5 shrink-0">
+          <Logo variant="full" />
           <button
             onClick={onSignOut}
             title="Log Out"
@@ -439,7 +456,7 @@ export default function SubscriptionPage({ user, onSignOut, onPaymentSuccess, on
                   return (
                     <li key={i} className="flex items-start gap-4">
                       <Icon className="w-6 h-6 text-[#22d3ee] shrink-0 mt-0.5" strokeWidth={2} />
-                      <p className="text-white/70 text-[15px] leading-relaxed">{b.text}</p>
+                      <p className="text-white/70 text-base leading-relaxed">{b.text}</p>
                     </li>
                   );
                 })}
@@ -503,4 +520,3 @@ export default function SubscriptionPage({ user, onSignOut, onPaymentSuccess, on
     </div>
   );
 }
-

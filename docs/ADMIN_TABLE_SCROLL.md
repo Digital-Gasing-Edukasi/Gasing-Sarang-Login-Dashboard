@@ -108,4 +108,4 @@ Untuk tabel yang punya kolom kiri yang menempel (checkbox + Nama Pengguna di Ver
 
 ---
 
-© 2026 Gasing Circle. Dokumen internal — pendamping [`ARCHITECTURE.md`](../ARCHITECTURE.md).
+© 2026 Sarang Gasing. Dokumen internal — pendamping [`ARCHITECTURE.md`](../ARCHITECTURE.md).

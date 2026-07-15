@@ -88,11 +88,15 @@ Fokus dokumen ini adalah alur **revise**.
 https://[host]/register/revise?token=<JWT>
 ```
 
-- `/register` = `base` Vite; `/revise` = penanda yang dideteksi App.jsx
-  (`pathname.includes('/revise')`); `?token=` = revise JWT.
-- Route ini di-set dari **config backend** (mereka yang menyusun URL email).
-- Tidak bentrok dengan reset-password (yang memakai `/register?token=&email=`
-  tanpa `/revise`).
+- Route React Router: `/register/revise` (lihat `PAGE_PATHS` di [`src/lib/routes.js`](../src/lib/routes.js)).
+  Sejak v3.0.0 `base` Vite = `/`, jadi ini path absolut dari root domain — **bukan** lagi
+  turunan dari `base: '/register'` yang lama.
+- Boot sequence mendeteksinya lewat `pathname.startsWith('/register/revise')`, lalu menukar
+  `?token=` (revise JWT) ke `authApi.getRevise()` untuk prefill. Token gagal/kadaluarsa →
+  `/register/revise/invalid`.
+- URL email disusun **backend** (config `[routes]` mereka).
+- Tidak bentrok dengan reset-password (`/login/reset-password?token=`): cek `/register/revise`
+  berada **sebelum** cek `?token=` generik di boot sequence, dan path-nya beda.
 
 ### Endpoint
 

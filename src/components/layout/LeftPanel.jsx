@@ -15,7 +15,7 @@ export function LeftPanel() {
 
       {/* judul */}
       <div className="relative z-10 px-16 pt-24 xl:pt-28">
-        <h1 className="text-[3.4rem] xl:text-[3.9rem] font-extrabold leading-[1.08] text-white">
+        <h1 className="font-cera-pro text-[48px] font-bold leading-[1.08] text-white">
           Ayo, bergabung
           <br />
           bersama

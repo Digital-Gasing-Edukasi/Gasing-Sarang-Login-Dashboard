@@ -133,7 +133,7 @@ function SuspendedModal({ meta, onClose }) {
       </h2>
       <p className="text-[15px] text-muted-foreground leading-relaxed mb-6">
         Akun kamu ditangguhkan karena {reason.toLowerCase()}. Silakan baca{' '}
-        <a href={COMMUNITY_URL} target="_blank" rel="noopener noreferrer" className="font-semibold text-blue-600 hover:underline">panduan komunitas</a>{' '}
+        <a href={COMMUNITY_URL} target="_blank" rel="noopener noreferrer" className="font-semibold text-[#0033EC] hover:underline">panduan komunitas</a>{' '}
         kami untuk menghindari pelanggaran serupa.
       </p>
 

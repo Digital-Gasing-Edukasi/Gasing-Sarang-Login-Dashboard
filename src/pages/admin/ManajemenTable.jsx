@@ -275,7 +275,7 @@ export function ManajemenTable({
                           {user.role}
                         </div>
                       ) : (
-                        <span className="text-gray-400 font-medium italic cursor-pointer hover:text-blue-500" onClick={() => onActionClick && onActionClick('ubah-role', user)}>Set Role</span>
+                        <span className="text-gray-400 font-medium italic cursor-pointer hover:text-link" onClick={() => onActionClick && onActionClick('ubah-role', user)}>Set Role</span>
                       )}
                     </td>
                   </>
@@ -285,7 +285,7 @@ export function ManajemenTable({
                   {user.riwayatCount ? (
                     <div className="flex items-center gap-2">
                       <span>{user.riwayatCount}</span>
-                      <span className="text-blue-500 cursor-pointer hover:underline text-xs">Lihat Detail</span>
+                      <span className="text-link cursor-pointer hover:underline text-xs">Lihat Detail</span>
                     </div>
                   ) : '-'}
                 </td>

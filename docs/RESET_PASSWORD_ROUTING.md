@@ -1,152 +1,132 @@
 # Alur & Routing Reset Password
 
-Dokumentasi routing halaman **Reset Password** dan perbaikan bug urutan pengecekan
-path yang menyebabkan link email salah arah ke halaman signup.
+Dokumentasi routing halaman **Reset Password**: URL-nya sekarang, bagaimana link email
+lama tetap jalan, dan riwayat bug urutan pengecekan path yang dulu bikin link email
+mendarat di halaman signup.
 
-- **Status:** Selesai (bugfix routing diterapkan).
+- **Status:** Selesai. Diperbarui untuk migrasi React Router (v3.0.0, 15 Juli 2026).
 - **Audiens:** Frontend & backend engineer Gasing Auth.
-- **Repo:** `gasing-auth` (React + Vite + Tailwind).
-- **File terkait:** [`src/App.jsx`](../src/App.jsx),
+- **File terkait:** [`src/App.jsx`](../src/App.jsx), [`src/lib/routes.js`](../src/lib/routes.js),
   [`src/pages/auth/ForgotPasswordPage.jsx`](../src/pages/auth/ForgotPasswordPage.jsx),
   [`src/pages/auth/CheckEmailPage.jsx`](../src/pages/auth/CheckEmailPage.jsx),
   [`src/pages/auth/ResetPasswordPage.jsx`](../src/pages/auth/ResetPasswordPage.jsx),
   [`src/pages/auth/LoginPage.jsx`](../src/pages/auth/LoginPage.jsx).
 
-> **Catatan mekanisme.** Aplikasi ini memakai **state-based routing** (`page`
-> state di `App.jsx`), bukan React Router. "Route" = nilai variabel `page`.
-> Transisi antar halaman dipicu oleh handler (`onNavigate`, `setPage`) atau oleh
-> parameter URL yang dibaca sekali saat init di `App.jsx`.
+> **Catatan mekanisme.** Aplikasi memakai **React Router v6** dengan `base: '/'`.
+> Setiap halaman punya URL nyata. Query param dari link email (`?token=`) dibaca
+> sekali di boot sequence `App.jsx`, disimpan ke state, lalu **dibuang dari URL**
+> supaya token tidak bocor lewat history/log browser.
 
 ---
 
-## 1. Alur Lengkap
+## 1. URL
 
-| Tahap | `page` (state) | Pemicu | Sumber |
-| --- | --- | --- | --- |
-| Klik "Lupa Password?" | `forgot-password` | `onNavigate('forgot-password')` | `LoginPage.jsx:117` |
-| Submit email | `check-email` | `onEmailSent` → `setPage('check-email')` | `App.jsx` (`handleEmailSent`) |
-| Buka link dari email | `reset-password` | URL berisi `?token=` **atau** path `/reset-password` | `App.jsx` (init effect) |
-| Submit password baru / batal | `login` | `onNavigate('login')` | `ResetPasswordPage.jsx:54,117,192` |
+| Halaman | URL | Page key |
+| --- | --- | --- |
+| Lupa password (isi email) | `/login/forgot-password` | `forgot-password` |
+| Instruksi cek email | `/login/check-email` | `check-email` |
+| Form password baru | `/login/reset-password` | `reset-password` |
+| **Link email lama** | `/register/reset-password?token=…` | → redirect ke `/login/reset-password` |
 
-Diagram alur:
+Redirect kompatibilitas ada sebagai route di `App.jsx` — `search` (query string) ikut dibawa,
+jadi `?token=` tidak hilang:
+
+```jsx
+<Route
+  path="/register/reset-password"
+  element={<Navigate to={{ pathname: "/login/reset-password", search: location.search }} replace />}
+/>
+```
+
+---
+
+## 2. Alur Lengkap
+
+| Tahap | URL | Pemicu |
+| --- | --- | --- |
+| Klik "Lupa Password?" | `/login/forgot-password` | `onNavigate('forgot-password')` di `LoginPage` |
+| Submit email | `/login/check-email` | `onEmailSent` → `handleEmailSent` di `App.jsx` |
+| Buka link dari email | `/login/reset-password` | Boot sequence baca `?token=` |
+| Submit password baru / batal | `/login` | `onNavigate('login')` di `ResetPasswordPage` |
 
 ```
 LoginPage "Lupa Password?"
         │ onNavigate('forgot-password')
         ▼
-ForgotPasswordPage  ──(submit email)──►  onEmailSent  ──►  page='check-email'
-        │
+ForgotPasswordPage  ──(submit email)──►  onEmailSent  ──►  /login/check-email
+        │                                                    (tombol kirim ulang, countdown 30s)
         ▼
 CheckEmailPage  ──(user klik link di email)──►  browser buka:
-        https://dev-komunitas.gasingacademy.org/register/reset-password?token=<JWT>
+        https://<APP_DOMAIN>/login/reset-password?token=<JWT>
         │
-        ▼  App.jsx init effect membaca URL
-page='reset-password'  ──►  ResetPasswordPage (form password baru)
-        │ sukses / batal → onNavigate('login')
+        ▼  boot sequence App.jsx: simpan token ke state, bersihkan URL
+ResetPasswordPage (form password baru)
+        │ authApi.resetPassword(token, email, newPassword)
         ▼
-LoginPage
+/login
 ```
+
+> **`skipSessionRestore` melindungi halaman ini.** `/login/reset-password`, `/login/forgot-password`,
+> dan `/login/check-email` ada di daftar `NO_RESTORE_PREFIXES` (`lib/routes.js`) — jadi user yang
+> masih menyimpan token akun lama di storage tidak dilempar ke dashboard saat membuka link reset.
 
 ---
 
-## 2. Format Link Email
+## 3. Format Link Email
 
 Backend mengirim link reset dengan bentuk:
 
 ```
-https://dev-komunitas.gasingacademy.org/register/reset-password?token=<JWT>
+https://<APP_DOMAIN>/login/reset-password?token=<JWT>
 ```
 
 - **Hanya** parameter `token` (JWT) yang dikirim. Tidak ada `email` di query.
 - Payload JWT memuat `jti`, `userId`, `type: "forgot_pass"`, `iat`, `exp`.
-- `App.jsx` membaca `token` dari query string, menyimpannya ke state `resetToken`,
-  lalu meneruskannya ke `ResetPasswordPage` untuk dikirim balik saat submit.
+- Boot sequence membaca `token`, menyimpannya ke state `resetToken`, meneruskannya ke
+  `ResetPasswordPage`, lalu menghapusnya dari URL (`navigate(path, { replace: true })`).
 
-> **Catatan.** Field `email` di `ResetPasswordPage` bersifat opsional
-> (`resetEmail`); diisi hanya bila query menyertakan `email`. Karena link produksi
-> saat ini tidak mengirim `email`, halaman tetap berfungsi tanpa nilai tersebut.
+> **Field `email` opsional.** `ResetPasswordPage` menerima prop `email` (`resetEmail`), diisi hanya
+> bila query menyertakan `&email=`. Karena link produksi tidak mengirimnya, halaman tetap berfungsi
+> tanpa nilai tersebut.
 
----
-
-## 3. Bug: Link Email Salah Arah ke Signup
-
-### Gejala
-
-User klik link reset dari email → mendarat di halaman **Pendaftaran (signup)**,
-bukan halaman **Reset Password**.
-
-### Akar Masalah
-
-`App.jsx` membaca URL sekali saat init dan mengevaluasi kondisi secara berurutan.
-Pengecekan `/register` generic berada **sebelum** pengecekan `token`:
-
-```js
-// (urutan LAMA — bermasalah)
-if (pathname.includes("/register")) {   // ← cocok utk /register/reset-password
-  setPage("signup");
-  return;                               // ← keluar sebelum cek token
-}
-...
-if (token) {                            // ← tidak pernah tercapai
-  setPage("reset-password");
-  return;
-}
-```
-
-Path link email `/register/reset-password` **mengandung** substring `/register`,
-sehingga tertangkap oleh cek pertama → `page='signup'` → `return`. Blok
-pengecekan `token` di bawahnya tidak pernah dieksekusi.
-
-### Perbaikan
-
-Pengecekan reset-password dipindah **sebelum** cek `/register` generic, dan
-memicu bila path mengandung `/reset-password` **atau** ada `token` di query:
-
-```js
-// (urutan BARU — benar)
-// Link reset password dari email: /register/reset-password?token=...
-// Harus dicek SEBELUM /register generic (yang mengandung "/register").
-if (pathname.includes("/reset-password") || token) {
-  if (token) {
-    setResetToken(token);
-    if (emailParam) setResetEmail(decodeURIComponent(emailParam));
-  }
-  setPage("reset-password");
-  clearUrlParams();
-  setSessionChecked(true);
-  return;
-}
-
-// /register → halaman Pendaftaran (signup).
-if (pathname.includes("/register")) {
-  setPage("signup");
-  ...
-}
-```
-
-Blok `if (token)` lama yang berada setelah cek `/register` dihapus karena menjadi
-dead code (token kini selalu tertangkap lebih awal).
+**Untuk backend:** boleh langsung pakai path baru `/login/reset-password?token=<JWT>`. Path lama
+`/register/reset-password?token=<JWT>` masih ditangani redirect, jadi template email yang sudah
+terlanjur tersebar tidak perlu buru-buru diganti.
 
 ---
 
-## 4. Cara Verifikasi
+## 4. Riwayat Bug: Link Email Salah Arah ke Signup
 
-Jalankan dev server (`npm run dev`), lalu buka di browser:
+> Sudah selesai — diarsipkan di sini karena akar masalahnya (urutan pengecekan path di boot
+> sequence) masih relevan setiap kali menambah route baru yang path-nya bertumpuk.
+
+**Gejala:** user klik link reset dari email → mendarat di halaman **Pendaftaran (signup)**.
+
+**Akar masalah:** dulu `App.jsx` mengecek `pathname.includes("/register")` **sebelum** mengecek
+`token`. Path `/register/reset-password` mengandung substring `/register`, jadi tertangkap cek
+pertama → `page='signup'` → `return` sebelum blok token dieksekusi.
+
+**Perbaikan (era state-router):** pengecekan reset-password dipindah ke atas cek `/register` generic.
+
+**Sekarang (React Router):** masalahnya hilang secara struktural — `/register` dan
+`/register/reset-password` adalah dua route berbeda yang dicocokkan **exact** oleh router, bukan
+lewat `includes()`. Pola yang sama masih berlaku di boot sequence untuk **revisi data**: cek
+`/register/revise?token=` harus tetap berada **sebelum** cek `?token=` generik (reset password),
+karena keduanya sama-sama membawa `?token=`.
+
+---
+
+## 5. Cara Verifikasi
+
+Jalankan `npm run dev`, lalu buka:
 
 | URL | Hasil diharapkan |
 | --- | --- |
-| `/register/reset-password?token=<apapun>` | Render **ResetPasswordPage** |
-| `/register` | Render **Signup** (tidak berubah) |
-| `/register/reset-password` (tanpa token) | Render **ResetPasswordPage** |
+| `/login/reset-password?token=<apapun>` | Render **ResetPasswordPage**, URL bersih jadi `/login/reset-password` |
+| `/register/reset-password?token=<apapun>` | Redirect ke `/login/reset-password`, token terbawa |
+| `/register` | Render **SignUp** (tidak berubah) |
+| `/register/revise?token=<JWT>` | Render **FixDataPage**, bukan reset password |
+| `/login/reset-password` (tanpa token) | Render **ResetPasswordPage** (submit akan gagal — tidak ada token) |
 
-Regresi utama: pastikan `/register` biasa tetap mengarah ke signup, dan link
-bertoken mengarah ke reset-password.
-
----
-
-## 5. Catatan untuk Backend
-
-Link email cukup memakai path `/register/reset-password?token=<JWT>` seperti saat
-ini. Frontend juga akan menangani path lain yang mengandung `/reset-password`
-atau query `?token=`, sehingga perubahan base path tidak akan memutus alur selama
-salah satu penanda tersebut tetap ada.
+Regresi utama yang harus dijaga: link bertoken tidak boleh nyasar ke signup, dan link revisi tidak
+boleh nyasar ke reset password.

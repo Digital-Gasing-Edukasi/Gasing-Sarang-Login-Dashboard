@@ -9,7 +9,7 @@ export function TermsPage({ onNavigate }) {
       onNavigate={onNavigate}
     >
       <p>
-        Selamat datang di Gasing Circle. Dengan membuat akun dan menggunakan
+        Selamat datang di Sarang Gasing. Dengan membuat akun dan menggunakan
         layanan kami, kamu setuju untuk terikat pada Ketentuan Layanan berikut.
         Mohon baca dengan saksama sebelum melanjutkan pendaftaran.
       </p>
@@ -117,7 +117,7 @@ export function TermsPage({ onNavigate }) {
           Pertanyaan seputar Ketentuan Layanan dapat dikirim ke{" "}
           <a
             href="mailto:support@gasingcircle.com"
-            className="underline font-medium text-blue-500 hover:text-blue-600"
+            className="underline font-medium text-[#0033EC] hover:text-[#0033EC]/80"
           >
             support@gasingcircle.com
           </a>

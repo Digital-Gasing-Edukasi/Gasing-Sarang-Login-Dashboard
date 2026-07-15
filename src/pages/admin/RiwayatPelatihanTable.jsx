@@ -135,13 +135,13 @@ export function RiwayatPelatihanTable({
                   <button onClick={() => onViewPeserta && onViewPeserta(item)} className="text-left">
                     <div className="font-medium text-[#0A1128] hover:underline">{item.pesertaNama}</div>
                     {item.pesertaLainnya > 0 && (
-                      <span className="text-xs text-blue-500 hover:underline">{item.pesertaLainnya}+ lainnya</span>
+                      <span className="text-xs text-link hover:underline">{item.pesertaLainnya}+ lainnya</span>
                     )}
                   </button>
                 ) : (
                   <button
                     onClick={() => onViewPeserta && onViewPeserta(item)}
-                    className="text-sm text-blue-500 hover:underline"
+                    className="text-sm text-link hover:underline"
                   >
                     Lihat peserta
                   </button>

@@ -130,7 +130,7 @@ async function request(endpoint, options = {}) {
       return data;
     } else {
       tokenStorage.clear();
-      window.location.href = "/";
+      window.location.href = (import.meta.env.BASE_URL === '/' ? '' : import.meta.env.BASE_URL) + "/login";
       return;
     }
   }
