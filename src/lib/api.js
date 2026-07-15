@@ -453,7 +453,7 @@ export const discourseApi = {
 // ─── EXTERNAL WEB APP (non-Discourse) ──────────────────────────────────────────
 // Hands the current session over to the Gasing web app by forwarding the tokens
 // on the callback URL. Contract: `token` = access token, `refresh` = refresh token.
-const WEB_APP_CALLBACK_URL = "https://gasing.vercel.app/api/auth/callback";
+const WEB_APP_CALLBACK_URL = import.meta.env.VITE_WEB_APP_CALLBACK_URL || "https://gasing.vercel.app/api/auth/callback";
 
 export const webAppApi = {
   redirectWithTokens() {

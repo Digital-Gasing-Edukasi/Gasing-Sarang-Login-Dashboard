@@ -8,7 +8,7 @@
     "build": "vite build",
     "build:staging": "vite build --mode staging",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview --port 5173"
   },
   "dependencies": {
     "@radix-ui/react-checkbox": "^1.3.3",

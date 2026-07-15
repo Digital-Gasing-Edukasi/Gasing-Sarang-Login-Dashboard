@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, lazy, Suspense } from "react";
 import { Routes, Route, Navigate, useNavigate, useLocation } from "react-router-dom";
-import { tokenStorage, subscriptionApi, profileApi, authApi, regionsApi } from "@/lib/api";
+import { tokenStorage, subscriptionApi, profileApi, authApi, regionsApi, webAppApi, discourseApi } from "@/lib/api";
 import { isSuperAdmin, isOperationalAdmin } from "@/lib/roles";
 import { decodeFixPayload } from "@/lib/fixLink";
 import { evaluateLoginGate } from "@/lib/loginGate";
@@ -340,13 +340,22 @@ export default function App() {
 
     setCurrentUser(user);
 
+    if (user?.capabilities?.includes("DISCOURSE/GROUP/SYNC")) {
+      try {
+        await discourseApi.ssoLogin();
+      } catch (error) {
+        console.error('Gagal inisiasi SSO:', error);
+      }
+      return;
+    }
+
     if (isOperationalAdmin(user)) {
       navigate("/dashboard-admin", { replace: true });
       return;
     }
 
     if (isSuperAdmin(user)) {
-      navigate("/login/choice", { replace: true });
+      webAppApi.redirectWithTokens();
       return;
     }
 
@@ -356,7 +365,11 @@ export default function App() {
       const isActive =
         sub?.hasActiveSubscription === true ||
         sub?.subscription?.status === "active";
-      navigate(isActive ? "/login/choice" : "/login/subscription", { replace: true });
+      if (isActive) {
+        webAppApi.redirectWithTokens();
+      } else {
+        navigate("/login/subscription", { replace: true });
+      }
     } catch {
       // Gagal cek langganan → arahkan ke halaman langganan (fail-safe).
       navigate("/login/subscription", { replace: true });
