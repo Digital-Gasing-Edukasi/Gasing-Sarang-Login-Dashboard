@@ -140,7 +140,7 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
   const dimanaOptions = sessions.filter((s) => sessionYear(s) === kapanYear);
 
   const passwordRules = [
-    { label: "Minimal 8 karakter", ok: password.length >= 8 },
+    { label: "Minimal 10 karakter", ok: password.length >= 10 },
     { label: "Minimal 1 huruf kapital", ok: /[A-Z]/.test(password) },
     { label: "Minimal 1 angka", ok: /\d/.test(password) },
     { label: "Minimal 1 karakter spesial", ok: /[^A-Za-z0-9]/.test(password) },

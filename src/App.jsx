@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, lazy, Suspense } from "react";
 import { Routes, Route, Navigate, useNavigate, useLocation } from "react-router-dom";
 import { tokenStorage, subscriptionApi, profileApi, authApi, regionsApi, webAppApi, discourseApi } from "@/lib/api";
-import { isSuperAdmin, isOperationalAdmin } from "@/lib/roles";
+import { isSuperAdmin, isOperationalAdmin, isSsoDisabled, hasCapability } from "@/lib/roles";
 import { decodeFixPayload } from "@/lib/fixLink";
 import { evaluateLoginGate } from "@/lib/loginGate";
 import { pathForPage, isPublicStaticPath, skipSessionRestore } from "@/lib/routes";
@@ -339,6 +339,19 @@ export default function App() {
     }
 
     setCurrentUser(user);
+
+    // Punya DISABLED-SSO DAN GROUP/SYNC → langsung ke Dashboard Admin
+    // (jangan lewat SSO, jangan ke web app). Cek ini duluan sebelum cabang lain.
+    if (isSsoDisabled(user) && hasCapability(user, "DISCOURSE/GROUP/SYNC")) {
+      navigate("/dashboard-admin", { replace: true });
+      return;
+    }
+
+    // Tag USER/DISCOURSE/DISABLED-SSO → jangan lewat SSO, langsung ke dashboard.
+    if (isSsoDisabled(user)) {
+      webAppApi.redirectWithTokens();
+      return;
+    }
 
     if (user?.capabilities?.includes("DISCOURSE/GROUP/SYNC")) {
       try {
