@@ -15,7 +15,7 @@ export default function PaymentErrorPage() {
   const statusMessage = params.get('status_message') || 'Terjadi kesalahan pada proses pembayaran.'
   const orderId       = params.get('order_id') || ''
 
-  const BASE = '/login'
+  const BASE = (import.meta.env.BASE_URL === '/' ? '' : import.meta.env.BASE_URL) + '/login'
 
   return (
     <PaymentStatusLayout>

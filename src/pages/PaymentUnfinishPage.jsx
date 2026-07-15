@@ -10,7 +10,7 @@ import {
 } from '@/components/shared/PaymentStatusLayout'
 
 export default function PaymentUnfinishPage() {
-  const BASE = '/login'
+  const BASE = (import.meta.env.BASE_URL === '/' ? '' : import.meta.env.BASE_URL) + '/login'
 
   return (
     <PaymentStatusLayout>

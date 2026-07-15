@@ -19,7 +19,7 @@ export default function PaymentFinishPage() {
   const isSuccess = ['settlement', 'capture'].includes(transactionStatus)
   const isPending = transactionStatus === 'pending'
 
-  const BASE = '/login'
+  const BASE = (import.meta.env.BASE_URL === '/' ? '' : import.meta.env.BASE_URL) + '/login'
 
   const view = isSuccess
     ? {

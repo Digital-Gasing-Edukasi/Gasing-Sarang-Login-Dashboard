@@ -169,7 +169,12 @@ export default function App() {
   useEffect(() => {
     const init = async () => {
       const params = new URLSearchParams(window.location.search);
-      const pathname = window.location.pathname;
+      const base = import.meta.env.BASE_URL;
+      let pathname = window.location.pathname;
+      if (base !== '/' && pathname.startsWith(base)) {
+        pathname = pathname.slice(base.length);
+        if (!pathname.startsWith('/')) pathname = '/' + pathname;
+      }
 
       // Hapus query param dari URL tanpa menambah entri history (dan tanpa
       // memutus sinkronisasi dengan history milik React Router).
