@@ -1,6 +1,7 @@
 import { ArrowDownUp, SearchX } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { getTableScrollProps } from './tableScroll'
+import { RoleTag } from './RoleTag'
 
 // Header sortable, dengan opsi sublabel (grup "Alumni Pelatihan").
 function SortableHeader({ label, sublabel, sortKey, sortConfig, onSort }) {
@@ -109,7 +110,7 @@ export function VerifikasiPembayaranTable({
               </td>
               <td className="px-4 py-4">
                 {user.role ? (
-                  <span className="text-blue-500 font-medium">{user.role}</span>
+                  <RoleTag role={user.role} size={15} />
                 ) : <span className="text-gray-400">-</span>}
               </td>
               <td className="px-4 py-4 text-[#0A1128] font-medium">

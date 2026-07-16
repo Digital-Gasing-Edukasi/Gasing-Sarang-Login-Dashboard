@@ -30,7 +30,9 @@ function Select({ label, value, onChange, options, placeholder }) {
 // onConfirm({ discourseGroupId, lastTrainingSessionId, voucherCode }).
 export function SetujuiAkunModal({ user, discourseGroups = [], trainingSessions = [], onConfirm, onCancel }) {
   const roleOptions = getRoleOptions(discourseGroups)
-  const sessionOptions = trainingSessions.map(s => ({ value: String(s.id), label: s.name }))
+  const sessionOptions = trainingSessions
+    .map(s => ({ value: String(s.id), label: s.name }))
+    .sort((a, b) => String(a.label).localeCompare(String(b.label)))
 
   const [role, setRole]       = useState('')
   const [session, setSession] = useState('')

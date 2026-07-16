@@ -21,8 +21,8 @@ function SortableHeader({ label, sublabel, sortKey, sortConfig, onSort }) {
 // Tooltip dark-bubble, muncul di bawah tombol pas hover. Caret nunjuk ke atas.
 function Tooltip({ label }) {
   return (
-    <div className="pointer-events-none absolute left-1/2 top-full z-40 mt-2 -translate-x-1/2 translate-y-1 whitespace-nowrap rounded-xl bg-[#0A1128] px-4 py-2 text-sm font-semibold text-white opacity-0 shadow-lg transition-all duration-150 group-hover/tip:translate-y-0 group-hover/tip:opacity-100">
-      <span className="absolute -top-1 left-1/2 h-3 w-3 -translate-x-1/2 rotate-45 rounded-sm bg-[#0A1128]" />
+    <div className="pointer-events-none absolute left-1/2 bottom-full z-40 mb-2 -translate-x-1/2 -translate-y-1 whitespace-nowrap rounded-xl bg-[#0A1128] px-4 py-2 text-sm font-semibold text-white opacity-0 shadow-lg transition-all duration-150 group-hover/tip:translate-y-0 group-hover/tip:opacity-100">
+      <span className="absolute -bottom-1 left-1/2 h-3 w-3 -translate-x-1/2 rotate-45 rounded-sm bg-[#0A1128]" />
       {label}
     </div>
   )

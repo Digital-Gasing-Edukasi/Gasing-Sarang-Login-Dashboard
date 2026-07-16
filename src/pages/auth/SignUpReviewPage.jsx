@@ -15,7 +15,7 @@ export function SignUpReviewPage({ onNavigate }) {
       >
         Akun kamu sedang kami tinjau maksimal{' '}
         <span className="font-semibold text-white">1×24 jam</span> untuk memastikan
-        kamu terdaftar sebagai Trainer di GASING Academy.
+        kamu terdaftar sebagai Trainer di Sarang Gasing.
         <br /><br />
         Mohon cek email secara berkala untuk status pengajuan akunmu.
       </MobileReviewNotice>
@@ -33,15 +33,15 @@ export function SignUpReviewPage({ onNavigate }) {
             <p className="text-[15px] leading-relaxed text-white/60 mb-9">
               Akun kamu sedang kami tinjau maksimal{' '}
               <span className="font-semibold text-white">1×24 jam</span> untuk memastikan
-              kamu terdaftar sebagai Trainer di GASING Academy.
+              kamu terdaftar sebagai Trainer di Sarang Gasing.
             </p>
           </div>
 
           <div className="space-y-6 animate-fade-in-up delay-100">
             <div className="rounded-3xl border border-white/10 bg-white/[0.03] px-7 py-6 text-center">
               <p className="text-[15px] leading-relaxed text-white/70">
-                <span className="font-semibold text-white">Mohon cek email secara berkala</span>{' '}
-                untuk mengetahui status pengajuan akunmu.
+                <span className="font-semibold text-white">Mohon cek email secara berkala untuk status</span>{' '}
+                pengajuan akunmu.
               </p>
             </div>
 

@@ -2,8 +2,19 @@
 // Dipakai bareng oleh VerifikasiTable, ApproveModal, dan BulkApproveModal
 // supaya aturan filter role tidak diduplikasi di banyak tempat.
 
+import { Sparkles, Building2, Presentation, BookOpen } from 'lucide-react'
+
 // Hanya role ini yang boleh dipilih admin saat approve.
 export const ALLOWED_ROLES = ['Trainer Utama', 'Trainer Kelas', 'Guru', 'Trainer Aula']
+
+// Ikon + warna per role kanonik — SATU sumber untuk semua tampilan role
+// (dropdown, filter drawer, kolom tabel). Lihat RoleTag.jsx & RoleSelect.jsx.
+export const ROLE_META = {
+  'Trainer Utama': { Icon: Sparkles,     color: '#2563EB' }, // biru
+  'Trainer Aula':  { Icon: Building2,    color: '#16A34A' }, // hijau
+  'Trainer Kelas': { Icon: Presentation, color: '#F97316' }, // oranye
+  'Guru':          { Icon: BookOpen,     color: '#7C3AED' }, // ungu
+}
 
 // Normalisasi nama grup agar toleran casing/underscore/spasi/camelCase
 // ("trainer_utama", "TRAINER-UTAMA", "TrainerUtama" → "trainer utama").

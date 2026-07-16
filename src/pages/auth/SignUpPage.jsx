@@ -138,8 +138,10 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
     .reverse();
   // Tampilkan 12 bulan penuh dalam dropdown (per tahun), bukan hanya bulan yang ada sesi.
   const monthOptions = MONTHS.map((_, i) => String(i));
-  // Filter daerah cukup pakai tahun;
-  const dimanaOptions = sessions.filter((s) => sessionYear(s) === kapanYear);
+  // Filter daerah cukup pakai tahun; urut alfabet berdasar nama.
+  const dimanaOptions = sessions
+    .filter((s) => sessionYear(s) === kapanYear)
+    .sort((a, b) => String(a.name).localeCompare(String(b.name)));
 
   const passwordRules = [
     { label: "Minimal 10 karakter", ok: password.length >= 10 },

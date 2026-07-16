@@ -1,6 +1,7 @@
-import { ArrowDownUp, Check, GraduationCap } from 'lucide-react'
+import { ArrowDownUp, Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { getTableScrollProps } from './tableScroll'
+import { RoleTag } from './RoleTag'
 
 // Header sortable, dengan opsi sublabel (grup "Alumni Pelatihan").
 function SortableHeader({ label, sublabel, sortKey, sortConfig, onSort }) {
@@ -113,9 +114,7 @@ export function PendingVoucherTable({
               </td>
               <td className="px-4 py-4">
                 {user.role ? (
-                  <span className="inline-flex items-center gap-1.5 font-medium text-[#0A1128]">
-                    <GraduationCap size={15} className="text-blue-600" /> {user.role}
-                  </span>
+                  <RoleTag role={user.role} size={15} />
                 ) : <span className="text-gray-400">-</span>}
               </td>
               <td className="px-4 py-4">

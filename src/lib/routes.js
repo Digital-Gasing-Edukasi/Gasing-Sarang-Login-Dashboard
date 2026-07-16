@@ -33,6 +33,8 @@ export const PAGE_PATHS = {
   "payment-error": "/payment/error",
 
   "midtrans-test": "/midtrans-test",
+
+  komunitas: "/komunitas",
 };
 
 // page key → path. Key tak dikenal jatuh ke /login (fail-safe, sama seperti
@@ -48,6 +50,7 @@ const PUBLIC_PREFIXES = [
   "/payment/",
   "/midtrans-test",
   "/register/revise/invalid",
+  "/komunitas",
 ];
 
 export function isPublicStaticPath(pathname) {

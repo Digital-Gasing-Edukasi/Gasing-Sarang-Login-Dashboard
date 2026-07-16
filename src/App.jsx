@@ -72,6 +72,7 @@ import PaymentUnfinishPage from "@/pages/PaymentUnfinishPage";
 import PaymentErrorPage from "@/pages/PaymentErrorPage";
 const AdminDashboardPage = lazy(() => import("@/pages/AdminDashboardPage"));
 import MidtransTestPage from "@/pages/MidtransTestPage";
+import KomunitasPage from "@/pages/komunitas/KomunitasPage";
 
 // Shell dua kolom untuk halaman auth (login/signup/otp/...): panel kiri + konten.
 function SplitLayout({ children }) {
@@ -588,6 +589,10 @@ export default function App() {
         <Route path="/payment/error" element={<PaymentErrorPage />} />
 
         <Route path="/midtrans-test" element={<MidtransTestPage />} />
+
+        {/* ── Komunitas statis (guest / fake login) — publik, tanpa auth ──── */}
+        {/* Lihat ADR-0004. Route catch-all /komunitas/* biar subpath ikut ke page. */}
+        <Route path="/komunitas/*" element={<KomunitasPage onNavigate={go} />} />
 
         {/* Path tak dikenal → login (fail-safe, sama seperti fallback lama). */}
         <Route path="*" element={<Navigate to="/login" replace />} />

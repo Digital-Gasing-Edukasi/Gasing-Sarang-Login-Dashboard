@@ -189,6 +189,14 @@ export function LoginPage({ onNavigate, onLoginSuccess, isSsoMode = false }) {
             Daftar Sekarang
           </button>
         </p>
+
+        {/* Fake login: masuk sebagai tamu → halaman komunitas statis (ADR-0004) */}
+        <button
+          onClick={() => onNavigate("komunitas")}
+          className="mt-3 text-[14px] font-bold text-[#424857] transition-opacity hover:opacity-70"
+        >
+          Lanjut Sebagai Tamu
+        </button>
       </div>
 
       {noConn && <NoConnectionBanner onClose={() => setNoConn(false)} />}
