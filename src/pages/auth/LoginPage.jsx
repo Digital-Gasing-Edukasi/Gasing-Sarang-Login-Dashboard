@@ -156,7 +156,7 @@ export function LoginPage({ onNavigate, onLoginSuccess, isSsoMode = false }) {
           </div>
           <button
             onClick={() => onNavigate("forgot-password")}
-            className="text-sm text-[#0033EC] font-medium hover:underline underline-offset-2 transition-colors"
+            className="text-sm text-[#0033EC] font-medium underline underline-offset-2 transition-colors"
           >
             Lupa Password?
           </button>
@@ -184,7 +184,7 @@ export function LoginPage({ onNavigate, onLoginSuccess, isSsoMode = false }) {
           Belum punya akun?{" "}
           <button
             onClick={() => onNavigate("signup")}
-            className="font-semibold text-[#0033EC] hover:underline underline-offset-2"
+            className="font-semibold text-[#0033EC] underline underline-offset-2"
           >
             Daftar Sekarang
           </button>

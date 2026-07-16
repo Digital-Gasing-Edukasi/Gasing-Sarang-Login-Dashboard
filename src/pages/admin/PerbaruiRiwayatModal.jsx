@@ -171,7 +171,7 @@ export function PerbaruiRiwayatModal({ isOpen, session, onClose, onSave, onDelet
                 </span>
               </label>
               <div className="text-center mt-3">
-                <button type="button" onClick={downloadTemplate} className="text-sm font-semibold text-link hover:underline">
+                <button type="button" onClick={downloadTemplate} className="text-sm font-semibold text-link underline">
                   Download Template Peserta Guru
                 </button>
               </div>

@@ -116,7 +116,7 @@ export function VerifikasiPembayaranTable({
                 {user.riwayatCount ? (
                   <div className="flex items-center gap-2">
                     <span>{user.riwayatCount}</span>
-                    <span className="text-link cursor-pointer hover:underline text-xs">Lihat Detail</span>
+                    <span className="text-link cursor-pointer underline text-xs">Lihat Detail</span>
                   </div>
                 ) : '-'}
               </td>

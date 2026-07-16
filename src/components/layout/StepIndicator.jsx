@@ -21,7 +21,7 @@ export function StepBar({ current, total = 3, onBack }) {
             <span
               key={i}
               className={cn(
-                'h-2 flex-1 rounded-full transition-colors duration-300',
+                'h-1 flex-1 rounded-full transition-colors duration-300',
                 i < current ? 'bg-blue-600' : 'bg-muted'
               )}
             />

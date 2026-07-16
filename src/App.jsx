@@ -390,6 +390,9 @@ export default function App() {
   };
 
   const handleSignOut = () => {
+    // Kabari backend biar sesi/token dibatalin. Fire-and-forget: jangan
+    // blok UI, kalau gagal tetap lanjut bersihin sesi lokal.
+    authApi.logout().catch(() => {});
     tokenStorage.clear();
     setCurrentUser(null);
     setDevAdmin(false);

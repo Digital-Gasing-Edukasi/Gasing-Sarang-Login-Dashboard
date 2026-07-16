@@ -134,7 +134,16 @@ function applySortToList(list, sortConfig) {
   })
 }
 
-function buildCsvContent(tab, users) {
+// Label status akun sama seperti yang dirender ManajemenTable (STATUS_LABELS),
+// supaya isi CSV konsisten dengan yang dilihat admin di layar.
+const CSV_STATUS_LABELS = {
+  Pending: 'Ditangguhkan', Ditangguhkan: 'Ditangguhkan',
+  Rejected: 'Ditolak', Ditolak: 'Ditolak',
+  Approved: 'Disetujui', Disetujui: 'Disetujui',
+  Deleted: 'Baru Dihapus', Dihapus: 'Baru Dihapus', 'Baru Dihapus': 'Baru Dihapus',
+}
+
+function buildCsvContent(tab, users, activeFilter) {
   const escapeCsv = (str) => {
     const s = String(str ?? '')
     return s.includes(',') || s.includes('"') || s.includes('\n') ? `"${s.replace(/"/g, '""')}"` : s
@@ -144,12 +153,26 @@ function buildCsvContent(tab, users) {
     const rows = users.map(u => [u.name, u.email, u.statusMember || '-', u.plan || '-', u.endDate || '-', u.voucher || '-', u.role || '-', u.riwayatCount || 0, u.birthdate || '-', u.lokasi || '-', u.training || '-', u.alumniDaerah || '-', u.alumniTanggal || '-', u.school || '-', u.lastUpdated || '-'])
     return [headers.join(','), ...rows.map(r => r.map(escapeCsv).join(','))].join('\n')
   }
-  const headers = tab === 'verifikasi'
-    ? ['Nama Pengguna', 'Email', 'Status', 'Tgl.Lahir', 'Alumni Pelatihan', 'Tahun', 'Asal Sekolah', 'Role Pengguna']
-    : ['Nama Pengguna', 'Email', 'Status Akun', 'Kode Voucher', 'Tgl.Lahir', 'Alumni Pelatihan', 'Tahun', 'Asal Sekolah', 'Role Pengguna', 'Berlangganan', 'Tgl Berakhir']
-  const rows = tab === 'verifikasi'
-    ? users.map(u => [u.name, u.email, u.status, u.birthdate, u.training, u.year, u.school, u.role || 'Pilih Role'])
-    : users.map(u => [u.name, u.email, u.accountStatus || '-', u.voucher || '-', u.birthdate || '-', u.training || '-', u.year || '-', u.school || '-', u.role || 'Pilih Role', u.subscription || '-', u.plan || '-'])
+  if (tab === 'manajemen') {
+    // Kolom mengikuti ManajemenTable persis, termasuk "reduced view" untuk
+    // tab Ditolak / Baru Dihapus (kolom Langganan..Role disembunyikan).
+    const isReducedView = activeFilter === 'Rejected' || activeFilter === 'Deleted'
+      || activeFilter === 'Ditolak' || activeFilter === 'Baru Dihapus'
+    const headHeaders = ['Nama Pengguna', 'Email', 'Status Member']
+    const midHeaders  = ['Langganan', 'Jenis Paket', 'Tgl. Berakhir', 'Kode Voucher', 'Role']
+    const tailHeaders = ['Riwayat Pelatihan', 'Tgl. Lahir', 'Lokasi', 'Alumni Pelatihan Nama', 'Alumni Pelatihan Daerah', 'Alumni Pelatihan Tanggal Mulai', 'Asal Sekolah', 'Last Updated']
+    const headers = isReducedView ? [...headHeaders, ...tailHeaders] : [...headHeaders, ...midHeaders, ...tailHeaders]
+    const rows = users.map(u => {
+      const head = [u.name, u.email, CSV_STATUS_LABELS[u.accountStatus] || u.accountStatus || '-']
+      const mid  = [u.subscription || 'Tidak Aktif', u.plan || '-', u.endDate || '-', u.voucher || '-', u.role || '-']
+      const tail = [u.riwayatCount || '-', u.birthdate || '-', u.lokasi || '-', u.training || '-', u.alumniDaerah || '-', u.alumniTanggal || '-', u.school || '-', u.lastUpdated || '-']
+      return isReducedView ? [...head, ...tail] : [...head, ...mid, ...tail]
+    })
+    return [headers.join(','), ...rows.map(r => r.map(escapeCsv).join(','))].join('\n')
+  }
+  // tab === 'verifikasi'
+  const headers = ['Nama Pengguna', 'Email', 'Status', 'Tgl.Lahir', 'Alumni Pelatihan', 'Tahun', 'Asal Sekolah', 'Role Pengguna']
+  const rows = users.map(u => [u.name, u.email, u.status, u.birthdate, u.training, u.year, u.school, u.role || 'Pilih Role'])
   return [headers.join(','), ...rows.map(r => r.map(escapeCsv).join(','))].join('\n')
 }
 
@@ -1092,7 +1115,7 @@ export default function AdminDashboardPage({ user, onSignOut }) {
   }
 
   const handleExport = () => {
-    const csv = buildCsvContent(activeTab, sortedUsers)
+    const csv = buildCsvContent(activeTab, sortedUsers, activeFilter)
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
     const url = URL.createObjectURL(blob)
     const link = document.createElement('a')

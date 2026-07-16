@@ -100,7 +100,7 @@ export function RiwayatPelatihanTable({
           <th className="px-4 py-4 font-medium align-bottom">
             <SortableHeader label="Last Updated" sortKey="lastUpdated" sortConfig={sortConfig} onSort={handleSort} />
           </th>
-          <th className="px-4 py-4 font-medium align-bottom text-center">Action</th>
+          <th className="px-4 py-4 font-medium align-bottom text-center sticky right-0 z-30 bg-[#0A1128] shadow-[-4px_0_10px_-4px_rgba(0,0,0,0.3)]">Action</th>
         </tr>
       </thead>
       <tbody className="divide-y divide-gray-100">
@@ -133,22 +133,22 @@ export function RiwayatPelatihanTable({
               <td className="px-4 py-4">
                 {item.pesertaNama && item.pesertaNama !== '-' ? (
                   <button onClick={() => onViewPeserta && onViewPeserta(item)} className="text-left">
-                    <div className="font-medium text-[#0A1128] hover:underline">{item.pesertaNama}</div>
+                    <div className="font-medium text-[#0A1128] underline">{item.pesertaNama}</div>
                     {item.pesertaLainnya > 0 && (
-                      <span className="text-xs text-link hover:underline">{item.pesertaLainnya}+ lainnya</span>
+                      <span className="text-xs text-link underline">{item.pesertaLainnya}+ lainnya</span>
                     )}
                   </button>
                 ) : (
                   <button
                     onClick={() => onViewPeserta && onViewPeserta(item)}
-                    className="text-sm text-link hover:underline"
+                    className="text-sm text-link underline"
                   >
                     Lihat peserta
                   </button>
                 )}
               </td>
               <td className="px-4 py-4 text-[#0A1128] font-medium">{item.lastUpdated || '-'}</td>
-              <td className="px-4 py-4">
+              <td className={cn('px-4 py-4 sticky right-0 z-10 transition-colors shadow-[-4px_0_10px_-4px_rgba(0,0,0,0.05)]', selected ? 'bg-[#F4F6FB]' : 'bg-white group-hover:bg-[#F9FAFB]')}>
                 <div className="flex items-center justify-center gap-1">
                   <button
                     onClick={() => onEdit && onEdit(item)}

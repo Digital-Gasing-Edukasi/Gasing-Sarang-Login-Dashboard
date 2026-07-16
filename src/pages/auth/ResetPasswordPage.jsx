@@ -185,7 +185,7 @@ export function ResetPasswordPage({ token, email, onNavigate }) {
 
               <button
                 onClick={() => onNavigate('login')}
-                className="flex items-center gap-1.5 text-[14px] text-white/55 hover:text-white transition-colors mx-auto pt-1"
+                className="flex items-center gap-1.5 text-[14px] text-white/55 underline underline-offset-2 hover:text-white transition-colors mx-auto pt-1"
               >
                 <LogIn size={15} /> Kembali Ke Login
               </button>

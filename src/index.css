@@ -82,6 +82,14 @@
   border-color: hsl(var(--primary));
   background: hsl(var(--secondary));
 }
+.otp-input.error {
+  border-color: #ef4444;
+  background: white;
+}
+.otp-input.error:focus {
+  border-color: #ef4444;
+  box-shadow: 0 0 0 3px rgb(239 68 68 / 0.12);
+}
 
 .grid-pattern {
   background-image:
