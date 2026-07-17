@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { Video, Users, Tv } from "lucide-react";
 import { meetupUpcoming, meetupPast } from "../data";
 import { headerVirtualBg, headerVirtualElements, thumbAngka } from "../assets";
@@ -5,7 +6,7 @@ import { headerVirtualBg, headerVirtualElements, thumbAngka } from "../assets";
 // /komunitas/virtual-meet-up — header pink + maskot, meet-up akan datang & sebelumnya.
 export default function VirtualMeetUpScreen() {
   return (
-    <div className="flex flex-col">
+    <div className="relative flex flex-col h-screen overflow-hidden">
       <div
         className="relative h-28 overflow-hidden bg-cover bg-center"
         style={{
@@ -67,23 +68,40 @@ export default function VirtualMeetUpScreen() {
           <Tv size={18} className="text-orange-500" />
           <h2 className="font-bold text-slate-800">Meet-up Sebelumnya</h2>
         </div>
-        <div className="mt-3 flex gap-3 overflow-x-auto pb-2">
-          {meetupPast.map((m) => (
-            <div key={m.id} className="min-w-[80%] overflow-hidden rounded-2xl bg-white shadow-sm">
-              <div
-                className="relative flex h-28 items-center justify-center bg-cover bg-center"
-                style={{ backgroundImage: `url(${thumbAngka})` }}
-              >
-                <span className="absolute left-2 top-2 rounded-md bg-black/70 px-2 py-0.5 text-xs font-semibold text-white">
-                  {m.tag}
-                </span>
+        <div className="mt-3 blur-[5px] pointer-events-none select-none opacity-90">
+          <div className="flex gap-3 overflow-x-auto pb-2">
+            {meetupPast.map((m) => (
+              <div key={m.id} className="min-w-[80%] overflow-hidden rounded-2xl bg-white shadow-sm">
+                <div
+                  className="relative flex h-28 items-center justify-center bg-cover bg-center"
+                  style={{ backgroundImage: `url(${thumbAngka})` }}
+                >
+                  <span className="absolute left-2 top-2 rounded-md bg-black/70 px-2 py-0.5 text-xs font-semibold text-white">
+                    {m.tag}
+                  </span>
+                </div>
+                <div className="p-3">
+                  <h3 className="line-clamp-2 text-sm font-bold text-slate-700">{m.title}</h3>
+                  <p className="mt-1 text-xs text-slate-400">{m.speakers} · {m.date}</p>
+                </div>
               </div>
-              <div className="p-3">
-                <h3 className="line-clamp-2 text-sm font-bold text-slate-700">{m.title}</h3>
-                <p className="mt-1 text-xs text-slate-400">{m.speakers} · {m.date}</p>
-              </div>
-            </div>
-          ))}
+            ))}
+          </div>
+          <div className="mt-2 flex justify-center gap-1.5">
+            <span className="h-2 w-2 rounded-full bg-blue-600" />
+            <span className="h-2 w-2 rounded-full bg-slate-300" />
+            <span className="h-2 w-2 rounded-full bg-slate-300" />
+          </div>
+        </div>
+      </div>
+
+      {/* Overlay CTA gabung (fake login-gate) */}
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 z-50 h-1/2 flex items-end justify-center bg-gradient-to-t from-slate-100 via-slate-100/90 to-transparent pb-6">
+        <div className="pointer-events-auto text-center">
+          <p className="text-sm font-medium text-slate-600">
+            Ayo bergabung dalam komunitas Sarang Gasing
+          </p>
+          <Link to="/register" className="text-sm font-bold text-[#0033EC]">Daftar</Link>
         </div>
       </div>
     </div>

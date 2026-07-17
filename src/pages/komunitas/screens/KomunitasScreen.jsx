@@ -1,11 +1,10 @@
-import { useState } from "react";
+import { Link } from "react-router-dom";
 import { Bookmark, HelpCircle, TrendingUp, ChevronRight, Heart, MessageCircle, Pin } from "lucide-react";
-import { trendingTopics, komunitasTabs } from "../data";
+import { trendingTopics } from "../data";
 import { headerKomunitas, charBlue } from "../assets";
 
-// /komunitas/komunitas — header ungu + maskot, Top 10 Trending, tab Forum/Challenge/Members.
+// /komunitas/komunitas — header ungu + maskot, Top 10 Trending.
 export default function KomunitasScreen() {
-  const [tab, setTab] = useState(komunitasTabs[0].key);
 
   return (
     <div className="flex flex-col">
@@ -72,33 +71,16 @@ export default function KomunitasScreen() {
 
           {/* Overlay CTA gabung (fake login-gate) */}
           <div className="pointer-events-none absolute inset-x-0 bottom-0 top-1/2 flex items-end justify-center bg-gradient-to-t from-white via-white/90 to-transparent pb-4">
-            <div className="text-center">
+            <div className="pointer-events-auto text-center">
               <p className="text-sm font-medium text-slate-600">
                 Ayo bergabung dalam komunitas Sarang Gasing
               </p>
-              <span className="text-sm font-bold text-[#0033EC]">Daftar</span>
+              <Link to="/register" className="text-sm font-bold text-[#0033EC]">Daftar</Link>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Tab sekunder Forum / Challenge / All Members */}
-      <div className="mt-4 flex border-t border-slate-200 bg-white">
-        {komunitasTabs.map((t) => (
-          <button
-            key={t.key}
-            onClick={() => setTab(t.key)}
-            className={
-              "flex-1 py-3 text-sm font-medium transition-colors " +
-              (tab === t.key
-                ? "border-b-2 border-[#0033EC] text-[#0033EC]"
-                : "text-slate-500")
-            }
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
     </div>
   );
 }

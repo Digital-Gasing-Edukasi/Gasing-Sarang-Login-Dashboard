@@ -5,11 +5,13 @@ import {
   thumbVideoKonten,
   thumbRubik,
   materiBilangan,
+  materiPenjumlahan,
   materiPerkalian,
   materiPengurangan,
+  materiPembagian,
 } from "./assets";
 
-export const GUEST_NAME = "Ery";
+export const GUEST_NAME = "Tamu Gasing";
 
 // ── /komunitas/konten-ekslusif ────────────────────────────────────────────
 export const kontenEksklusif = [
@@ -27,13 +29,6 @@ export const kontenEksklusif = [
     img: null,
     thumb: "#e8dcc8",
     video: false,
-  },
-  {
-    id: 3,
-    title: "Pengenalan bilangan bulat untuk kelas awal",
-    badge: "Dasar",
-    img: thumbVideoKonten,
-    video: true,
   },
 ];
 
@@ -80,9 +75,9 @@ export const materiTabs = ["Semua", "BakalKuBagi", "BuPeDe"];
 export const materiList = [
   {
     id: 1,
-    title: "Mengenal Bilangan & Penjumlahan",
-    bg: "#fbe6b0",
-    element: materiBilangan,
+    title: "Mengenal Penjumlahan",
+    slug: "penjumlahan",
+    element: materiPenjumlahan,
     likes: "99+",
     comments: "99+",
     reads: "33 hari",
@@ -90,22 +85,32 @@ export const materiList = [
   },
   {
     id: 2,
-    title: "Mengenal Perkalian",
-    bg: "#f8d3e2",
-    element: materiPerkalian,
-    likes: "88+",
-    comments: "56+",
-    reads: "20 hari",
-    duration: "1-2 jam",
-  },
-  {
-    id: 3,
     title: "Mengenal Pengurangan",
-    bg: "#fbdccb",
+    slug: "pengurangan",
     element: materiPengurangan,
     likes: "70+",
     comments: "40+",
     reads: "18 hari",
+    duration: "1-2 jam",
+  },
+  {
+    id: 3,
+    title: "Mengenal Pembagian",
+    slug: "pembagian",
+    element: materiPembagian,
+    likes: "65+",
+    comments: "30+",
+    reads: "15 hari",
+    duration: "1-2 jam",
+  },
+  {
+    id: 4,
+    title: "Mengenal Perkalian",
+    slug: "perkalian",
+    element: materiPerkalian,
+    likes: "88+",
+    comments: "56+",
+    reads: "20 hari",
     duration: "1-2 jam",
   },
 ];

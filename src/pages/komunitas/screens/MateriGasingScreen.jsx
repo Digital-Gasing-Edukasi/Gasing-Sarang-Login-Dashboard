@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { BookOpen, Heart, MessageCircle, Clock, BookMarked } from "lucide-react";
 import { materiTabs, materiList } from "../data";
 import { headerMateri, charBlue } from "../assets";
@@ -45,12 +46,9 @@ export default function MateriGasingScreen() {
 
         <div className="mt-4 flex flex-col gap-4">
           {materiList.map((m) => (
-            <div key={m.id} className="overflow-hidden rounded-2xl bg-white shadow-sm">
-              <div
-                className="flex h-32 items-center justify-center bg-cover bg-center"
-                style={{ backgroundColor: m.bg }}
-              >
-                <img src={m.element} alt="" aria-hidden className="h-24 w-auto object-contain" />
+            <Link to={`/komunitas/materi-gasing/${m.slug}`} key={m.id} className="block overflow-hidden rounded-2xl bg-white shadow-sm">
+              <div className="flex h-44 items-center justify-center bg-cover bg-center">
+                <img src={m.element} alt="" aria-hidden className="h-36 w-auto object-contain" />
               </div>
               <div className="p-4">
                 <h3 className="font-bold text-slate-800">{m.title}</h3>
@@ -61,7 +59,7 @@ export default function MateriGasingScreen() {
                   <span className="ml-auto flex items-center gap-1"><BookMarked size={13} /> {m.duration}</span>
                 </div>
               </div>
-            </div>
+            </Link>
           ))}
         </div>
       </div>

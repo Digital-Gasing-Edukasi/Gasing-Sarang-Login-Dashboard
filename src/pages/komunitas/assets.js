@@ -12,6 +12,7 @@ export { default as headerKomunitas } from "@/assets/guest/header-banner/Header-
 export { default as headerMateri } from "@/assets/guest/header-banner/Header-MateriGasing.png";
 export { default as headerVirtualBg } from "@/assets/guest/header-banner/Header=Virtual Meet-Up, Background=True, Elements=False, Text=False.png";
 export { default as headerVirtualElements } from "@/assets/guest/header-banner/Header=Virtual Meet-Up, Background=False, Elements=True, Text=False.png";
+export { default as headerEksklusif } from "@/assets/header-eksklusif.png";
 
 // Thumbnail konten
 export { default as thumbFunMath } from "@/assets/guest/thumbnail/Fun Math Trick for Kids.png";
@@ -24,3 +25,7 @@ export { default as materiBilangan } from "@/assets/guest/thumbnail/Materi Gasin
 export { default as materiPenjumlahan } from "@/assets/guest/thumbnail/Materi Gasing/Element Card Materi Gasing Mobile_Penjumlahan.png";
 export { default as materiPerkalian } from "@/assets/guest/thumbnail/Materi Gasing/Element Card Materi Gasing Mobile_Perkalian.png";
 export { default as materiPengurangan } from "@/assets/guest/thumbnail/Materi Gasing/Element Card Materi Gasing Mobile_Pengurangan.png";
+export { default as materiPembagian } from "@/assets/guest/thumbnail/Materi Gasing/Element Card Materi Gasing Mobile_Pembagian.png";
+
+// Ikon
+export { default as newsIcon } from "@/assets/news.svg";
