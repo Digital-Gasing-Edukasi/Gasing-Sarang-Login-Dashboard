@@ -10,6 +10,7 @@ import {
   materiPerkalian,
   materiPengurangan,
   materiPembagian,
+  charPurple,
 } from "./assets";
 
 export const GUEST_NAME = "Tamu Gasing";
@@ -176,6 +177,99 @@ export const trendingTopics = [
   },
 ];
 
+// Forum posts — layar mobile /komunitas/komunitas (design "Forum").
+export const forumPosts = [
+  {
+    id: 1,
+    avatarImg: charPurple,
+    pinned: true,
+    title: "Yuk, Mencongak!",
+    url: "https://math-flashcards-ten.vercel.app/",
+    excerpt:
+      "Latih kemampuan mencongak kapan saja melalui web. Ribuan soal adaptif membantu meningkatkan kecepatan berhitung, akurasi, dan rasa percaya diri secara bertahap",
+    likes: "1.2k",
+    comments: "213",
+    views: "4.2k",
+    highlight: true,
+  },
+  {
+    id: 2,
+    avatarImg: charPurple,
+    title: "Mencongak Penjumlahan",
+    url: "https://canva.link/4dikcsrirbwdyn6",
+    excerpt:
+      "Latih kecepatan berhitung dengan trik mencongak yang sederhana. Penjumlahan jadi lebih mudah, cepat, dan menyenangkan!",
+    likes: "1.2k",
+    comments: "213",
+    views: "4.2k",
+  },
+  {
+    id: 3,
+    avatarImg: charPurple,
+    verified: true,
+    title: "Mencongak Perkalian",
+    url: "https://canva.link/elf6da3dznw09iw",
+    excerpt:
+      "Kuasai perkalian dengan cara mencongak khas GASING. Pahami polanya, latih kecepatannya, lalu hitung tanpa bergantung pada kalkulator.",
+    likes: "1.2k",
+    comments: "213",
+    views: "4.2k",
+  },
+  {
+    id: 4,
+    avatarImg: charPurple,
+    verified: true,
+    title: "Mencongak Pengurangan",
+    url: "https://canva.link/lmo2iec9fsacoc7",
+    excerpt:
+      "Ayo belajar mengurangkan angka dengan cara yang seru! Mencongak membuat berhitung jadi cepat seperti bermain.",
+    likes: "1.2k",
+    comments: "213",
+    views: "4.2k",
+  },
+  {
+    id: 5,
+    avatarImg: charPurple,
+    title: "Mencongak Pembagian",
+    url: " https://canva.link/my2k5kij3u5asan",
+    excerpt:
+      "Berhitung lebih cepat dimulai dari memahami pola. Asah kemampuan mencongak pembagian sedikit demi sedikit, setiap hari.",
+    likes: "1.2k",
+    comments: "213",
+    views: "4.2k",
+  },
+  {
+    id: 6,
+    avatarImg: charPurple,
+    title: "Mencongak BaKalKuBagi",
+    url: "https://canva.link/bx8mlatytxxscbc",
+    excerpt:
+      "Tantang dirimu menjawab lebih cepat setiap hari. Satu langkah kecil menuju kemampuan berhitung yang lebih hebat.",
+    likes: "1.2k",
+    comments: "213",
+    views: "4.2k",
+  },
+];
+
+// Menu sidebar desktop (BottomNav aside). Mirror TABS bottom-nav mobile.
+export const SIDEBAR = [
+  { key: "home", label: "Home", path: "/komunitas/home", icon: "🏠" },
+  {
+    key: "komunitas",
+    label: "Komunitas",
+    path: "/komunitas/komunitas",
+    icon: "👥",
+    children: [
+      { label: "Forum" },
+      { label: "Challenge" },
+      { label: "All Members" },
+    ],
+  },
+  { key: "konten", label: "Konten Eksklusif", path: "/komunitas/konten-ekslusif", icon: "⭐" },
+  { key: "virtual", label: "Virtual Meet-Up", path: "/komunitas/virtual-meet-up", icon: "📹" },
+  { key: "materi", label: "Materi Gasing", path: "/komunitas/materi-gasing", icon: "📚" },
+];
+
 export const komunitasTabs = [
   { key: "forum", label: "Forum" },
   { key: "challenge", label: "Challenge" },
@@ -247,9 +341,9 @@ export const panduanKomunitas = [
 export const gaNews = [
   {
     id: 1,
-    category: "Politik",
-    title: "Do U.S. Presidents Have the Power to Declare War?",
-    excerpt: "On paper, declaring war is reserved for Congress.",
+    category: "Diskusi",
+    title: "Apakah ada tips menghitung penjumlahan banyak angka?",
+    excerpt: "Berbagi trik pengelompokan angka & hitung cepat ala metode GASING.",
     date: "3 Maret 2026",
     time: "14 jam lalu",
     likes: "1.2k",
@@ -269,9 +363,9 @@ export const gaNews = [
   },
   {
     id: 3,
-    category: "Berita",
-    title: "Key Moments From Kristi Noem's Congressional Testimony",
-    excerpt: "GOP Sen. Thom Tillis demands Noem's resignation; others press her on spending.",
+    category: "Pelatihan",
+    title: "Ribuan Guru SD Ikuti Pelatihan Metode Berhitung Cepat GASING",
+    excerpt: "Program pelatihan nasional menyasar guru sekolah dasar di berbagai daerah.",
     date: "27 Februari 2026",
     time: "3 hari lalu",
     likes: "500",
@@ -280,9 +374,9 @@ export const gaNews = [
   },
   {
     id: 4,
-    category: "Ekonomi",
-    title: "In a Day of Wild Market Moves, Oil Is a New Haven",
-    excerpt: "It's hard to overstate just how unusual trading was on Tuesday.",
+    category: "Trik",
+    title: "Cara Mengajar Perkalian ke Anak Tanpa Harus Menghafal",
+    excerpt: "Pendekatan visual & pola bikin perkalian lebih mudah dipahami anak.",
     date: "25 Februari 2026",
     time: "5 hari lalu",
     likes: "312",
@@ -291,9 +385,9 @@ export const gaNews = [
   },
   {
     id: 5,
-    category: "Olahraga",
-    title: "Alysa Liu Suddenly Became America's Sweetheart. It Came With a Cost.",
-    excerpt: "The gold-medal-winning figure skater reached the pinnacle of her sport.",
+    category: "Inspirasi",
+    title: "Kisah Trainer GASING Bawa Matematika Menyenangkan ke Pelosok",
+    excerpt: "Perjalanan para trainer mengajar berhitung di daerah terpencil.",
     date: "24 Februari 2026",
     time: "6 hari lalu",
     likes: "210",

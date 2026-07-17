@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { ChevronDown, ChevronUp, PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { ChevronDown, ChevronUp, PanelLeftClose, PanelLeftOpen, LogOut } from "lucide-react";
 import { komunitasTabs, SIDEBAR } from "./data";
 import { logoRect, logoSquare, charBlue } from "./assets";
 
@@ -40,23 +40,32 @@ export default function BottomNav() {
     <>
       {/* ===== Bottom Nav (mobile / < lg) ===== */}
       <div className="fixed bottom-0 left-0 right-0 z-50 mx-auto flex w-full max-w-[480px] flex-col lg:hidden">
-        {/* Sub Navbar (Forum, Challenge, Members) */}
+        {/* Sub Navbar (Forum aktif = biru & clickable; Challenge + All Members blur/disabled) */}
         {isKomunitas && (
-          <div className="flex border-t border-slate-200/50 bg-white/60 backdrop-blur-lg">
-            {komunitasTabs.map((t) => (
-              <button
-                key={t.key}
-                onClick={() => setKomunitasTab(t.key)}
-                className={
-                  "flex-1 py-3 text-sm font-medium transition-colors " +
-                  (komunitasTab === t.key
-                    ? "border-b-2 border-[#0033EC] text-[#0033EC]"
-                    : "text-slate-600")
-                }
-              >
-                {t.label}
-              </button>
-            ))}
+          <div className="flex items-end border-t border-slate-200/50 bg-white/60 backdrop-blur-lg">
+            {komunitasTabs.map((t) => {
+              const isForum = t.key === "forum";
+              if (isForum) {
+                return (
+                  <button
+                    key={t.key}
+                    onClick={() => setKomunitasTab(t.key)}
+                    className="flex-1 bg-[#0033EC]/20 py-3.5 text-sm font-semibold text-[#0033EC] shadow-[0_-4px_14px_rgba(0,51,236,0.12)]"
+                  >
+                    {t.label}
+                  </button>
+                );
+              }
+              return (
+                <span
+                  key={t.key}
+                  aria-disabled="true"
+                  className="pointer-events-none flex-1 select-none py-3 text-center text-sm font-medium text-slate-400 opacity-60 blur-[2px]"
+                >
+                  {t.label}
+                </span>
+              );
+            })}
           </div>
         )}
 
@@ -155,21 +164,29 @@ export default function BottomNav() {
                   )}
                 </button>
 
-                {/* Sub-menu: default terbuka, tapi disabled (guest-only) */}
+                {/* Sub-menu: default terbuka. Forum ikut aktif saat komunitas dipilih. */}
                 {!collapsed && item.children && (
                   <div className="mb-1 ml-9 mt-1 flex flex-col gap-0.5">
-                    {item.children.map((c) => (
-                      <div
-                        key={c.label}
-                        aria-disabled="true"
-                        className="flex cursor-not-allowed select-none items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium text-slate-400 opacity-70"
-                      >
-                        <span className="flex-1">{c.label}</span>
-                        {c.dot && (
-                          <span className="h-2 w-2 rounded-full bg-[#0033EC]/40" />
-                        )}
-                      </div>
-                    ))}
+                    {item.children.map((c) => {
+                      const childActive = active && c.label === "Forum";
+                      return (
+                        <div
+                          key={c.label}
+                          aria-disabled={childActive ? undefined : "true"}
+                          className={
+                            "flex select-none items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium " +
+                            (childActive
+                              ? "bg-[#0033EC]/10 font-semibold text-[#0033EC]"
+                              : "cursor-not-allowed text-slate-400 opacity-70")
+                          }
+                        >
+                          <span className="flex-1">{c.label}</span>
+                          {c.dot && (
+                            <span className="h-2 w-2 rounded-full bg-[#0033EC]/40" />
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -180,25 +197,33 @@ export default function BottomNav() {
         {/* Footer profil */}
         <div
           className={
-            "flex items-center gap-3 border-t border-slate-200 py-4 " +
-            (collapsed ? "justify-center px-2" : "px-4")
+            "flex items-center border-t border-slate-200 py-4 " +
+            (collapsed ? "justify-center px-2" : "justify-between px-4")
           }
         >
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-pink-500 to-purple-600">
-            <img
-              src={charBlue}
-              alt=""
-              aria-hidden
-              className="h-8 w-8 object-contain"
-            />
-          </span>
-          {!collapsed && (
-            <>
-              <span className="flex-1 truncate text-sm font-bold text-slate-700">
+          <div className="flex items-center gap-3 min-w-0">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-pink-500 to-purple-600">
+              <img
+                src={charBlue}
+                alt=""
+                aria-hidden
+                className="h-8 w-8 object-contain"
+              />
+            </span>
+            {!collapsed && (
+              <span className="truncate text-sm font-bold text-slate-700">
                 Tamu Gasing
               </span>
-              <ChevronDown size={18} className="text-slate-400" />
-            </>
+            )}
+          </div>
+          {!collapsed && (
+            <button
+              onClick={() => navigate('/login')}
+              title="Keluar"
+              className="text-slate-400 transition-colors hover:text-slate-600 p-2 shrink-0"
+            >
+              <LogOut size={18} />
+            </button>
           )}
         </div>
       </aside>

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { BookOpen, Heart, MessageCircle, Clock, BookMarked, Music, ChevronRight, Play, Plus, TrendingUp, Gamepad2 } from "lucide-react";
 import { materiTabs, materiList, musikGasing, permainanList } from "../data";
 import { headerMateri, charBlue } from "../assets";
@@ -31,7 +32,67 @@ export default function MateriGasingScreen() {
         <img src={charBlue} alt="" aria-hidden className="absolute -right-1 top-1 h-24 w-auto object-contain lg:h-36" />
       </div>
 
-      <div className="px-5 pt-5 lg:grid lg:grid-cols-[1fr_340px] lg:gap-6 lg:px-2">
+      {/* ===== Mobile: Terkunci ===== */}
+      <div className="lg:hidden relative">
+        <div className="pointer-events-none select-none px-5 pt-5 pb-20">
+          <div className="flex items-center gap-2">
+            <BookOpen size={18} className="text-orange-500" />
+            <h2 className="font-bold text-slate-800">Metode</h2>
+          </div>
+
+          <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
+            {materiTabs.map((t) => (
+              <button
+                key={t}
+                onClick={() => setTab(t)}
+                className={
+                  "whitespace-nowrap rounded-full px-5 py-2 text-sm font-semibold transition-colors " +
+                  (t === tab ? "bg-blue-600 text-white" : "border border-blue-300 bg-white text-blue-600")
+                }
+              >
+                {t}
+              </button>
+            ))}
+          </div>
+
+          <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+            {materiList.map((m) => (
+              <a href={m.url} target="_blank" rel="noopener noreferrer" key={m.id} className="block overflow-hidden rounded-2xl bg-white shadow-sm transition-shadow hover:shadow-md">
+                <div className="flex h-44 items-center justify-center bg-cover bg-center">
+                  <img src={m.element} alt="" aria-hidden className="h-36 w-auto object-contain" />
+                </div>
+                <div className="p-4">
+                  <h3 className="font-bold text-slate-800">{m.title}</h3>
+                  <div className="mt-3 flex flex-wrap items-center gap-4 text-xs text-slate-500">
+                    <span className="flex items-center gap-1"><Heart size={13} /> {m.likes}</span>
+                    <span className="flex items-center gap-1"><MessageCircle size={13} /> {m.comments}</span>
+                    <span className="flex items-center gap-1"><Clock size={13} /> {m.reads}</span>
+                    <span className="ml-auto flex items-center gap-1"><BookMarked size={13} /> {m.duration}</span>
+                  </div>
+                </div>
+              </a>
+            ))}
+          </div>
+        </div>
+        
+        {/* Progressive Blur Overlay */}
+        <div className="pointer-events-none absolute inset-0 z-10 bg-white/20 backdrop-blur-[5px] [-webkit-mask-image:linear-gradient(to_bottom,transparent_0%,black_60vh)] [mask-image:linear-gradient(to_bottom,transparent_0%,black_60vh)]" />
+
+        {/* Overlay CTA gabung */}
+        <div className="pointer-events-none fixed inset-x-0 bottom-0 z-40 mx-auto flex h-40 max-w-[480px] items-end justify-center bg-gradient-to-t from-slate-50 via-slate-50/90 to-transparent pb-24">
+          <div className="pointer-events-auto text-center">
+            <p className="text-sm font-medium text-slate-600">
+              Ayo bergabung dalam komunitas Sarang Gasing
+            </p>
+            <Link to="/register" className="text-sm font-bold text-[#0033EC]">
+              Daftar
+            </Link>
+          </div>
+        </div>
+      </div>
+
+      {/* ===== Desktop: Tetap ===== */}
+      <div className="hidden px-5 pt-5 lg:grid lg:grid-cols-[1fr_340px] lg:gap-6 lg:px-2">
         {/* ===== Kiri: Metode + grid materi ===== */}
         <div>
           <div className="flex items-center gap-2">

@@ -162,29 +162,46 @@ export default function GANewsScreen() {
       </div>
 
       {/* ===== Mobile: list kartu ===== */}
-      <div className="flex-1 px-4 pb-20 lg:hidden">
-        {gaNews.map((news) => (
-          <div key={news.id} className="mb-5 overflow-hidden rounded-xl bg-white shadow-sm">
-            <img src={news.image} alt={news.title} className="h-40 w-full object-cover" />
-            <div className="p-4">
-              <h2 className="text-[15px] font-bold leading-snug text-slate-800">{news.title}</h2>
-              <div className="mt-5 flex items-center justify-between text-xs text-slate-400">
-                <span>{news.time}</span>
-                <div className="flex items-center gap-4">
-                  <div className="flex items-center gap-1.5">
-                    <Heart className="h-[18px] w-[18px]" />
-                    <span className="font-medium text-slate-500">{news.likes}</span>
+      <div className="lg:hidden relative">
+        <div className="pointer-events-none select-none flex-1 px-4 pb-20">
+          {gaNews.map((news) => (
+            <div key={news.id} className="mb-5 overflow-hidden rounded-xl bg-white shadow-sm">
+              <img src={news.image} alt={news.title} className="h-40 w-full object-cover" />
+              <div className="p-4">
+                <h2 className="text-[15px] font-bold leading-snug text-slate-800">{news.title}</h2>
+                <div className="mt-5 flex items-center justify-between text-xs text-slate-400">
+                  <span>{news.time}</span>
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-1.5">
+                      <Heart className="h-[18px] w-[18px]" />
+                      <span className="font-medium text-slate-500">{news.likes}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <MessageCircle className="h-[18px] w-[18px]" />
+                      <span className="font-medium text-slate-500">{news.comments}</span>
+                    </div>
+                    <MoreHorizontal className="ml-1 h-5 w-5" />
                   </div>
-                  <div className="flex items-center gap-1.5">
-                    <MessageCircle className="h-[18px] w-[18px]" />
-                    <span className="font-medium text-slate-500">{news.comments}</span>
-                  </div>
-                  <MoreHorizontal className="ml-1 h-5 w-5" />
                 </div>
               </div>
             </div>
+          ))}
+        </div>
+
+        {/* Progressive Blur Overlay */}
+        <div className="pointer-events-none absolute inset-0 z-10 bg-white/20 backdrop-blur-[5px] [-webkit-mask-image:linear-gradient(to_bottom,transparent_0%,black_60vh)] [mask-image:linear-gradient(to_bottom,transparent_0%,black_60vh)]" />
+
+        {/* Overlay CTA gabung */}
+        <div className="pointer-events-none fixed inset-x-0 bottom-0 z-40 mx-auto flex h-40 max-w-[480px] items-end justify-center bg-gradient-to-t from-slate-50 via-slate-50/90 to-transparent pb-24">
+          <div className="pointer-events-auto text-center">
+            <p className="text-sm font-medium text-slate-600">
+              Ayo bergabung dalam komunitas Sarang Gasing
+            </p>
+            <Link to="/register" className="text-sm font-bold text-[#0033EC]">
+              Daftar
+            </Link>
           </div>
-        ))}
+        </div>
       </div>
 
       {/* ===== Desktop: reading pane (terkunci → blur, CTA di tengah bawah) ===== */}
