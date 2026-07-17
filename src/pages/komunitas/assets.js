@@ -12,6 +12,7 @@ export { default as headerKomunitas } from "@/assets/guest/header-banner/Header-
 export { default as headerMateri } from "@/assets/guest/header-banner/Header-MateriGasing.png";
 export { default as headerVirtualBg } from "@/assets/guest/header-banner/Header=Virtual Meet-Up, Background=True, Elements=False, Text=False.png";
 export { default as headerVirtualElements } from "@/assets/guest/header-banner/Header=Virtual Meet-Up, Background=False, Elements=True, Text=False.png";
+export { default as headerGANews } from "@/assets/guest/header-banner/Header-GANews.png";
 export { default as headerEksklusif } from "@/assets/header-eksklusif.png";
 
 // Thumbnail konten

@@ -1,14 +1,19 @@
+import { useRef } from "react";
 import { Link } from "react-router-dom";
-import { Video, Users, Tv } from "lucide-react";
+import { Video, Users, Tv, ChevronLeft, ChevronRight } from "lucide-react";
 import { meetupUpcoming, meetupPast } from "../data";
 import { headerVirtualBg, headerVirtualElements, thumbAngka } from "../assets";
 
 // /komunitas/virtual-meet-up — header pink + maskot, meet-up akan datang & sebelumnya.
 export default function VirtualMeetUpScreen() {
+  const upcomingRef = useRef(null);
+  const scroll = (dir) =>
+    upcomingRef.current?.scrollBy({ left: dir * upcomingRef.current.clientWidth * 0.8, behavior: "smooth" });
+
   return (
-    <div className="relative flex flex-col h-screen overflow-hidden">
+    <div className="relative flex flex-col h-screen overflow-hidden lg:h-auto lg:min-h-screen lg:overflow-visible">
       <div
-        className="relative h-28 overflow-hidden bg-cover bg-center"
+        className="relative h-28 overflow-hidden bg-cover bg-center lg:h-40 lg:rounded-3xl"
         style={{
           backgroundImage: `url(${headerVirtualBg})`,
           mask: "radial-gradient(120% 40px at bottom, transparent 98%, black 100%)",
@@ -25,9 +30,29 @@ export default function VirtualMeetUpScreen() {
           <h2 className="font-bold text-slate-800">Meet-up Akan Datang</h2>
         </div>
 
-        <div className="mt-3 flex gap-3 overflow-x-auto pb-2">
+        {/* Carousel + panah prev/next (panah tampil di desktop) */}
+        <div className="relative">
+          <button
+            onClick={() => scroll(-1)}
+            aria-label="Sebelumnya"
+            className="absolute left-0 top-1/2 z-10 hidden -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-slate-200 bg-white p-2 text-slate-500 shadow-md hover:text-slate-800 lg:flex"
+          >
+            <ChevronLeft size={20} />
+          </button>
+          <button
+            onClick={() => scroll(1)}
+            aria-label="Berikutnya"
+            className="absolute right-0 top-1/2 z-10 hidden translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-slate-200 bg-white p-2 text-slate-500 shadow-md hover:text-slate-800 lg:flex"
+          >
+            <ChevronRight size={20} />
+          </button>
+
+          <div
+            ref={upcomingRef}
+            className="mt-3 flex gap-3 overflow-x-auto pb-2 lg:gap-4 lg:scroll-smooth"
+          >
           {meetupUpcoming.map((m) => (
-            <div key={m.id} className="min-w-[85%] overflow-hidden rounded-2xl bg-white shadow-sm">
+            <div key={m.id} className="min-w-[85%] shrink-0 overflow-hidden rounded-2xl bg-white shadow-sm lg:min-w-[calc(50%-0.5rem)]">
               <div className="flex">
                 <div className="flex-1 p-4">
                   <div className="flex items-center gap-1.5 text-xs text-slate-500">
@@ -43,7 +68,7 @@ export default function VirtualMeetUpScreen() {
                   </button>
                 </div>
                 <div
-                  className="relative w-24 shrink-0 bg-cover bg-center"
+                  className="relative w-24 shrink-0 bg-cover bg-center lg:w-40"
                   style={{ backgroundImage: `url(${thumbAngka})` }}
                 >
                   <span className="absolute right-2 top-2 flex items-center gap-1 rounded-full bg-white/80 px-2 py-0.5 text-xs font-semibold">
@@ -53,9 +78,10 @@ export default function VirtualMeetUpScreen() {
               </div>
             </div>
           ))}
+          </div>
         </div>
 
-        <div className="mt-2 flex justify-center gap-1.5">
+        <div className="mt-2 flex justify-center gap-1.5 lg:hidden">
           <span className="h-2 w-2 rounded-full bg-blue-600" />
           <span className="h-2 w-2 rounded-full bg-slate-300" />
           <span className="h-2 w-2 rounded-full bg-slate-300" />
@@ -69,9 +95,9 @@ export default function VirtualMeetUpScreen() {
           <h2 className="font-bold text-slate-800">Meet-up Sebelumnya</h2>
         </div>
         <div className="mt-3 blur-[5px] pointer-events-none select-none opacity-90">
-          <div className="flex gap-3 overflow-x-auto pb-2">
+          <div className="flex gap-3 overflow-x-auto pb-2 lg:grid lg:grid-cols-3 lg:gap-4 lg:overflow-visible">
             {meetupPast.map((m) => (
-              <div key={m.id} className="min-w-[80%] overflow-hidden rounded-2xl bg-white shadow-sm">
+              <div key={m.id} className="min-w-[80%] overflow-hidden rounded-2xl bg-white shadow-sm lg:min-w-0">
                 <div
                   className="relative flex h-28 items-center justify-center bg-cover bg-center"
                   style={{ backgroundImage: `url(${thumbAngka})` }}
@@ -95,14 +121,10 @@ export default function VirtualMeetUpScreen() {
         </div>
       </div>
 
-      {/* Overlay CTA gabung (fake login-gate) */}
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 z-50 h-1/2 flex items-end justify-center bg-gradient-to-t from-slate-100 via-slate-100/90 to-transparent pb-6">
-        <div className="pointer-events-auto text-center">
-          <p className="text-sm font-medium text-slate-600">
-            Ayo bergabung dalam komunitas Sarang Gasing
-          </p>
-          <Link to="/register" className="text-sm font-bold text-[#0033EC]">Daftar</Link>
-        </div>
+      {/* Modal Daftar - melayang di tengah bawah */}
+      <div className="fixed bottom-8 left-1/2 z-40 w-11/12 max-w-sm -translate-x-1/2 rounded-2xl bg-white px-10 py-5 text-center shadow-2xl ring-1 ring-slate-200">
+        <p className="text-sm font-medium text-slate-600">Ayo bergabung dalam komunitas Sarang Gasing</p>
+        <Link to="/register" className="text-sm font-bold text-[#0033EC]">Daftar</Link>
       </div>
     </div>
   );

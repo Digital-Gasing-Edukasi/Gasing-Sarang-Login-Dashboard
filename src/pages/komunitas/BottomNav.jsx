@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { komunitasTabs } from "./data";
+import { ChevronDown, ChevronUp, PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { komunitasTabs, SIDEBAR } from "./data";
+import { logoRect, logoSquare, charBlue } from "./assets";
 
 import homeNormal from "@/assets/guest/nav-bar/icon-navbar-home_normal.png";
 import homeSelected from "@/assets/guest/nav-bar/icon-navbar-home_selected.png";
@@ -29,6 +31,8 @@ export default function BottomNav() {
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const [komunitasTab, setKomunitasTab] = useState(komunitasTabs[0].key);
+  // Sidebar desktop bisa dilipat jadi rail ikon.
+  const [collapsed, setCollapsed] = useState(false);
 
   const isKomunitas = pathname.endsWith("/komunitas") || pathname.includes("/komunitas/komunitas");
 
@@ -79,50 +83,92 @@ export default function BottomNav() {
       </div>
 
       {/* ===== Sidebar (desktop / lg+) ===== */}
-      <aside className="sticky top-0 z-50 hidden h-screen w-64 shrink-0 flex-col border-r border-slate-200 bg-white lg:flex">
-        <div className="flex items-center gap-2 px-6 py-6">
-          <span className="text-lg font-extrabold text-[#0033EC]">Sarang Gasing</span>
+      <aside
+        className={
+          "sticky top-0 z-50 hidden h-screen shrink-0 flex-col border-r border-slate-200 bg-white transition-[width] duration-200 lg:flex " +
+          (collapsed ? "w-20" : "w-64")
+        }
+      >
+        {/* Header logo + tombol collapse */}
+        <div
+          className={
+            "flex items-center py-5 " +
+            (collapsed ? "justify-center px-2" : "justify-between px-5")
+          }
+        >
+          {collapsed ? (
+            <img
+              src={logoSquare}
+              alt="Sarang Gasing"
+              className="h-10 w-10 object-contain"
+            />
+          ) : (
+            <img
+              src={logoRect}
+              alt="Sarang Gasing"
+              className="h-[38px] w-[83px] object-contain"
+            />
+          )}
+          <button
+            onClick={() => setCollapsed((v) => !v)}
+            aria-label={collapsed ? "Buka menu" : "Tutup menu"}
+            className="text-slate-400 transition-colors hover:text-slate-600"
+          >
+            {collapsed ? (
+              <PanelLeftOpen size={20} />
+            ) : (
+              <PanelLeftClose size={18} />
+            )}
+          </button>
         </div>
 
-        <nav className="flex flex-1 flex-col gap-1 px-3">
-          {TABS.map((tab) => {
-            const active = pathname.startsWith(tab.path);
+        {/* Menu */}
+        <nav className="flex flex-1 flex-col gap-1 overflow-y-auto px-3 pb-4">
+          {SIDEBAR.map((item) => {
+            const active = pathname.startsWith(item.path);
             return (
-              <div key={tab.key}>
+              <div key={item.key}>
                 <button
-                  onClick={() => navigate(tab.path)}
+                  onClick={() => navigate(item.path)}
+                  title={item.label}
                   className={
-                    "flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition-colors " +
+                    "flex w-full items-center gap-3 rounded-xl py-2.5 text-sm font-semibold transition-colors " +
+                    (collapsed ? "justify-center px-0 " : "px-3 ") +
                     (active
                       ? "bg-[#0033EC]/10 text-[#0033EC]"
                       : "text-slate-600 hover:bg-slate-100")
                   }
                 >
-                  <img
-                    src={active ? tab.selected : tab.normal}
-                    alt=""
-                    aria-hidden
-                    className="h-7 w-7 object-contain"
-                  />
-                  {tab.label}
+                  <span className="text-lg leading-none" aria-hidden>
+                    {item.icon}
+                  </span>
+                  {!collapsed && (
+                    <>
+                      <span className="flex-1 text-left">{item.label}</span>
+                      {item.dot && (
+                        <span className="h-2 w-2 rounded-full bg-[#0033EC]" />
+                      )}
+                      {item.children && (
+                        <ChevronUp size={16} className="text-slate-400" />
+                      )}
+                    </>
+                  )}
                 </button>
 
-                {/* Sub-menu Komunitas (Forum, Challenge, Members) */}
-                {tab.key === "komunitas" && isKomunitas && (
-                  <div className="mb-1 ml-8 mt-1 flex flex-col gap-0.5 border-l border-slate-200 pl-3">
-                    {komunitasTabs.map((t) => (
-                      <button
-                        key={t.key}
-                        onClick={() => setKomunitasTab(t.key)}
-                        className={
-                          "rounded-lg px-3 py-1.5 text-left text-sm font-medium transition-colors " +
-                          (komunitasTab === t.key
-                            ? "text-[#0033EC]"
-                            : "text-slate-500 hover:text-slate-800")
-                        }
+                {/* Sub-menu: default terbuka, tapi disabled (guest-only) */}
+                {!collapsed && item.children && (
+                  <div className="mb-1 ml-9 mt-1 flex flex-col gap-0.5">
+                    {item.children.map((c) => (
+                      <div
+                        key={c.label}
+                        aria-disabled="true"
+                        className="flex cursor-not-allowed select-none items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium text-slate-400 opacity-70"
                       >
-                        {t.label}
-                      </button>
+                        <span className="flex-1">{c.label}</span>
+                        {c.dot && (
+                          <span className="h-2 w-2 rounded-full bg-[#0033EC]/40" />
+                        )}
+                      </div>
                     ))}
                   </div>
                 )}
@@ -130,6 +176,31 @@ export default function BottomNav() {
             );
           })}
         </nav>
+
+        {/* Footer profil */}
+        <div
+          className={
+            "flex items-center gap-3 border-t border-slate-200 py-4 " +
+            (collapsed ? "justify-center px-2" : "px-4")
+          }
+        >
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-pink-500 to-purple-600">
+            <img
+              src={charBlue}
+              alt=""
+              aria-hidden
+              className="h-8 w-8 object-contain"
+            />
+          </span>
+          {!collapsed && (
+            <>
+              <span className="flex-1 truncate text-sm font-bold text-slate-700">
+                Tamu Gasing
+              </span>
+              <ChevronDown size={18} className="text-slate-400" />
+            </>
+          )}
+        </div>
       </aside>
     </>
   );
