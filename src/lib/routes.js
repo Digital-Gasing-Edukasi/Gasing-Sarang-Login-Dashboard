@@ -34,7 +34,7 @@ export const PAGE_PATHS = {
 
   "midtrans-test": "/midtrans-test",
 
-  komunitas: "/komunitas",
+  komunitas: "/komunitas/forum",
 };
 
 // page key → path. Key tak dikenal jatuh ke /login (fail-safe, sama seperti

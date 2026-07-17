@@ -21,7 +21,7 @@ import virtualSelected from "@/assets/guest/nav-bar/icon-navbar-virtual-meetup_s
 // virtual-meet-up, materi-gasing.
 const TABS = [
   { key: "home", label: "Home", path: "/komunitas/home", normal: homeNormal, selected: homeSelected },
-  { key: "komunitas", label: "Komunitas", path: "/komunitas/komunitas", normal: komNormal, selected: komSelected },
+  { key: "komunitas", label: "Komunitas", path: "/komunitas/forum", normal: komNormal, selected: komSelected },
   { key: "konten", label: "Eksklusif", path: "/komunitas/konten-ekslusif", normal: kontenNormal, selected: kontenSelected },
   { key: "virtual", label: "Meet-Up", path: "/komunitas/virtual-meet-up", normal: virtualNormal, selected: virtualSelected },
   { key: "materi", label: "Materi", path: "/komunitas/materi-gasing", normal: materiNormal, selected: materiSelected },
@@ -34,7 +34,7 @@ export default function BottomNav() {
   // Sidebar desktop bisa dilipat jadi rail ikon.
   const [collapsed, setCollapsed] = useState(false);
 
-  const isKomunitas = pathname.endsWith("/komunitas") || pathname.includes("/komunitas/komunitas");
+  const isKomunitas = pathname.includes("/komunitas/forum");
 
   return (
     <>
@@ -164,21 +164,37 @@ export default function BottomNav() {
                   )}
                 </button>
 
-                {/* Sub-menu: default terbuka. Forum ikut aktif saat komunitas dipilih. */}
+                {/* Sub-menu: default terbuka. Child dgn `path` (mis. Forum)
+                    clickable & bisa aktif; child `disabled` = deactive. */}
                 {!collapsed && item.children && (
                   <div className="mb-1 ml-9 mt-1 flex flex-col gap-0.5">
                     {item.children.map((c) => {
-                      const childActive = active && c.label === "Forum";
+                      const clickable = !c.disabled && c.path;
+                      const childActive = clickable && pathname.startsWith(c.path);
+                      if (clickable) {
+                        return (
+                          <button
+                            key={c.label}
+                            onClick={() => navigate(c.path)}
+                            className={
+                              "flex select-none items-center gap-2 rounded-lg px-3 py-1.5 text-left text-sm font-medium transition-colors " +
+                              (childActive
+                                ? "bg-[#0033EC]/10 font-semibold text-[#0033EC]"
+                                : "text-slate-600 hover:bg-slate-100")
+                            }
+                          >
+                            <span className="flex-1">{c.label}</span>
+                            {c.dot && (
+                              <span className="h-2 w-2 rounded-full bg-[#0033EC]/40" />
+                            )}
+                          </button>
+                        );
+                      }
                       return (
                         <div
                           key={c.label}
-                          aria-disabled={childActive ? undefined : "true"}
-                          className={
-                            "flex select-none items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium " +
-                            (childActive
-                              ? "bg-[#0033EC]/10 font-semibold text-[#0033EC]"
-                              : "cursor-not-allowed text-slate-400 opacity-70")
-                          }
+                          aria-disabled="true"
+                          className="flex cursor-not-allowed select-none items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium text-slate-400 opacity-70"
                         >
                           <span className="flex-1">{c.label}</span>
                           {c.dot && (

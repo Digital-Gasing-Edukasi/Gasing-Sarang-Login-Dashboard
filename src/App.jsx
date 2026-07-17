@@ -446,7 +446,9 @@ export default function App() {
             sudah membawa background/logo/footer sendiri lewat AuthDarkLayout). */}
         <Route
           path="/login/forgot-password"
-          element={<ForgotPasswordPage onNavigate={go} onEmailSent={handleEmailSent} />}
+          element={
+            <ForgotPasswordPage onNavigate={go} onEmailSent={handleEmailSent} />
+          }
         />
         <Route
           path="/login/check-email"
@@ -526,7 +528,11 @@ export default function App() {
           path="/register/otp"
           element={
             <SplitLayout>
-              <SignUpOtpPage onNavigate={go} otpToken={otpToken} email={regEmail} />
+              <SignUpOtpPage
+                onNavigate={go}
+                otpToken={otpToken}
+                email={regEmail}
+              />
             </SplitLayout>
           }
         />
@@ -547,15 +553,27 @@ export default function App() {
             </SplitLayout>
           }
         />
-        <Route path="/register/revise/invalid" element={<ReviseErrorPage onNavigate={go} />} />
-        <Route path="/register/id/TOS" element={<TermsPage onNavigate={go} />} />
-        <Route path="/register/id/privacy" element={<PrivacyPage onNavigate={go} />} />
+        <Route
+          path="/register/revise/invalid"
+          element={<ReviseErrorPage onNavigate={go} />}
+        />
+        <Route
+          path="/register/id/TOS"
+          element={<TermsPage onNavigate={go} />}
+        />
+        <Route
+          path="/register/id/privacy"
+          element={<PrivacyPage onNavigate={go} />}
+        />
         {/* Link reset password lama dari email masih menunjuk ke sini. */}
         <Route
           path="/register/reset-password"
           element={
             <Navigate
-              to={{ pathname: "/login/reset-password", search: location.search }}
+              to={{
+                pathname: "/login/reset-password",
+                search: location.search,
+              }}
               replace
             />
           }
@@ -566,12 +584,18 @@ export default function App() {
           path="/dashboard-admin"
           element={requireAuth(
             <Suspense fallback={<DashboardSpinner />}>
-              <AdminDashboardPage user={currentUser} onSignOut={handleSignOut} />
+              <AdminDashboardPage
+                user={currentUser}
+                onSignOut={handleSignOut}
+              />
             </Suspense>,
           )}
         />
         {/* Path lama. */}
-        <Route path="/admin-dashboard" element={<Navigate to="/dashboard-admin" replace />} />
+        <Route
+          path="/admin-dashboard"
+          element={<Navigate to="/dashboard-admin" replace />}
+        />
 
         {/* ── Pembayaran (landing Snap Redirect Midtrans) ─────────────────── */}
         <Route
@@ -592,7 +616,10 @@ export default function App() {
 
         {/* ── Komunitas statis (guest / fake login) — publik, tanpa auth ──── */}
         {/* Lihat ADR-0004. Route catch-all /komunitas/* biar subpath ikut ke page. */}
-        <Route path="/komunitas/*" element={<KomunitasPage onNavigate={go} />} />
+        <Route
+          path="/komunitas/*"
+          element={<KomunitasPage onNavigate={go} />}
+        />
 
         {/* Path tak dikenal → login (fail-safe, sama seperti fallback lama). */}
         <Route path="*" element={<Navigate to="/login" replace />} />

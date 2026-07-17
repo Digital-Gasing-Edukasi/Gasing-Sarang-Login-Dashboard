@@ -20,7 +20,9 @@ export { default as headerEksklusif } from "@/assets/header-eksklusif.png";
 export { default as thumbFunMath } from "@/assets/guest/thumbnail/Fun Math Trick for Kids.png";
 export { default as thumbVideoKonten } from "@/assets/guest/thumbnail/video Konten Eksklusif.png";
 export { default as thumbRubik } from "@/assets/guest/thumbnail/Rubik.png";
-export { default as thumbAngka } from "@/assets/guest/thumbnail/angka warna-warni.png";
+export { default as thumbAngka } from "@/assets/guest/thumbnail/angka-warna-warni.png";
+export { default as thumbAngka1 } from "@/assets/guest/thumbnail/virtual-meetup-1.png";
+export { default as thumbAngka2 } from "@/assets/guest/thumbnail/virtual-meetup-2.png";
 
 // Element kartu Materi Gasing
 export { default as materiBilangan } from "@/assets/guest/thumbnail/Materi Gasing/Element Card Materi Gasing Mobile_Mengenal-Bialangan.png";

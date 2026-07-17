@@ -2,12 +2,17 @@ import { useRef } from "react";
 import { Link } from "react-router-dom";
 import { Video, Users, Tv, ChevronLeft, ChevronRight } from "lucide-react";
 import { meetupPast } from "../data";
-import { headerVirtualBg, headerVirtualElements, thumbAngka } from "../assets";
+import { headerVirtualBg, headerVirtualElements } from "../assets";
+import thumbMeetup1 from "@/assets/guest/thumbnail/virtual-meetup-1.png";
+import thumbMeetup2 from "@/assets/guest/thumbnail/virtual-meetup-2.png";
+import thumbAngka from "@/assets/guest/thumbnail/angka-warna-warni.png";
+
 
 // object desktop card — cocokin sama desain gambar (speakers + Clara Meidianan, badge 99+)
 const meetupUpcoming = [
   {
     id: 1,
+    image: thumbMeetup1,
     speakers: "John Huawei, Billeyeber, Ibnu Sina, Clara Meidianan, dkk",
     title: "Pengenalan Schwarzschild Radius",
     date: "21 Maret 2026",
@@ -16,6 +21,7 @@ const meetupUpcoming = [
   },
   {
     id: 2,
+    image: thumbMeetup2,
     speakers: "Siti Aisyah, dkk",
     title: "Strategi Mengajar Perkalian Cepat",
     date: "28 Maret 2026",
@@ -59,29 +65,7 @@ export default function VirtualMeetUpScreen() {
               >
               {meetupUpcoming.map((m) => (
                 <div key={m.id} className="w-[330px] h-[300px] shrink-0 overflow-hidden rounded-2xl bg-white shadow-sm">
-                  <div className="flex h-full">
-                    <div className="flex-1 p-4">
-                      <div className="flex items-center gap-1.5 text-xs text-slate-500">
-                        <Video size={20} /> <span className="line-clamp-1">{m.speakers}</span>
-                      </div>
-                      <h2 className="mt-2 text-lg font-extrabold leading-tight text-slate-800">
-                        {m.title}
-                      </h2>
-                      <p className="mt-2 text-sm font-medium text-slate-700">{m.date}</p>
-                      <p className="text-sm text-slate-500">{m.time}</p>
-                      <button className="mt-3 w-full rounded-full bg-blue-600 py-2.5 text-sm font-bold text-white">
-                        Daftar
-                      </button>
-                    </div>
-                    <div
-                      className="relative w-24 shrink-0 bg-cover bg-center"
-                      style={{ backgroundImage: `url(${thumbAngka})` }}
-                    >
-                      <span className="absolute right-2 top-2 flex items-center gap-1 rounded-full bg-white/80 px-2 py-0.5 text-xs font-semibold">
-                        <Users size={11} /> {m.attendees}
-                      </span>
-                    </div>
-                  </div>
+                  <img src={m.image} alt={m.title} className="h-full w-full object-cover" />
                 </div>
               ))}
               </div>
@@ -177,35 +161,7 @@ export default function VirtualMeetUpScreen() {
               >
               {meetupUpcoming.map((m) => (
                 <div key={m.id} className="relative w-[330px] h-[300px] shrink-0 overflow-hidden rounded-2xl bg-white shadow-sm lg:w-[866px] lg:h-[360px] lg:rounded-3xl">
-                  <div className="flex h-full">
-                    <div className="flex flex-1 flex-col p-4 lg:p-10">
-                      <div className="flex items-center gap-2 text-xs text-slate-500 lg:text-sm">
-                        <Video size={13} className="lg:hidden" />
-                        <Video size={18} className="hidden lg:block" />
-                        <span className="line-clamp-2 pr-16">{m.speakers}</span>
-                      </div>
-                      <h3 className="mt-2 text-lg font-extrabold leading-tight text-slate-900 lg:mt-8 lg:text-4xl">
-                        {m.title}
-                      </h3>
-                      <p className="mt-3 text-sm font-bold text-slate-800 lg:mt-6 lg:text-base">{m.date}</p>
-                      <p className="text-sm text-slate-500 lg:text-base">{m.time}</p>
-                      <button className="mt-3 w-full rounded-full bg-blue-600 py-2.5 text-sm font-bold text-white lg:mt-auto lg:py-3.5 lg:text-base">
-                        Daftar
-                      </button>
-                    </div>
-                    <div
-                      className="relative w-24 shrink-0 bg-cover bg-center lg:w-[320px]"
-                      style={{ backgroundImage: `url(${thumbAngka})` }}
-                    >
-                      <span className="absolute right-2 top-2 flex items-center gap-1 rounded-full bg-white/80 px-2 py-0.5 text-xs font-semibold lg:hidden">
-                        <Users size={11} /> {m.attendees}
-                      </span>
-                    </div>
-                  </div>
-                  {/* Badge attendees — pojok kanan-atas kartu (desktop) */}
-                  <span className="absolute right-6 top-6 hidden items-center gap-1.5 rounded-full bg-slate-900 px-3 py-1 text-sm font-semibold text-white lg:flex">
-                    <Users size={14} /> {m.attendees}
-                  </span>
+                  <img src={m.image} alt={m.title} className="h-full w-full object-cover" />
                 </div>
               ))}
               </div>

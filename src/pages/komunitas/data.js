@@ -255,17 +255,31 @@ export const SIDEBAR = [
   {
     key: "komunitas",
     label: "Komunitas",
-    path: "/komunitas/komunitas",
+    path: "/komunitas/forum",
     icon: "👥",
+    // Forum aktif & bisa diklik (punya `path`); sisanya di-deactive.
     children: [
-      { label: "Forum" },
-      { label: "Challenge" },
-      { label: "All Members" },
+      { label: "Forum", path: "/komunitas/forum" },
+      { label: "Challenge", disabled: true },
+      { label: "All Members", disabled: true },
     ],
   },
   { key: "konten", label: "Konten Eksklusif", path: "/komunitas/konten-ekslusif", icon: "⭐" },
   { key: "virtual", label: "Virtual Meet-Up", path: "/komunitas/virtual-meet-up", icon: "📹" },
-  { key: "materi", label: "Materi Gasing", path: "/komunitas/materi-gasing", icon: "📚" },
+  {
+    key: "materi",
+    label: "Materi Gasing",
+    path: "/komunitas/materi-gasing",
+    icon: "📚",
+    // Semua sub-kategori langsung di-deactive (mirror referensi Komonitas).
+    children: [
+      { label: "Materi Trainer Utama", disabled: true },
+      { label: "Permainan", disabled: true },
+      { label: "Musik Gasing", disabled: true },
+      { label: "Mini Games", disabled: true },
+      { label: "Gasing Think & Play", disabled: true },
+    ],
+  },
 ];
 
 export const komunitasTabs = [

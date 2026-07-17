@@ -19,13 +19,13 @@ export default function KomunitasPage() {
       <main className="relative mx-auto w-full min-h-screen max-w-[480px] bg-[#F1F2F7] pb-24 shadow-sm lg:mx-0 lg:min-w-0 lg:max-w-none lg:flex-1 lg:pb-0 lg:shadow-none flex flex-col">
         <div className="lg:px-6 lg:py-6 flex-1">
           <Routes>
-            <Route index element={<Navigate to="home" replace />} />
+            <Route index element={<Navigate to="forum" replace />} />
             <Route path="home" element={<HomeScreen />} />
             <Route path="ga-news" element={<GANewsScreen />} />
             <Route path="konten-ekslusif" element={<KontenEksklusifScreen />} />
             <Route path="virtual-meet-up" element={<VirtualMeetUpScreen />} />
             <Route path="materi-gasing" element={<MateriGasingScreen />} />
-            <Route path="komunitas" element={<KomunitasScreen />} />
+            <Route path="forum" element={<KomunitasScreen />} />
             <Route path="*" element={<Navigate to="home" replace />} />
           </Routes>
         </div>
