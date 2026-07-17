@@ -1,6 +1,7 @@
-import { ArrowDownUp, Check, GraduationCap } from 'lucide-react'
+import { ArrowDownUp, Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { getTableScrollProps } from './tableScroll'
+import { RoleTag } from './RoleTag'
 
 // Header sortable, dengan opsi sublabel (grup "Alumni Pelatihan").
 function SortableHeader({ label, sublabel, sortKey, sortConfig, onSort }) {
@@ -72,7 +73,7 @@ export function PendingVoucherTable({
           <th className="px-4 py-4 font-medium align-bottom">
             <SortableHeader label="Asal Sekolah" sortKey="school" sortConfig={sortConfig} onSort={onSort} />
           </th>
-          <th className="px-4 py-4 font-medium text-center align-bottom">Action</th>
+          <th className="px-4 py-4 font-medium text-center align-bottom sticky right-0 z-30 bg-[#0A1128] shadow-[-4px_0_10px_-4px_rgba(0,0,0,0.3)]">Action</th>
         </tr>
       </thead>
       <tbody className="divide-y divide-gray-100">
@@ -113,9 +114,7 @@ export function PendingVoucherTable({
               </td>
               <td className="px-4 py-4">
                 {user.role ? (
-                  <span className="inline-flex items-center gap-1.5 font-medium text-[#0A1128]">
-                    <GraduationCap size={15} className="text-blue-600" /> {user.role}
-                  </span>
+                  <RoleTag role={user.role} size={15} />
                 ) : <span className="text-gray-400">-</span>}
               </td>
               <td className="px-4 py-4">
@@ -123,7 +122,7 @@ export function PendingVoucherTable({
                   <span className="font-medium text-[#0A1128]">{user.riwayatCount ?? 0}</span>
                   <button
                     onClick={() => onRiwayatDetail?.(user)}
-                    className="text-link hover:underline text-sm"
+                    className="text-link underline text-sm"
                   >
                     Lihat Detail
                   </button>
@@ -135,7 +134,7 @@ export function PendingVoucherTable({
               <td className="px-4 py-4 text-[#0A1128] font-medium whitespace-normal max-w-[200px]" title={user.alumniDaerah}>{user.alumniDaerah || '-'}</td>
               <td className="px-4 py-4 text-[#0A1128] font-medium">{user.alumniTanggal || '-'}</td>
               <td className="px-4 py-4 text-[#0A1128] font-medium whitespace-normal max-w-[220px]" title={user.school}>{user.school || '-'}</td>
-              <td className="px-4 py-4">
+              <td className={cn('px-4 py-4 sticky right-0 z-10 transition-colors shadow-[-4px_0_10px_-4px_rgba(0,0,0,0.05)]', selected ? 'bg-blue-50/50' : 'bg-white group-hover:bg-[#F9FAFB]')}>
                 <div className="flex items-center justify-center">
                   <button
                     onClick={() => onConfirm(user)}

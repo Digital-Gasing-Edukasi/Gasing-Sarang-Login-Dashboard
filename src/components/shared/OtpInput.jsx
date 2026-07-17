@@ -1,27 +1,33 @@
 import { useState, useRef } from 'react'
 import { cn } from '@/lib/utils'
 
-export function OtpInput({ onComplete, disabled }) {
+export function OtpInput({ onChange, onComplete, disabled, error }) {
   const [values, setValues] = useState(Array(6).fill(''))
   const refs = useRef([])
 
+  const commit = (next) => {
+    setValues(next)
+    const code = next.join('')
+    onChange?.(code)
+    if (next.every(x => x !== '')) onComplete?.(code)
+  }
+
   const handleChange = (i, val) => {
     const v = val.replace(/\D/g, '').slice(-1)
-    const next = [...values]; next[i] = v; setValues(next)
+    const next = [...values]; next[i] = v; commit(next)
     if (v && i < 5) refs.current[i + 1]?.focus()
-    if (next.every(x => x !== '')) onComplete?.(next.join(''))
   }
 
   const handleKeyDown = (i, e) => {
     if (e.key === 'Backspace') {
-      if (values[i]) { const n = [...values]; n[i] = ''; setValues(n) }
+      if (values[i]) { const n = [...values]; n[i] = ''; commit(n) }
       else if (i > 0) refs.current[i - 1]?.focus()
     }
   }
 
   const handlePaste = (e) => {
     const paste = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6)
-    if (paste.length === 6) { setValues(paste.split('')); refs.current[5]?.focus(); onComplete?.(paste) }
+    if (paste.length === 6) { commit(paste.split('')); refs.current[5]?.focus() }
     e.preventDefault()
   }
 
@@ -33,7 +39,7 @@ export function OtpInput({ onComplete, disabled }) {
           disabled={disabled}
           onChange={e => handleChange(i, e.target.value)}
           onKeyDown={e => handleKeyDown(i, e)} onPaste={handlePaste}
-          className={cn('otp-input', v && 'filled', disabled && 'opacity-50 cursor-not-allowed')} />
+          className={cn('otp-input', v && 'filled', error && 'error', disabled && 'opacity-50 cursor-not-allowed')} />
       ))}
     </div>
   )

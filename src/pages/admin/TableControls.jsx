@@ -1,5 +1,6 @@
 import { useRef, useState, useEffect } from 'react'
-import { Search, Download, Filter, Check, X, Link2, Users, MonitorPlay, GraduationCap } from 'lucide-react'
+import { Search, Download, Filter, Check, X } from 'lucide-react'
+import { ROLE_META } from './roleOptions'
 import { cn } from '@/lib/utils'
 
 function SearchInput({ value, onChange, placeholder = 'Cari user...' }) {
@@ -242,12 +243,9 @@ const PLAN_OPTIONS = [
   { value: 'Tahunan', label: 'Tahunan' },
   { value: 'Bulanan', label: 'Bulanan' },
 ]
-const ROLE_OPTIONS = [
-  { value: 'Trainer Utama', label: 'Trainer Utama', Icon: Link2 },
-  { value: 'Trainer Aula',  label: 'Trainer Aula',  Icon: Users },
-  { value: 'Trainer Kelas', label: 'Trainer Kelas', Icon: MonitorPlay },
-  { value: 'Guru',          label: 'Guru',          Icon: GraduationCap },
-]
+const ROLE_OPTIONS = ['Trainer Utama', 'Trainer Aula', 'Trainer Kelas', 'Guru'].map(r => ({
+  value: r, label: r, Icon: ROLE_META[r].Icon, color: ROLE_META[r].color,
+}))
 
 // 4 tab utama Manajemen Akun (struktur tabel besar). id = status kanonik
 // (lihat parseManajemenStatus di mappers.js). Tanpa "Semua" — tiap tab 1 tabel.
@@ -258,7 +256,7 @@ const MANAJEMEN_TABS = [
   { id: 'Baru Dihapus', label: 'Baru Dihapus' },
 ]
 
-function CheckRow({ checked, onToggle, Icon, iconColor, label }) {
+function CheckRow({ checked, onToggle, Icon, iconColor, color, label }) {
   return (
     <label className="flex items-center gap-3 py-2 cursor-pointer select-none">
       <span className={cn(
@@ -268,8 +266,8 @@ function CheckRow({ checked, onToggle, Icon, iconColor, label }) {
         {checked && <Check size={13} className="text-white" strokeWidth={3} />}
       </span>
       <input type="checkbox" checked={checked} onChange={onToggle} className="sr-only" />
-      {Icon && <Icon size={16} className={iconColor || 'text-gray-400'} />}
-      <span className="text-sm text-[#0A1128]">{label}</span>
+      {Icon && <Icon size={16} className={color ? '' : (iconColor || 'text-gray-400')} style={color ? { color } : undefined} />}
+      <span className={cn('text-sm', color ? 'font-medium' : 'text-[#0A1128]')} style={color ? { color } : undefined}>{label}</span>
     </label>
   )
 }
@@ -328,7 +326,7 @@ function FilterDrawer({
 
         <FilterSection title="Role">
           {ROLE_OPTIONS.map(o => (
-            <CheckRow key={o.value} label={o.label} Icon={o.Icon} iconColor="text-blue-500"
+            <CheckRow key={o.value} label={o.label} Icon={o.Icon} color={o.color}
               checked={selectedRoles.includes(o.value)}
               onToggle={() => toggle(selectedRoles, o.value, onRolesChange)} />
           ))}

@@ -181,16 +181,20 @@ export function mapToVerifikasi(u, regions = []) {
   const createdMs = parseCreatedAtMs(u.createdAt)
   const isNew = createdMs ? (Date.now() - createdMs) < 7 * 24 * 60 * 60 * 1000 : false
 
-  // Kolom tambahan untuk tabel Pending Voucher (sama seperti mapToManajemen):
-  // Alumni Pelatihan (sesi yang diikuti user), jumlah riwayat, kode voucher.
+  // Alumni Pelatihan diturunkan dari `lastTrainingSession`. Payload backend cuma
+  // bawa { id, name, startDate, endDate } — TIDAK ada object region. Jadi:
+  //   Daerah  = lts.name  (mis. "Maumere, Kab. Sikka" — sudah berupa nama daerah)
+  //   Tanggal = lts.endDate
+  // Riwayat Pelatihan = ada/tidaknya sesi (punya lastTrainingSession → true).
   const lts = u.lastTrainingSession || u.trainingSession || {}
-  const ltsMs = dateFieldMs(lts.startDate)
+  const ltsEndMs      = dateFieldMs(lts.endDate)
+  const hasRiwayat    = !!(lts.id || lts.name)
   const alumniNama    = lts.name || '-'
-  const alumniTanggal = ltsMs ? fmtDate(ltsMs) : '-'
-  const alumniDaerah  = resolveRegionLabel(lts.region || lts.regency, lts.regionId, regions)
+  const alumniDaerah  = lts.name || '-'
+  const alumniTanggal = ltsEndMs ? fmtDate(ltsEndMs) : '-'
   const riwayatCount =
     u.trainingHistoriesCount ?? u.trainingHistoryCount ?? u._count?.trainingHistories ??
-    (Array.isArray(u.trainingHistories) ? u.trainingHistories.length : 0)
+    (Array.isArray(u.trainingHistories) ? u.trainingHistories.length : (hasRiwayat ? 1 : 0))
   const voucherCode = u.lastVoucher?.code || u.activeVoucher?.code || u.voucher?.code || u.voucherCode || ''
 
   return {
@@ -209,6 +213,7 @@ export function mapToVerifikasi(u, regions = []) {
     alumniNama,
     alumniDaerah,
     alumniTanggal,
+    hasRiwayat,
     riwayatCount,
     voucherCode,
     year:      parseCreatedAtYear(u.createdAt),
@@ -336,15 +341,18 @@ export function mapToPembayaran(p, regions = [], discourseGroups = []) {
   const voucher = u.activeVoucher?.code || u.voucher?.code || u.voucherCode || pay.voucherCode || ''
   const lokasi = resolveRegionLabel(u.region || u.regency, u.regionId, regions)
 
+  // Alumni Pelatihan dari lastTrainingSession (payload cuma { id, name, startDate,
+  // endDate }, tanpa region): Daerah = lts.name, Tanggal = lts.endDate.
   const lts = u.lastTrainingSession || u.trainingSession || {}
-  const ltsMs = dateFieldMs(lts.startDate)
+  const ltsEndMs      = dateFieldMs(lts.endDate)
+  const hasRiwayat    = !!(lts.id || lts.name)
   const alumniNama    = lts.name || '-'
-  const alumniTanggal = ltsMs ? fmtDate(ltsMs) : '-'
-  const alumniDaerah  = resolveRegionLabel(lts.region || lts.regency, lts.regionId, regions)
+  const alumniDaerah  = lts.name || '-'
+  const alumniTanggal = ltsEndMs ? fmtDate(ltsEndMs) : '-'
 
   const riwayatCount =
     u.trainingHistoriesCount ?? u.trainingHistoryCount ?? u._count?.trainingHistories ??
-    (Array.isArray(u.trainingHistories) ? u.trainingHistories.length : 0)
+    (Array.isArray(u.trainingHistories) ? u.trainingHistories.length : (hasRiwayat ? 1 : 0))
 
   const subEnd = sub?.expiresAt || sub?.endDate || sub?.currentPeriodEnd || sub?.expiredAt || sub?.expires_at
   const endMs  = dateFieldMs(subEnd)
@@ -403,17 +411,19 @@ export function mapToManajemen(u, regions = [], discourseGroups = []) {
   // Lokasi = domisili user.
   const lokasi = resolveRegionLabel(u.region || u.regency, u.regionId, regions)
 
-  // Alumni Pelatihan = sesi yang diikuti user (lastTrainingSession).
+  // Alumni Pelatihan = sesi yang diikuti user (lastTrainingSession). Payload cuma
+  // { id, name, startDate, endDate }, tanpa region: Daerah = lts.name, Tanggal = endDate.
   const lts = u.lastTrainingSession || u.trainingSession || {}
-  const ltsMs = dateFieldMs(lts.startDate)
+  const ltsEndMs      = dateFieldMs(lts.endDate)
+  const hasRiwayat    = !!(lts.id || lts.name)
   const alumniNama    = lts.name || '-'
-  const alumniTanggal = ltsMs ? fmtDate(ltsMs) : '-'
-  const alumniDaerah  = resolveRegionLabel(lts.region || lts.regency, lts.regionId, regions)
+  const alumniDaerah  = lts.name || '-'
+  const alumniTanggal = ltsEndMs ? fmtDate(ltsEndMs) : '-'
 
-  // Riwayat Pelatihan = jumlah histori pelatihan.
+  // Riwayat Pelatihan = jumlah histori; fallback ke ada/tidaknya lastTrainingSession.
   const riwayatCount =
     u.trainingHistoriesCount ?? u.trainingHistoryCount ?? u._count?.trainingHistories ??
-    (Array.isArray(u.trainingHistories) ? u.trainingHistories.length : 0)
+    (Array.isArray(u.trainingHistories) ? u.trainingHistories.length : (hasRiwayat ? 1 : 0))
 
   const subEnd = sub?.expiresAt || sub?.endDate || sub?.currentPeriodEnd || sub?.expiredAt || sub?.expires_at
   const endMs  = dateFieldMs(subEnd)

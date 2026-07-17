@@ -74,7 +74,7 @@ export function CheckEmailPage({ email, onNavigate }) {
 
           <div className="text-center">
             <button onClick={() => onNavigate('login')}
-              className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mx-auto">
+              className="flex items-center gap-1.5 text-sm text-muted-foreground underline underline-offset-2 hover:text-foreground transition-colors mx-auto">
               <LogIn size={15} /> Kembali ke Login
             </button>
           </div>

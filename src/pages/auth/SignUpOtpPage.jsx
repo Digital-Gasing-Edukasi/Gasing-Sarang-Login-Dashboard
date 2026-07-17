@@ -39,14 +39,14 @@ export function SignUpOtpPage({ onNavigate, otpToken, email }) {
       </div>
       <div className="animate-fade-in-up delay-200 space-y-6">
         <ErrorAlert message={error} />
-        <OtpInput disabled={loading} onComplete={code => { setOtpCode(code); setError('') }} />
+        <OtpInput disabled={loading} onChange={code => { setOtpCode(code); setError('') }} />
         <Button className="w-full" disabled={loading || otpCode.length !== 6} onClick={handleVerify}>
           {loading ? <><Loader2 size={16} className="animate-spin" /> Memverifikasi...</> : 'Verifikasi Kode OTP'}
         </Button>
         <div className="text-center">
           {expired
             ? <button onClick={reset} className="text-sm text-[#0033EC] font-medium underline underline-offset-2">Kirim ulang kode</button>
-            : <p className="text-sm text-muted-foreground">Kode kedaluwarsa dalam <span className="font-bold text-foreground">{display}</span></p>
+            : <p className="text-sm text-muted-foreground">Tidak menerima kode? <span className="font-bold text-foreground">{display}</span></p>
           }
         </div>
       </div>

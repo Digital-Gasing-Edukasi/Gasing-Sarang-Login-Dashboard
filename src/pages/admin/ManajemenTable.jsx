@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { ArrowDownUp, MoreHorizontal, Edit, Trash2, Clock, CheckCircle2, History, SearchX, Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { getTableScrollProps } from './tableScroll'
+import { RoleTag } from './RoleTag'
 
 // Menu aksi per tab. `type` dipetakan ke handler di AdminDashboardPage.
 const MENU_BY_TAB = {
@@ -270,9 +271,9 @@ export function ManajemenTable({
                     </td>
                     <td className="px-4 py-4">
                       {user.role ? (
-                        <div className="flex items-center gap-2 text-blue-500 font-medium">
-                          <Edit size={14} className="cursor-pointer" onClick={() => onActionClick && onActionClick('ubah-role', user)} />
-                          {user.role}
+                        <div className="flex items-center gap-2 cursor-pointer group" onClick={() => onActionClick && onActionClick('ubah-role', user)}>
+                          <RoleTag role={user.role} />
+                          <Edit size={14} className="text-gray-300 group-hover:text-gray-500 transition-colors" />
                         </div>
                       ) : (
                         <span className="text-gray-400 font-medium italic cursor-pointer hover:text-link" onClick={() => onActionClick && onActionClick('ubah-role', user)}>Set Role</span>
@@ -285,7 +286,7 @@ export function ManajemenTable({
                   {user.riwayatCount ? (
                     <div className="flex items-center gap-2">
                       <span>{user.riwayatCount}</span>
-                      <span className="text-link cursor-pointer hover:underline text-xs">Lihat Detail</span>
+                      <span className="text-link cursor-pointer underline text-xs">Lihat Detail</span>
                     </div>
                   ) : '-'}
                 </td>

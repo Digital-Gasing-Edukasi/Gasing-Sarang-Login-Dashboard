@@ -23,6 +23,23 @@ export const ADMIN_CAPABILITIES = [
 ];
 
 /**
+ * Cek satu capability di `user`. `capabilities` bisa array (["X"]) atau
+ * object ({ "X": true }) — sama seperti hasAllAdminCapabilities.
+ */
+export function hasCapability(user, cap) {
+  const caps = user?.capabilities;
+  if (!caps) return false;
+  return Array.isArray(caps) ? caps.includes(cap) : cap in caps;
+}
+
+/**
+ * User dengan SSO dimatikan: jangan lewat Discourse SSO, langsung ke dashboard.
+ */
+export function isSsoDisabled(user) {
+  return hasCapability(user, "USER/DISCOURSE/DISABLED-SSO");
+}
+
+/**
  * Apakah user adalah superadmin?
  * Backend kadang mengirim `superadmin`, kadang `superAdmin` — keduanya diterima.
  */
@@ -49,5 +66,5 @@ function hasAllAdminCapabilities(user) {
  * (Superadmin diarahkan ke auth-choice, bukan dashboard — lihat App.jsx.)
  */
 export function isOperationalAdmin(user) {
-  return !isSuperAdmin(user) && hasAllAdminCapabilities(user);
+  return !isSuperAdmin(user) && isSsoDisabled(user);
 }

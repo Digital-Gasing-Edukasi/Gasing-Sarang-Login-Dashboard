@@ -44,7 +44,7 @@ export function PendaftaranTrainerTable({
           <th className="px-4 py-4 font-medium">Periode</th>
           <th className="px-4 py-4 font-medium">Batas Waktu</th>
           <th className="px-4 py-4 font-medium">Status</th>
-          <th className="px-4 py-4 font-medium text-center rounded-tr-lg">Tampilkan di Home?</th>
+          <th className="px-4 py-4 font-medium text-center rounded-tr-lg sticky right-0 z-30 bg-[#0A1128] shadow-[-4px_0_10px_-4px_rgba(0,0,0,0.3)]">Tampilkan di Home?</th>
         </tr>
       </thead>
       <tbody className="divide-y divide-gray-100">
@@ -79,7 +79,7 @@ export function PendaftaranTrainerTable({
                     href={item.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 font-medium text-link hover:text-link/80 hover:underline"
+                    className="inline-flex items-center gap-1 font-medium text-link hover:text-link/80 underline"
                   >
                     {item.threadId}
                     <ExternalLink size={14} />
@@ -102,7 +102,7 @@ export function PendaftaranTrainerTable({
                   {item.isActive ? 'Aktif' : 'Berakhir'}
                 </span>
               </td>
-              <td className="px-4 py-4">
+              <td className={cn('px-4 py-4 sticky right-0 z-10 transition-colors shadow-[-4px_0_10px_-4px_rgba(0,0,0,0.05)]', selected ? 'bg-[#F4F6FB]' : 'bg-white group-hover:bg-[#F9FAFB]')}>
                 <div className="flex items-center justify-center">
                   <button
                     onClick={() => onToggleStatus(item.id)}

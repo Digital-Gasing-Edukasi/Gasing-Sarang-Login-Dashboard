@@ -54,7 +54,7 @@ export function ResetPasswordPage({ token, email, onNavigate }) {
   }, [success, redirectSecs])
 
   const passwordRules = [
-    { label: 'Minimal 8 karakter', ok: password.length >= 8 },
+    { label: 'Minimal 10 karakter', ok: password.length >= 10 },
     { label: 'Minimal 1 huruf kapital', ok: /[A-Z]/.test(password) },
     { label: 'Minimal 1 angka', ok: /\d/.test(password) },
     { label: 'Minimal 1 karakter spesial', ok: /[^A-Za-z0-9]/.test(password) },
@@ -185,7 +185,7 @@ export function ResetPasswordPage({ token, email, onNavigate }) {
 
               <button
                 onClick={() => onNavigate('login')}
-                className="flex items-center gap-1.5 text-[14px] text-white/55 hover:text-white transition-colors mx-auto pt-1"
+                className="flex items-center gap-1.5 text-[14px] text-white/55 underline underline-offset-2 hover:text-white transition-colors mx-auto pt-1"
               >
                 <LogIn size={15} /> Kembali Ke Login
               </button>

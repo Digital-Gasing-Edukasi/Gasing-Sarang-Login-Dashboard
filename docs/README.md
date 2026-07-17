@@ -24,6 +24,7 @@ dashboard admin GASING CIRCLE. Backend NestJS terpisah. 79 file `.js`/`.jsx` di 
 | Kerja di flow reset password | [`docs/RESET_PASSWORD_ROUTING.md`](RESET_PASSWORD_ROUTING.md) | Route `/login/reset-password` + kompat link email lama |
 | Kerja di tampilan mobile | [`docs/MOBILE_RESPONSIVE.md`](MOBILE_RESPONSIVE.md) | 1 codebase, breakpoint `lg:` |
 | Kerja di halaman legal (TOS/Privacy) | [`docs/LEGAL_PAGES.md`](LEGAL_PAGES.md) | Route `/register/id/TOS` & `/id/privacy`, tab baru dari signup |
+| Kerja di halaman tamu (guest Komunitas) | [`docs/GUEST_KOMUNITAS.md`](GUEST_KOMUNITAS.md) + [ADR-0004](adr/0004-guest-static-komunitas.md) | Route `/komunitas/*` publik, statis, "Lanjut Sebagai Tamu" |
 | Mau tau kenapa desainnya begitu | [`docs/adr/`](adr/) | Keputusan + trade-off |
 
 ---

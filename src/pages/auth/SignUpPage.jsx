@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
-import { Mail, Lock, LogIn, Calendar, Loader2, Check, Circle } from "lucide-react";
+import { LogIn, Calendar, Loader2, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -10,7 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { RightPanel, Divider } from "@/components/layout/RightPanel";
+import { RightPanel } from "@/components/layout/RightPanel";
 import { StepBar } from "@/components/layout/StepIndicator";
 import { IconInput, TogglePassword } from "@/components/shared/IconInput";
 import { authApi, regionsApi, trainingSessionsApi } from "@/lib/api";
@@ -72,6 +73,7 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
   const [schoolName, setSchoolName] = useState("");
   const [showPass, setShowPass] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [agree, setAgree] = useState(false);
   const [passwordFocused, setPasswordFocused] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
@@ -136,20 +138,36 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
     .reverse();
   // Tampilkan 12 bulan penuh dalam dropdown (per tahun), bukan hanya bulan yang ada sesi.
   const monthOptions = MONTHS.map((_, i) => String(i));
-  // Filter daerah cukup pakai tahun;
-  const dimanaOptions = sessions.filter((s) => sessionYear(s) === kapanYear);
+  // Filter daerah cukup pakai tahun; urut alfabet berdasar nama.
+  const dimanaOptions = sessions
+    .filter((s) => sessionYear(s) === kapanYear)
+    .sort((a, b) => String(a.name).localeCompare(String(b.name)));
 
   const passwordRules = [
-    { label: "Minimal 8 karakter", ok: password.length >= 8 },
+    { label: "Minimal 10 karakter", ok: password.length >= 10 },
     { label: "Minimal 1 huruf kapital", ok: /[A-Z]/.test(password) },
     { label: "Minimal 1 angka", ok: /\d/.test(password) },
     { label: "Minimal 1 karakter spesial", ok: /[^A-Za-z0-9]/.test(password) },
   ];
   const allRulesOk = passwordRules.every((r) => r.ok);
 
-  // Tombol Lanjutkan aktif hanya kalau semua field step terisi (urut atas→bawah).
-  const step1Complete =
-    name && username && email && password && allRulesOk && confirm;
+  // Semua field step 1 valid (belum termasuk checkbox persetujuan).
+  const step1FieldsValid =
+    name &&
+    username &&
+    email &&
+    EMAIL_RE.test(email) &&
+    password &&
+    allRulesOk &&
+    confirm &&
+    confirm === password;
+  // Tombol Lanjutkan aktif hanya kalau semua field valid + checkbox dicentang.
+  const step1Complete = step1FieldsValid && agree;
+
+  // Kalau field diubah jadi tidak valid, batalkan centang persetujuan.
+  useEffect(() => {
+    if (!step1FieldsValid && agree) setAgree(false);
+  }, [step1FieldsValid, agree]);
   const step2Complete =
     birthdate &&
     provinceId &&
@@ -185,6 +203,10 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
     if (!confirm) next.confirm = "Konfirmasi password wajib diisi.";
     else if (password !== confirm)
       next.confirm = "Konfirmasi password tidak cocok.";
+
+    if (!agree)
+      next.agree =
+        "Kamu harus menyetujui Ketentuan Layanan & Kebijakan Privasi.";
 
     if (Object.keys(next).length) {
       setErrors(next);
@@ -249,7 +271,7 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
   };
 
   return (
-    <RightPanel>
+    <RightPanel maxWidth="max-w-[452px]">
       <StepBar
         current={step === 1 ? 1 : 2}
         total={3}
@@ -266,13 +288,15 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
 
           <div className="space-y-4 animate-fade-in-up delay-200">
             {errors.general && (
-              <p className="text-sm text-red-500 text-center">{errors.general}</p>
+              <p className="text-sm text-red-500 text-center">
+                {errors.general}
+              </p>
             )}
             <div className="space-y-1.5">
               <Label className="text-[13px] font-semibold">Nama Lengkap</Label>
               <Input
                 type="text"
-                placeholder="Masukkan nama lengkap"
+                placeholder="Cth: Budi Susanto"
                 value={name}
                 className={errors.name ? ERR_INPUT : ""}
                 onChange={(e) => {
@@ -284,45 +308,45 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
                 <p className="text-xs text-red-500">{errors.name}</p>
               )}
             </div>
-            <div className="space-y-1.5">
-              <Label className="text-[13px] font-semibold">Username</Label>
-              <Input
-                type="text"
-                placeholder="Masukkan username"
-                value={username}
-                className={errors.username ? ERR_INPUT : ""}
-                onChange={(e) => {
-                  setUsername(e.target.value);
-                  clearFieldError("username");
-                }}
-              />
-              {errors.username && (
-                <p className="text-xs text-red-500">{errors.username}</p>
-              )}
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-[13px] font-semibold">Email</Label>
-              <IconInput
-                icon={Mail}
-                type="email"
-                placeholder="Masukkan email"
-                value={email}
-                className={errors.email ? ERR_INPUT : ""}
-                onChange={(e) => {
-                  setEmail(e.target.value);
-                  clearFieldError("email");
-                }}
-              />
-              {errors.email && (
-                <p className="text-xs text-red-500">{errors.email}</p>
-              )}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-[13px] font-semibold">Username</Label>
+                <Input
+                  type="text"
+                  placeholder="Min. 5 karakter"
+                  value={username}
+                  className={errors.username ? ERR_INPUT : ""}
+                  onChange={(e) => {
+                    setUsername(e.target.value);
+                    clearFieldError("username");
+                  }}
+                />
+                {errors.username && (
+                  <p className="text-xs text-red-500">{errors.username}</p>
+                )}
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-[13px] font-semibold">Email</Label>
+                <Input
+                  type="email"
+                  placeholder="aku@gmail.com"
+                  value={email}
+                  className={errors.email ? ERR_INPUT : ""}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    clearFieldError("email");
+                  }}
+                />
+                {errors.email && (
+                  <p className="text-xs text-red-500">{errors.email}</p>
+                )}
+              </div>
             </div>
             <div className="space-y-1.5">
               <Label className="text-[13px] font-semibold">Password</Label>
               <IconInput
-                icon={Lock}
                 type={showPass ? "text" : "password"}
-                placeholder="Masukkan password"
+                placeholder="Password unikmu"
                 value={password}
                 className={errors.password ? ERR_INPUT : ""}
                 onChange={(e) => {
@@ -373,11 +397,10 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
                 Konfirmasi Password
               </Label>
               <IconInput
-                icon={Lock}
                 type={showConfirm ? "text" : "password"}
-                placeholder="Konfirmasi password"
+                placeholder="Konfirmasi passwordmu"
                 value={confirm}
-                className={errors.confirm ? ERR_INPUT : ""}
+                className={errors.confirm ? ERR_INPUT : "bg-muted/40"}
                 onChange={(e) => {
                   setConfirm(e.target.value);
                   clearFieldError("confirm");
@@ -399,6 +422,51 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
                 </p>
               ) : null}
             </div>
+            <div className="space-y-1.5">
+              <div className="flex items-start gap-2.5">
+                <Checkbox
+                  id="agree"
+                  checked={agree}
+                  disabled={!step1FieldsValid}
+                  onCheckedChange={(v) => {
+                    setAgree(v === true);
+                    clearFieldError("agree");
+                  }}
+                  className="mt-0.5"
+                />
+                <Label
+                  htmlFor="agree"
+                  className={`text-[13px] font-normal leading-snug text-muted-foreground ${
+                    step1FieldsValid
+                      ? "cursor-pointer"
+                      : "cursor-not-allowed opacity-70"
+                  }`}
+                >
+                  Dengan mendaftar akun, saya menyetujui{" "}
+                  <a
+                    href={`${import.meta.env.BASE_URL === "/" ? "" : import.meta.env.BASE_URL}/register/id/TOS`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline font-medium text-[#0033EC] hover:text-[#0033EC]/80"
+                  >
+                    Ketentuan Layanan
+                  </a>{" "}
+                  &amp;{" "}
+                  <a
+                    href={`${import.meta.env.BASE_URL === "/" ? "" : import.meta.env.BASE_URL}/register/id/privacy`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline font-medium text-[#0033EC] hover:text-[#0033EC]/80"
+                  >
+                    Kebijakan Privasi
+                  </a>{" "}
+                  Sarang Gasing.
+                </Label>
+              </div>
+              {errors.agree && (
+                <p className="text-xs text-red-500">{errors.agree}</p>
+              )}
+            </div>
             <Button
               className="w-full"
               onClick={handleNextToData}
@@ -408,35 +476,16 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
             </Button>
           </div>
 
-          <Divider />
-          <div className="animate-fade-in-up delay-300 space-y-4">
-            <p className="text-[13px] text-muted-foreground text-center px-4">
-              Dengan mendaftar akun, kamu menyetujui{" "}
-              <a
-                href={`${import.meta.env.BASE_URL === '/' ? '' : import.meta.env.BASE_URL}/register/id/TOS`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="underline font-medium text-[#0033EC] hover:text-[#0033EC]/80"
+          <div className="animate-fade-in-up delay-300">
+            <p className="text-sm text-center text-muted-foreground">
+              Sudah punya akun?{" "}
+              <button
+                onClick={() => onNavigate("login")}
+                className="font-bold text-[#0033EC] underline underline-offset-2 hover:text-[#0033EC]/80 transition-colors"
               >
-                Ketentuan Layanan
-              </a>{" "}
-              dan{" "}
-              <a
-                href={`${import.meta.env.BASE_URL === '/' ? '' : import.meta.env.BASE_URL}/register/id/privacy`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="underline font-medium text-[#0033EC] hover:text-[#0033EC]/80"
-              >
-                Kebijakan Privasi
-              </a>{" "}
-              kami.
+                Log In
+              </button>
             </p>
-            <button
-              onClick={() => onNavigate("login")}
-              className="flex items-center gap-1.5 text-sm font-bold text-foreground hover:text-foreground/80 transition-colors mx-auto"
-            >
-              <LogIn size={16} /> Log In
-            </button>
           </div>
         </>
       ) : (
@@ -449,7 +498,9 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
 
           <div className="space-y-4 animate-fade-in-up delay-200">
             {errors.general && (
-              <p className="text-sm text-red-500 text-center">{errors.general}</p>
+              <p className="text-sm text-red-500 text-center">
+                {errors.general}
+              </p>
             )}
             <div className="space-y-1.5">
               <Label className="text-[13px] font-semibold">Tanggal Lahir</Label>
@@ -624,34 +675,16 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
             </Button>
           </div>
 
-          <div className="animate-fade-in-up delay-300 mt-6 space-y-4">
-            <p className="text-[13px] text-muted-foreground text-center px-4">
-              Dengan mengklik lanjutkan, kamu menyetujui{" "}
-              <a
-                href={`${import.meta.env.BASE_URL === '/' ? '' : import.meta.env.BASE_URL}/register/id/TOS`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="underline font-medium text-[#0033EC] hover:text-[#0033EC]/80"
+          <div className="animate-fade-in-up delay-300">
+            <p className="text-sm text-center text-muted-foreground">
+              Sudah punya akun?{" "}
+              <button
+                onClick={() => onNavigate("login")}
+                className="font-bold text-[#0033EC] underline underline-offset-2 hover:text-[#0033EC]/80 transition-colors"
               >
-                Ketentuan Layanan
-              </a>{" "}
-              dan{" "}
-              <a
-                href={`${import.meta.env.BASE_URL === '/' ? '' : import.meta.env.BASE_URL}/register/id/privacy`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="underline font-medium text-[#0033EC] hover:text-[#0033EC]/80"
-              >
-                Kebijakan Privasi
-              </a>{" "}
-              kami.
+                Log In
+              </button>
             </p>
-            <button
-              onClick={() => onNavigate("login")}
-              className="flex items-center gap-1.5 text-sm font-bold text-foreground hover:text-foreground/80 transition-colors mx-auto mt-4"
-            >
-              <LogIn size={16} /> Log In
-            </button>
           </div>
         </>
       )}

@@ -18,6 +18,16 @@ function SortableHeader({ label, sublabel, sortKey, sortConfig, onSort }) {
   )
 }
 
+// Tooltip dark-bubble, muncul di bawah tombol pas hover. Caret nunjuk ke atas.
+function Tooltip({ label }) {
+  return (
+    <div className="pointer-events-none absolute left-1/2 bottom-full z-40 mb-2 -translate-x-1/2 -translate-y-1 whitespace-nowrap rounded-xl bg-[#0A1128] px-4 py-2 text-sm font-semibold text-white opacity-0 shadow-lg transition-all duration-150 group-hover/tip:translate-y-0 group-hover/tip:opacity-100">
+      <span className="absolute -bottom-1 left-1/2 h-3 w-3 -translate-x-1/2 rotate-45 rounded-sm bg-[#0A1128]" />
+      {label}
+    </div>
+  )
+}
+
 export function VerifikasiTable({
   users, sortConfig, onSort, onApprove, onReject, searchQuery,
   selectedIds = [], onToggleSelect, onToggleSelectAll, allSelected = false,
@@ -58,7 +68,7 @@ export function VerifikasiTable({
           <th className="px-4 py-4 font-medium align-bottom">
             <SortableHeader label="Asal Sekolah" sortKey="school" sortConfig={sortConfig} onSort={onSort} />
           </th>
-          {selectedIds.length === 0 && <th className="px-4 py-4 font-medium text-center align-bottom">Setuju?</th>}
+          {selectedIds.length === 0 && <th className="px-4 py-4 font-medium text-center align-bottom sticky right-0 z-30 bg-[#0A1128] shadow-[-4px_0_10px_-4px_rgba(0,0,0,0.3)]">Setuju?</th>}
         </tr>
       </thead>
       <tbody className="divide-y divide-gray-100">
@@ -100,20 +110,26 @@ export function VerifikasiTable({
               <td className="px-4 py-4 text-[#0A1128] font-medium">{user.alumniTanggal || '-'}</td>
               <td className="px-4 py-4 text-[#0A1128] font-medium whitespace-normal max-w-[220px]" title={user.school}>{user.school || '-'}</td>
               {selectedIds.length === 0 && (
-                <td className="px-4 py-4">
+                <td className={cn('px-4 py-4 sticky right-0 z-10 group-hover:z-40 transition-colors shadow-[-4px_0_10px_-4px_rgba(0,0,0,0.05)]', selected ? 'bg-[#F4F6FB]' : 'bg-white group-hover:bg-[#F9FAFB]')}>
                   <div className="flex items-center justify-center gap-2">
-                    <button
-                      onClick={() => onApprove(user.id)}
-                      className="w-9 h-9 rounded-full bg-white border-2 border-green-500 hover:bg-green-50 flex items-center justify-center text-green-500 transition-colors"
-                    >
-                      <Check size={16} strokeWidth={3} />
-                    </button>
-                    <button
-                      onClick={() => onReject(user)}
-                      className="w-9 h-9 rounded-full bg-white border-2 border-red-400 hover:bg-red-50 flex items-center justify-center text-red-500 transition-colors"
-                    >
-                      <X size={16} strokeWidth={2.5} />
-                    </button>
+                    <div className="relative group/tip">
+                      <button
+                        onClick={() => onApprove(user.id)}
+                        className="w-9 h-9 rounded-full bg-white border-2 border-green-500 hover:bg-green-50 flex items-center justify-center text-green-500 transition-colors"
+                      >
+                        <Check size={16} strokeWidth={3} />
+                      </button>
+                      <Tooltip label="Setujui" />
+                    </div>
+                    <div className="relative group/tip">
+                      <button
+                        onClick={() => onReject(user)}
+                        className="w-9 h-9 rounded-full bg-white border-2 border-red-400 hover:bg-red-50 flex items-center justify-center text-red-500 transition-colors"
+                      >
+                        <X size={16} strokeWidth={2.5} />
+                      </button>
+                      <Tooltip label="Tolak akun" />
+                    </div>
                   </div>
                 </td>
               )}

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Check, ChevronDown } from 'lucide-react'
+import { Check, ChevronDown, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { FIELD_DEFS } from '@/lib/fixLink'
 import { getRoleOptions, resolveRoleValue } from './roleOptions'
@@ -56,8 +56,8 @@ export function RejectModal({ candidate, onConfirm, onCancel }) {
 
           <hr className="border-gray-100 mb-4" />
 
-          {/* Checklist 2-kolom */}
-          <div className="grid grid-cols-2 gap-x-6 gap-y-1">
+          {/* Checklist 1-kolom */}
+          <div className="grid grid-cols-1 gap-y-1">
             {FIELD_DEFS.map((f) => {
               const on = !!checked[f.key]
               return (
@@ -111,35 +111,34 @@ export function RejectModal({ candidate, onConfirm, onCancel }) {
   )
 }
 
-// Dropdown kecil reusable (Role & Pelatihan) dengan tampilan konsisten.
-function Dropdown({ label, value, onChange, options, placeholder }) {
+// Dropdown kecil reusable (Pelatihan) dengan tampilan konsisten.
+function Dropdown({ value, onChange, options, placeholder }) {
   return (
-    <div>
-      <label className="block text-sm font-medium text-[#0A1128] mb-1.5">{label}</label>
-      <div className="relative">
-        <select
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          className={cn(
-            'w-full appearance-none bg-white border rounded-xl py-3 pl-4 pr-9 text-sm font-medium outline-none transition-colors',
-            'border-gray-200 focus:border-[#0A1128]',
-            value ? 'text-[#0A1128]' : 'text-gray-400'
-          )}
-        >
-          <option value="" disabled>{placeholder}</option>
-          {options.map((o) => (
-            <option key={o.value} value={o.value} className="text-[#0A1128]">{o.label}</option>
-          ))}
-        </select>
-        <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-      </div>
+    <div className="relative">
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className={cn(
+          'w-full appearance-none bg-white border rounded-xl py-2.5 pl-4 pr-9 text-sm font-medium outline-none transition-colors',
+          'border-gray-200 hover:border-gray-300 focus:border-blue-500',
+          value ? 'text-[#0A1128]' : 'text-gray-400'
+        )}
+      >
+        <option value="" disabled>{placeholder}</option>
+        {options.map((o) => (
+          <option key={o.value} value={o.value} className="text-[#0A1128]">{o.label}</option>
+        ))}
+      </select>
+      <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
     </div>
   )
 }
 
 export function ApproveModal({ candidate, discourseGroups = [], trainingSessions = [], onConfirm, onCancel }) {
   const roleOptions = getRoleOptions(discourseGroups)
-  const sessionOptions = trainingSessions.map((s) => ({ value: String(s.id), label: s.name }))
+  const sessionOptions = trainingSessions
+    .map((s) => ({ value: String(s.id), label: s.name }))
+    .sort((a, b) => String(a.label).localeCompare(String(b.label)))
 
   const [role, setRole] = useState('')
   const [session, setSession] = useState('')
@@ -157,44 +156,41 @@ export function ApproveModal({ candidate, discourseGroups = [], trainingSessions
   const canSubmit = !!role && !!session
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm">
-      <div className="bg-white rounded-[24px] w-full max-w-[440px] shadow-2xl mx-4 flex flex-col">
-        <div className="p-8 pb-5">
-          <h3 className="text-2xl font-bold text-[#0A1128] mb-1.5">Setujui Akun ini?</h3>
-          <p className="text-gray-500 text-sm mb-6">
-            Atur role dan pelatihan untuk <span className="font-bold text-[#0A1128]">{candidate.name}</span> sebelum menyetujui.
-          </p>
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+      <div className="bg-white rounded-[24px] w-full max-w-[480px] shadow-2xl p-7">
+        <div className="flex items-start justify-between mb-7">
+          <h3 className="text-xl font-bold text-[#0A1128]">Setujui Akun Ini?</h3>
+          <button
+            type="button" onClick={onCancel} aria-label="Tutup"
+            className="text-gray-400 hover:text-[#0A1128] transition-colors"
+          >
+            <X size={22} />
+          </button>
+        </div>
 
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-[#0A1128] mb-1.5">Role</label>
-              <RoleSelect value={role} onChange={setRole} options={roleOptions} placeholder="Pilih role" />
-            </div>
+        <div className="flex items-start gap-5">
+          <span className="font-bold text-[#0A1128] pt-2.5 shrink-0">{candidate.name}</span>
+          <div className="flex-1 space-y-3">
+            <RoleSelect value={role} onChange={setRole} options={roleOptions} placeholder="Role" />
             <Dropdown
-              label="Nama Pelatihan Terbaru"
               value={session}
               onChange={setSession}
               options={sessionOptions}
-              placeholder="Pilih pelatihan"
+              placeholder="Nama Pelatihan Pertama"
             />
           </div>
         </div>
 
-        <div className="flex items-center gap-4 p-6 bg-gray-50/70 border-t border-gray-100 rounded-b-[24px]">
-          <button
-            onClick={onCancel}
-            className="flex-1 font-semibold text-[#0A1128] border border-gray-200 bg-white hover:bg-gray-50 px-6 py-3.5 rounded-full transition-colors"
-          >
-            Batalkan
-          </button>
-          <button
-            disabled={!canSubmit}
-            onClick={() => onConfirm({ discourseGroupId: parseInt(role, 10), lastTrainingSessionId: session })}
-            className="flex-1 font-semibold px-6 py-3.5 rounded-full bg-blue-600 text-white hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            Setujui Akun
-          </button>
-        </div>
+        <button
+          disabled={!canSubmit}
+          onClick={() => onConfirm({ discourseGroupId: parseInt(role, 10), lastTrainingSessionId: session })}
+          className={cn(
+            'w-full mt-8 font-semibold px-6 py-3.5 rounded-full text-white transition-colors',
+            canSubmit ? 'bg-blue-600 hover:bg-blue-700' : 'bg-blue-300 cursor-not-allowed'
+          )}
+        >
+          Konfirmasi
+        </button>
       </div>
     </div>
   )

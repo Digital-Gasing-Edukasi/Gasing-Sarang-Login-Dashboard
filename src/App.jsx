@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, lazy, Suspense } from "react";
 import { Routes, Route, Navigate, useNavigate, useLocation } from "react-router-dom";
 import { tokenStorage, subscriptionApi, profileApi, authApi, regionsApi, webAppApi, discourseApi } from "@/lib/api";
-import { isSuperAdmin, isOperationalAdmin } from "@/lib/roles";
+import { isSuperAdmin, isOperationalAdmin, isSsoDisabled, hasCapability } from "@/lib/roles";
 import { decodeFixPayload } from "@/lib/fixLink";
 import { evaluateLoginGate } from "@/lib/loginGate";
 import { pathForPage, isPublicStaticPath, skipSessionRestore } from "@/lib/routes";
@@ -72,6 +72,7 @@ import PaymentUnfinishPage from "@/pages/PaymentUnfinishPage";
 import PaymentErrorPage from "@/pages/PaymentErrorPage";
 const AdminDashboardPage = lazy(() => import("@/pages/AdminDashboardPage"));
 import MidtransTestPage from "@/pages/MidtransTestPage";
+import KomunitasPage from "@/pages/komunitas/KomunitasPage";
 
 // Shell dua kolom untuk halaman auth (login/signup/otp/...): panel kiri + konten.
 function SplitLayout({ children }) {
@@ -340,6 +341,19 @@ export default function App() {
 
     setCurrentUser(user);
 
+    // Punya DISABLED-SSO DAN GROUP/SYNC → langsung ke Dashboard Admin
+    // (jangan lewat SSO, jangan ke web app). Cek ini duluan sebelum cabang lain.
+    if (isSsoDisabled(user) && hasCapability(user, "DISCOURSE/GROUP/SYNC")) {
+      navigate("/dashboard-admin", { replace: true });
+      return;
+    }
+
+    // Tag USER/DISCOURSE/DISABLED-SSO → jangan lewat SSO, langsung ke dashboard.
+    if (isSsoDisabled(user)) {
+      webAppApi.redirectWithTokens();
+      return;
+    }
+
     if (user?.capabilities?.includes("DISCOURSE/GROUP/SYNC")) {
       try {
         await discourseApi.ssoLogin();
@@ -377,6 +391,9 @@ export default function App() {
   };
 
   const handleSignOut = () => {
+    // Kabari backend biar sesi/token dibatalin. Fire-and-forget: jangan
+    // blok UI, kalau gagal tetap lanjut bersihin sesi lokal.
+    authApi.logout().catch(() => {});
     tokenStorage.clear();
     setCurrentUser(null);
     setDevAdmin(false);
@@ -429,7 +446,9 @@ export default function App() {
             sudah membawa background/logo/footer sendiri lewat AuthDarkLayout). */}
         <Route
           path="/login/forgot-password"
-          element={<ForgotPasswordPage onNavigate={go} onEmailSent={handleEmailSent} />}
+          element={
+            <ForgotPasswordPage onNavigate={go} onEmailSent={handleEmailSent} />
+          }
         />
         <Route
           path="/login/check-email"
@@ -509,7 +528,11 @@ export default function App() {
           path="/register/otp"
           element={
             <SplitLayout>
-              <SignUpOtpPage onNavigate={go} otpToken={otpToken} email={regEmail} />
+              <SignUpOtpPage
+                onNavigate={go}
+                otpToken={otpToken}
+                email={regEmail}
+              />
             </SplitLayout>
           }
         />
@@ -530,15 +553,27 @@ export default function App() {
             </SplitLayout>
           }
         />
-        <Route path="/register/revise/invalid" element={<ReviseErrorPage onNavigate={go} />} />
-        <Route path="/register/id/TOS" element={<TermsPage onNavigate={go} />} />
-        <Route path="/register/id/privacy" element={<PrivacyPage onNavigate={go} />} />
+        <Route
+          path="/register/revise/invalid"
+          element={<ReviseErrorPage onNavigate={go} />}
+        />
+        <Route
+          path="/register/id/TOS"
+          element={<TermsPage onNavigate={go} />}
+        />
+        <Route
+          path="/register/id/privacy"
+          element={<PrivacyPage onNavigate={go} />}
+        />
         {/* Link reset password lama dari email masih menunjuk ke sini. */}
         <Route
           path="/register/reset-password"
           element={
             <Navigate
-              to={{ pathname: "/login/reset-password", search: location.search }}
+              to={{
+                pathname: "/login/reset-password",
+                search: location.search,
+              }}
               replace
             />
           }
@@ -549,12 +584,18 @@ export default function App() {
           path="/dashboard-admin"
           element={requireAuth(
             <Suspense fallback={<DashboardSpinner />}>
-              <AdminDashboardPage user={currentUser} onSignOut={handleSignOut} />
+              <AdminDashboardPage
+                user={currentUser}
+                onSignOut={handleSignOut}
+              />
             </Suspense>,
           )}
         />
         {/* Path lama. */}
-        <Route path="/admin-dashboard" element={<Navigate to="/dashboard-admin" replace />} />
+        <Route
+          path="/admin-dashboard"
+          element={<Navigate to="/dashboard-admin" replace />}
+        />
 
         {/* ── Pembayaran (landing Snap Redirect Midtrans) ─────────────────── */}
         <Route
@@ -572,6 +613,13 @@ export default function App() {
         <Route path="/payment/error" element={<PaymentErrorPage />} />
 
         <Route path="/midtrans-test" element={<MidtransTestPage />} />
+
+        {/* ── Komunitas statis (guest / fake login) — publik, tanpa auth ──── */}
+        {/* Lihat ADR-0004. Route catch-all /komunitas/* biar subpath ikut ke page. */}
+        <Route
+          path="/komunitas/*"
+          element={<KomunitasPage onNavigate={go} />}
+        />
 
         {/* Path tak dikenal → login (fail-safe, sama seperti fallback lama). */}
         <Route path="*" element={<Navigate to="/login" replace />} />
