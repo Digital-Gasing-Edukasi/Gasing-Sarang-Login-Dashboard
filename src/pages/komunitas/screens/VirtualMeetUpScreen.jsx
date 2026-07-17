@@ -1,8 +1,28 @@
 import { useRef } from "react";
 import { Link } from "react-router-dom";
 import { Video, Users, Tv, ChevronLeft, ChevronRight } from "lucide-react";
-import { meetupUpcoming, meetupPast } from "../data";
+import { meetupPast } from "../data";
 import { headerVirtualBg, headerVirtualElements, thumbAngka } from "../assets";
+
+// object desktop card — cocokin sama desain gambar (speakers + Clara Meidianan, badge 99+)
+const meetupUpcoming = [
+  {
+    id: 1,
+    speakers: "John Huawei, Billeyeber, Ibnu Sina, Clara Meidianan, dkk",
+    title: "Pengenalan Schwarzschild Radius",
+    date: "21 Maret 2026",
+    time: "17:00 - 18:00 WIB",
+    attendees: "99+",
+  },
+  {
+    id: 2,
+    speakers: "Siti Aisyah, dkk",
+    title: "Strategi Mengajar Perkalian Cepat",
+    date: "28 Maret 2026",
+    time: "19:00 - 20:00 WIB",
+    attendees: "42",
+  },
+];
 
 // /komunitas/virtual-meet-up — header pink + maskot, meet-up akan datang & sebelumnya.
 export default function VirtualMeetUpScreen() {
@@ -13,7 +33,7 @@ export default function VirtualMeetUpScreen() {
   return (
     <div className="relative flex flex-col h-screen overflow-hidden lg:h-auto lg:min-h-screen lg:overflow-visible">
       <div
-        className="relative h-28 overflow-hidden bg-cover bg-center lg:h-40 lg:rounded-3xl"
+        className="relative h-28 min-h-[120px] overflow-hidden bg-cover bg-center lg:h-40 lg:rounded-3xl"
         style={{
           backgroundImage: `url(${headerVirtualBg})`,
           mask: "radial-gradient(120% 40px at bottom, transparent 98%, black 100%)",
@@ -42,12 +62,12 @@ export default function VirtualMeetUpScreen() {
                   <div className="flex h-full">
                     <div className="flex-1 p-4">
                       <div className="flex items-center gap-1.5 text-xs text-slate-500">
-                        <Video size={13} /> <span className="line-clamp-1">{m.speakers}</span>
+                        <Video size={20} /> <span className="line-clamp-1">{m.speakers}</span>
                       </div>
-                      <h3 className="mt-2 text-lg font-extrabold leading-tight text-slate-800">
+                      <h2 className="mt-2 text-lg font-extrabold leading-tight text-slate-800">
                         {m.title}
-                      </h3>
-                      <p className="mt-3 text-sm font-medium text-slate-700">{m.date}</p>
+                      </h2>
+                      <p className="mt-2 text-sm font-medium text-slate-700">{m.date}</p>
                       <p className="text-sm text-slate-500">{m.time}</p>
                       <button className="mt-3 w-full rounded-full bg-blue-600 py-2.5 text-sm font-bold text-white">
                         Daftar
@@ -127,67 +147,75 @@ export default function VirtualMeetUpScreen() {
       {/* ===== Desktop: Tetap ===== */}
       <div className="hidden lg:block lg:-mx-6">
         {/* Akan Datang */}
-        <div className="px-5 pt-5 lg:px-6">
-          <div className="flex items-center gap-2">
-            <Video size={18} className="text-orange-500" />
-            <h2 className="font-bold text-slate-800">Meet-up Akan Datang</h2>
-          </div>
-
-          {/* Carousel + panah prev/next (panah tampil di desktop) */}
-          <div className="relative">
-            <button
-              onClick={() => scroll(-1)}
-              aria-label="Sebelumnya"
-              className="absolute left-0 top-1/2 z-10 hidden -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-slate-200 bg-white p-2 text-slate-500 shadow-md hover:text-slate-800 lg:flex"
-            >
-              <ChevronLeft size={20} />
-            </button>
-            <button
-              onClick={() => scroll(1)}
-              aria-label="Berikutnya"
-              className="absolute right-0 top-1/2 z-10 hidden translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-slate-200 bg-white p-2 text-slate-500 shadow-md hover:text-slate-800 lg:flex"
-            >
-              <ChevronRight size={20} />
-            </button>
-
-            <div
-              ref={upcomingRef}
-              className="mt-3 flex gap-3 overflow-x-auto pb-2 lg:gap-4 lg:scroll-smooth"
-            >
-            {meetupUpcoming.map((m) => (
-              <div key={m.id} className="w-[330px] h-[300px] shrink-0 overflow-hidden rounded-2xl bg-white shadow-sm lg:w-[866px] lg:h-[360px]">
-                <div className="flex h-full">
-                  <div className="flex-1 p-4">
-                    <div className="flex items-center gap-1.5 text-xs text-slate-500">
-                      <Video size={13} /> <span className="line-clamp-1">{m.speakers}</span>
-                    </div>
-                    <h3 className="mt-2 text-lg font-extrabold leading-tight text-slate-800">
-                      {m.title}
-                    </h3>
-                    <p className="mt-3 text-sm font-medium text-slate-700">{m.date}</p>
-                    <p className="text-sm text-slate-500">{m.time}</p>
-                    <button className="mt-3 w-full rounded-full bg-blue-600 py-2.5 text-sm font-bold text-white">
-                      Daftar
-                    </button>
-                  </div>
-                  <div
-                    className="relative w-24 shrink-0 bg-cover bg-center lg:w-40"
-                    style={{ backgroundImage: `url(${thumbAngka})` }}
-                  >
-                    <span className="absolute right-2 top-2 flex items-center gap-1 rounded-full bg-white/80 px-2 py-0.5 text-xs font-semibold">
-                      <Users size={11} /> {m.attendees}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            ))}
+        <div className="pointer-events-none select-none blur-[5px]">
+          <div className="px-5 pt-5 lg:px-6">
+            <div className="flex items-center gap-2">
+              <Video size={18} className="text-orange-500" />
+              <h2 className="font-bold text-slate-800">Meet-up Akan Datang</h2>
             </div>
-          </div>
 
-          <div className="mt-2 flex justify-center gap-1.5 lg:hidden">
-            <span className="h-2 w-2 rounded-full bg-blue-600" />
-            <span className="h-2 w-2 rounded-full bg-slate-300" />
-            <span className="h-2 w-2 rounded-full bg-slate-300" />
+            {/* Carousel + panah prev/next (panah tampil di desktop) */}
+            <div className="relative">
+              <button
+                onClick={() => scroll(-1)}
+                aria-label="Sebelumnya"
+                className="absolute left-0 top-1/2 z-10 hidden -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-slate-200 bg-white p-2 text-slate-500 shadow-md hover:text-slate-800 lg:flex"
+              >
+                <ChevronLeft size={20} />
+              </button>
+              <button
+                onClick={() => scroll(1)}
+                aria-label="Berikutnya"
+                className="absolute right-0 top-1/2 z-10 hidden translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-slate-200 bg-white p-2 text-slate-500 shadow-md hover:text-slate-800 lg:flex"
+              >
+                <ChevronRight size={20} />
+              </button>
+
+              <div
+                ref={upcomingRef}
+                className="mt-3 flex gap-3 overflow-x-auto pb-2 lg:gap-4 lg:scroll-smooth"
+              >
+              {meetupUpcoming.map((m) => (
+                <div key={m.id} className="relative w-[330px] h-[300px] shrink-0 overflow-hidden rounded-2xl bg-white shadow-sm lg:w-[866px] lg:h-[360px] lg:rounded-3xl">
+                  <div className="flex h-full">
+                    <div className="flex flex-1 flex-col p-4 lg:p-10">
+                      <div className="flex items-center gap-2 text-xs text-slate-500 lg:text-sm">
+                        <Video size={13} className="lg:hidden" />
+                        <Video size={18} className="hidden lg:block" />
+                        <span className="line-clamp-2 pr-16">{m.speakers}</span>
+                      </div>
+                      <h3 className="mt-2 text-lg font-extrabold leading-tight text-slate-900 lg:mt-8 lg:text-4xl">
+                        {m.title}
+                      </h3>
+                      <p className="mt-3 text-sm font-bold text-slate-800 lg:mt-6 lg:text-base">{m.date}</p>
+                      <p className="text-sm text-slate-500 lg:text-base">{m.time}</p>
+                      <button className="mt-3 w-full rounded-full bg-blue-600 py-2.5 text-sm font-bold text-white lg:mt-auto lg:py-3.5 lg:text-base">
+                        Daftar
+                      </button>
+                    </div>
+                    <div
+                      className="relative w-24 shrink-0 bg-cover bg-center lg:w-[320px]"
+                      style={{ backgroundImage: `url(${thumbAngka})` }}
+                    >
+                      <span className="absolute right-2 top-2 flex items-center gap-1 rounded-full bg-white/80 px-2 py-0.5 text-xs font-semibold lg:hidden">
+                        <Users size={11} /> {m.attendees}
+                      </span>
+                    </div>
+                  </div>
+                  {/* Badge attendees — pojok kanan-atas kartu (desktop) */}
+                  <span className="absolute right-6 top-6 hidden items-center gap-1.5 rounded-full bg-slate-900 px-3 py-1 text-sm font-semibold text-white lg:flex">
+                    <Users size={14} /> {m.attendees}
+                  </span>
+                </div>
+              ))}
+              </div>
+            </div>
+
+            <div className="mt-2 flex justify-center gap-1.5 lg:hidden">
+              <span className="h-2 w-2 rounded-full bg-blue-600" />
+              <span className="h-2 w-2 rounded-full bg-slate-300" />
+              <span className="h-2 w-2 rounded-full bg-slate-300" />
+            </div>
           </div>
         </div>
 

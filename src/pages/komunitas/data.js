@@ -38,7 +38,7 @@ export const kontenEksklusif = [
 export const meetupUpcoming = [
   {
     id: 1,
-    speakers: "John Huawei, Billeyeber, Ibnu Sina, dkk",
+    speakers: "John Huawei, Billeyeber, Ibnu Sina, Clara Meidianan, dkk",
     title: "Pengenalan Schwarzschild Radius",
     date: "21 Maret 2026",
     time: "17:00 - 18:00 WIB",
