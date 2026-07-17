@@ -10,7 +10,7 @@ import {
   materiPerkalian,
   materiPengurangan,
   materiPembagian,
-  charPurple,
+  charTokek,
 } from "./assets";
 
 export const GUEST_NAME = "Tamu Gasing";
@@ -181,12 +181,11 @@ export const trendingTopics = [
 export const forumPosts = [
   {
     id: 1,
-    avatarImg: charPurple,
+    avatarImg: charTokek,
     pinned: true,
     title: "Yuk, Mencongak!",
     url: "https://math-flashcards-ten.vercel.app/",
-    excerpt:
-      "Latih kemampuan mencongak kapan saja melalui web. Ribuan soal adaptif membantu meningkatkan kecepatan berhitung, akurasi, dan rasa percaya diri secara bertahap",
+    excerpt: "Ayo latihan mencongak bakalkubagi untuk semua level!",
     likes: "1.2k",
     comments: "213",
     views: "4.2k",
@@ -194,57 +193,56 @@ export const forumPosts = [
   },
   {
     id: 2,
-    avatarImg: charPurple,
+    avatarImg: charTokek,
     title: "Mencongak Penjumlahan",
     url: "https://canva.link/4dikcsrirbwdyn6",
-    excerpt:
-      "Latih kecepatan berhitung dengan trik mencongak yang sederhana. Penjumlahan jadi lebih mudah, cepat, dan menyenangkan!",
+    excerpt: "30 soal penjumlahan, dimulai dari mudah hingga semakin menantang",
     likes: "1.2k",
     comments: "213",
     views: "4.2k",
   },
   {
     id: 3,
-    avatarImg: charPurple,
+    avatarImg: charTokek,
     verified: true,
     title: "Mencongak Perkalian",
     url: "https://canva.link/elf6da3dznw09iw",
     excerpt:
-      "Kuasai perkalian dengan cara mencongak khas GASING. Pahami polanya, latih kecepatannya, lalu hitung tanpa bergantung pada kalkulator.",
+      "30 soal bertahap untuk melatih perkalian dengan lebih percaya diri",
     likes: "1.2k",
     comments: "213",
     views: "4.2k",
   },
   {
     id: 4,
-    avatarImg: charPurple,
+    avatarImg: charTokek,
     verified: true,
     title: "Mencongak Pengurangan",
     url: "https://canva.link/lmo2iec9fsacoc7",
     excerpt:
-      "Ayo belajar mengurangkan angka dengan cara yang seru! Mencongak membuat berhitung jadi cepat seperti bermain.",
+      "30 soal pengurangan untuk membangun kemampuan berhitung langkah demi langkah",
     likes: "1.2k",
     comments: "213",
     views: "4.2k",
   },
   {
     id: 5,
-    avatarImg: charPurple,
+    avatarImg: charTokek,
     title: "Mencongak Pembagian",
     url: " https://canva.link/my2k5kij3u5asan",
     excerpt:
-      "Berhitung lebih cepat dimulai dari memahami pola. Asah kemampuan mencongak pembagian sedikit demi sedikit, setiap hari.",
+      "Belajar pembagian lebih efektif melalui 30 soal yang semakin menantang",
     likes: "1.2k",
     comments: "213",
     views: "4.2k",
   },
   {
     id: 6,
-    avatarImg: charPurple,
+    avatarImg: charTokek,
     title: "Mencongak BaKalKuBagi",
     url: "https://canva.link/bx8mlatytxxscbc",
     excerpt:
-      "Tantang dirimu menjawab lebih cepat setiap hari. Satu langkah kecil menuju kemampuan berhitung yang lebih hebat.",
+      "Mulai dari soal mudah, taklukkan tantangan BaKalKuBagi yang lebih sulit",
     likes: "1.2k",
     comments: "213",
     views: "4.2k",

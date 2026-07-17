@@ -164,17 +164,19 @@ export default function KontenEksklusifScreen() {
         </div>
 
         {/* ===== Bulan Ini ===== */}
-        <div className="mt-5 flex items-center gap-2">
-          <span className="flex h-6 w-6 items-center justify-center rounded-full border border-slate-300">
-            <ChevronRight size={14} />
-          </span>
-          <h2 className="font-bold text-slate-800">Bulan Ini</h2>
-        </div>
+        <div className="pointer-events-none select-none blur-[5px]">
+          <div className="mt-5 flex items-center gap-2">
+            <span className="flex h-6 w-6 items-center justify-center rounded-full border border-slate-300">
+              <ChevronRight size={14} />
+            </span>
+            <h2 className="font-bold text-slate-800">Bulan Ini</h2>
+          </div>
 
-        <div className="mt-4 grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
-          {kontenEksklusif.map((item) => (
-            <KontenCard key={item.id} item={item} video={item.video} />
-          ))}
+          <div className="mt-4 grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
+            {kontenEksklusif.map((item) => (
+              <KontenCard key={item.id} item={item} video={item.video} />
+            ))}
+          </div>
         </div>
 
         {/* ===== Bulan Sebelumnya (blur + login-gate) ===== */}
@@ -188,8 +190,8 @@ export default function KontenEksklusifScreen() {
             </div>
             {/* Toggle RGP / Formatif */}
             <div className="flex rounded-full bg-slate-200 p-0.5 text-xs font-semibold">
-              <span className="rounded-full bg-violet-600 px-3 py-1 text-white">RGP</span>
-              <span className="px-3 py-1 text-slate-500">Formatif</span>
+              <span className="rounded-full bg-violet-600 px-3 py-1 text-white">Aktif</span>
+              <span className="px-3 py-1 text-slate-500">Tidak Aktif</span>
             </div>
           </div>
 

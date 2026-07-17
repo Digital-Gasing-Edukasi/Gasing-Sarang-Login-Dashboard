@@ -6,6 +6,7 @@ export { default as logoSquare } from "@/assets/icon_sg.png";
 export { default as charPurple } from "@/assets/dark-mode/Copy of Character 8C 6.png";
 export { default as charBlue } from "@/assets/dark-mode/Copy of Character 8C 5.png";
 export { default as charOrange } from "@/assets/dark-mode/Copy of Character 8C 4.png";
+export { default as charTokek } from "@/assets/char_gasing.png";
 
 // Header banner
 export { default as headerKomunitas } from "@/assets/guest/header-banner/Header-Komunitas.png";

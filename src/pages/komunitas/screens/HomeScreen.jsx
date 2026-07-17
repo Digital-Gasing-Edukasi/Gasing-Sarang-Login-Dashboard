@@ -70,10 +70,11 @@ export default function HomeScreen() {
                 className="h-6 w-6 brightness-0 invert"
               />
             </Link>
-            
+
             <Link
               to="/login"
-              className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-pink-500 to-purple-600 text-xs font-bold">
+              className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-pink-500 to-purple-600 text-xs font-bold"
+            >
               TG
             </Link>
           </div>
@@ -95,7 +96,7 @@ export default function HomeScreen() {
             src={charOrange}
             alt=""
             aria-hidden
-            className="absolute -right-2 -bottom-10 h-36 w-auto object-contain lg:right-6 lg:-bottom-4 lg:h-40"
+            className="hidden lg:block absolute -right-2 -bottom-10 h-36 w-auto object-contain lg:right-6 lg:-bottom-4 lg:h-40"
           />
           <img
             src={charPurple}
@@ -147,68 +148,64 @@ export default function HomeScreen() {
 
       {/* ===== Desktop: dashboard 2 kolom ===== */}
       <div className="mt-6 hidden px-2 pb-8 lg:block">
-        {/* Row 1 (bebas dilihat) */}
-        <div className="grid grid-cols-2 gap-5">
-          {/* Row 1 — Konten Eksklusif */}
-          <DashCard
-            action={false}
-            titleNode={
-              <div className="w-full text-center">
-                <h2 className="text-lg font-bold text-slate-800">
-                  Konten Eksklusif
-                </h2>
-                <p className="mx-auto mt-1 max-w-[300px] text-sm text-[#424857]">
-                  Yuk belajar trik perkalian 2 digit, dan dapatkan soal-soal
-                  penjumlahan &lt;5.
-                </p>
-              </div>
-            }
-          >
-            <img
-              src={thumbFunMath}
-              alt="Fun Math Trick for Kids"
-              className="mt-4 h-56 w-full rounded-xl object-cover"
-            />
-          </DashCard>
-
-          {/* Row 1 — Virtual Meet-Up Berikutnya */}
-          <DashCard
-            titleNode={
-              <h2 className="text-lg font-bold italic text-slate-800">
-                Virtual Meet-Up <span className="not-italic">Berikutnya</span>
-              </h2>
-            }
-          >
-            <div className="mt-4 grid grid-cols-2 gap-3">
-              {meetupUpcoming.slice(0, 2).map((m, i) => (
-                <div
-                  key={m.id}
-                  className="relative h-56 overflow-hidden rounded-xl bg-cover bg-center"
-                  style={{ backgroundImage: `url(${thumbAngka})` }}
-                >
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
-                  {i === 0 && (
-                    <span className="absolute left-3 top-3 flex items-center gap-1 rounded-full bg-slate-900/80 px-3 py-1 text-xs font-bold text-white">
-                      <CheckCircle2 size={13} /> Sudah Daftar
-                    </span>
-                  )}
-                  <div className="absolute bottom-3 left-3 right-3 text-white">
-                    <p className="flex items-center gap-1 text-[11px] opacity-80">
-                      <Video size={11} /> {m.date}
-                    </p>
-                    <h3 className="line-clamp-2 text-sm font-bold">
-                      {m.title}
-                    </h3>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </DashCard>
-        </div>
-
-        {/* Row 2 & 3 (terkunci): blur + CTA gabung */}
+        {/* Row 1,2 & 3 (terkunci): blur + CTA gabung */}
         <div className="relative mt-5">
           <div className="pointer-events-none grid select-none grid-cols-2 gap-5 blur-[5px]">
+            {/* Row 1 — Konten Eksklusif */}
+            <DashCard
+              action={false}
+              titleNode={
+                <div className="w-full text-center">
+                  <h2 className="text-lg font-bold text-slate-800">
+                    Konten Eksklusif
+                  </h2>
+                  <p className="mx-auto mt-1 max-w-[300px] text-sm text-[#424857]">
+                    Yuk belajar trik perkalian 2 digit, dan dapatkan soal-soal
+                    penjumlahan &lt;5.
+                  </p>
+                </div>
+              }
+            >
+              <img
+                src={thumbFunMath}
+                alt="Fun Math Trick for Kids"
+                className="mt-4 h-56 w-full rounded-xl object-cover"
+              />
+            </DashCard>
+
+            {/* Row 1 — Virtual Meet-Up Berikutnya */}
+            <DashCard
+              titleNode={
+                <h2 className="text-lg font-bold italic text-slate-800">
+                  Virtual Meet-Up <span className="not-italic">Berikutnya</span>
+                </h2>
+              }
+            >
+              <div className="mt-4 grid grid-cols-2 gap-3">
+                {meetupUpcoming.slice(0, 2).map((m, i) => (
+                  <div
+                    key={m.id}
+                    className="relative h-56 overflow-hidden rounded-xl bg-cover bg-center"
+                    style={{ backgroundImage: `url(${thumbAngka})` }}
+                  >
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
+                    {i === 0 && (
+                      <span className="absolute left-3 top-3 flex items-center gap-1 rounded-full bg-slate-900/80 px-3 py-1 text-xs font-bold text-white">
+                        <CheckCircle2 size={13} /> Sudah Daftar
+                      </span>
+                    )}
+                    <div className="absolute bottom-3 left-3 right-3 text-white">
+                      <p className="flex items-center gap-1 text-[11px] opacity-80">
+                        <Video size={11} /> {m.date}
+                      </p>
+                      <h3 className="line-clamp-2 text-sm font-bold">
+                        {m.title}
+                      </h3>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </DashCard>
             {/* Row 2 — Ada Apa di Komunitas Gasing? */}
             <DashCard title="Ada Apa di Komunitas Gasing?">
               <div className="mt-3 flex gap-5 border-b border-slate-100 text-sm font-semibold">

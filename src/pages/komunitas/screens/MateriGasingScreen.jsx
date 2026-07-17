@@ -94,7 +94,7 @@ export default function MateriGasingScreen() {
       {/* ===== Desktop: Tetap ===== */}
       <div className="hidden px-5 pt-5 lg:grid lg:grid-cols-[1fr_340px] lg:gap-6 lg:px-2">
         {/* ===== Kiri: Metode + grid materi ===== */}
-        <div>
+        <div className="pointer-events-none select-none blur-[5px]">
           <div className="flex items-center gap-2">
             <BookOpen size={18} className="text-orange-500" />
             <h2 className="font-bold text-slate-800">Metode</h2>

@@ -38,8 +38,8 @@ export default function VirtualMeetUpScreen() {
                 className="mt-3 flex gap-3 overflow-x-auto pb-2"
               >
               {meetupUpcoming.map((m) => (
-                <div key={m.id} className="min-w-[85%] shrink-0 overflow-hidden rounded-2xl bg-white shadow-sm">
-                  <div className="flex">
+                <div key={m.id} className="w-[330px] h-[300px] shrink-0 overflow-hidden rounded-2xl bg-white shadow-sm">
+                  <div className="flex h-full">
                     <div className="flex-1 p-4">
                       <div className="flex items-center gap-1.5 text-xs text-slate-500">
                         <Video size={13} /> <span className="line-clamp-1">{m.speakers}</span>
@@ -125,9 +125,9 @@ export default function VirtualMeetUpScreen() {
       </div>
 
       {/* ===== Desktop: Tetap ===== */}
-      <div className="hidden lg:block">
+      <div className="hidden lg:block lg:-mx-6">
         {/* Akan Datang */}
-        <div className="px-5 pt-5">
+        <div className="px-5 pt-5 lg:px-6">
           <div className="flex items-center gap-2">
             <Video size={18} className="text-orange-500" />
             <h2 className="font-bold text-slate-800">Meet-up Akan Datang</h2>
@@ -155,8 +155,8 @@ export default function VirtualMeetUpScreen() {
               className="mt-3 flex gap-3 overflow-x-auto pb-2 lg:gap-4 lg:scroll-smooth"
             >
             {meetupUpcoming.map((m) => (
-              <div key={m.id} className="min-w-[85%] shrink-0 overflow-hidden rounded-2xl bg-white shadow-sm lg:min-w-[calc(50%-0.5rem)]">
-                <div className="flex">
+              <div key={m.id} className="w-[330px] h-[300px] shrink-0 overflow-hidden rounded-2xl bg-white shadow-sm lg:w-[866px] lg:h-[360px]">
+                <div className="flex h-full">
                   <div className="flex-1 p-4">
                     <div className="flex items-center gap-1.5 text-xs text-slate-500">
                       <Video size={13} /> <span className="line-clamp-1">{m.speakers}</span>
@@ -192,7 +192,7 @@ export default function VirtualMeetUpScreen() {
         </div>
 
         {/* Sebelumnya */}
-        <div className="mt-4 bg-slate-100 px-5 py-5">
+        <div className="mt-4 bg-slate-100 px-5 py-5 lg:px-6">
           <div className="flex items-center gap-2">
             <Tv size={18} className="text-orange-500" />
             <h2 className="font-bold text-slate-800">Meet-up Sebelumnya</h2>
