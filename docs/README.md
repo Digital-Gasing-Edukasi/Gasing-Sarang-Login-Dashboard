@@ -19,6 +19,7 @@ dashboard admin GASING CIRCLE. Backend NestJS terpisah. 79 file `.js`/`.jsx` di 
 | Mau nulis / jalanin tes | [`docs/TEST_SCENARIOS.md`](TEST_SCENARIOS.md) | ~65 skenario, per-fitur |
 | Kerja di dashboard admin | [`docs/MANAJEMEN_AKUN.md`](MANAJEMEN_AKUN.md) | Modul manajemen akun + gap data |
 | Kerja di verifikasi bukti transfer | [`docs/VERIFIKASI_PEMBAYARAN.md`](VERIFIKASI_PEMBAYARAN.md) | Sub-menu ke-2 admin, approve/reject manual transfer |
+| Mau balikin pembayaran ke Midtrans | [`docs/PEMBAYARAN_MANUAL.md`](PEMBAYARAN_MANUAL.md) | Fitur manual = SEMENTARA. Checklist revert + gate login |
 | Bikin tabel admin baru | [`docs/ADMIN_TABLE_LIMITS.md`](ADMIN_TABLE_LIMITS.md), [`docs/ADMIN_TABLE_SCROLL.md`](ADMIN_TABLE_SCROLL.md) | Limit, bulk action, aturan scroll |
 | Kerja di alur revisi akun | [`docs/FIX_DATA_FLOW.md`](FIX_DATA_FLOW.md) + [ADR-0003](adr/0003-revise-token-flow.md) | Token JWT one-time dari email |
 | Kerja di flow reset password | [`docs/RESET_PASSWORD_ROUTING.md`](RESET_PASSWORD_ROUTING.md) | Route `/login/reset-password` + kompat link email lama |
@@ -45,6 +46,7 @@ docs/
   TEST_SCENARIOS.md ....... Skenario tes per-fitur, prioritas eksekusi
   MANAJEMEN_AKUN.md ....... Modul Manajemen Akun + kolom yang nunggu backend
   VERIFIKASI_PEMBAYARAN.md  Modul Verifikasi Pembayaran (bukti transfer manual)
+  PEMBAYARAN_MANUAL.md .... Manual transfer = SEMENTARA; checklist balikin ke Midtrans
   ADMIN_TABLE_LIMITS.md ... Limit baris & bulk action tabel admin
   ADMIN_TABLE_SCROLL.md ... `getTableScrollProps` — aturan scroll tabel
   FIX_DATA_FLOW.md ........ Alur perbaikan data / revise

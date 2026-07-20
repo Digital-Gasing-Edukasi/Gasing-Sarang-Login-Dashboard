@@ -4,9 +4,10 @@
 // Midtrans belum siap: user transfer manual → unggah bukti → menunggu
 // verifikasi admin di dashboard (tabel verifikasi menyusul).
 //
-// Alur backend (lihat subscriptionApi):
-//   1. SubscriptionPage memanggil checkoutManual(packageId) → payment pending.
-//   2. Halaman ini unggah file bukti (fileManagerApi.upload) → dapat fileId.
+// Alur backend (lihat subscriptionApi) — semuanya berjalan saat user menekan
+// "Konfirmasi Pembayaran", bukan saat halaman dibuka:
+//   1. checkoutManual(packageId) → payment pending (idempotent per user).
+//   2. fileManagerApi.upload(file) → dapat fileId.
 //   3. uploadReceipt(paymentId, fileId) → payment menunggu review admin.
 import { useState, useRef } from "react";
 import {
@@ -148,18 +149,29 @@ export default function TransferBankPage({
 
     setLoading(true);
     try {
-      // 1. Unggah file bukti → dapat fileId.
+      // 1. Buat payment pending manual_transfer. Endpoint ini idempotent per
+      //    user: bila sudah ada payment pending tanpa bukti, payment yang sama
+      //    di-update, bukan bikin baru. Dipanggil di sini (bukan di halaman
+      //    paket) supaya user yang batal tidak meninggalkan payment pending.
+      //    Bila `payment` sudah diteruskan dari checkout, langkah ini dilewati.
+      let source = payment;
+      if (!source && plan?.id) {
+        const res = await subscriptionApi.checkoutManual(plan.id);
+        source = res?.data || res || null;
+      }
+
+      // 2. Unggah file bukti → dapat fileId.
       const uploaded = await fileManagerApi.upload(file, true);
       const fileId = pick(uploaded, "id", "fileId") || pick(uploaded?.data, "id", "fileId");
       if (!fileId) throw new Error("Gagal mengunggah bukti, coba lagi.");
 
-      // 2. Tentukan paymentId. Bila tidak diteruskan dari checkout, ambil payment
-      //    manual terakhir milik user.
-      let paymentId = pick(payment, "id", "paymentId") || pick(payment?.data, "id", "paymentId");
+      // 3. Tentukan paymentId. Bila checkout tidak mengembalikannya, ambil
+      //    payment manual terakhir milik user.
+      let paymentId = pick(source, "id", "paymentId") || pick(source?.data, "id", "paymentId");
       // ID transaksi untuk ditampilkan di layar konfirmasi (utamakan orderId).
       let resolvedTxnId =
-        pick(payment, "orderId", "orderNumber", "id") ||
-        pick(payment?.data, "orderId", "orderNumber", "id");
+        pick(source, "orderId", "orderNumber", "id") ||
+        pick(source?.data, "orderId", "orderNumber", "id");
       if (!paymentId || !resolvedTxnId) {
         const latest = await subscriptionApi.getLatestPayment().catch(() => null);
         paymentId = paymentId || pick(latest, "id", "paymentId") || pick(latest?.data, "id", "paymentId");
@@ -170,7 +182,7 @@ export default function TransferBankPage({
       }
       if (!paymentId) throw new Error("Data pembayaran tidak ditemukan.");
 
-      // 3. Lampirkan bukti → payment menunggu verifikasi admin.
+      // 4. Lampirkan bukti → payment menunggu verifikasi admin.
       //    Catatan: senderName/senderBank/transferDate dikumpulkan untuk admin,
       //    dikirim ke backend saat skema field tersebut sudah tersedia.
       await subscriptionApi.uploadReceipt(paymentId, fileId);

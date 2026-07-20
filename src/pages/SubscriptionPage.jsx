@@ -332,12 +332,12 @@ export default function SubscriptionPage({ user, onSignOut, onPaymentSuccess, on
     setLoading(true);
     try {
       // ── Transfer manual (Midtrans belum siap) ──────────────────────────────
-      // Buat payment pending manual_transfer, lalu arahkan ke halaman Transfer
-      // Bank untuk unggah bukti. Verifikasi dilakukan admin di dashboard.
+      // Cuma pindah ke halaman Transfer Bank; payment BELUM dibuat di sini.
+      // checkout-manual baru dipanggil saat user menekan "Konfirmasi Pembayaran"
+      // di TransferBankPage, supaya user yang batal di tengah jalan tidak
+      // meninggalkan payment pending yang tidak pernah dibayar.
       const plan = plans.find((p) => p.id === selectedPlan) || null;
-      const res = await subscriptionApi.checkoutManual(selectedPlan);
-      const payment = res?.data || res || null;
-      onCheckoutManual?.(plan, payment);
+      onCheckoutManual?.(plan, null);
     } catch (e) {
       setError(e.message || "Gagal memproses pembayaran, coba lagi");
     } finally {
