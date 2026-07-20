@@ -1,15 +1,27 @@
 import { cn } from '@/lib/utils'
 
-export function RightPanel({ children, mobileHero = null, maxWidth = 'max-w-md' }) {
+export function RightPanel({ children, mobileHero = null, topBar = null, maxWidth = 'max-w-md', padX = 'px-6' }) {
   // Kartu putih jadi "popup sheet" (rounded-top, naik menutupi hero) HANYA saat
   // ada hero ungu di atasnya. Halaman tanpa hero (signup/perbaikan) tampil polos.
   const sheet = !!mobileHero
   return (
     <div className="flex-1 flex flex-col min-h-screen bg-background overflow-y-auto">
       {mobileHero}
+      {topBar && (
+        <div
+          className={cn(
+            'sticky top-0 z-20 w-full mx-auto pt-4 pb-4 bg-background/90 backdrop-blur supports-[backdrop-filter]:bg-background/75',
+            padX,
+            maxWidth
+          )}
+        >
+          {topBar}
+        </div>
+      )}
       <div
         className={cn(
-          'flex-1 flex flex-col justify-start lg:justify-center px-6 lg:px-16 pb-8 w-full mx-auto bg-background',
+          'flex-1 flex flex-col justify-start lg:justify-center pb-8 w-full mx-auto bg-background',
+          padX,
           maxWidth,
           sheet
             ? 'relative z-10 -mt-6 lg:mt-0 rounded-t-[28px] lg:rounded-none shadow-[0_-12px_30px_rgba(0,0,0,0.10)] lg:shadow-none pt-9 lg:pt-12'

@@ -117,6 +117,8 @@ State & handler tetap didefinisikan sekali di komponen, dipakai kedua blok.
 `radial-gradient(ellipse at 50% 0%, #4c1d95 0%, #2e1065 40%, #1a0b3d 75%, #120833 100%)`,
 tombol CTA putih (`bg-white text-[#1a0b3d]` pill).
 
+**Bentuk kontrol = pill di semua ukuran.** Karena 1 codebase, field/dropdown/calendar/CTA memakai `rounded-full` yang sama di mobile & desktop; komponen tema-gelap (`DarkAuth`) memang sudah pill sejak awal. Detail: [PILL_SHAPE_INPUTS.md](PILL_SHAPE_INPUTS.md).
+
 ---
 
 ## 6. Status per-flow

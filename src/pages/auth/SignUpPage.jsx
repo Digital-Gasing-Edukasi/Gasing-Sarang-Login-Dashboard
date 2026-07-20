@@ -272,13 +272,15 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
   };
 
   return (
-    <RightPanel maxWidth="max-w-[452px]">
-      <StepBar
-        current={step === 1 ? 1 : 2}
-        total={3}
-        onBack={step === 2 ? () => setStep(1) : undefined}
-      />
-
+    <RightPanel
+      topBar={
+        <StepBar
+          current={step === 1 ? 1 : 2}
+          total={3}
+          onBack={step === 2 ? () => setStep(1) : undefined}
+        />
+      }
+    >
       {step === 1 ? (
         <>
           <div className="animate-fade-in-up delay-100 text-center">
@@ -672,18 +674,6 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
                 "Lanjutkan"
               )}
             </Button>
-          </div>
-
-          <div className="mt-6 animate-fade-in-up delay-300">
-            <p className="text-sm text-center text-muted-foreground">
-              Sudah punya akun?{" "}
-              <button
-                onClick={() => onNavigate("login")}
-                className="font-bold text-[#0033EC] underline underline-offset-2 hover:text-[#0033EC]/80 transition-colors"
-              >
-                Log In
-              </button>
-            </p>
           </div>
         </>
       )}

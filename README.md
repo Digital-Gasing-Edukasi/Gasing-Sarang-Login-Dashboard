@@ -1,6 +1,6 @@
 # GASING CIRCLE — Frontend SPA
 
-> **Versi:** 3.0.0 · **Tanggal:** 15 Juli 2026 · **Stack:** React 18 + Vite + React Router v6 + Tailwind CSS + shadcn/ui
+> **Versi:** 3.1.0 · **Tanggal:** 21 Juli 2026 · **Stack:** React 18 + Vite + React Router v6 + Tailwind CSS + shadcn/ui
 
 > 📚 Cari dokumen lain? Mulai dari **[peta dokumentasi](docs/README.md)** — arsitektur,
 > deployment, skenario tes, modul admin, dan ADR.
@@ -72,7 +72,7 @@ Login-Dashboard/
 ├── vite.config.js          ← base '/' + path alias + proxy dev
 ├── deploy/                 ← contoh config Nginx (SPA fallback)
 ├── docs/                   ← dokumentasi modul + ADR (mulai dari docs/README.md)
-└── src/                    ← 79 file .js/.jsx
+└── src/                    ← 94 file .js/.jsx
     ├── main.jsx            ← mount React + <BrowserRouter>
     ├── App.jsx             ← <Routes> + boot sequence (deep-link, restore sesi)
     ├── index.css           ← global styles + CSS variables shadcn
@@ -96,7 +96,7 @@ Login-Dashboard/
         │                     ForgotPasswordPage, CheckEmailPage, ResetPasswordPage,
         │                     FixDataPage, SsoCallbackPage, AuthChoicePage
         ├── legal/          ← LegalLayout, TermsPage, PrivacyPage
-        ├── admin/          ← 27 file: tabel, modal, mappers.js, roleOptions.js, tableScroll.js
+        ├── admin/          ← 31 file: tabel, modal, mappers.js, roleOptions.js, tableScroll.js
         ├── AdminDashboardPage.jsx  ← orchestrator dashboard (5 tab, lazy-loaded)
         ├── SubscriptionPage.jsx    ← pilih paket + pilih metode bayar
         ├── TransferBankPage.jsx    ← transfer manual: unggah bukti
@@ -406,11 +406,13 @@ Datanya **disimpan di `app-config`** (`appConfigApi.get/set`), bukan tabel sendi
 
 | Komponen     | File              | Kegunaan                                        |
 | ------------ | ----------------- | ----------------------------------------------- |
-| `<Button>`   | `ui/button.jsx`   | Tombol dengan variant (default, outline, ghost) |
-| `<Input>`    | `ui/input.jsx`    | Input field                                     |
+| `<Button>`   | `ui/button.jsx`   | Tombol dengan variant (default, outline, ghost, link); base pill `rounded-full` |
+| `<Input>`    | `ui/input.jsx`    | Input field (pill `rounded-full`)               |
 | `<Label>`    | `ui/label.jsx`    | Label form aksesibel                            |
-| `<Checkbox>` | `ui/checkbox.jsx` | Checkbox "Ingatkan saya"                        |
+| `<Checkbox>` | `ui/checkbox.jsx` | Checkbox "Ingat saya"                           |
 | `<Select>`   | `ui/select.jsx`   | Dropdown daerah pelatihan GASING                |
+
+> **Bentuk kontrol = pill (`rounded-full`).** Semua field/trigger yang diisi user — `Input`, `Select` (trigger), `DateField`, dan `Button` — memakai sudut kapsul membulat penuh di kedua sisi. Diatur di **komponen dasar**, jadi berlaku otomatis di seluruh app (user & admin). Detail, jebakan `cn()`, & cara kembalikan: [docs/PILL_SHAPE_INPUTS.md](docs/PILL_SHAPE_INPUTS.md).
 
 ### 8.4 Komponen Layout (`src/components/layout/`)
 
@@ -421,6 +423,8 @@ Datanya **disimpan di `app-config`** (`appConfigApi.get/set`), bukan tabel sendi
 | `<Divider />`         | Garis pemisah horizontal tipis                          |
 | `<AuthFullLayout />`  | Layout full-width untuk halaman forgot/reset password   |
 | `<StepIndicator />`   | Progress bar 3 langkah Sign Up                          |
+| `<MobileHero />`      | Hero ungu mobile (wallpaper + maskot), `lg:hidden` ([docs/MOBILE_RESPONSIVE.md](docs/MOBILE_RESPONSIVE.md)) |
+| `<Divider />`         | Garis pemisah (di-`export` dari `RightPanel.jsx`)       |
 
 ### 8.5 Komponen Shared (`src/components/shared/`)
 
@@ -434,6 +438,10 @@ Datanya **disimpan di `app-config`** (`appConfigApi.get/set`), bukan tabel sendi
 | `<LoginStatusModal />` | Modal blokir login: suspended / pending / expired (lihat §8.7 `loginGate.js`) |
 | `<MobileReviewNotice />` | Notice khusus tampilan mobile ([docs/MOBILE_RESPONSIVE.md](docs/MOBILE_RESPONSIVE.md)) |
 | `<NoConnectionBanner />` | Banner saat koneksi ke backend putus        |
+| `DarkAuth.jsx`      | Komponen auth tema-gelap mobile: `AuthDarkLayout`, `DarkInput`, `DarkPrimaryButton`, `DarkGhostButton`, `DarkDivider` (semua pill) |
+| `<DateField />`     | Field tanggal lahir dengan roda pilih (tanggal/bulan/tahun) custom, sama di desktop & mobile |
+| `<Logo />`          | Logo GASING (`variant="responsive"`)            |
+| `<PaymentStatusLayout />` | Shell 4 halaman status pembayaran (success/pending/error/dll.) |
 
 ### 8.6 Custom Hook (`src/hooks/`)
 
@@ -458,7 +466,7 @@ Logika non-UI dipusatkan di sini supaya `App.jsx` dan komponen tetap tipis.
 | `roles.js`     | `ADMIN_CAPABILITIES`, `isSuperAdmin()`, `isOperationalAdmin()`          | Aturan "siapa boleh ke mana" pasca-login. Admin operasional = punya **semua** 6 capability dan bukan superadmin |
 | `loginGate.js` | `evaluateLoginGate(profile)`                                           | Tentukan apakah login diblokir. Prioritas: **suspended > pending > expired**. Return `null` kalau lolos |
 | `fixLink.js`   | `FIELD_DEFS`, `FIELD_LABEL`, `encodeFixPayload()`, `decodeFixPayload()`, `buildFixUrl()`, `defaultFieldMessage()` | Payload & URL alur perbaikan data — lihat [docs/FIX_DATA_FLOW.md](docs/FIX_DATA_FLOW.md) |
-| `utils.js`     | `cn()`                                                                 | Merge className Tailwind (clsx + tailwind-merge) |
+| `utils.js`     | `cn()`                                                                 | Gabung className — `clsx` saja (**bukan** tailwind-merge; class `rounded-*` bisa tabrakan, lihat [docs/PILL_SHAPE_INPUTS.md §5](docs/PILL_SHAPE_INPUTS.md)) |
 
 ---
 
@@ -1012,6 +1020,14 @@ Ubah CSS variables di `src/index.css`:
 ---
 
 ## 17. Changelog
+
+### v3.1.0 — 21 Juli 2026 *(Design System — Pill Controls)*
+
+- ✅ **Kontrol input user jadi pill** (`rounded-full`, bulat penuh kiri-kanan): text input, dropdown (trigger), calendar/`DateField`, tombol CTA. Referensi bentuk tombol CTA. **OTP box** dikecualikan → kotak sudut membulat `12px` (kotak kecil kalau di-pill jadi oval).
+- ✅ Diubah di **komponen dasar** (`ui/input.jsx`, `ui/select.jsx`, `shared/DateField.jsx`, `ui/button.jsx`) + `.otp-input` di `index.css`, jadi konsisten desktop **dan** mobile (1 codebase responsive). Komponen tema-gelap mobile (`DarkAuth`) memang sudah pill sejak awal.
+- ✅ Padding horizontal field dinaikkan `px-3 → px-4` agar teks tidak mepet ke tepi membulat.
+- ℹ️ **Efek disengaja:** karena komponen shared, Admin Dashboard ikut pill. Panel dropdown terbuka & popup roda tanggal **tetap** `rounded-lg/2xl`.
+- 📝 Dokumen baru: [docs/PILL_SHAPE_INPUTS.md](docs/PILL_SHAPE_INPUTS.md) (termasuk catatan `cn()` = `clsx` tanpa tailwind-merge). Index & README §8.3 diselaraskan.
 
 ### v3.0.0 — 15 Juli 2026 *(Migrasi Routing + Pembayaran Manual)*
 

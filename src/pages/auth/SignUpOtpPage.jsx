@@ -61,8 +61,7 @@ export function SignUpOtpPage({ onNavigate, otpToken, email, onOtpToken }) {
   }
 
   return (
-    <RightPanel>
-      <StepBar current={3} total={3} onBack={() => onNavigate('signup')} />
+    <RightPanel topBar={<StepBar current={3} total={3} onBack={() => onNavigate('signup')} />}>
       <div className="animate-fade-in-up delay-100 text-center">
         <h1 className="text-2xl font-bold text-foreground mb-1">Verifikasi Email</h1>
         <p className="text-sm text-muted-foreground mb-1">Masukkan kode yang kami kirimkan ke</p>
@@ -84,7 +83,7 @@ export function SignUpOtpPage({ onNavigate, otpToken, email, onOtpToken }) {
               >
                 {resending ? <><Loader2 size={14} className="animate-spin" /> Mengirim ulang...</> : 'Kirim ulang kode'}
               </button>
-            : <p className="text-sm text-muted-foreground">Tidak menerima kode? Kirim ulang dalam <span className="font-bold text-foreground">{display}</span></p>
+            : <p className="text-sm text-muted-foreground">Tidak menerima kode? Kirim ulang dalam <span className="font-bold text-[#EF4444]">{display}</span></p>
           }
         </div>
       </div>
