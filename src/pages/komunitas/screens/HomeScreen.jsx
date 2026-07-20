@@ -150,7 +150,7 @@ export default function HomeScreen() {
       <div className="mt-6 hidden px-2 pb-8 lg:block">
         {/* Row 1,2 & 3 (terkunci): blur + CTA gabung */}
         <div className="relative mt-5">
-          <div className="pointer-events-none grid select-none grid-cols-2 gap-5 blur-[5px]">
+          <div className="blur-effect-desktop grid grid-cols-2 gap-5">
             {/* Row 1 — Konten Eksklusif */}
             <DashCard
               action={false}

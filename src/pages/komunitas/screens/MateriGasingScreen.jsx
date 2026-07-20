@@ -34,7 +34,7 @@ export default function MateriGasingScreen() {
 
       {/* ===== Mobile: Terkunci ===== */}
       <div className="lg:hidden relative">
-        <div className="pointer-events-none select-none px-5 pt-5 pb-20">
+        <div style={{ "--blur-start": "370px" }} className="blur-effect-mobile px-5 pt-5 pb-20">
           <div className="flex items-center gap-2">
             <BookOpen size={18} className="text-orange-500" />
             <h2 className="font-bold text-slate-800">Metode</h2>
@@ -75,8 +75,6 @@ export default function MateriGasingScreen() {
           </div>
         </div>
         
-        {/* Progressive Blur Overlay */}
-        <div className="pointer-events-none absolute inset-0 z-10 bg-white/20 backdrop-blur-[5px] [-webkit-mask-image:linear-gradient(to_bottom,transparent_0%,black_60vh)] [mask-image:linear-gradient(to_bottom,transparent_0%,black_60vh)]" />
 
         {/* Overlay CTA gabung */}
         <div className="pointer-events-none fixed inset-x-0 bottom-0 z-40 mx-auto flex h-40 max-w-[480px] items-end justify-center bg-gradient-to-t from-slate-50 via-slate-50/90 to-transparent pb-24">
@@ -94,7 +92,7 @@ export default function MateriGasingScreen() {
       {/* ===== Desktop: Tetap ===== */}
       <div className="hidden px-5 pt-5 lg:grid lg:grid-cols-[1fr_340px] lg:gap-6 lg:px-2">
         {/* ===== Kiri: Metode + grid materi ===== */}
-        <div className="pointer-events-none select-none blur-[5px]">
+        <div className="blur-effect-desktop">
           <div className="flex items-center gap-2">
             <BookOpen size={18} className="text-orange-500" />
             <h2 className="font-bold text-slate-800">Metode</h2>
@@ -136,7 +134,7 @@ export default function MateriGasingScreen() {
         </div>
 
         {/* ===== Kanan: Musik Gasing + Permainan + promo (desktop, terkunci → blur) ===== */}
-        <aside className="pointer-events-none mt-8 hidden select-none flex-col gap-5 blur-[5px] lg:flex">
+        <aside className="blur-effect-desktop mt-8 hidden flex-col gap-5 lg:flex">
           {/* Musik Gasing */}
           <div className="rounded-2xl bg-white p-4 shadow-md">
             <div className="flex items-center justify-between">

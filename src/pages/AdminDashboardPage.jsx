@@ -764,10 +764,12 @@ export default function AdminDashboardPage({ user, onSignOut }) {
   }
 
   // Konfirmasi voucher → langkah-2 ("Finalize"): PENDING_VOUCHER(3) → APPROVED(1).
-  // Payload HANYA { status }. Jangan sertakan discourseGroupId/lastTrainingSessionId:
-  // backend membaca field itu sebagai penanda langkah-1, dan karena WAITING→APPROVED
-  // bukan transisi sah, akun malah balik ke PENDING_VOUCHER. Keduanya sudah tersimpan
-  // di backend sejak langkah-1. Optimistic remove baris + toast undo 5s.
+  // Payload { status, discourseGroupId }. lastTrainingSessionId TETAP tidak dikirim:
+  // dulu kehadiran kedua field itu dibaca backend sebagai penanda langkah-1 sehingga
+  // akun mental balik ke PENDING_VOUCHER. Sejak 20 Jul backend mewajibkan
+  // discourseGroupId untuk status approved, jadi field itu terpaksa ikut.
+  // VERIFIKASI: pastikan akun benar-benar mendarat di APPROVED, bukan PENDING_VOUCHER.
+  // Optimistic remove baris + toast undo 5s.
   const handleConfirmVoucher = () => {
     if (!voucherCandidate) return
     const target = voucherCandidate
@@ -778,7 +780,7 @@ export default function AdminDashboardPage({ user, onSignOut }) {
       undo: () => setPendingVoucherUsers(prev => [target, ...prev]),
     })
     scheduleAction(
-      () => adminApi.verifyUser(target.id, { status: 'approved' }),
+      () => adminApi.verifyUser(target.id, { status: 'approved', discourseGroupId: target.discourseGroupId }),
       () => { setPendingVoucherUsers(prev => [target, ...prev]); setApiError('Gagal menyetujui akun.') }
     )
   }
@@ -793,7 +795,7 @@ export default function AdminDashboardPage({ user, onSignOut }) {
       undo: () => setPendingVoucherUsers(prev => [...removed, ...prev]),
     })
     scheduleAction(
-      () => Promise.all(ids.map(id => adminApi.verifyUser(id, { status: 'approved' }))),
+      () => Promise.all(rows.map(r => adminApi.verifyUser(r.id, { status: 'approved', discourseGroupId: r.discourseGroupId }))),
       () => { setPendingVoucherUsers(prev => [...removed, ...prev]); setApiError('Gagal menyetujui sebagian akun.') }
     )
   }
@@ -1106,7 +1108,8 @@ export default function AdminDashboardPage({ user, onSignOut }) {
       runBulkStatus(rows, 'Disetujui', <>{rows.length} akun telah <span className="text-green-500 font-medium">dipulihkan</span></>,
         (id, prevStatus) => prevStatus === 'Baru Dihapus' ? adminApi.cancelUserDeletion(id) : adminApi.unsuspendUser(id))
     } else if (key === 'setujui') {
-      runBulkStatus(rows, 'Disetujui', <>{rows.length} akun telah <span className="text-green-500 font-medium">disetujui</span></>, (id) => adminApi.verifyUser(id, { status: 'approved' }))
+      runBulkStatus(rows, 'Disetujui', <>{rows.length} akun telah <span className="text-green-500 font-medium">disetujui</span></>,
+        (id) => adminApi.verifyUser(id, { status: 'approved', discourseGroupId: rows.find(r => r.id === id)?.discourseGroupId }))
     } else if (key === 'tangguhkan') {
       setBulkSuspendOpen(true)
     }

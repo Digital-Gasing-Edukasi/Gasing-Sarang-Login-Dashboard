@@ -51,7 +51,7 @@ export default function VirtualMeetUpScreen() {
 
       {/* ===== Mobile: Terkunci ===== */}
       <div className="lg:hidden relative">
-        <div className="pointer-events-none select-none pb-20">
+        <div style={{ "--blur-start": "400px" }} className="blur-effect-mobile pb-20">
           {/* Akan Datang */}
           <div className="px-5 pt-5">
             <div className="flex items-center gap-2">
@@ -112,8 +112,6 @@ export default function VirtualMeetUpScreen() {
           </div>
         </div>
 
-        {/* Progressive Blur Overlay */}
-        <div className="pointer-events-none absolute inset-0 z-10 bg-white/20 backdrop-blur-[5px] [-webkit-mask-image:linear-gradient(to_bottom,transparent_0%,black_60vh)] [mask-image:linear-gradient(to_bottom,transparent_0%,black_60vh)]" />
 
         {/* Overlay CTA gabung */}
         <div className="pointer-events-none fixed inset-x-0 bottom-0 z-40 mx-auto flex h-40 max-w-[480px] items-end justify-center bg-gradient-to-t from-slate-50 via-slate-50/90 to-transparent pb-24">
@@ -131,7 +129,7 @@ export default function VirtualMeetUpScreen() {
       {/* ===== Desktop: Tetap ===== */}
       <div className="hidden lg:block lg:-mx-6">
         {/* Akan Datang */}
-        <div className="pointer-events-none select-none blur-[5px]">
+        <div className="blur-effect-desktop">
           <div className="px-5 pt-5 lg:px-6">
             <div className="flex items-center gap-2">
               <Video size={18} className="text-orange-500" />
@@ -181,7 +179,7 @@ export default function VirtualMeetUpScreen() {
             <Tv size={18} className="text-orange-500" />
             <h2 className="font-bold text-slate-800">Meet-up Sebelumnya</h2>
           </div>
-          <div className="mt-3 blur-[5px] pointer-events-none select-none opacity-90">
+          <div className="blur-effect-desktop mt-3 opacity-90">
             <div className="flex gap-3 overflow-x-auto pb-2 lg:grid lg:grid-cols-3 lg:gap-4 lg:overflow-visible">
               {meetupPast.map((m) => (
                 <div key={m.id} className="min-w-[80%] overflow-hidden rounded-2xl bg-white shadow-sm lg:min-w-0">

@@ -546,6 +546,7 @@ export default function App() {
                 onNavigate={go}
                 otpToken={otpToken}
                 email={regEmail}
+                onOtpToken={handleOtpToken}
               />
             </SplitLayout>
           }

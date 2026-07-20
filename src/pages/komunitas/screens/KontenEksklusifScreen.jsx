@@ -52,7 +52,7 @@ export default function KontenEksklusifScreen() {
 
       {/* ===== Mobile: Terkunci ===== */}
       <div className="lg:hidden relative">
-        <div className="pointer-events-none select-none px-5 pt-5 pb-20">
+        <div style={{ "--blur-start": "360px" }} className="blur-effect-mobile px-5 pt-5 pb-20">
           {/* Toolbar: Filters + search (desktop) */}
           <div className="flex items-center justify-between">
             <div className="relative">
@@ -118,8 +118,6 @@ export default function KontenEksklusifScreen() {
           </div>
         </div>
 
-        {/* Progressive Blur Overlay */}
-        <div className="pointer-events-none absolute inset-0 z-10 bg-white/20 backdrop-blur-[5px] [-webkit-mask-image:linear-gradient(to_bottom,transparent_0%,black_60vh)] [mask-image:linear-gradient(to_bottom,transparent_0%,black_60vh)]" />
 
         {/* Overlay CTA gabung */}
         <div className="pointer-events-none fixed inset-x-0 bottom-0 z-40 mx-auto flex h-40 max-w-[480px] items-end justify-center bg-gradient-to-t from-slate-50 via-slate-50/90 to-transparent pb-24">
@@ -164,7 +162,7 @@ export default function KontenEksklusifScreen() {
         </div>
 
         {/* ===== Bulan Ini ===== */}
-        <div className="pointer-events-none select-none blur-[5px]">
+        <div className="blur-effect-desktop">
           <div className="mt-5 flex items-center gap-2">
             <span className="flex h-6 w-6 items-center justify-center rounded-full border border-slate-300">
               <ChevronRight size={14} />
@@ -195,7 +193,7 @@ export default function KontenEksklusifScreen() {
             </div>
           </div>
 
-          <div className="pointer-events-none mt-4 grid select-none grid-cols-1 gap-5 blur-[5px] sm:grid-cols-2 xl:grid-cols-3">
+          <div className="blur-effect-desktop mt-4 grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
             {kontenSebelumnya.map((item) => (
               <KontenCard key={item.id} item={item} />
             ))}

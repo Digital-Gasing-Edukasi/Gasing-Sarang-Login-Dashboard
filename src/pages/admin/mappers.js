@@ -221,6 +221,10 @@ export function mapToVerifikasi(u, regions = [], discourseGroups = []) {
     year:      parseCreatedAtYear(u.createdAt),
     school:    u.schoolName || '-',
     role:      resolveRole(u, discourseGroups),
+    // Dibawa mentah (bukan cuma dipakai resolveRole) karena langkah-2 approve harus
+    // mengirim ulang discourseGroupId. Tanpa ini, baris hasil reload halaman kehilangan
+    // nilainya dan BE menolak: "discourseGroupId is required when status is approved".
+    discourseGroupId: toGroupId(u.discourseGroupId ?? u.discourseGroup?.id),
     // Id mentah untuk membangun link perbaikan data (prefill di FixDataPage).
     raw: {
       birthdate:  (u.birthdate && typeof u.birthdate === 'object') ? (u.birthdate.date || '') : (u.birthdate || ''),
@@ -296,6 +300,14 @@ function fmtLastUpdated24h(raw) {
 // Nama role (discourse group). Prioritas embedded; fallback resolve id → daftar groups.
 // Discourse `name` itu slug ("TrainerUtama"), jadi selalu lewat canonicalRole()
 // supaya tabel menampilkan "Trainer Utama". Grup non-role (subscriber) → ''.
+// discourseGroupId harus integer saat dikirim balik ke BE (bentuk string ditolak).
+// Kembalikan null kalau tidak ada, supaya caller bisa bedakan "kosong" vs 0.
+function toGroupId(v) {
+  if (v == null || v === '') return null
+  const n = Number(v)
+  return Number.isFinite(n) ? n : null
+}
+
 function resolveRole(u, groups = []) {
   const embedded = u.discourseGroup || u.discourseGroupName
   if (embedded) return canonicalRole(embedded) || ''
@@ -456,6 +468,10 @@ export function mapToManajemen(u, regions = [], discourseGroups = []) {
     year:      parseCreatedAtYear(u.createdAt),
     school:    u.schoolName || '-',
     role:      resolveRole(u, discourseGroups),
+    // Dibawa mentah (bukan cuma dipakai resolveRole) karena langkah-2 approve harus
+    // mengirim ulang discourseGroupId. Tanpa ini, baris hasil reload halaman kehilangan
+    // nilainya dan BE menolak: "discourseGroupId is required when status is approved".
+    discourseGroupId: toGroupId(u.discourseGroupId ?? u.discourseGroup?.id),
     subscription: subStatus,
     plan:    parsePlan(sub),
     endDate: endMs ? fmtDate(endMs) : '-',

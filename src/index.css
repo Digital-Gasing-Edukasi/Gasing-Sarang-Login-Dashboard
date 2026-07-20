@@ -106,3 +106,42 @@
     linear-gradient(90deg, rgba(0,0,0,0.06) 1px, transparent 1px);
   background-size: 48px 48px;
 }
+
+/* ===== Blur konten terkunci (guest mode) — halaman Komunitas =====
+   Mobile: progressive. Kartu pertama tetap tajam, makin ke bawah makin blur.
+   Titik mulai blur diatur per-screen lewat --blur-start (jarak dari atas
+   wrapper konten, bukan dari atas layar). Dua lapis supaya gradasinya halus:
+   lapis tipis duluan, lapis tebal menyusul di bawahnya. */
+.blur-effect-mobile {
+  --blur-start: 380px;
+  position: relative;
+  pointer-events: none;
+  user-select: none;
+}
+.blur-effect-mobile::before,
+.blur-effect-mobile::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+}
+.blur-effect-mobile::before {
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  -webkit-mask-image: linear-gradient(to bottom, transparent var(--blur-start), black calc(var(--blur-start) + 140px));
+  mask-image: linear-gradient(to bottom, transparent var(--blur-start), black calc(var(--blur-start) + 140px));
+}
+.blur-effect-mobile::after {
+  background: rgb(255 255 255 / 0.25);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  -webkit-mask-image: linear-gradient(to bottom, transparent calc(var(--blur-start) + 160px), black calc(var(--blur-start) + 380px));
+  mask-image: linear-gradient(to bottom, transparent calc(var(--blur-start) + 160px), black calc(var(--blur-start) + 380px));
+}
+
+/* Desktop: blur rata (punya efek sendiri, tidak mengikuti mobile). */
+.blur-effect-desktop {
+  filter: blur(5px);
+  pointer-events: none;
+  user-select: none;
+}

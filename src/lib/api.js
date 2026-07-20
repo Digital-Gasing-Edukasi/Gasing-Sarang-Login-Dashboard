@@ -207,6 +207,13 @@ export const authApi = {
   confirmEmail: (token, otp) =>
     request("/auth/confirm-email", { method: "POST", body: { token, otp }, noAuth: true }),
 
+  // Kirim ulang OTP pakai token dari response register/resend TERAKHIR. Server
+  // mencabut token lama & balik { token, email } baru — pemanggil WAJIB simpan
+  // token baru ini untuk confirmEmail/resend berikutnya. Token yang sudah dicabut
+  // ditolak; token kedaluwarsa tetap diterima. noAuth: jalur pre-auth.
+  resendOtp: (token) =>
+    request("/auth/resend-otp", { method: "POST", body: { token }, noAuth: true }),
+
   login: (email, password) =>
     request("/auth/login", { method: "POST", body: { email, password }, noAuth: true }),
 
@@ -525,8 +532,20 @@ export const adminApi = {
       body: { newPassword },
     }),
 
-  verifyUser: (userId, data) =>
-    request(`/admin/users/${userId}/verify`, { method: "PATCH", body: data }),
+  // discourseGroupId dinormalisasi ke integer — BE menolak bentuk string. Field
+  // dibuang kalau kosong supaya payload langkah-2 tidak mengirim null.
+  verifyUser: (userId, data) => {
+    const body = { ...data };
+    if ("discourseGroupId" in body) {
+      const n = Number(body.discourseGroupId);
+      if (Number.isFinite(n) && body.discourseGroupId !== null && body.discourseGroupId !== "") {
+        body.discourseGroupId = n;
+      } else {
+        delete body.discourseGroupId;
+      }
+    }
+    return request(`/admin/users/${userId}/verify`, { method: "PATCH", body });
+  },
 
   // Minta user memperbaiki data (status → REVISE). Backend generate token JWT +
   // kirim email berisi link revise. `fieldsToRevise` = array key field yang salah.
