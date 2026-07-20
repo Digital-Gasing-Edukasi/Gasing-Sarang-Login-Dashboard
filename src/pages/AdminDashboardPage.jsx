@@ -273,7 +273,7 @@ export default function AdminDashboardPage({ user, onSignOut }) {
         // Defensif: kalau server tidak memfilter, saring lagi di klien.
         const isWaiting = (u) => u.verifiedStatus === 0 || u.verifiedStatus === 'waiting' ||
           (u.verifiedStatus != 1 && u.verifiedStatus != -1 && u.verifiedStatus != 3)
-        setUsers(rawList.filter(isWaiting).map(u => mapToVerifikasi(u, regions)))
+        setUsers(rawList.filter(isWaiting).map(u => mapToVerifikasi(u, regions, discourseGroupsRef.current)))
 
         // Sub-tab Pending Voucher Setup. Dibungkus try/catch supaya kegagalan di sini
         // (mis. nilai filter tidak dikenal server) tidak ikut mengosongkan tabel Pending.
@@ -281,7 +281,7 @@ export default function AdminDashboardPage({ user, onSignOut }) {
           const vRes = await adminApi.getUsers({ 'filter[verifiedStatus]': 'pending_voucher' })
           const vRaw = Array.isArray(vRes) ? vRes : vRes.data || []
           const isPendingVoucher = (u) => u.verifiedStatus === 3 || u.verifiedStatus === 'pending_voucher'
-          setPendingVoucherUsers(vRaw.filter(isPendingVoucher).map(u => mapToVerifikasi(u, regions)))
+          setPendingVoucherUsers(vRaw.filter(isPendingVoucher).map(u => mapToVerifikasi(u, regions, discourseGroupsRef.current)))
         } catch (e) {
           console.error('Failed to load pending voucher users', e)
         }
@@ -1051,9 +1051,14 @@ export default function AdminDashboardPage({ user, onSignOut }) {
     if (activeTab === 'manajemen') {
       // Tiap tab = 1 tabel utama → hanya baris dgn status == tab aktif.
       if (user.accountStatus !== activeFilter) return false
-      if (selectedRoles.length > 0 && !selectedRoles.includes(user.role)) return false
-      if (selectedSubscriptions.length > 0 && !selectedSubscriptions.includes(user.subscription)) return false
-      if (selectedPlans.length > 0 && !selectedPlans.includes(user.plan)) return false
+      // Tab Ditolak & Baru Dihapus: tanpa filter (tombol filter disembunyikan) →
+      // filter tersisa dari tab lain jangan ikut memotong baris.
+      const filterable = activeFilter !== 'Ditolak' && activeFilter !== 'Baru Dihapus'
+      if (filterable) {
+        if (selectedRoles.length > 0 && !selectedRoles.includes(user.role)) return false
+        if (selectedSubscriptions.length > 0 && !selectedSubscriptions.includes(user.subscription)) return false
+        if (selectedPlans.length > 0 && !selectedPlans.includes(user.plan)) return false
+      }
     }
     if (!searchQuery) return true
     const q = searchQuery.toLowerCase()

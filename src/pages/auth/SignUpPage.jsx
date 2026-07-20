@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { LogIn, Calendar, Loader2, Check } from "lucide-react";
+import { LogIn, Loader2, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,6 +14,7 @@ import {
 import { RightPanel } from "@/components/layout/RightPanel";
 import { StepBar } from "@/components/layout/StepIndicator";
 import { IconInput, TogglePassword } from "@/components/shared/IconInput";
+import { DateField } from "@/components/shared/DateField";
 import { authApi, regionsApi, trainingSessionsApi } from "@/lib/api";
 // Dipin ke bad-words 3.x: rilis 4.0.0 (masih `latest` di npm) di-publish tanpa
 // folder `dist/` yang ditunjuk package.json-nya, jadi build gagal me-resolve-nya.
@@ -185,8 +186,8 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
       next.name = "Nama mengandung kata yang tidak pantas atau unsur SARA.";
 
     if (!username) next.username = "Username wajib diisi.";
-    else if (username.length < 3)
-      next.username = "Username minimal 3 karakter.";
+    else if (username.length < 5)
+      next.username = "Username minimal 5 karakter.";
     else if (!/^[a-z][a-z0-9_]*$/.test(username))
       next.username =
         "Username harus diawali huruf kecil dan hanya berisi huruf kecil, angka, dan underscore.";
@@ -194,7 +195,7 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
       next.username = "Username mengandung kata yang tidak pantas atau unsur SARA.";
 
     if (!email) next.email = "Email wajib diisi.";
-    else if (!EMAIL_RE.test(email)) next.email = "Format email tidak valid.";
+    else if (!EMAIL_RE.test(email)) next.email = "Format email tidak sesuai.";
 
     if (!password) next.password = "Password wajib diisi.";
     else if (!allRulesOk)
@@ -504,9 +505,7 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
             )}
             <div className="space-y-1.5">
               <Label className="text-[13px] font-semibold">Tanggal Lahir</Label>
-              <IconInput
-                icon={Calendar}
-                type="date"
+              <DateField
                 value={birthdate}
                 className={errors.birthdate ? ERR_INPUT : ""}
                 onChange={(e) => {

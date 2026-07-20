@@ -159,7 +159,7 @@ function parseVerifiedStatus(v) {
   return 'Pending'
 }
 
-export function mapToVerifikasi(u, regions = []) {
+export function mapToVerifikasi(u, regions = [], discourseGroups = []) {
   // Nama kanonik field region pelatihan = firstTrainingRegionId (lihat SignUpPage).
   // Tetap terima trainingRegionId lama sebagai fallback agar tidak breaking.
   const trainingRegionId = u.firstTrainingRegionId || u.trainingRegionId
@@ -187,11 +187,13 @@ export function mapToVerifikasi(u, regions = []) {
   //   Tanggal = lts.endDate
   // Riwayat Pelatihan = ada/tidaknya sesi (punya lastTrainingSession → true).
   const lts = u.lastTrainingSession || u.trainingSession || {}
-  const ltsEndMs      = dateFieldMs(lts.endDate)
+  // Kolom = "Tanggal Mulai" → pakai startDate; endDate cuma cadangan.
+  const ltsStartMs    = dateFieldMs(lts.startDate) || dateFieldMs(lts.endDate)
   const hasRiwayat    = !!(lts.id || lts.name)
   const alumniNama    = lts.name || '-'
-  const alumniDaerah  = lts.name || '-'
-  const alumniTanggal = ltsEndMs ? fmtDate(ltsEndMs) : '-'
+  // Daerah: kalau sesi tidak ter-embed, jatuh ke region pelatihan pertama user.
+  const alumniDaerah  = lts.name || (regionName !== '-' ? regionName : '-')
+  const alumniTanggal = ltsStartMs ? fmtDate(ltsStartMs) : '-'
   const riwayatCount =
     u.trainingHistoriesCount ?? u.trainingHistoryCount ?? u._count?.trainingHistories ??
     (Array.isArray(u.trainingHistories) ? u.trainingHistories.length : (hasRiwayat ? 1 : 0))
@@ -218,7 +220,7 @@ export function mapToVerifikasi(u, regions = []) {
     voucherCode,
     year:      parseCreatedAtYear(u.createdAt),
     school:    u.schoolName || '-',
-    role:      resolveRole(u),
+    role:      resolveRole(u, discourseGroups),
     // Id mentah untuk membangun link perbaikan data (prefill di FixDataPage).
     raw: {
       birthdate:  (u.birthdate && typeof u.birthdate === 'object') ? (u.birthdate.date || '') : (u.birthdate || ''),
@@ -344,11 +346,11 @@ export function mapToPembayaran(p, regions = [], discourseGroups = []) {
   // Alumni Pelatihan dari lastTrainingSession (payload cuma { id, name, startDate,
   // endDate }, tanpa region): Daerah = lts.name, Tanggal = lts.endDate.
   const lts = u.lastTrainingSession || u.trainingSession || {}
-  const ltsEndMs      = dateFieldMs(lts.endDate)
+  const ltsStartMs    = dateFieldMs(lts.startDate) || dateFieldMs(lts.endDate)
   const hasRiwayat    = !!(lts.id || lts.name)
   const alumniNama    = lts.name || '-'
   const alumniDaerah  = lts.name || '-'
-  const alumniTanggal = ltsEndMs ? fmtDate(ltsEndMs) : '-'
+  const alumniTanggal = ltsStartMs ? fmtDate(ltsStartMs) : '-'
 
   const riwayatCount =
     u.trainingHistoriesCount ?? u.trainingHistoryCount ?? u._count?.trainingHistories ??
@@ -405,7 +407,9 @@ export function mapToManajemen(u, regions = [], discourseGroups = []) {
   const accountStatus = parseManajemenStatus(u)
   const isNew = computeIsNew(parseCreatedAtMs(u.createdAt))
 
-  const voucher = u.activeVoucher?.code || u.voucher?.code || u.voucherCode || ''
+  // Sumber voucher sama dgn mapToVerifikasi — termasuk lastVoucher (dipakai backend
+  // buat voucher yang sudah dikirim), biar kolom Kode Voucher tidak kosong.
+  const voucher = u.lastVoucher?.code || u.activeVoucher?.code || u.voucher?.code || u.voucherCode || ''
   const action  = voucher ? 'Sudah Disalin' : (accountStatus === 'Disetujui' ? 'Konfirmasi' : '-')
 
   // Lokasi = domisili user.
@@ -414,11 +418,11 @@ export function mapToManajemen(u, regions = [], discourseGroups = []) {
   // Alumni Pelatihan = sesi yang diikuti user (lastTrainingSession). Payload cuma
   // { id, name, startDate, endDate }, tanpa region: Daerah = lts.name, Tanggal = endDate.
   const lts = u.lastTrainingSession || u.trainingSession || {}
-  const ltsEndMs      = dateFieldMs(lts.endDate)
+  const ltsStartMs    = dateFieldMs(lts.startDate) || dateFieldMs(lts.endDate)
   const hasRiwayat    = !!(lts.id || lts.name)
   const alumniNama    = lts.name || '-'
   const alumniDaerah  = lts.name || '-'
-  const alumniTanggal = ltsEndMs ? fmtDate(ltsEndMs) : '-'
+  const alumniTanggal = ltsStartMs ? fmtDate(ltsStartMs) : '-'
 
   // Riwayat Pelatihan = jumlah histori; fallback ke ada/tidaknya lastTrainingSession.
   const riwayatCount =
@@ -428,7 +432,7 @@ export function mapToManajemen(u, regions = [], discourseGroups = []) {
   const subEnd = sub?.expiresAt || sub?.endDate || sub?.currentPeriodEnd || sub?.expiredAt || sub?.expires_at
   const endMs  = dateFieldMs(subEnd)
 
-  const lu = fmtLastUpdated24h(u.updatedAt)
+  const lu = fmtLastUpdated24h(u.updatedAt || u.updated_at || u.modifiedAt)
 
   return {
     id:       u.id,

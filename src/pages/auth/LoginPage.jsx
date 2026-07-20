@@ -40,7 +40,7 @@ export function LoginPage({ onNavigate, onLoginSuccess, isSsoMode = false }) {
   const handleLogin = async () => {
     const next = {}
     if (!email)                 next.email    = 'Pastikan email tidak kosong.'
-    else if (!EMAIL_RE.test(email)) next.email = 'Format email tidak valid.'
+    else if (!EMAIL_RE.test(email)) next.email = "Format email tidak sesuai.";
     if (!password)              next.password = 'Pastikan password tidak kosong.'
     if (Object.keys(next).length) { setErrors(next); return }
 
@@ -100,7 +100,7 @@ export function LoginPage({ onNavigate, onLoginSuccess, isSsoMode = false }) {
             id="login-email"
             icon={Mail}
             type="email"
-            placeholder="Masukkan email Anda"
+            placeholder="Masukkan email kamu"
             value={email}
             className={errors.email ? ERR_INPUT : ""}
             onChange={(e) => {
@@ -120,7 +120,7 @@ export function LoginPage({ onNavigate, onLoginSuccess, isSsoMode = false }) {
             id="login-pass"
             icon={Lock}
             type={showPass ? "text" : "password"}
-            placeholder="Masukkan password Anda"
+            placeholder="Masukkan password kamu"
             value={password}
             className={errors.password ? ERR_INPUT : ""}
             onChange={(e) => {
@@ -176,8 +176,6 @@ export function LoginPage({ onNavigate, onLoginSuccess, isSsoMode = false }) {
           )}
         </Button>
       </div>
-
-      <Divider />
 
       <div className="animate-fade-in-up delay-300 text-center">
         <p className="text-sm text-muted-foreground">

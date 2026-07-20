@@ -362,6 +362,8 @@ export function ManajemenControls({
 }) {
   const [isFilterOpen, setIsFilterOpen] = useState(false)
   const activeCount = selectedRoles.length + selectedSubscriptions.length + selectedPlans.length
+  // Tab reduced-view (Ditolak / Baru Dihapus) tak punya kolom Langganan/Paket/Role → filter disembunyikan.
+  const showFilter = activeFilter !== 'Ditolak' && activeFilter !== 'Baru Dihapus'
 
   // Mode bulk: aktif saat ada baris terpilih. Ganti toolbar dengan action-bar per tab.
   if (selectedCount > 0) {
@@ -428,20 +430,22 @@ export function ManajemenControls({
         <ExpandableSearch value={searchQuery} onChange={onSearchChange} />
 
         {/* Filter button (buka drawer). Badge saat ada filter aktif. */}
-        <button
-          onClick={() => setIsFilterOpen(true)}
-          className={cn(
-            'relative w-[42px] h-[42px] rounded-full border flex items-center justify-center transition-colors shrink-0 shadow-sm',
-            activeCount > 0 ? 'border-blue-600 text-blue-600 bg-blue-50' : 'border-gray-200 text-[#0A1128] hover:bg-gray-50'
-          )}
-        >
-          <Filter size={18} strokeWidth={2} />
-          {activeCount > 0 && (
-            <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-blue-600 text-white text-[10px] font-bold flex items-center justify-center">
-              {activeCount}
-            </span>
-          )}
-        </button>
+        {showFilter && (
+          <button
+            onClick={() => setIsFilterOpen(true)}
+            className={cn(
+              'relative w-[42px] h-[42px] rounded-full border flex items-center justify-center transition-colors shrink-0 shadow-sm',
+              activeCount > 0 ? 'border-blue-600 text-blue-600 bg-blue-50' : 'border-gray-200 text-[#0A1128] hover:bg-gray-50'
+            )}
+          >
+            <Filter size={18} strokeWidth={2} />
+            {activeCount > 0 && (
+              <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-blue-600 text-white text-[10px] font-bold flex items-center justify-center">
+                {activeCount}
+              </span>
+            )}
+          </button>
+        )}
 
         <button onClick={onExport} className="flex items-center gap-2 bg-[#0A1128] hover:bg-[#0A1128]/90 text-white px-5 py-2.5 rounded-full text-sm font-medium transition-colors shadow-sm">
           <Download size={16} /> Export List
@@ -449,7 +453,7 @@ export function ManajemenControls({
       </div>
 
       <FilterDrawer
-        open={isFilterOpen}
+        open={isFilterOpen && showFilter}
         onClose={() => setIsFilterOpen(false)}
         selectedSubscriptions={selectedSubscriptions} onSubscriptionsChange={onSubscriptionsChange}
         selectedPlans={selectedPlans} onPlansChange={onPlansChange}

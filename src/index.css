@@ -91,6 +91,15 @@
   box-shadow: 0 0 0 3px rgb(239 68 68 / 0.12);
 }
 
+/* Scrollbar disembunyikan — dipakai roda tanggal/bulan/tahun di DateField. */
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
 .grid-pattern {
   background-image:
     linear-gradient(rgba(0,0,0,0.06) 1px, transparent 1px),

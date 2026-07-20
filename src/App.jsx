@@ -330,10 +330,22 @@ export default function App() {
   //   - Superadmin         → /login/choice
   //   - User biasa         → /login/choice bila langganan aktif, else /login/subscription
   const handleLoginSuccess = async (user) => {
+    // Payment terakhir masih 'pending' → user dianggap boleh masuk walau
+    // langganan belum aktif/expired (nunggu pembayaran diproses).
+    // Dihitung sekali, dipakai di gate 'expired' + routing langganan di bawah.
+    let paymentPending = false;
+    try {
+      const latest = await subscriptionApi.getLatestPayment();
+      const p = latest?.payment || latest?.data || latest || {};
+      paymentPending = p.status === "pending";
+    } catch {
+      // Gagal / belum pernah bayar → anggap tidak ada pending.
+    }
+
     // Guard status akun sebelum masuk: suspended / pending / expired → modal,
     // jangan set currentUser / jangan routing ke halaman app.
     const blocked = evaluateLoginGate(user);
-    if (blocked) {
+    if (blocked && !(blocked.type === "expired" && paymentPending)) {
       setGate({ ...blocked, profile: user });
       navigate("/login", { replace: true });
       return;
@@ -379,14 +391,16 @@ export default function App() {
       const isActive =
         sub?.hasActiveSubscription === true ||
         sub?.subscription?.status === "active";
-      if (isActive) {
+      // Pembayaran masih pending → tetap dilolosin ke web app.
+      if (isActive || paymentPending) {
         webAppApi.redirectWithTokens();
       } else {
         navigate("/login/subscription", { replace: true });
       }
     } catch {
-      // Gagal cek langganan → arahkan ke halaman langganan (fail-safe).
-      navigate("/login/subscription", { replace: true });
+      // Gagal cek langganan → lolos bila ada payment pending, else halaman langganan.
+      if (paymentPending) webAppApi.redirectWithTokens();
+      else navigate("/login/subscription", { replace: true });
     }
   };
 
