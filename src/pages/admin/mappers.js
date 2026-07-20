@@ -242,7 +242,9 @@ function parseManajemenStatus(u) {
   if (u.deletionPending || u.deletionScheduledAt || u.deletedAt) return 'Baru Dihapus'
   if (u.suspendedUntil || u.suspended) return 'Ditangguhkan'
   const vs = u.verifiedStatus
-  if (vs === -1 || vs === 'rejected') return 'Ditolak'
+  // REJECTED(-1) = tolak final; REVISE(2) = diminta perbaiki data. Keduanya hasil
+  // aksi "Tolak Akun" admin, jadi keduanya muncul di tab Ditolak.
+  if (vs === -1 || vs === 'rejected' || vs === 2 || vs === 'revise') return 'Ditolak'
   return 'Disetujui'
 }
 
@@ -251,13 +253,16 @@ function parseManajemenStatus(u) {
 // WAITING/REVISE/PENDING_VOUCHER = masih di alur Verifikasi Akun.
 export const VERIFIED_STATUS = { REJECTED: -1, WAITING: 0, APPROVED: 1, REVISE: 2, PENDING_VOUCHER: 3 }
 
-// Syarat masuk Manajemen Akun (semua tab). Hanya akun ber-keputusan FINAL:
+// Syarat masuk Manajemen Akun (semua tab):
 //   APPROVED(1) = voucher sudah diproses (done) → Disetujui/Ditangguhkan/Baru Dihapus
-//   REJECTED(-1) → Ditolak
-// WAITING(0) / REVISE(2) / PENDING_VOUCHER(3) TIDAK masuk table manapun.
+//   REJECTED(-1) = tolak final          → Ditolak
+//   REVISE(2)    = diminta perbaiki data → Ditolak
+// WAITING(0) / PENDING_VOUCHER(3) masih di alur Verifikasi Akun → TIDAK masuk.
 export function isManajemenEligible(u) {
   const vs = u.verifiedStatus
-  return vs === 1 || vs === 'approved' || vs === -1 || vs === 'rejected'
+  return vs === 1 || vs === 'approved' ||
+         vs === -1 || vs === 'rejected' ||
+         vs === 2 || vs === 'revise'
 }
 
 // Jenis Paket → 'Tahunan' | 'Bulanan' | '-'. Diturunkan dari durasi paket.

@@ -563,11 +563,12 @@ export const adminApi = {
     request(`/admin/users/${userId}/deletion-request`, { method: "DELETE" }),
 
   // ── Tangguhkan / Pulihkan akun (suspend) ──
-  // suspendedUntil: "YYYY-MM-DD HH:mm:ss". Akun masuk tab "Ditangguhkan".
-  suspendUser: (userId, suspendedUntil) =>
+  // suspendedUntil: "YYYY-MM-DD HH:mm:ss". reason wajib (BE menolak tanpa itu:
+  // "Invalid input: expected string, received undefined"). Akun masuk tab "Ditangguhkan".
+  suspendUser: (userId, { suspendedUntil, reason }) =>
     request(`/admin/users/${userId}/suspend`, {
       method: "POST",
-      body: { suspendedUntil },
+      body: { suspendedUntil, reason },
     }),
   // Pulihkan akun dari "Ditangguhkan" → cabut penangguhan.
   unsuspendUser: (userId) =>

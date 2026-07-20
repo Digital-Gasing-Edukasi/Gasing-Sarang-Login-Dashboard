@@ -946,8 +946,8 @@ export default function AdminDashboardPage({ user, onSignOut }) {
   }
 
   // Tangguhkan akun (tab Disetujui) → suspend s/d suspendedUntil (modal preset/manual).
-  // TODO(be): reason & emailMessage belum dikirim — endpoint /suspend hanya terima suspendedUntil.
-  const handleConfirmTangguhkanAkun = ({ suspendedUntil }) => {
+  // TODO(be): emailMessage belum dikirim — endpoint /suspend hanya terima suspendedUntil + reason.
+  const handleConfirmTangguhkanAkun = ({ suspendedUntil, reason }) => {
     const target = actionModal.user
     if (!target) return
     setActionModal({ type: null, user: null })
@@ -955,7 +955,7 @@ export default function AdminDashboardPage({ user, onSignOut }) {
     setManagementUsers(prev => prev.map(u => u.id === target.id ? { ...u, accountStatus: 'Ditangguhkan' } : u))
     setToast({ message: <>Akun {target.name} telah <span className="text-orange-500 font-medium">ditangguhkan</span></>, statusUndo: { id: target.id, prevStatus } })
     scheduleAction(
-      () => adminApi.suspendUser(target.id, suspendedUntil),
+      () => adminApi.suspendUser(target.id, { suspendedUntil, reason }),
       () => { setManagementUsers(prev => prev.map(u => u.id === target.id ? { ...u, accountStatus: prevStatus } : u)); setApiError('Gagal menangguhkan akun.') }
     )
   }
@@ -1112,11 +1112,11 @@ export default function AdminDashboardPage({ user, onSignOut }) {
     }
   }
 
-  // Bulk tangguhkan pakai satu SuspendModal → suspendedUntil sama untuk semua terpilih.
-  const handleBulkTangguhkan = ({ suspendedUntil }) => {
+  // Bulk tangguhkan pakai satu SuspendModal → suspendedUntil + reason sama untuk semua terpilih.
+  const handleBulkTangguhkan = ({ suspendedUntil, reason }) => {
     const rows = selectedUsers
     setBulkSuspendOpen(false)
-    runBulkStatus(rows, 'Ditangguhkan', <>{rows.length} akun telah <span className="text-orange-500 font-medium">ditangguhkan</span></>, (id) => adminApi.suspendUser(id, suspendedUntil))
+    runBulkStatus(rows, 'Ditangguhkan', <>{rows.length} akun telah <span className="text-orange-500 font-medium">ditangguhkan</span></>, (id) => adminApi.suspendUser(id, { suspendedUntil, reason }))
   }
 
   const handleExport = () => {

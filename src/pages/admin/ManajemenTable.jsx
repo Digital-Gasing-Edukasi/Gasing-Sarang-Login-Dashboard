@@ -4,6 +4,7 @@ import { ArrowDownUp, MoreHorizontal, Edit, Trash2, Clock, CheckCircle2, History
 import { cn } from '@/lib/utils'
 import { getTableScrollProps } from './tableScroll'
 import { RoleTag } from './RoleTag'
+import { VoucherCode } from './VoucherCode'
 
 // Menu aksi per tab. `type` dipetakan ke handler di AdminDashboardPage.
 const MENU_BY_TAB = {
@@ -261,13 +262,7 @@ export function ManajemenTable({
                     <td className="px-4 py-4 text-[#0A1128] font-medium">{user.plan || '-'}</td>
                     <td className="px-4 py-4 text-[#0A1128] font-medium">{user.endDate || '-'}</td>
                     <td className="px-4 py-4">
-                      {user.voucher ? (
-                        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs border border-blue-100 bg-blue-50 text-blue-600 font-bold">
-                          {user.voucher}
-                        </div>
-                      ) : (
-                        <span className="text-gray-400">-</span>
-                      )}
+                      <VoucherCode code={user.voucher} />
                     </td>
                     <td className="px-4 py-4">
                       {user.role ? (

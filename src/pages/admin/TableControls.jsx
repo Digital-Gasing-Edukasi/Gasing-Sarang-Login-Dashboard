@@ -281,15 +281,42 @@ function FilterSection({ title, children }) {
   )
 }
 
-// Drawer filter kanan (Langganan / Jenis Paket / Role). Terapkan langsung saat toggle.
+// Drawer filter kanan (Langganan / Jenis Paket / Role).
+// Centang = draft lokal, belum mengubah tabel. Baru commit ke parent saat "Terapkan".
+// "Reset All" mengosongkan semua filter (draft + yang sedang aktif di tabel).
 function FilterDrawer({
   open, onClose,
   selectedSubscriptions, onSubscriptionsChange,
   selectedPlans, onPlansChange,
   selectedRoles, onRolesChange,
 }) {
+  const [draftSubs, setDraftSubs] = useState(selectedSubscriptions)
+  const [draftPlans, setDraftPlans] = useState(selectedPlans)
+  const [draftRoles, setDraftRoles] = useState(selectedRoles)
+
+  // Tiap kali drawer dibuka, draft disinkronkan ulang dari filter yang sedang aktif
+  // supaya perubahan yang tidak jadi diterapkan (tutup tanpa "Terapkan") ikut dibuang.
+  useEffect(() => {
+    if (!open) return
+    setDraftSubs(selectedSubscriptions)
+    setDraftPlans(selectedPlans)
+    setDraftRoles(selectedRoles)
+  }, [open]) // eslint-disable-line react-hooks/exhaustive-deps
+
   const toggle = (list, value, setList) =>
     setList(list.includes(value) ? list.filter(x => x !== value) : [...list, value])
+
+  const handleReset = () => {
+    setDraftSubs([]); setDraftPlans([]); setDraftRoles([])
+    onSubscriptionsChange([]); onPlansChange([]); onRolesChange([])
+  }
+
+  const handleApply = () => {
+    onSubscriptionsChange(draftSubs)
+    onPlansChange(draftPlans)
+    onRolesChange(draftRoles)
+    onClose()
+  }
 
   return (
     <div className={cn('fixed inset-0 z-[90]', open ? '' : 'pointer-events-none')}>
@@ -298,39 +325,56 @@ function FilterDrawer({
         onClick={onClose}
       />
       <aside className={cn(
-        'absolute top-0 right-0 h-full w-[340px] max-w-[85vw] bg-white shadow-2xl p-6 overflow-y-auto transition-transform duration-300',
+        'absolute top-0 right-0 h-full w-[340px] max-w-[85vw] bg-white shadow-2xl flex flex-col transition-transform duration-300',
         open ? 'translate-x-0' : 'translate-x-full'
       )}>
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between px-6 pt-6 pb-4">
           <h3 className="text-lg font-bold text-[#0A1128]">Filters</h3>
           <button onClick={onClose} className="text-gray-400 hover:text-[#0A1128] transition-colors">
             <X size={20} />
           </button>
         </div>
 
-        <FilterSection title="Langganan">
-          {LANGGANAN_OPTIONS.map(o => (
-            <CheckRow key={o.value} label={o.label}
-              checked={selectedSubscriptions.includes(o.value)}
-              onToggle={() => toggle(selectedSubscriptions, o.value, onSubscriptionsChange)} />
-          ))}
-        </FilterSection>
+        <div className="flex-1 overflow-y-auto px-6">
+          <FilterSection title="Langganan">
+            {LANGGANAN_OPTIONS.map(o => (
+              <CheckRow key={o.value} label={o.label}
+                checked={draftSubs.includes(o.value)}
+                onToggle={() => toggle(draftSubs, o.value, setDraftSubs)} />
+            ))}
+          </FilterSection>
 
-        <FilterSection title="Jenis Paket">
-          {PLAN_OPTIONS.map(o => (
-            <CheckRow key={o.value} label={o.label}
-              checked={selectedPlans.includes(o.value)}
-              onToggle={() => toggle(selectedPlans, o.value, onPlansChange)} />
-          ))}
-        </FilterSection>
+          <FilterSection title="Jenis Paket">
+            {PLAN_OPTIONS.map(o => (
+              <CheckRow key={o.value} label={o.label}
+                checked={draftPlans.includes(o.value)}
+                onToggle={() => toggle(draftPlans, o.value, setDraftPlans)} />
+            ))}
+          </FilterSection>
 
-        <FilterSection title="Role">
-          {ROLE_OPTIONS.map(o => (
-            <CheckRow key={o.value} label={o.label} Icon={o.Icon} color={o.color}
-              checked={selectedRoles.includes(o.value)}
-              onToggle={() => toggle(selectedRoles, o.value, onRolesChange)} />
-          ))}
-        </FilterSection>
+          <FilterSection title="Role">
+            {ROLE_OPTIONS.map(o => (
+              <CheckRow key={o.value} label={o.label} Icon={o.Icon} color={o.color}
+                checked={draftRoles.includes(o.value)}
+                onToggle={() => toggle(draftRoles, o.value, setDraftRoles)} />
+            ))}
+          </FilterSection>
+        </div>
+
+        <div className="flex items-center gap-3 px-6 py-5 border-t border-gray-100">
+          <button
+            onClick={handleReset}
+            className="flex-1 py-3 rounded-full border border-gray-300 text-sm font-semibold text-[#0A1128] hover:bg-gray-50 transition-colors"
+          >
+            Reset All
+          </button>
+          <button
+            onClick={handleApply}
+            className="flex-1 py-3 rounded-full bg-blue-600 text-sm font-semibold text-white hover:bg-blue-700 transition-colors"
+          >
+            Terapkan
+          </button>
+        </div>
       </aside>
     </div>
   )
@@ -429,22 +473,35 @@ export function ManajemenControls({
       <div className="flex items-center gap-3">
         <ExpandableSearch value={searchQuery} onChange={onSearchChange} />
 
-        {/* Filter button (buka drawer). Badge saat ada filter aktif. */}
+        {/* Filter button (buka drawer). Saat ada filter aktif berubah jadi pill:
+            [ikon filter | jumlah] + tombol X untuk hapus semua filter. */}
         {showFilter && (
-          <button
-            onClick={() => setIsFilterOpen(true)}
-            className={cn(
-              'relative w-[42px] h-[42px] rounded-full border flex items-center justify-center transition-colors shrink-0 shadow-sm',
-              activeCount > 0 ? 'border-blue-600 text-blue-600 bg-blue-50' : 'border-gray-200 text-[#0A1128] hover:bg-gray-50'
-            )}
-          >
-            <Filter size={18} strokeWidth={2} />
-            {activeCount > 0 && (
-              <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-blue-600 text-white text-[10px] font-bold flex items-center justify-center">
-                {activeCount}
-              </span>
-            )}
-          </button>
+          activeCount > 0 ? (
+            <div className="flex items-center gap-1 shrink-0">
+              <button
+                onClick={() => setIsFilterOpen(true)}
+                className="h-[42px] px-4 rounded-l-full border border-blue-600 text-blue-600 bg-blue-50 flex items-center gap-2.5 transition-colors hover:bg-blue-100 shadow-sm"
+              >
+                <Filter size={18} strokeWidth={2} />
+                <span className="min-w-[22px] h-[22px] px-1.5 rounded-full bg-blue-600 text-white text-[11px] font-bold flex items-center justify-center">
+                  {activeCount}
+                </span>
+              </button>
+              <button
+                onClick={() => { onSubscriptionsChange([]); onPlansChange([]); onRolesChange([]) }}
+                className="w-[42px] h-[42px] rounded-r-full border border-blue-600 bg-white text-[#0A1128] hover:bg-gray-50 flex items-center justify-center transition-colors shadow-sm"
+              >
+                <X size={18} strokeWidth={2} />
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => setIsFilterOpen(true)}
+              className="w-[42px] h-[42px] rounded-full border border-gray-200 text-[#0A1128] hover:bg-gray-50 flex items-center justify-center transition-colors shrink-0 shadow-sm"
+            >
+              <Filter size={18} strokeWidth={2} />
+            </button>
+          )
         )}
 
         <button onClick={onExport} className="flex items-center gap-2 bg-[#0A1128] hover:bg-[#0A1128]/90 text-white px-5 py-2.5 rounded-full text-sm font-medium transition-colors shadow-sm">

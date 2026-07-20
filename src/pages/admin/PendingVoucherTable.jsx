@@ -2,6 +2,7 @@ import { ArrowDownUp, Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { getTableScrollProps } from './tableScroll'
 import { RoleTag } from './RoleTag'
+import { VoucherCode } from './VoucherCode'
 
 // Header sortable, dengan opsi sublabel (grup "Alumni Pelatihan").
 function SortableHeader({ label, sublabel, sortKey, sortConfig, onSort }) {
@@ -108,9 +109,7 @@ export function PendingVoucherTable({
                 </span>
               </td>
               <td className="px-4 py-4">
-                <span className="inline-flex items-center px-3 py-1 rounded-full border border-gray-200 font-mono text-xs font-semibold text-[#0A1128]">
-                  {user.voucherCode || '-'}
-                </span>
+                <VoucherCode code={user.voucherCode} />
               </td>
               <td className="px-4 py-4">
                 {user.role ? (

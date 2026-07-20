@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { UserSearch, Wallet, Users, Calendar, ClipboardList, LogOut, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import logoRect from '@/assets/logo-saranggasing.png'
+import logoSquare from '@/assets/icon_sg.png'
 
 const NAV = [
   { id: 'verifikasi',            label: 'Verifikasi Akun',       icon: UserSearch },
@@ -22,11 +24,12 @@ export function AdminSidebar({ activeTab, onTabChange, onSignOut, user, navFlags
       )}
     >
       {/* Logo + collapse */}
-      <div className="p-6 flex items-center justify-between">
-        <div className="flex items-center gap-3 min-w-0">
-          <div className="w-9 h-9 rounded-xl bg-[#0A1128] shrink-0" />
-          {!collapsed && <span className="font-bold tracking-wide truncate">GC LOGO</span>}
-        </div>
+      <div className={cn('flex items-center py-5', collapsed ? 'justify-center px-2' : 'justify-between px-5')}>
+        {collapsed ? (
+          <img src={logoSquare} alt="Sarang Gasing" className="h-10 w-10 object-contain" />
+        ) : (
+          <img src={logoRect} alt="Sarang Gasing" className="h-[38px] w-[83px] object-contain" />
+        )}
         <button
           onClick={() => setCollapsed(v => !v)}
           className="text-gray-400 hover:text-[#0A1128] p-1 shrink-0 transition-colors"
