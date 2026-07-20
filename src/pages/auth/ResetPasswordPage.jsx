@@ -18,7 +18,7 @@ function DarkPwdInput({ value, onChange, placeholder, show, onToggle, error }) {
         onChange={onChange}
         placeholder={placeholder}
         className={cn(
-          'w-full rounded-2xl bg-white/[0.06] border pl-12 pr-12 py-3.5 text-[15px] text-white placeholder:text-white/30 outline-none transition-colors focus:border-[#a78bfa]/70 focus:bg-white/[0.09]',
+          'w-full rounded-full bg-white/[0.06] border pl-12 pr-12 py-3.5 text-[15px] text-white placeholder:text-white/30 outline-none transition-colors focus:border-[#a78bfa]/70 focus:bg-white/[0.09]',
           error ? 'border-red-400/70' : 'border-white/12'
         )}
       />

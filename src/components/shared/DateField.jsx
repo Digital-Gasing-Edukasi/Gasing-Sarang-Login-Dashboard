@@ -187,7 +187,7 @@ export function DateField({ value, onChange, className, id }) {
         aria-haspopup="dialog"
         aria-expanded={open}
         className={cn(
-          "flex h-11 w-full items-center gap-2.5 rounded-lg border border-input bg-background px-3 text-sm",
+          "flex h-11 w-full items-center gap-2.5 rounded-full border border-input bg-background px-4 text-sm",
           "transition-all duration-200 hover:border-gray-300",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
           open && "border-primary ring-2 ring-ring",

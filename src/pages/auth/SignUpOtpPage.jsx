@@ -72,7 +72,7 @@ export function SignUpOtpPage({ onNavigate, otpToken, email, onOtpToken }) {
         <ErrorAlert message={error} />
         {info && <p className="text-sm text-center text-green-600">{info}</p>}
         <OtpInput disabled={loading} onChange={code => { setOtpCode(code); setError('') }} />
-        <Button className="w-full" disabled={loading || otpCode.length !== 6} onClick={handleVerify}>
+        <Button className="w-full rounded-full" disabled={loading || otpCode.length !== 6} onClick={handleVerify}>
           {loading ? <><Loader2 size={16} className="animate-spin" /> Memverifikasi...</> : 'Verifikasi Kode OTP'}
         </Button>
         <div className="text-center">

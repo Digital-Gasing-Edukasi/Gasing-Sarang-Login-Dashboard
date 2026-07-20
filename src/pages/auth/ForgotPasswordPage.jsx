@@ -65,7 +65,7 @@ export function ForgotPasswordPage({ onNavigate, onEmailSent }) {
                 onKeyDown={e => e.key === 'Enter' && handleSend()} />
               {errors.email && <p className="text-xs text-red-500">{errors.email}</p>}
             </div>
-            <Button className="w-full" onClick={handleSend} disabled={loading || !email}>
+            <Button className="w-full rounded-full" onClick={handleSend} disabled={loading || !email}>
               {loading ? <><Loader2 size={16} className="animate-spin" /> Mengirim...</> : 'Kirim Tautan'}
             </Button>
           </div>

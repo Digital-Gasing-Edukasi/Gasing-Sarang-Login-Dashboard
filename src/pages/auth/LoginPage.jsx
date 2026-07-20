@@ -163,7 +163,7 @@ export function LoginPage({ onNavigate, onLoginSuccess, isSsoMode = false }) {
         </div>
 
         <Button
-          className="w-full"
+          className="!mt-8 w-full rounded-full"
           onClick={handleLogin}
           disabled={loading || !email || !password}
         >
@@ -177,7 +177,7 @@ export function LoginPage({ onNavigate, onLoginSuccess, isSsoMode = false }) {
         </Button>
       </div>
 
-      <div className="animate-fade-in-up delay-300 text-center">
+      <div className="mt-6 animate-fade-in-up delay-300 text-center">
         <p className="text-sm text-muted-foreground">
           Belum punya akun?{" "}
           <button
@@ -191,7 +191,7 @@ export function LoginPage({ onNavigate, onLoginSuccess, isSsoMode = false }) {
         {/* Fake login: masuk sebagai tamu → halaman komunitas statis (ADR-0004) */}
         <button
           onClick={() => onNavigate("komunitas")}
-          className="mt-3 text-[14px] font-bold text-[#424857] transition-opacity hover:opacity-70"
+          className="mt-2 text-[14px] font-bold text-[#424857] transition-opacity hover:opacity-70"
         >
           Lanjut Sebagai Tamu
         </button>

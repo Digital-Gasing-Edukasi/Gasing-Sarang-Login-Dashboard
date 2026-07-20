@@ -30,7 +30,7 @@ function useIsMobile() {
 }
 
 const TRIGGER_CLS = cn(
-  "flex h-11 w-full items-center justify-between rounded-lg border border-input bg-background px-3 py-2 text-sm",
+  "flex h-11 w-full items-center justify-between rounded-full border border-input bg-background px-4 py-2 text-sm",
   "placeholder:text-muted-foreground",
   "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-0 focus:border-primary",
   "hover:border-gray-300",

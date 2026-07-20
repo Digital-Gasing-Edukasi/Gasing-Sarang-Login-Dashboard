@@ -469,7 +469,7 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
               )}
             </div>
             <Button
-              className="w-full"
+              className="!mt-8 w-full rounded-full"
               onClick={handleNextToData}
               disabled={!step1Complete}
             >
@@ -477,7 +477,7 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
             </Button>
           </div>
 
-          <div className="animate-fade-in-up delay-300">
+          <div className="mt-6 animate-fade-in-up delay-300">
             <p className="text-sm text-center text-muted-foreground">
               Sudah punya akun?{" "}
               <button
@@ -660,7 +660,7 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
               )}
             </div>
             <Button
-              className="w-full"
+              className="!mt-8 w-full rounded-full"
               onClick={handleRegister}
               disabled={loading || !step2Complete}
             >
@@ -674,7 +674,7 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
             </Button>
           </div>
 
-          <div className="animate-fade-in-up delay-300">
+          <div className="mt-6 animate-fade-in-up delay-300">
             <p className="text-sm text-center text-muted-foreground">
               Sudah punya akun?{" "}
               <button
