@@ -4,13 +4,15 @@ import { Button } from '@/components/ui/button'
 import { RightPanel } from '@/components/layout/RightPanel'
 import { StepBar } from '@/components/layout/StepIndicator'
 import { OtpInput }     from '@/components/shared/OtpInput'
-import { ErrorAlert }   from '@/components/shared/ErrorAlert'
 import { useCountdown } from '@/hooks/useCountdown'
 import { authApi }      from '@/lib/api'
 
 // Jeda antar-kirim-ulang OTP (detik). Backend tidak mengembalikan cooldown/retryAfter,
 // hanya melindungi diri dengan rate-limit (429). Jadi gerbang UX ini murni sisi klien.
 const RESEND_COOLDOWN = 120
+
+// Satu wording untuk semua kegagalan verifikasi kode (salah/kedaluwarsa/dicabut).
+const OTP_INVALID_MSG = 'Kode OTP tidak valid. Coba lagi.'
 
 export function SignUpOtpPage({ onNavigate, otpToken, email, onOtpToken }) {
   // Setiap resend mencabut token lama & memberi token baru; simpan lokal supaya
@@ -32,7 +34,9 @@ export function SignUpOtpPage({ onNavigate, otpToken, email, onOtpToken }) {
       await authApi.confirmEmail(token, otpCode)
       onNavigate('signup-review')
     } catch (e) {
-      setError(e.message)
+      // Kode salah/kedaluwarsa (400/401/422) → wording seragam, jangan bocorkan
+      // pesan mentah backend. 429 & error lain tetap apa adanya biar informatif.
+      setError([400, 401, 422].includes(e.status) ? OTP_INVALID_MSG : e.message)
     } finally {
       setLoading(false)
     }
@@ -68,9 +72,14 @@ export function SignUpOtpPage({ onNavigate, otpToken, email, onOtpToken }) {
         <p className="text-sm font-semibold text-foreground mb-8">{maskedEmail}</p>
       </div>
       <div className="animate-fade-in-up delay-200 space-y-6">
-        <ErrorAlert message={error} />
+        {error && (
+          <p className="text-sm text-center font-medium text-[#EF4444] animate-fade-in" role="alert" aria-live="assertive">
+            {error}
+          </p>
+        )}
         {info && <p className="text-sm text-center text-green-600">{info}</p>}
-        <OtpInput disabled={loading} onChange={code => { setOtpCode(code); setError('') }} />
+        {/* error di OtpInput → outline 6 kotak jadi merah, reset begitu user mengetik lagi */}
+        <OtpInput disabled={loading} error={!!error} onChange={code => { setOtpCode(code); setError('') }} />
         <Button className="w-full rounded-full" disabled={loading || otpCode.length !== 6} onClick={handleVerify}>
           {loading ? <><Loader2 size={16} className="animate-spin" /> Memverifikasi...</> : 'Verifikasi Kode OTP'}
         </Button>
