@@ -41,7 +41,7 @@ export function CheckEmailPage({ email, onNavigate }) {
             <div className="w-20 h-20 rounded-full border-2 border-dashed border-green-300 bg-green-50 flex items-center justify-center mx-auto mb-6">
               <Mail size={30} className="text-green-500" />
             </div>
-            <h1 className="text-3xl font-bold text-foreground mb-4">Cek Email Anda</h1>
+            <h1 className="font-cera-pro text-3xl font-bold text-foreground mb-4">Cek Email Anda</h1>
             <p className="text-sm text-muted-foreground">
               Kami telah mengirimkan tautan pemulihan ke email
             </p>

@@ -16,7 +16,7 @@ export function MobileReviewNotice({ icon: Icon, iconTone = 'orange', title, chi
           {Icon && <Icon size={28} strokeWidth={1.75} className={iconColor} />}
         </div>
       </div>
-      <h1 className="mb-4 text-[26px] font-bold leading-tight">{title}</h1>
+      <h1 className="font-cera-pro mb-4 text-[26px] font-bold leading-tight">{title}</h1>
       <p className="mb-9 max-w-xs text-[14px] leading-relaxed text-white/70">{children}</p>
       <button
         onClick={onButton}

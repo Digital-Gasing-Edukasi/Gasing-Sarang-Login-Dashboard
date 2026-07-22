@@ -19,7 +19,7 @@ export function MobileHero({ title }) {
       />
 
       {/* judul */}
-      <h1 className="relative z-10 text-[26px] font-bold leading-tight text-white">
+      <h1 className="font-cera-pro relative z-10 text-[26px] font-bold leading-tight text-white">
         {title ?? (
           <>
             Ayo, bergabung

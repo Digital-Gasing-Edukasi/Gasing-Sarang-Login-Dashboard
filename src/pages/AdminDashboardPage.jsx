@@ -27,7 +27,7 @@ import { SetujuiAkunModal } from './admin/SetujuiAkunModal'
 import { KirimVoucherModal } from './admin/KirimVoucherModal'
 
 
-// ─── Pendaftaran Trainer (app-config hero_banner-home-v2) ───────────────────────
+// Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ Pendaftaran Trainer (app-config hero_banner-home-v2) Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 const PENDAFTARAN_KEY = 'hero_banner-home-v2'
 const HEADER_BASE = 'Apa kamu mau daftar menjadi Trainer di pelatihan Gasing tanggal '
 const DEFAULT_SHARED = {
@@ -59,7 +59,7 @@ function autoOffExpired(rows) {
   return { rows: changed ? next : rows, changed }
 }
 
-// Ambil id topik dari URL Discourse (mis .../t/slug/143 atau .../t/slug/143/5 → 143).
+// Ambil id topik dari URL Discourse (mis .../t/slug/143 atau .../t/slug/143/5 Ã¢â€ â€™ 143).
 function parseThreadId(url) {
   if (!url) return null
   const s = String(url)
@@ -69,7 +69,7 @@ function parseThreadId(url) {
   return nums ? nums[nums.length - 1] : null
 }
 
-// value.threads (object) → array baris untuk table.
+// value.threads (object) Ã¢â€ â€™ array baris untuk table.
 function threadsToRows(value) {
   const threads = value?.threads || {}
   return Object.entries(threads).map(([id, t]) => ({
@@ -86,7 +86,7 @@ function threadsToRows(value) {
   }))
 }
 
-// array baris → value untuk PUT (pertahankan shared_content).
+// array baris Ã¢â€ â€™ value untuk PUT (pertahankan shared_content).
 function rowsToValue(rows, sharedContent) {
   const threads = {}
   rows.forEach(r => {
@@ -206,15 +206,15 @@ export default function AdminDashboardPage({ user, onSignOut }) {
   // Ref agar mapToManajemen selalu baca daftar group terbaru tanpa memicu ulang loadUsers.
   const discourseGroupsRef = useRef([])
   const [trainingRegions, setTrainingRegions] = useState([])
-  // Ref regions terbaru → loadPembayaran bisa useCallback([]) (stabil) tanpa
+  // Ref regions terbaru Ã¢â€ â€™ loadPembayaran bisa useCallback([]) (stabil) tanpa
   // ikut trainingRegions. Kalau ikut, identity-nya berubah saat loadUsers nge-set
-  // regions dan memicu ulang mount-effect → semua loader nembak 2x → 429.
+  // regions dan memicu ulang mount-effect Ã¢â€ â€™ semua loader nembak 2x Ã¢â€ â€™ 429.
   const trainingRegionsRef = useRef([])
   const [trainingSessions, setTrainingSessions] = useState([])
   const [rejectCandidate, setRejectCandidate] = useState(null)
   const [approveCandidate, setApproveCandidate] = useState(null)
 
-  // ── Verifikasi Pembayaran ───────────────────────────────────────────────────
+  // Ã¢â€â‚¬Ã¢â€â‚¬ Verifikasi Pembayaran Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
   // Dua sub-tab = dua dataset: 'menunggu' (payment pending + bukti) & 'ditolak'.
   const [pembayaranMenunggu, setPembayaranMenunggu] = useState([])
   const [pembayaranDitolak, setPembayaranDitolak]   = useState([])
@@ -226,7 +226,7 @@ export default function AdminDashboardPage({ user, onSignOut }) {
   const [pembayaranMenungguCount, setPembayaranMenungguCount] = useState(0)
   const [pembayaranLoaded, setPembayaranLoaded]     = useState(false)
 
-  // ── Bulk verifikasi ────────────────────────────────────────────────────────
+  // Ã¢â€â‚¬Ã¢â€â‚¬ Bulk verifikasi Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
   const BULK_LIMIT = 10 // keputusan #2: hard limit 10 akun sekaligus
   const [selectedIds, setSelectedIds] = useState([])
   const [verifSubTab, setVerifSubTab] = useState('pending') // 'pending' | 'voucher'
@@ -234,7 +234,7 @@ export default function AdminDashboardPage({ user, onSignOut }) {
   const [bulkModal, setBulkModal] = useState(null) // 'approve' | 'reject' | 'confirm' | null
 
   // Sub-tab Pending Voucher Setup (task b). Diisi FE dari hasil approve tab Pending
-  // (opsi B — belum ada state backend). TODO(be): list dari endpoint saat tersedia.
+  // (opsi B Ã¢â‚¬â€ belum ada state backend). TODO(be): list dari endpoint saat tersedia.
   const [pendingVoucherUsers, setPendingVoucherUsers] = useState([])
   const [voucherCandidate, setVoucherCandidate] = useState(null) // konfirmasi voucher tunggal
   const [limitHit, setLimitHit] = useState(false)
@@ -265,7 +265,7 @@ export default function AdminDashboardPage({ user, onSignOut }) {
       }
 
       if (tab === 'verifikasi') {
-        // Dua sub-tab = dua request: WAITING(0) → tabel Pending, PENDING_VOUCHER(3) →
+        // Dua sub-tab = dua request: WAITING(0) Ã¢â€ â€™ tabel Pending, PENDING_VOUCHER(3) Ã¢â€ â€™
         // tabel Pending Voucher Setup. Tidak bisa satu request tanpa filter karena
         // /admin/users dipaginasi (limit default 20).
         const res = await adminApi.getUsers({ 'filter[verifiedStatus]': 'waiting' })
@@ -310,7 +310,7 @@ export default function AdminDashboardPage({ user, onSignOut }) {
       setSharedContent(shared)
 
       // Batas waktu bisa terlewat saat dashboard tidak dibuka sama sekali, jadi
-      // status hasil baca dinormalisasi dulu lalu ditulis balik ke app-config —
+      // status hasil baca dinormalisasi dulu lalu ditulis balik ke app-config Ã¢â‚¬â€
       // kalau tidak, Home masih menampilkan pendaftaran yang sudah tutup.
       const { rows, changed } = autoOffExpired(threadsToRows(value))
       setPendaftaranData(rows)
@@ -318,7 +318,7 @@ export default function AdminDashboardPage({ user, onSignOut }) {
         appConfigApi.set(PENDAFTARAN_KEY, rowsToValue(rows, shared)).catch(() => {})
       }
     } catch (e) {
-      // Belum dikonfigurasi / gagal baca → mulai dari kosong.
+      // Belum dikonfigurasi / gagal baca Ã¢â€ â€™ mulai dari kosong.
       setPendaftaranData([])
       setSharedContent(DEFAULT_SHARED)
     }
@@ -331,9 +331,9 @@ export default function AdminDashboardPage({ user, onSignOut }) {
   // Cukup 1 request: list training-sessions. mapToRiwayat auto-pakai region yang
   // di-embed backend (s.region/s.regency) kalau ada.
   //
-  // CATATAN 429: dulu di sini ada 2 loop per-session — resolve region (GET
+  // CATATAN 429: dulu di sini ada 2 loop per-session Ã¢â‚¬â€ resolve region (GET
   // /regions/:id per id) + ringkasan peserta (getSessionParticipants per id).
-  // Untuk 100 session itu ~200 request → backend NestJS throttler (default
+  // Untuk 100 session itu ~200 request Ã¢â€ â€™ backend NestJS throttler (default
   // ~10 req/60s) langsung balikin ThrottlerException 429. Loop dibuang. Kolom
   // "Daerah" & "Peserta" harus di-embed backend di response list (lihat gap
   // manajemen-akun-data-gaps), bukan disintesis lewat N+1 fetch dari FE.
@@ -433,7 +433,7 @@ export default function AdminDashboardPage({ user, onSignOut }) {
     setPembayaranSubTab('menunggu'); setKonfirmasiCandidate(null); setTolakCandidate(null)
   }
 
-  // ── Verifikasi Pembayaran: konfirmasi / tolak ──────────────────────────────
+  // Ã¢â€â‚¬Ã¢â€â‚¬ Verifikasi Pembayaran: konfirmasi / tolak Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
   // Pola sama dgn approve/reject akun: optimistic remove baris + toast undo 5s +
   // commit via scheduleAction. TODO(be): endpoint confirm/reject belum live.
   const handleKonfirmasiPembayaran = (target) => {
@@ -441,11 +441,11 @@ export default function AdminDashboardPage({ user, onSignOut }) {
     setKonfirmasiCandidate(null)
     setPembayaranMenunggu(prev => prev.filter(u => u.id !== target.id))
     setToast({
-      message: <>Berhasil konfirmasi pembayaran akun <span className="font-medium">{target.name}</span></>,
+      message: <>Berhasil konfirmasi pembayaran akun {target.name}</>,
       undo: () => setPembayaranMenunggu(prev => [target, ...prev]),
     })
     scheduleAction(
-      // Approve sukses → langganan aktif di BE. Refresh Manajemen supaya user
+      // Approve sukses Ã¢â€ â€™ langganan aktif di BE. Refresh Manajemen supaya user
       // approved + status langganannya ikut muncul (state Manajemen kalau tidak
       // di-refetch tetap basi sampai pindah tab / hard reload).
       async () => { await adminApi.approveManualPayment(target.id); loadUsers('manajemen') },
@@ -462,7 +462,7 @@ export default function AdminDashboardPage({ user, onSignOut }) {
     setPembayaranMenunggu(prev => prev.filter(u => u.id !== target.id))
     setPembayaranDitolak(prev => [rejected, ...prev])
     setToast({
-      message: <>Pembayaran <span className="font-medium">{target.name}</span> telah <span className="text-red-500 font-medium">ditolak</span></>,
+      message: <>Pembayaran {target.name} telah ditolak</>,
       undo: () => {
         setPembayaranDitolak(prev => prev.filter(u => u.id !== target.id))
         setPembayaranMenunggu(prev => [target, ...prev])
@@ -478,7 +478,7 @@ export default function AdminDashboardPage({ user, onSignOut }) {
     )
   }
 
-  // ── Seleksi baris verifikasi ────────────────────────────────────────────────
+  // Ã¢â€â‚¬Ã¢â€â‚¬ Seleksi baris verifikasi Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
   const flashLimit = () => {
     setLimitHit(true)
     if (limitTimeoutRef.current) clearTimeout(limitTimeoutRef.current)
@@ -525,7 +525,7 @@ export default function AdminDashboardPage({ user, onSignOut }) {
     setPendaftaranData(next)
     try {
       await persistPendaftaran(next)
-      setToast({ message: <>Pelatihan <span className="font-medium">{data.nama}</span> berhasil ditambahkan</> })
+      setToast({ message: <>Pelatihan {data.nama} berhasil ditambahkan</> })
     } catch (err) {
       setPendaftaranData(prev)
       setApiError(err.message || 'Gagal menyimpan pendaftaran pelatihan.')
@@ -546,7 +546,7 @@ export default function AdminDashboardPage({ user, onSignOut }) {
     return () => clearInterval(timer)
   }, [sharedContent])
 
-  // Aturan: hanya 1 pelatihan boleh aktif. Nyalakan 1 → matikan sisanya.
+  // Aturan: hanya 1 pelatihan boleh aktif. Nyalakan 1 Ã¢â€ â€™ matikan sisanya.
   // Baris yang batas waktunya lewat tidak boleh dinyalakan lagi.
   const handleTogglePendaftaranStatus = async (id) => {
     const target = pendaftaranData.find(r => r.id === id)
@@ -573,9 +573,9 @@ export default function AdminDashboardPage({ user, onSignOut }) {
   }
 
 
-  // Tambah pelatihan baru → POST /admin/training-sessions (optimistic).
-  // Status = state upload: Processing (in-flight) → Saved (sukses) / Error (gagal).
-  // Response cuma balikin session (tanpa peserta/langganan) → kolom itu diisi '-'.
+  // Tambah pelatihan baru Ã¢â€ â€™ POST /admin/training-sessions (optimistic).
+  // Status = state upload: Processing (in-flight) Ã¢â€ â€™ Saved (sukses) / Error (gagal).
+  // Response cuma balikin session (tanpa peserta/langganan) Ã¢â€ â€™ kolom itu diisi '-'.
   const handleAddPelatihan = async (data) => {
     const tempId = `temp-${Date.now()}`
     const baseRow = {
@@ -609,8 +609,8 @@ export default function AdminDashboardPage({ user, onSignOut }) {
         prev.map(r => (r.id === tempId ? { ...r, id: sessionId } : r))
       )
 
-      // Kalau ada CSV peserta: upload → validasi → push (row invalid/duplikat di-skip).
-      // Session tetap dibuat meski import gagal → row Saved + toast peringatan.
+      // Kalau ada CSV peserta: upload Ã¢â€ â€™ validasi Ã¢â€ â€™ push (row invalid/duplikat di-skip).
+      // Session tetap dibuat meski import gagal Ã¢â€ â€™ row Saved + toast peringatan.
       let pesertaWarn = ''
       if (data.pesertaFile) {
         try {
@@ -626,7 +626,7 @@ export default function AdminDashboardPage({ user, onSignOut }) {
       setRiwayatPelatihanData(prev =>
         prev.map(r => (r.id === sessionId ? { ...r, status: 'Saved' } : r))
       )
-      setToast({ message: <>Pelatihan <span className="font-medium">{data.name}</span> berhasil ditambahkan{pesertaWarn}</> })
+      setToast({ message: <>Pelatihan {data.name} berhasil ditambahkan{pesertaWarn}</> })
       if (toastTimeoutId) clearTimeout(toastTimeoutId)
       const tid = setTimeout(() => setToast(null), 5000)
       setToastTimeoutId(tid)
@@ -638,7 +638,7 @@ export default function AdminDashboardPage({ user, onSignOut }) {
     }
   }
 
-  // Hapus session → DELETE /admin/training-sessions/:id (optimistic + revert).
+  // Hapus session Ã¢â€ â€™ DELETE /admin/training-sessions/:id (optimistic + revert).
   // Dipicu dari tombol "Hapus Riwayat" di modal edit (ketik DELETE).
   const handleDeleteRiwayat = async (item) => {
     if (!item) return
@@ -656,7 +656,7 @@ export default function AdminDashboardPage({ user, onSignOut }) {
     }
   }
 
-  // Simpan perubahan session → PATCH + (opsional) ganti CSV peserta (upload+push).
+  // Simpan perubahan session Ã¢â€ â€™ PATCH + (opsional) ganti CSV peserta (upload+push).
   const handleUpdatePelatihan = async (data) => {
     const prev = riwayatPelatihanData
     // Optimistic: update tampilan + status Processing selama request jalan.
@@ -679,7 +679,7 @@ export default function AdminDashboardPage({ user, onSignOut }) {
         }
       }
       setRiwayatPelatihanData(p => p.map(r => r.id === data.id ? { ...r, status: 'Saved' } : r))
-      setToast({ message: <>Berhasil menyimpan riwayat <span className="font-medium">{data.name}</span>{pesertaWarn}</> })
+      setToast({ message: <>Berhasil menyimpan riwayat {data.name}{pesertaWarn}</> })
       if (toastTimeoutId) clearTimeout(toastTimeoutId)
       const tid = setTimeout(() => setToast(null), 5000)
       setToastTimeoutId(tid)
@@ -725,19 +725,19 @@ export default function AdminDashboardPage({ user, onSignOut }) {
   }
 
   // Role + Pelatihan kini dipilih di dalam ApproveModal (bukan lagi di baris tabel),
-  // jadi klik centang langsung buka modal — validasi wajib ada di modal.
+  // jadi klik centang langsung buka modal Ã¢â‚¬â€ validasi wajib ada di modal.
   const handleVerify = (id) => {
     setApproveCandidate(users.find(u => u.id === id))
   }
 
-  // Resolve nama role (discourse group) dari id — untuk kolom Role di tabel voucher.
+  // Resolve nama role (discourse group) dari id Ã¢â‚¬â€ untuk kolom Role di tabel voucher.
   const roleNameFromId = (id) => {
     const g = discourseGroups.find(x => String(x.id ?? x.groupId) === String(id))
     return canonicalRole(g) || ''
   }
 
-  // Approve langkah-1 ("Approve Main Data"): WAITING(0) → PENDING_VOUCHER(3).
-  // discourseGroupId + lastTrainingSessionId WAJIB di payload — kehadirannya yang
+  // Approve langkah-1 ("Approve Main Data"): WAITING(0) Ã¢â€ â€™ PENDING_VOUCHER(3).
+  // discourseGroupId + lastTrainingSessionId WAJIB di payload Ã¢â‚¬â€ kehadirannya yang
   // menandai request ini sebagai langkah-1. Optimistic + toast undo 5s.
   const handleConfirmApprove = ({ discourseGroupId, lastTrainingSessionId }) => {
     if (!approveCandidate) return
@@ -747,7 +747,7 @@ export default function AdminDashboardPage({ user, onSignOut }) {
     setUsers(prev => prev.filter(u => u.id !== target.id))
     setPendingVoucherUsers(prev => [vUser, ...prev])
     setToast({
-      message: <>Akun {target.name} <span className="text-green-500 font-medium">disetujui</span>, menunggu setup voucher</>,
+      message: <>Akun {target.name} telah disetujui</>,
       undo: () => {
         setPendingVoucherUsers(prev => prev.filter(u => u.id !== target.id))
         setUsers(prev => [target, ...prev])
@@ -763,7 +763,7 @@ export default function AdminDashboardPage({ user, onSignOut }) {
     )
   }
 
-  // Konfirmasi voucher → langkah-2 ("Finalize"): PENDING_VOUCHER(3) → APPROVED(1).
+  // Konfirmasi voucher Ã¢â€ â€™ langkah-2 ("Finalize"): PENDING_VOUCHER(3) Ã¢â€ â€™ APPROVED(1).
   // Payload { status, discourseGroupId }. lastTrainingSessionId TETAP tidak dikirim:
   // dulu kehadiran kedua field itu dibaca backend sebagai penanda langkah-1 sehingga
   // akun mental balik ke PENDING_VOUCHER. Sejak 20 Jul backend mewajibkan
@@ -776,7 +776,7 @@ export default function AdminDashboardPage({ user, onSignOut }) {
     setVoucherCandidate(null)
     setPendingVoucherUsers(prev => prev.filter(u => u.id !== target.id))
     setToast({
-      message: <>Akun {target.name} telah <span className="text-green-500 font-medium">disetujui</span></>,
+      message: <>Akun {target.name} telah disetujui</>,
       undo: () => setPendingVoucherUsers(prev => [target, ...prev]),
     })
     scheduleAction(
@@ -791,7 +791,7 @@ export default function AdminDashboardPage({ user, onSignOut }) {
     setPendingVoucherUsers(prev => prev.filter(u => !ids.includes(u.id)))
     setBulkModal(null); setSelectedIds([])
     setToast({
-      message: <>{rows.length} akun telah <span className="text-green-500 font-medium">disetujui</span></>,
+      message: <>{rows.length} akun telah disetujui</>,
       undo: () => setPendingVoucherUsers(prev => [...removed, ...prev]),
     })
     scheduleAction(
@@ -800,7 +800,7 @@ export default function AdminDashboardPage({ user, onSignOut }) {
     )
   }
 
-  // ── Bulk approve / reject ───────────────────────────────────────────────────
+  // Ã¢â€â‚¬Ã¢â€â‚¬ Bulk approve / reject Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
   // Pola sama dengan single: optimistic remove + toast undo 5 detik + commit batch
   // (Promise.all). Undo membatalkan timer, jadi API tak pernah dipanggil.
   // Bulk approve langkah-1: kirim discourseGroupId + lastTrainingSessionId per baris.
@@ -815,7 +815,7 @@ export default function AdminDashboardPage({ user, onSignOut }) {
     setPendingVoucherUsers(prev => [...vUsers, ...prev])
     setBulkModal(null); setSelectedIds([])
     setToast({
-      message: <>{rows.length} akun <span className="text-green-500 font-medium">disetujui</span>, menunggu setup voucher</>,
+      message: <>{rows.length} akun disetujui, menunggu setup voucher</>,
       undo: () => {
         setPendingVoucherUsers(prev => prev.filter(u => !ids.includes(u.id)))
         setUsers(prev => [...removed, ...prev])
@@ -836,7 +836,7 @@ export default function AdminDashboardPage({ user, onSignOut }) {
     const removed = users.filter(u => ids.includes(u.id))
     setUsers(prev => prev.filter(u => !ids.includes(u.id)))
     setBulkModal(null); setSelectedIds([])
-    setToast({ message: <>{rows.length} akun telah <span className="text-red-500 font-medium">ditolak</span></>, users: removed })
+    setToast({ message: <>{rows.length} akun telah ditolak</>, users: removed })
 
     scheduleAction(
       () => Promise.all(rows.map(r => r.status === 'rejected'
@@ -852,9 +852,9 @@ export default function AdminDashboardPage({ user, onSignOut }) {
     const target = rejectCandidate
     setUsers(prev => prev.filter(u => u.id !== target.id))
     setRejectCandidate(null)
-    setToast({ message: <>Akun {target.name} telah <span className="text-red-500 font-medium">ditolak</span></>, user: target })
+    setToast({ message: <>Akun {target.name} telah ditolak</>, user: target })
 
-    // status 'rejected' → tolak final (teks bebas). status 'revise' → minta perbaiki
+    // status 'rejected' Ã¢â€ â€™ tolak final (teks bebas). status 'revise' Ã¢â€ â€™ minta perbaiki
     // data (backend generate token JWT + email link revise). Lihat ADR-0003.
     const apiCall = status === 'rejected'
       ? () => adminApi.rejectUser(target.id, { rejectedReason: reason })
@@ -888,7 +888,7 @@ export default function AdminDashboardPage({ user, onSignOut }) {
     const newRole = roleNameFromId(gid)
     handleRoleChange(target.id, newRole)
     setToast({
-      message: <>Berhasil mengubah role akun <span className="font-bold">{target.name}</span></>,
+      message: <>Berhasil mengubah role akun {target.name}</>,
       roleUndo: { id: target.id, prevRole },
     })
     // Commit ke backend. Undo membatalkan timer.
@@ -898,21 +898,21 @@ export default function AdminDashboardPage({ user, onSignOut }) {
     )
   }
 
-  // Hapus akun (tab Disetujui/Ditolak) → pindah ke "Baru Dihapus" (deletion-request).
+  // Hapus akun (tab Disetujui/Ditolak) Ã¢â€ â€™ pindah ke "Baru Dihapus" (deletion-request).
   const handleConfirmHapusAkun = () => {
     const target = actionModal.user
     if (!target) return
     setActionModal({ type: null, user: null })
     const prevStatus = target.accountStatus
     setManagementUsers(prev => prev.map(u => u.id === target.id ? { ...u, accountStatus: 'Baru Dihapus' } : u))
-    setToast({ message: <>Akun {target.name} telah <span className="text-red-500 font-medium">dihapus</span></>, statusUndo: { id: target.id, prevStatus } })
+    setToast({ message: <>Akun {target.name} telah dihapus</>, statusUndo: { id: target.id, prevStatus } })
     scheduleAction(
       () => adminApi.requestUserDeletion(target.id),
       () => { setManagementUsers(prev => prev.map(u => u.id === target.id ? { ...u, accountStatus: prevStatus } : u)); setApiError('Gagal menghapus akun.') }
     )
   }
 
-  // Pulihkan akun → kembali "Disetujui". Sumber "Baru Dihapus" = cancelDeletion,
+  // Pulihkan akun Ã¢â€ â€™ kembali "Disetujui". Sumber "Baru Dihapus" = cancelDeletion,
   // sumber "Ditangguhkan" = unsuspend.
   const handleConfirmPulihkanAkun = () => {
     const target = actionModal.user
@@ -920,7 +920,7 @@ export default function AdminDashboardPage({ user, onSignOut }) {
     setActionModal({ type: null, user: null })
     const prevStatus = target.accountStatus
     setManagementUsers(prev => prev.map(u => u.id === target.id ? { ...u, accountStatus: 'Disetujui' } : u))
-    setToast({ message: <>Akun {target.name} telah <span className="text-green-500 font-medium">dipulihkan</span></>, statusUndo: { id: target.id, prevStatus } })
+    setToast({ message: <>Akun {target.name} telah dipulihkan</>, statusUndo: { id: target.id, prevStatus } })
     const apiCall = prevStatus === 'Baru Dihapus'
       ? () => adminApi.cancelUserDeletion(target.id)
       : () => adminApi.unsuspendUser(target.id)
@@ -930,7 +930,7 @@ export default function AdminDashboardPage({ user, onSignOut }) {
     )
   }
 
-  // Setujui akun (tab Ditolak) → approve dgn role + pelatihan + voucher (dari modal).
+  // Setujui akun (tab Ditolak) Ã¢â€ â€™ approve dgn role + pelatihan + voucher (dari modal).
   const handleConfirmSetujuiAkun = ({ discourseGroupId, lastTrainingSessionId, voucherCode }) => {
     const target = actionModal.user
     if (!target) return
@@ -940,22 +940,22 @@ export default function AdminDashboardPage({ user, onSignOut }) {
     setManagementUsers(prev => prev.map(u => u.id === target.id
       ? { ...u, accountStatus: 'Disetujui', role: roleName || u.role, voucher: voucherCode || u.voucher }
       : u))
-    setToast({ message: <>Akun {target.name} telah <span className="text-green-500 font-medium">disetujui</span></>, statusUndo: { id: target.id, prevStatus } })
+    setToast({ message: <>Akun {target.name} telah disetujui</>, statusUndo: { id: target.id, prevStatus } })
     scheduleAction(
       () => adminApi.verifyUser(target.id, { status: 'approved', discourseGroupId, lastTrainingSessionId }),
       () => { setManagementUsers(prev => prev.map(u => u.id === target.id ? { ...u, accountStatus: prevStatus } : u)); setApiError('Gagal menyetujui akun.') }
     )
   }
 
-  // Tangguhkan akun (tab Disetujui) → suspend s/d suspendedUntil (modal preset/manual).
-  // TODO(be): emailMessage belum dikirim — endpoint /suspend hanya terima suspendedUntil + reason.
+  // Tangguhkan akun (tab Disetujui) Ã¢â€ â€™ suspend s/d suspendedUntil (modal preset/manual).
+  // TODO(be): emailMessage belum dikirim Ã¢â‚¬â€ endpoint /suspend hanya terima suspendedUntil + reason.
   const handleConfirmTangguhkanAkun = ({ suspendedUntil, reason }) => {
     const target = actionModal.user
     if (!target) return
     setActionModal({ type: null, user: null })
     const prevStatus = target.accountStatus
     setManagementUsers(prev => prev.map(u => u.id === target.id ? { ...u, accountStatus: 'Ditangguhkan' } : u))
-    setToast({ message: <>Akun {target.name} telah <span className="text-orange-500 font-medium">ditangguhkan</span></>, statusUndo: { id: target.id, prevStatus } })
+    setToast({ message: <>Akun {target.name} telah ditangguhkan</>, statusUndo: { id: target.id, prevStatus } })
     scheduleAction(
       () => adminApi.suspendUser(target.id, { suspendedUntil, reason }),
       () => { setManagementUsers(prev => prev.map(u => u.id === target.id ? { ...u, accountStatus: prevStatus } : u)); setApiError('Gagal menangguhkan akun.') }
@@ -966,13 +966,13 @@ export default function AdminDashboardPage({ user, onSignOut }) {
     const target = actionModal.user
     setManagementUsers(managementUsers.map(u => u.id === target.id ? { ...u, voucher: voucherCode } : u))
     setActionModal({ type: null, user: null })
-    setToast({ message: <>Voucher <span className="font-bold">{voucherCode}</span> berhasil dikirim ke {target.name}</> })
+    setToast({ message: <>Voucher {voucherCode} berhasil dikirim ke {target.name}</> })
     // Call API here...
     // adminApi.grantPersonalVoucher(...)
   }
 
   const handleUndoToast = () => {
-    // Aksi FE-only (approve→voucher, konfirmasi voucher) menyimpan closure undo.
+    // Aksi FE-only (approveÃ¢â€ â€™voucher, konfirmasi voucher) menyimpan closure undo.
     if (toast?.undo) {
       toast.undo()
       setToast(null)
@@ -1051,9 +1051,9 @@ export default function AdminDashboardPage({ user, onSignOut }) {
 
   const filteredUsers = currentData.filter(user => {
     if (activeTab === 'manajemen') {
-      // Tiap tab = 1 tabel utama → hanya baris dgn status == tab aktif.
+      // Tiap tab = 1 tabel utama Ã¢â€ â€™ hanya baris dgn status == tab aktif.
       if (user.accountStatus !== activeFilter) return false
-      // Tab Ditolak & Baru Dihapus: tanpa filter (tombol filter disembunyikan) →
+      // Tab Ditolak & Baru Dihapus: tanpa filter (tombol filter disembunyikan) Ã¢â€ â€™
       // filter tersisa dari tab lain jangan ikut memotong baris.
       const filterable = activeFilter !== 'Ditolak' && activeFilter !== 'Baru Dihapus'
       if (filterable) {
@@ -1081,7 +1081,7 @@ export default function AdminDashboardPage({ user, onSignOut }) {
   }
   const selectedUsers = currentData.filter(u => selectedIds.includes(u.id))
 
-  // ── Bulk aksi Manajemen (mengikuti aksi baris per tab) ──────────────────────
+  // Ã¢â€â‚¬Ã¢â€â‚¬ Bulk aksi Manajemen (mengikuti aksi baris per tab) Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
   // Ubah status banyak akun sekaligus + toast undo 5s. commitEach(id, prevStatus)->Promise.
   const runBulkStatus = (rows, newStatus, message, commitEach) => {
     if (!rows.length) return
@@ -1103,23 +1103,23 @@ export default function AdminDashboardPage({ user, onSignOut }) {
     const rows = selectedUsers
     if (!rows.length) return
     if (key === 'hapus') {
-      runBulkStatus(rows, 'Baru Dihapus', <>{rows.length} akun telah <span className="text-red-500 font-medium">dihapus</span></>, (id) => adminApi.requestUserDeletion(id))
+      runBulkStatus(rows, 'Baru Dihapus', <>{rows.length} akun telah dihapus</>, (id) => adminApi.requestUserDeletion(id))
     } else if (key === 'pulihkan') {
-      runBulkStatus(rows, 'Disetujui', <>{rows.length} akun telah <span className="text-green-500 font-medium">dipulihkan</span></>,
+      runBulkStatus(rows, 'Disetujui', <>{rows.length} akun telah dipulihkan</>,
         (id, prevStatus) => prevStatus === 'Baru Dihapus' ? adminApi.cancelUserDeletion(id) : adminApi.unsuspendUser(id))
     } else if (key === 'setujui') {
-      runBulkStatus(rows, 'Disetujui', <>{rows.length} akun telah <span className="text-green-500 font-medium">disetujui</span></>,
+      runBulkStatus(rows, 'Disetujui', <>{rows.length} akun telah disetujui</>,
         (id) => adminApi.verifyUser(id, { status: 'approved', discourseGroupId: rows.find(r => r.id === id)?.discourseGroupId }))
     } else if (key === 'tangguhkan') {
       setBulkSuspendOpen(true)
     }
   }
 
-  // Bulk tangguhkan pakai satu SuspendModal → suspendedUntil + reason sama untuk semua terpilih.
+  // Bulk tangguhkan pakai satu SuspendModal Ã¢â€ â€™ suspendedUntil + reason sama untuk semua terpilih.
   const handleBulkTangguhkan = ({ suspendedUntil, reason }) => {
     const rows = selectedUsers
     setBulkSuspendOpen(false)
-    runBulkStatus(rows, 'Ditangguhkan', <>{rows.length} akun telah <span className="text-orange-500 font-medium">ditangguhkan</span></>, (id) => adminApi.suspendUser(id, { suspendedUntil, reason }))
+    runBulkStatus(rows, 'Ditangguhkan', <>{rows.length} akun telah ditangguhkan</>, (id) => adminApi.suspendUser(id, { suspendedUntil, reason }))
   }
 
   const handleExport = () => {

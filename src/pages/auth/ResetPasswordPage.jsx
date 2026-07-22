@@ -118,7 +118,7 @@ export function ResetPasswordPage({ token, email, onNavigate }) {
           </div>
         ) : (
           <div className="flex-1 flex flex-col animate-fade-in-up">
-            <h1 className="text-[28px] font-bold mb-6">Ubah Password</h1>
+            <h1 className="font-cera-pro text-[28px] font-bold mb-6">Ubah Password</h1>
 
             <div className="space-y-4">
               {errors.general && (

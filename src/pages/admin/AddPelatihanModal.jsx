@@ -112,7 +112,7 @@ export function AddPelatihanModal({ isOpen, onClose, onSave }) {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
       {/* Toast error format file — mengambang di atas modal */}
       {fileError && (
-        <div className="absolute top-6 left-1/2 -translate-x-1/2 z-[60] bg-red-500 text-white text-sm font-medium px-5 py-3 rounded-full shadow-lg">
+        <div className="absolute top-6 left-1/2 -translate-x-1/2 z-[60] bg-[#030B1F] text-white font-sans text-[16px] font-normal px-5 py-3 rounded-full shadow-lg">
           {fileError}
         </div>
       )}

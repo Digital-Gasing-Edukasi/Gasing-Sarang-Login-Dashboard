@@ -48,9 +48,9 @@ export function KonfirmasiVoucherModal({ candidate, onConfirm, onCancel }) {
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
       {toast && (
-        <div className="fixed top-8 left-1/2 -translate-x-1/2 z-[110] bg-[#0A1128] text-white pl-6 pr-4 py-3.5 rounded-full shadow-lg flex items-center gap-6 animate-in slide-in-from-top-4 fade-in duration-300">
-          <span className="text-sm font-light">Kode voucher telah disalin</span>
-          <button onClick={() => setToast(false)} aria-label="Tutup" className="text-gray-400 hover:text-white transition-colors">
+        <div className="fixed top-8 left-1/2 -translate-x-1/2 z-[110] bg-[#030B1F] text-white pl-6 pr-4 py-3.5 rounded-full shadow-lg flex items-center gap-6 font-sans text-[16px] animate-in slide-in-from-top-4 fade-in duration-300">
+          <span className="font-normal">Kode voucher telah disalin</span>
+          <button onClick={() => setToast(false)} aria-label="Tutup" className="text-[#B3B6BC] hover:text-white transition-colors">
             <X size={18} />
           </button>
         </div>

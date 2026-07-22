@@ -48,7 +48,7 @@ export function ForgotPasswordPage({ onNavigate, onEmailSent }) {
                 className="absolute left-0 text-foreground hover:text-muted-foreground transition-colors">
                 <ChevronLeft size={22} />
               </button>
-              <h1 className="text-xl font-bold text-foreground">Lupa Password?</h1>
+              <h1 className="font-cera-pro text-xl font-bold text-foreground">Lupa Password?</h1>
             </div>
             <p className="text-sm text-muted-foreground mb-7">
               Masukkan email kamu yang terdaftar. Kami akan mengirimkan tautan untuk mengubah password kamu.
