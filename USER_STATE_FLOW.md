@@ -240,25 +240,32 @@ state 3 (APPROVED).
 
 ```mermaid
 flowchart TD
-  A["User WAITING(0)<br/>tab Pending Verifikasi"] --> B{Admin: Approve Main Data<br/>langkah-1}
+  A["User WAITING(0)<br/>tab Pending Verifikasi"] --> B{"Admin: Approve Main Data<br/>langkah-1"}
   B --> C["verifyUser {status:'approved',<br/>discourseGroupId, lastTrainingSessionId}"]
-  C --> D["User PENDING_VOUCHER(3)<br/>pindah tab Pending Voucher Setup<br/>voucherCode di-generate"]
-  D --> E[Admin isi Kode Voucher<br/>KirimVoucherModal]
+  C --> D["User PENDING_VOUCHER(3)<br/>pindah tab Pending Voucher Setup<br/>SISTEM generate voucherCode"]
+  D --> D2[["Admin SALIN kode ke Shopee<br/>buat voucher Shopee kode SAMA<br/>(manual, platform eksternal)"]]
+  D2 --> E[Admin isi/konfirmasi Kode Voucher<br/>KirimVoucherModal]
   E --> F[KonfirmasiVoucherModal]
   F --> G{Finalize<br/>langkah-2}
   G --> H["verifyUser {status:'approved',<br/>discourseGroupId}<br/>lastTrainingSessionId TIDAK dikirim"]
   H --> I["User APPROVED(1) ✅<br/>voucher nempel di akun"]
-  I --> J[User pakai kode voucher<br/>saat checkout langganan]
+  I --> J[User lihat kode voucher<br/>di dalam Komunitas]
+  J --> K[User pakai kode di Shopee<br/>kode cocok = langsung kepakai]
 ```
 
 **Kenapa 2 call terpisah** (`AdminDashboardPage.jsx:738-785`, memory `verifikasi-akun-voucher-flow`):
 - **Langkah-1**: kehadiran `lastTrainingSessionId` = penanda "approve main data" → backend pindah ke `PENDING_VOUCHER(3)`, BUKAN langsung approved.
 - **Langkah-2**: kirim `{ status, discourseGroupId }` **tanpa** `lastTrainingSessionId` → baru mendarat di `APPROVED(1)`. Kalau ikut kirim `lastTrainingSessionId`, akun mental balik ke `PENDING_VOUCHER`.
 
+**Langkah manual ke Shopee** (di antara langkah-1 & finalize):
+- Pas sistem **pertama kali** generate `voucherCode` (saat user masuk `PENDING_VOUCHER`), admin **wajib salin kode itu ke platform Shopee** — bikin voucher Shopee dengan **kode yang sama persis**.
+- Tujuan: kode yang nanti user lihat di dalam **Komunitas** bisa **langsung dipakai di Shopee** (kode match). Redeem terjadi di **Shopee**, bukan di halaman langganan app ini.
+
 **File**: `KirimVoucherModal.jsx`, `VoucherModals.jsx`, `PendingVoucherTable.jsx`, `adminApi.verifyUser`.
 ⚠ `genVoucherCode()` masih placeholder FE (`AdminDashboardPage.jsx:181`) — TODO(be): kode asli mestinya dari backend.
+⚠ Sinkronisasi Shopee **manual** — risiko typo/mismatch (kode di app ≠ kode di Shopee). Belum ada integrasi otomatis. Pertimbangkan validasi/konfirmasi biar admin ga salah salin.
 
-**Sisi user**: voucher = potongan harga dipakai di halaman langganan/checkout (state 4). Kolom `Kode Voucher` muncul di tabel Manajemen Akun.
+**Sisi user**: kode voucher tampil **di dalam Komunitas**, dipakai user **di Shopee** untuk potongan. Kolom `Kode Voucher` juga muncul di tabel Manajemen Akun (sisi admin).
 
 ---
 
