@@ -243,10 +243,12 @@ flowchart TD
   A["User WAITING(0)<br/>tab Pending Verifikasi"] --> B{"Admin: Approve Main Data<br/>langkah-1"}
   B --> C["verifyUser {status:'approved',<br/>discourseGroupId, lastTrainingSessionId}"]
   C --> D["User PENDING_VOUCHER(3)<br/>pindah tab Pending Voucher Setup<br/>SISTEM generate voucherCode"]
-  D --> D2[["Admin SALIN kode ke Shopee<br/>buat voucher Shopee kode SAMA<br/>(manual, platform eksternal)"]]
-  D2 --> E[Admin isi/konfirmasi Kode Voucher<br/>KirimVoucherModal]
-  E --> F[KonfirmasiVoucherModal]
-  F --> G{Finalize<br/>langkah-2}
+  D --> SPLIT{{"⚡ 2 proses BERSAMAAN (paralel)"}}
+  SPLIT --> D2["Proses 1 · Shopee (eksternal):<br/>Admin salin kode ke Shopee<br/>buat voucher Shopee kode SAMA"]
+  SPLIT --> E["Proses 2 · App (internal):<br/>Admin isi + konfirmasi Kode Voucher<br/>KirimVoucherModal → KonfirmasiVoucherModal"]
+  D2 --> JOIN{{"✅ Kedua proses beres"}}
+  E --> JOIN
+  JOIN --> G{"Finalize<br/>langkah-2"}
   G --> H["verifyUser {status:'approved',<br/>discourseGroupId}<br/>lastTrainingSessionId TIDAK dikirim"]
   H --> I["User APPROVED(1) ✅<br/>voucher nempel di akun"]
   I --> J[User lihat kode voucher<br/>di dalam Komunitas]
