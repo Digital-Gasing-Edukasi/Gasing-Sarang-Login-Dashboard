@@ -1,4 +1,4 @@
-# Perjalanan User Sarang Gasing — Panduan buat Designer
+[# Perjalanan User Sarang Gasing — Panduan buat Designer
 
 Dokumen ini nyeritain **12 kondisi user** dari awal daftar sampai masuk komunitas,
 pakai bahasa sehari-hari. Fokusnya: *apa yang user lihat di layar, apa yang dia rasain,
@@ -512,3 +512,4 @@ flowchart TD
 - **Nada pesan (tone) itu penting.** Modal penolakan (6) dan penangguhan (9) adalah momen sensitif — desain & copy harus tegas tapi tidak bikin user merasa dihakimi.
 - **Kondisi 4 & 5 mirip** dari sisi user (dua-duanya "sedang menunggu"). Yang membedakan cuma sudah/belum unggah bukti — pastikan penanda statusnya beda biar user paham posisinya.
 </content>
+](https://github.com/Digital-Gasing-Edukasi/Gasing-Sarang-Login-Dashboard/blob/main/USER_FLOW.md)
