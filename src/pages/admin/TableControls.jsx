@@ -86,7 +86,7 @@ function SubTabSwitcher({ subTab, onSubTabChange, pendingCount = 0, voucherCount
             )}
           >
             {t.label}
-            <span className="inline-flex items-center justify-center min-w-[24px] h-6 px-1.5 rounded-full bg-blue-600 text-white text-xs font-bold">
+            <span className="inline-flex items-center justify-center min-w-[24px] h-6 px-1.5 rounded-full bg-blue-600 text-white text-xs font-bold leading-none tabular-nums">
               {fmt(t.count)}
             </span>
           </button>
@@ -200,7 +200,7 @@ function PembayaranSubTabSwitcher({ subTab, onSubTabChange, menungguCount = 0, d
             )}
           >
             {t.label}
-            <span className="inline-flex items-center justify-center min-w-[24px] h-6 px-1.5 rounded-full bg-blue-600 text-white text-xs font-bold">
+            <span className="inline-flex items-center justify-center min-w-[24px] h-6 px-1.5 rounded-full bg-blue-600 text-white text-xs font-bold leading-none tabular-nums">
               {fmt(t.count)}
             </span>
           </button>

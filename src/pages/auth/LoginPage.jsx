@@ -8,6 +8,7 @@ import { MobileHero } from '@/components/layout/MobileHero'
 import { IconInput, TogglePassword } from '@/components/shared/IconInput'
 import { LoginStatusModal } from '@/components/shared/LoginStatusModal'
 import { NoConnectionBanner } from '@/components/shared/NoConnectionBanner'
+import { RateLimitBanner } from '@/components/shared/RateLimitBanner'
 import { authApi, profileApi, tokenStorage } from '@/lib/api'
 import { Logo } from '@/components/shared/Logo'
 
@@ -33,6 +34,8 @@ export function LoginPage({ onNavigate, onLoginSuccess, isSsoMode = false }) {
   const [gate, setGate]         = useState(null)
   // noConn: banner "Tidak Ada Koneksi" (flow 5).
   const [noConn, setNoConn]     = useState(false)
+  // rateLimit: sisa detik cooldown dari 429 (Retry-After). null = tidak kena limit.
+  const [rateLimit, setRateLimit] = useState(null)
 
   const clearFieldError = (field) =>
     setErrors(prev => ({ ...prev, [field]: '' }))
@@ -43,6 +46,8 @@ export function LoginPage({ onNavigate, onLoginSuccess, isSsoMode = false }) {
     else if (!EMAIL_RE.test(email)) next.email = "Format email tidak sesuai.";
     if (!password)              next.password = 'Pastikan password tidak kosong.'
     if (Object.keys(next).length) { setErrors(next); return }
+
+    if (rateLimit) return   // masih cooldown 429 — jangan nembak backend lagi
 
     setErrors({}); setNoConn(false); setLoading(true)
     try {
@@ -55,6 +60,10 @@ export function LoginPage({ onNavigate, onLoginSuccess, isSsoMode = false }) {
     } catch (e) {
       if (isNetworkError(e)) {
         setNoConn(true)                    // flow 5 — tidak ada koneksi
+      } else if (e?.status === 429) {
+        // Rate limit backend (ThrottlerException). Banner merah + hitung mundur;
+        // tombol Login ikut terkunci sampai cooldown habis.
+        setRateLimit(e.retryAfter || 60)
       } else if (/suspend|ditangguhkan/i.test(e?.message || '')) {
         // Backend tolak login akun ditangguhkan (mis. "Account is suspended").
         const d = e?.data || {}
@@ -77,6 +86,14 @@ export function LoginPage({ onNavigate, onLoginSuccess, isSsoMode = false }) {
 
   return (
     <RightPanel mobileHero={<MobileHero />}>
+      {rateLimit && (
+        <RateLimitBanner
+          seconds={rateLimit}
+          onClose={() => setRateLimit(null)}
+          onExpire={() => setRateLimit(null)}
+        />
+      )}
+
       <div className="hidden lg:flex items-center justify-center mb-8 animate-fade-in-up">
         <Logo variant="split" />
       </div>
@@ -165,7 +182,7 @@ export function LoginPage({ onNavigate, onLoginSuccess, isSsoMode = false }) {
         <Button
           className="!mt-8 w-full rounded-full"
           onClick={handleLogin}
-          disabled={loading || !email || !password}
+          disabled={loading || !email || !password || !!rateLimit}
         >
           {loading ? (
             <>

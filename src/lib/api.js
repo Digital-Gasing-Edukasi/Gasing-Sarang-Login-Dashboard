@@ -168,6 +168,12 @@ async function handleResponse(res) {
     const err = new Error(Array.isArray(message) ? message.join(", ") : message);
     err.status = res.status; // dipakai UI untuk bedakan 5xx (server error) vs 4xx.
     err.data = data;         // payload mentah (mis. suspendedUntil/reason saat akun ditangguhkan).
+    // 429 (ThrottlerException): sisa waktu tunggu dari header Retry-After (detik)
+    // supaya UI bisa hitung mundur, bukan cuma bilang "coba lagi nanti".
+    if (res.status === 429) {
+      const ra = parseInt(res.headers.get("Retry-After") || "", 10);
+      err.retryAfter = Number.isFinite(ra) && ra > 0 ? ra : 60;
+    }
     throw err;
   }
   return data;
