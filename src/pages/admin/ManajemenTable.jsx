@@ -22,7 +22,8 @@ const MENU_BY_TAB = {
     { type: 'hapus-akun',      label: 'Hapus Akun',      Icon: Trash2,       danger: true },
   ],
   'Baru Dihapus': [
-    { type: 'pulihkan-akun',   label: 'Pulihkan Akun',   Icon: History,      danger: false },
+    { type: 'pulihkan-akun',        label: 'Pulihkan Akun', Icon: History, danger: false },
+    { type: 'hapus-akun-permanen',  label: 'Hapus Akun',    Icon: Trash2,  danger: true  },
   ],
 }
 
@@ -144,7 +145,7 @@ const SUBSCRIPTION_CLASSES = {
 }
 
 export function ManajemenTable({
-  users, sortConfig, onSort, searchQuery, activeFilter, onActionClick,
+  users, sortConfig, onSort, searchQuery, activeFilter, onActionClick, onRiwayatClick,
   selectedIds = [], onToggleSelect, onToggleSelectAll, allSelected = false,
 }) {
   const isReducedView = activeFilter === 'Rejected' || activeFilter === 'Deleted' || activeFilter === 'Ditolak' || activeFilter === 'Baru Dihapus'
@@ -281,7 +282,12 @@ export function ManajemenTable({
                   {user.riwayatCount ? (
                     <div className="flex items-center gap-2">
                       <span>{user.riwayatCount}</span>
-                      <span className="text-link cursor-pointer underline text-xs">Lihat Detail</span>
+                      <span
+                        onClick={() => onRiwayatClick && onRiwayatClick(user)}
+                        className="text-link cursor-pointer underline text-xs hover:text-blue-700"
+                      >
+                        Lihat Detail
+                      </span>
                     </div>
                   ) : '-'}
                 </td>

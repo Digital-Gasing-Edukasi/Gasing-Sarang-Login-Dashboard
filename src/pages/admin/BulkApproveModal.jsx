@@ -39,7 +39,7 @@ export function BulkApproveModal({ candidates = [], discourseGroups = [], traini
     candidates.forEach((c) => {
       init[c.id] = {
         role: resolveRoleValue(discourseGroups, c.role),
-        session: c.raw?.lastTrainingSessionId ? String(c.raw.lastTrainingSessionId) : '',
+        session: c.raw?.firstTrainingSessionId ? String(c.raw.firstTrainingSessionId) : '',
       }
     })
     setRows(init)
@@ -56,7 +56,7 @@ export function BulkApproveModal({ candidates = [], discourseGroups = [], traini
         id: c.id,
         name: c.name,
         discourseGroupId: parseInt(rows[c.id].role, 10),
-        lastTrainingSessionId: rows[c.id].session,
+        firstTrainingSessionId: rows[c.id].session,
       }))
     )
 

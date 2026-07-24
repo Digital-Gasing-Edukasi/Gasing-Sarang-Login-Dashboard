@@ -195,7 +195,7 @@ export function ApproveModal({ candidate, discourseGroups = [], trainingSessions
   useEffect(() => {
     if (!candidate) return
     setRole(resolveRoleValue(discourseGroups, candidate.role))
-    setSession(candidate.raw?.lastTrainingSessionId ? String(candidate.raw.lastTrainingSessionId) : '')
+    setSession(candidate.raw?.firstTrainingSessionId ? String(candidate.raw.firstTrainingSessionId) : '')
   }, [candidate, discourseGroups])
 
   if (!candidate) return null
@@ -231,7 +231,7 @@ export function ApproveModal({ candidate, discourseGroups = [], trainingSessions
 
         <button
           disabled={!canSubmit}
-          onClick={() => onConfirm({ discourseGroupId: parseInt(role, 10), lastTrainingSessionId: session })}
+          onClick={() => onConfirm({ discourseGroupId: parseInt(role, 10), firstTrainingSessionId: session })}
           className={cn(
             'w-full mt-8 font-semibold px-6 py-3.5 rounded-full text-white transition-colors',
             canSubmit ? 'bg-blue-600 hover:bg-blue-700' : 'bg-blue-300 cursor-not-allowed'

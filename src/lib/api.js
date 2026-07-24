@@ -521,13 +521,27 @@ export const adminApi = {
 
   getUser: (userId) => request(`/admin/users/${userId}`),
 
-  // Peserta 1 session — pakai filter existing lastTrainingSessionId.
-  // CATATAN: hanya user yang session TERAKHIR-nya = sessionId (bukan seluruh
-  // riwayat). Sementara sampai backend sediakan endpoint participants khusus.
+  // Riwayat pelatihan 1 user (modal "Lihat Detail" di Manajemen Akun).
+  // GET /admin/users/training-history/{userId}?page&limit → { data, meta }.
+  listUserTrainingHistories: (userId, params = {}) => {
+    const q = buildQuery({ page: 1, limit: 20, ...params });
+    return request(`/admin/users/training-history/${userId}${q ? "?" + q : ""}`);
+  },
+
+  // Peserta 1 session: user yang punya session tsb di riwayatnya.
+  // filter[trainingSessionId] = filter riwayat pelatihan (gantikan lastTrainingSessionId
+  // lama yang cuma cek session terakhir).
   getSessionParticipants: (sessionId, params = {}) => {
-    const q = buildQuery({ page: 1, limit: 20, "filter[lastTrainingSessionId]": sessionId, ...params });
+    const q = buildQuery({ page: 1, limit: 20, "filter[trainingSessionId]": sessionId, ...params });
     return request(`/admin/users${q ? "?" + q : ""}`);
   },
+
+  // Set/ganti sesi pelatihan pertama user (null = hapus). Butuh USER/MGMT.
+  updateFirstTrainingSession: (userId, firstTrainingSessionId) =>
+    request(`/admin/users/${userId}/first-training-session`, {
+      method: "PATCH",
+      body: { firstTrainingSessionId },
+    }),
 
   updateUser: (userId, data) =>
     request(`/admin/users/${userId}`, { method: "PATCH", body: data }),
@@ -573,10 +587,12 @@ export const adminApi = {
   resendReviseEmail: (userId) =>
     request(`/admin/users/${userId}/resend-revise-email`, { method: "POST" }),
 
+  // discourseGroupId dari dropdown selalu string (value di-String-kan buat compare).
+  // Backend wajib number, jadi coerce di sini. Number("") → NaN, guard dulu.
   updateDiscourseGroup: (userId, discourseGroupId) =>
     request(`/admin/users/${userId}/discourse-group`, {
       method: "PATCH",
-      body: { discourseGroupId },
+      body: { discourseGroupId: Number(discourseGroupId) },
     }),
 
   // ── Hapus / Pulihkan akun (soft delete via deletion-request) ──
@@ -586,6 +602,12 @@ export const adminApi = {
   // Pulihkan akun dari "Baru Dihapus" → batalkan jadwal penghapusan.
   cancelUserDeletion: (userId) =>
     request(`/admin/users/${userId}/deletion-request`, { method: "DELETE" }),
+
+  // Hapus akun PERMANEN (hard delete) dari tab "Baru Dihapus" — beda dari
+  // deletion-request (soft delete). TODO(be): endpoint BELUM dikonfirmasi, user
+  // akan input. Path/method di bawah cuma tebakan — GANTI saat endpoint asli ada.
+  deleteUserPermanent: (userId) =>
+    request(`/admin/users/${userId}`, { method: "DELETE" }),
 
   // ── Tangguhkan / Pulihkan akun (suspend) ──
   // suspendedUntil: "YYYY-MM-DD HH:mm:ss". reason wajib (BE menolak tanpa itu:

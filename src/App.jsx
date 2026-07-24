@@ -17,8 +17,9 @@ function normalizeRevise(res) {
   const fields = res?.reviseFields || u.reviseFields || u.fieldsToRevise || [];
   const reason = res?.reviseReason || u.reviseReason || "";
 
-  // Tahun/bulan pelatihan diturunkan dari lastTrainingSession.startDate bila ada.
-  const startUnix = u.lastTrainingSession?.startDate?.unix;
+  // Tahun/bulan pelatihan diturunkan dari firstTrainingSession.startDate bila ada
+  // (nama kanonik baru; lastTrainingSession dipertahankan sbg fallback respons lama).
+  const startUnix = (u.firstTrainingSession || u.lastTrainingSession)?.startDate?.unix;
   let firstTrainingYear = "";
   let firstTrainingMonth = "";
   if (startUnix) {
@@ -41,7 +42,7 @@ function normalizeRevise(res) {
     provinceId: u.provinceId || u.region?.parentId || "",
     firstTrainingYear,
     firstTrainingMonth,
-    lastTrainingSessionId: u.lastTrainingSessionId || u.lastTrainingSession?.id || "",
+    lastTrainingSessionId: u.firstTrainingSessionId || u.firstTrainingSession?.id || u.lastTrainingSessionId || u.lastTrainingSession?.id || "",
     schoolName: u.schoolName || "",
     // reviseFields (kosakata FE: tanggalLahir/lokasi/riwayatPelatihan/namaSekolah)
     invalid: Array.isArray(fields) ? fields : [],
@@ -163,7 +164,7 @@ export default function App() {
   // Shim: halaman-halaman masih memanggil `onNavigate("<page-key>")`.
   // Terjemahkan page key → URL supaya file page tidak perlu diubah.
   const go = useCallback(
-    (key) => navigate(pathForPage(key)),
+    (key, state) => navigate(pathForPage(key), state ? { state } : undefined),
     [navigate],
   );
 

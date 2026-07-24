@@ -181,18 +181,19 @@ export function mapToVerifikasi(u, regions = [], discourseGroups = []) {
   const createdMs = parseCreatedAtMs(u.createdAt)
   const isNew = createdMs ? (Date.now() - createdMs) < 7 * 24 * 60 * 60 * 1000 : false
 
-  // Alumni Pelatihan diturunkan dari `lastTrainingSession`. Payload backend cuma
-  // bawa { id, name, startDate, endDate } — TIDAK ada object region. Jadi:
-  //   Daerah  = lts.name  (mis. "Maumere, Kab. Sikka" — sudah berupa nama daerah)
-  //   Tanggal = lts.endDate
-  // Riwayat Pelatihan = ada/tidaknya sesi (punya lastTrainingSession → true).
-  const lts = u.lastTrainingSession || u.trainingSession || {}
+  // Alumni Pelatihan diturunkan dari `firstTrainingSession` (nama kanonik baru;
+  // lastTrainingSession dipertahankan sbg fallback biar respons lama tetap jalan).
+  // Payload sekarang meng-embed region: { name, parent_name, full_name }. Jadi:
+  //   Daerah  = fts.region.full_name (mis. "Kabupaten Toba, Sumatera Utara")
+  //   Tanggal = fts.startDate
+  // Riwayat Pelatihan = ada/tidaknya sesi (punya firstTrainingSession → true).
+  const lts = u.firstTrainingSession || u.lastTrainingSession || u.trainingSession || {}
   // Kolom = "Tanggal Mulai" → pakai startDate; endDate cuma cadangan.
   const ltsStartMs    = dateFieldMs(lts.startDate) || dateFieldMs(lts.endDate)
   const hasRiwayat    = !!(lts.id || lts.name)
   const alumniNama    = lts.name || '-'
-  // Daerah: kalau sesi tidak ter-embed, jatuh ke region pelatihan pertama user.
-  const alumniDaerah  = lts.name || (regionName !== '-' ? regionName : '-')
+  // Daerah: region ter-embed (full_name) → nama sesi → region pelatihan pertama user.
+  const alumniDaerah  = lts.region?.full_name || lts.name || (regionName !== '-' ? regionName : '-')
   const alumniTanggal = ltsStartMs ? fmtDate(ltsStartMs) : '-'
   const riwayatCount =
     u.trainingHistoriesCount ?? u.trainingHistoryCount ?? u._count?.trainingHistories ??
@@ -233,7 +234,9 @@ export function mapToVerifikasi(u, regions = [], discourseGroups = []) {
       firstTrainingRegionId: u.firstTrainingRegionId || u.trainingRegionId || '',
       firstTrainingYear:     u.firstTrainingYear || '',
       firstTrainingMonth:    u.firstTrainingMonth || '',
-      lastTrainingSessionId: u.lastTrainingSessionId || u.lastTrainingSession?.id || '',
+      // Prefill sesi pelatihan pertama di modal Setujui/Approve. Nama kanonik baru =
+      // firstTrainingSessionId; last* dipertahankan sbg fallback respons lama.
+      firstTrainingSessionId: u.firstTrainingSessionId || u.firstTrainingSession?.id || u.lastTrainingSessionId || u.lastTrainingSession?.id || '',
     },
   }
 }
@@ -360,13 +363,13 @@ export function mapToPembayaran(p, regions = [], discourseGroups = []) {
   const voucher = u.activeVoucher?.code || u.voucher?.code || u.voucherCode || pay.voucherCode || ''
   const lokasi = resolveRegionLabel(u.region || u.regency, u.regionId, regions)
 
-  // Alumni Pelatihan dari lastTrainingSession (payload cuma { id, name, startDate,
-  // endDate }, tanpa region): Daerah = lts.name, Tanggal = lts.endDate.
-  const lts = u.lastTrainingSession || u.trainingSession || {}
+  // Alumni Pelatihan dari firstTrainingSession (embed region { full_name }):
+  // Daerah = region.full_name → nama sesi; Tanggal = startDate.
+  const lts = u.firstTrainingSession || u.lastTrainingSession || u.trainingSession || {}
   const ltsStartMs    = dateFieldMs(lts.startDate) || dateFieldMs(lts.endDate)
   const hasRiwayat    = !!(lts.id || lts.name)
   const alumniNama    = lts.name || '-'
-  const alumniDaerah  = lts.name || '-'
+  const alumniDaerah  = lts.region?.full_name || lts.name || '-'
   const alumniTanggal = ltsStartMs ? fmtDate(ltsStartMs) : '-'
 
   const riwayatCount =
@@ -376,7 +379,7 @@ export function mapToPembayaran(p, regions = [], discourseGroups = []) {
   const subEnd = sub?.expiresAt || sub?.endDate || sub?.currentPeriodEnd || sub?.expiredAt || sub?.expires_at
   const endMs  = dateFieldMs(subEnd)
 
-  const lu = fmtLastUpdated24h(pay.updatedAt || u.updatedAt)
+  const lu = fmtLastUpdated24h(pay.updatedAt || u.updatedAt || pay.createdAt || u.createdAt)
 
   // Detail bukti transfer (dipakai KonfirmasiPembayaranModal).
   const pkg = pay.package || sub?.package || {}
@@ -415,6 +418,47 @@ export function mapToPembayaran(p, regions = [], discourseGroups = []) {
   }
 }
 
+// 1 baris training-history (GET /admin/users/training-history/{userId} atau embed
+// user.trainingHistories) → row modal Lihat Detail. Session bisa ter-nest
+// (h.trainingSession) atau flat (h). Region embed baru pakai { full_name }.
+export function mapToUserRiwayat(h, i = 0, fallbackEmail = '-', regions = []) {
+  const sess = h.trainingSession || h.session || h
+  const startMs = dateFieldMs(sess.startDate) || dateFieldMs(h.startDate)
+  return {
+    id:       h.id || sess.id || i,
+    nama:     sess.name || h.name || '-',
+    daerah:   sess.region?.full_name || resolveRegionLabel(sess.region || sess.regency, sess.regionId, regions),
+    tglMulai: startMs ? fmtDate(startMs) : '-',
+    startMs:  startMs || 0,
+    email:    h.email || h.user?.email || fallbackEmail || '-',
+    isNew:    computeIsNew(dateFieldMs(h.createdAt || sess.createdAt)),
+  }
+}
+
+// Fallback list Riwayat Pelatihan (dipakai modal Lihat Detail SEBELUM fetch, atau
+// kalau endpoint gagal). Sumber utama modal = GET /admin/users/training-history/{id}
+// via mapToUserRiwayat. Di sini cuma pakai apa yang sudah ter-embed di respons user:
+// array `trainingHistories`, atau derive 1 baris dari firstTrainingSession.
+// Setiap baris: { id, nama, daerah, tglMulai, startMs (sort), email, isNew }.
+function buildRiwayatList(u, regions, derived) {
+  const rows = Array.isArray(u.trainingHistories) ? u.trainingHistories : []
+  const list = rows.map((h, i) => mapToUserRiwayat(h, i, u.email, regions))
+  if (list.length) return list
+
+  // Fallback dari firstTrainingSession (payload { id, name, startDate, region }).
+  const { lts, hasRiwayat, alumniNama, alumniDaerah, alumniTanggal } = derived
+  if (!hasRiwayat) return []
+  return [{
+    id:       lts.id || 'lts',
+    nama:     alumniNama,
+    daerah:   alumniDaerah,
+    tglMulai: alumniTanggal,
+    startMs:  dateFieldMs(lts.startDate) || dateFieldMs(lts.endDate) || 0,
+    email:    u.email || '-',
+    isNew:    computeIsNew(dateFieldMs(lts.createdAt)),
+  }]
+}
+
 export function mapToManajemen(u, regions = [], discourseGroups = []) {
   const sub = u.activeSubscription || u.subscription
   const subStatus =
@@ -432,13 +476,13 @@ export function mapToManajemen(u, regions = [], discourseGroups = []) {
   // Lokasi = domisili user.
   const lokasi = resolveRegionLabel(u.region || u.regency, u.regionId, regions)
 
-  // Alumni Pelatihan = sesi yang diikuti user (lastTrainingSession). Payload cuma
-  // { id, name, startDate, endDate }, tanpa region: Daerah = lts.name, Tanggal = endDate.
-  const lts = u.lastTrainingSession || u.trainingSession || {}
+  // Alumni Pelatihan = sesi yang diikuti user (firstTrainingSession, embed region
+  // { full_name }): Daerah = region.full_name → nama sesi; Tanggal = startDate.
+  const lts = u.firstTrainingSession || u.lastTrainingSession || u.trainingSession || {}
   const ltsStartMs    = dateFieldMs(lts.startDate) || dateFieldMs(lts.endDate)
   const hasRiwayat    = !!(lts.id || lts.name)
   const alumniNama    = lts.name || '-'
-  const alumniDaerah  = lts.name || '-'
+  const alumniDaerah  = lts.region?.full_name || lts.name || '-'
   const alumniTanggal = ltsStartMs ? fmtDate(ltsStartMs) : '-'
 
   // Riwayat Pelatihan = jumlah histori; fallback ke ada/tidaknya lastTrainingSession.
@@ -446,10 +490,16 @@ export function mapToManajemen(u, regions = [], discourseGroups = []) {
     u.trainingHistoriesCount ?? u.trainingHistoryCount ?? u._count?.trainingHistories ??
     (Array.isArray(u.trainingHistories) ? u.trainingHistories.length : (hasRiwayat ? 1 : 0))
 
+  // List detail untuk modal "Riwayat Pelatihan" (dibuka dari kolom → Lihat Detail).
+  const riwayatList = buildRiwayatList(u, regions, { lts, hasRiwayat, alumniNama, alumniDaerah, alumniTanggal })
+
   const subEnd = sub?.expiresAt || sub?.endDate || sub?.currentPeriodEnd || sub?.expiredAt || sub?.expires_at
   const endMs  = dateFieldMs(subEnd)
 
-  const lu = fmtLastUpdated24h(u.updatedAt || u.updated_at || u.modifiedAt)
+  // List /admin/users ("need update") belum tentu embed updatedAt → fallback ke
+  // createdAt (selalu ada; jadi default sort backend) supaya kolom Last Updated
+  // tidak kosong. Record yang belum pernah diubah punya updatedAt == createdAt.
+  const lu = fmtLastUpdated24h(u.updatedAt || u.updated_at || u.modifiedAt || u.createdAt)
 
   return {
     id:       u.id,
@@ -465,6 +515,7 @@ export function mapToManajemen(u, regions = [], discourseGroups = []) {
     alumniDaerah,                // kolom "Alumni Pelatihan Daerah"
     alumniTanggal,               // kolom "Alumni Pelatihan Tanggal Mulai"
     riwayatCount,
+    riwayatList,                 // detail histori (modal Riwayat Pelatihan)
     year:      parseCreatedAtYear(u.createdAt),
     school:    u.schoolName || '-',
     role:      resolveRole(u, discourseGroups),

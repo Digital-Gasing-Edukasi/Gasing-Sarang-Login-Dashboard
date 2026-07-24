@@ -34,3 +34,15 @@ export function StepBar({ current, total = 3, onBack }) {
   )
 }
 
+// Judul header per-langkah signup. Style dipusatkan di sini supaya ketiga step
+// (Data Akun / Data Pribadi / Verifikasi Email) tampil seragam. `children`
+// dipakai step OTP untuk subtitle (teks "Masukkan kode..." + email).
+export function StepHeader({ title, children }) {
+  return (
+    <div className="animate-fade-in-up delay-100 text-center">
+      <h1 className="text-[22px] font-bold text-foreground mb-1.5">{title}</h1>
+      {children}
+    </div>
+  )
+}
+

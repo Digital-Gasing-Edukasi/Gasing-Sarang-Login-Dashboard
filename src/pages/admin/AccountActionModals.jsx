@@ -46,8 +46,31 @@ export function HapusAkunModal({ user, onConfirm, onCancel }) {
       tone="danger"
       Icon={Trash2}
       title="Yakin Hapus Akun Ini?"
-      body={<>Akun <span className="font-semibold text-[#0A1128]">{user.name}</span> akan dihapus dan dipindah ke tab Baru Dihapus.</>}
+      body={
+        <>
+          Akun <span className="font-semibold text-[#0A1128]">{user.name}</span>{" "} akan dihapus. Kamu masih dapat memulihkannya sebelum 30 hari.</>
+      }
       confirmLabel="Hapus Akun"
+      onConfirm={onConfirm}
+      onCancel={onCancel}
+    />
+  );
+}
+
+// Hapus PERMANEN dari tab "Baru Dihapus" — hard delete, tidak bisa dipulihkan.
+// Copy sengaja lebih tegas dari HapusAkunModal (soft delete) supaya admin sadar beda.
+export function HapusPermanenModal({ user, onConfirm, onCancel }) {
+  if (!user) return null
+  return (
+    <ConfirmActionModal
+      tone="danger"
+      Icon={Trash2}
+      title="Hapus Akun Permanen?"
+      body={
+        <>
+          Akun <span className="font-semibold text-[#0A1128]">{user.name}</span> akan dihapus permanen. Tindakan ini <span className="font-semibold text-red-500">tidak dapat dibatalkan</span>.</>
+      }
+      confirmLabel="Hapus Permanen"
       onConfirm={onConfirm}
       onCancel={onCancel}
     />

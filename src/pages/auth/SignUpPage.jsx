@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import { LogIn, Loader2, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,7 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { RightPanel } from "@/components/layout/RightPanel";
-import { StepBar } from "@/components/layout/StepIndicator";
+import { StepBar, StepHeader } from "@/components/layout/StepIndicator";
 import { IconInput, TogglePassword } from "@/components/shared/IconInput";
 import { DateField } from "@/components/shared/DateField";
 import { authApi, regionsApi, trainingSessionsApi } from "@/lib/api";
@@ -64,7 +65,10 @@ const sessionMonth = (s) => {
 };
 
 export function SignUpPage({ onNavigate, onOtpToken }) {
-  const [step, setStep] = useState(1);
+  // Back dari step OTP mengirim { step: 2 } supaya user balik ke Data Pribadi,
+  // bukan reset ke step 1 (SignUpPage di-mount ulang tiap masuk /register).
+  const location = useLocation();
+  const [step, setStep] = useState(location.state?.step ?? 1);
   const [name, setName] = useState("");
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
@@ -283,11 +287,7 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
     >
       {step === 1 ? (
         <>
-          <div className="animate-fade-in-up delay-100 text-center">
-            <h1 className="text-[22px] font-bold text-foreground mb-1.5">
-              Data Akun
-            </h1>
-          </div>
+          <StepHeader title="Data Akun" />
 
           <div className="space-y-4 animate-fade-in-up delay-200">
             {errors.general && (
@@ -493,11 +493,7 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
         </>
       ) : (
         <>
-          <div className="animate-fade-in-up delay-100 text-center">
-            <h1 className="text-[22px] font-bold text-foreground mb-1.5">
-              Data Pribadi
-            </h1>
-          </div>
+          <StepHeader title="Data Pribadi" />
 
           <div className="space-y-4 animate-fade-in-up delay-200">
             {errors.general && (

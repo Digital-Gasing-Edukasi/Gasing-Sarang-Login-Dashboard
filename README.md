@@ -4,6 +4,11 @@
 
 > 📚 Cari dokumen lain? Mulai dari **[peta dokumentasi](docs/README.md)** — arsitektur,
 > deployment, skenario tes, modul admin, dan ADR.
+>
+> 🔑 **Base API & user-flow (baca dulu buat paham perilaku akun):**
+> - **[API_ACCESS_MATRIX.md](API_ACCESS_MATRIX.md)** — matrix akses endpoint × 11 kondisi user + capability admin (UAC). Sumber kebenaran dari BE (`feat/account-access-gate`).
+> - **[USER_STATE_FLOW.md](USER_STATE_FLOW.md)** — flow 12 state user (versi developer: field, gate, file:line).
+> - **[USER_FLOW.md](USER_FLOW.md)** — flow yang sama, versi designer (bahasa awam).
 
 ---
 
@@ -183,6 +188,16 @@ Peta URL ada di [`src/lib/routes.js`](src/lib/routes.js) (`PAGE_PATHS`). File pa
 | `?admin=true`          | **DEV** — buka dashboard admin tanpa sesi (preview UI)        |
 | `?gatetest=suspended\|pending\|expired` | **DEV** — paksa tampil `LoginStatusModal` tanpa backend |
 | `?midtrans-test=true`  | Buka `/midtrans-test`                                          |
+
+### Alur State User (12 kondisi akun)
+
+Alur di atas cuma jalur halaman. Untuk **perilaku akun end-to-end** — dari baru daftar
+sampai suspended/disabled, plus endpoint mana yang OK/ditolak per kondisi — lihat:
+
+- **[USER_STATE_FLOW.md](USER_STATE_FLOW.md)** — 12 flowchart per-state (versi dev: `verifiedStatus`, gate, `file:line`) + 1 flowchart gabungan.
+- **[API_ACCESS_MATRIX.md](API_ACCESS_MATRIX.md)** — kondisi user dipetakan ke akses tiap endpoint (7 access profile) + capability admin.
+
+Gate login sendiri (`suspended > pending > expired`) ada di [`src/lib/loginGate.js`](src/lib/loginGate.js) — lihat §8.7.
 
 ---
 
@@ -474,6 +489,11 @@ Logika non-UI dipusatkan di sini supaya `App.jsx` dan komponen tetap tipis.
 
 Semua HTTP call terpusat di `src/lib/api.js`. Base URL diambil dari `VITE_API_URL`.
 
+> 🔑 **Akses per kondisi user + capability admin:** daftar di §9 ini fokus ke *apa* endpoint-nya.
+> Untuk *siapa boleh akses kapan* (11 kondisi akun × endpoint, capability UAC, aturan trial/suspend/delete),
+> lihat **[API_ACCESS_MATRIX.md](API_ACCESS_MATRIX.md)** — sumber kebenaran dari BE.
+> ⚠️ Ada beberapa **beda nama path FE↔BE** (checkout-manual, upload-receipt, access-status) — lihat [§7 Gap FE↔BE](API_ACCESS_MATRIX.md#7-gap-febe).
+
 ### Token Management
 
 ```js
@@ -612,7 +632,7 @@ Impor peserta pelatihan lewat CSV (dipakai tab Riwayat Pelatihan).
 | GET    | `/admin/users/:id`                | Detail satu pengguna                |
 | PATCH  | `/admin/users/:id`                | Update data pengguna                |
 | PATCH  | `/admin/users/:id/password`       | Set password pengguna               |
-| PATCH  | `/admin/users/:id/verify`         | Verifikasi akun — **2 call terpisah**: `WAITING` → *setujui* → `PENDING_VOUCHER` → *kirim voucher* → `APPROVED`. Call ke-2 kirim **`{ status }` saja** |
+| PATCH  | `/admin/users/:id/verify`         | Verifikasi akun — **2 call terpisah**: `WAITING` → *setujui* (`{ status, discourseGroupId, lastTrainingSessionId }`) → `PENDING_VOUCHER` → *finalize* (`{ status, discourseGroupId }` **tanpa** `lastTrainingSessionId`) → `APPROVED`. Penanda langkah-1 = kehadiran `lastTrainingSessionId` ([detail](USER_STATE_FLOW.md)) |
 | POST   | `/admin/users/:id/revise`         | Minta user memperbaiki data (`{ rejectedReason, fieldsToRevise }`) → backend kirim email |
 | POST   | `/admin/users/:id/reject`         | Tolak akun (`{ rejectedReason }`)   |
 | POST   | `/admin/users/:id/revise/resend`  | Kirim ulang email revisi            |

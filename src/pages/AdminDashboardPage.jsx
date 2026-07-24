@@ -19,9 +19,10 @@ import { RiwayatPelatihanTable } from './admin/RiwayatPelatihanTable'
 import { AddPendaftaranTrainerModal } from './admin/AddPendaftaranTrainerModal'
 import { AddPelatihanModal } from './admin/AddPelatihanModal'
 import { PerbaruiRiwayatModal } from './admin/PerbaruiRiwayatModal'
+import { RiwayatDetailModal } from './admin/RiwayatDetailModal'
 import { DaftarPesertaModal } from './admin/DaftarPesertaModal'
 import { UbahRoleModal } from './admin/UbahRoleModal'
-import { HapusAkunModal, PulihkanAkunModal } from './admin/AccountActionModals'
+import { HapusAkunModal, PulihkanAkunModal, HapusPermanenModal } from './admin/AccountActionModals'
 import { SuspendModal } from './admin/SuspendModal'
 import { SetujuiAkunModal } from './admin/SetujuiAkunModal'
 import { KirimVoucherModal } from './admin/KirimVoucherModal'
@@ -143,7 +144,7 @@ const CSV_STATUS_LABELS = {
   Deleted: 'Baru Dihapus', Dihapus: 'Baru Dihapus', 'Baru Dihapus': 'Baru Dihapus',
 }
 
-function buildCsvContent(tab, users, activeFilter) {
+function buildCsvContent(tab, users, activeFilter, verifSubTab = 'pending') {
   const escapeCsv = (str) => {
     const s = String(str ?? '')
     return s.includes(',') || s.includes('"') || s.includes('\n') ? `"${s.replace(/"/g, '""')}"` : s
@@ -170,9 +171,15 @@ function buildCsvContent(tab, users, activeFilter) {
     })
     return [headers.join(','), ...rows.map(r => r.map(escapeCsv).join(','))].join('\n')
   }
-  // tab === 'verifikasi'
-  const headers = ['Nama Pengguna', 'Email', 'Status', 'Tgl.Lahir', 'Alumni Pelatihan', 'Tahun', 'Asal Sekolah', 'Role Pengguna']
-  const rows = users.map(u => [u.name, u.email, u.status, u.birthdate, u.training, u.year, u.school, u.role || 'Pilih Role'])
+  // tab === 'verifikasi', sub-tab 'voucher' → kolom ikut PendingVoucherTable.
+  if (verifSubTab === 'voucher') {
+    const headers = ['Nama Pengguna', 'Email', 'Status Member', 'Kode Voucher', 'Role', 'Riwayat Pelatihan', 'Tgl. Lahir', 'Lokasi', 'Alumni Pelatihan Nama', 'Alumni Pelatihan Daerah', 'Alumni Pelatihan Tanggal Mulai', 'Asal Sekolah']
+    const rows = users.map(u => [u.name, u.email, 'Pending Voucher Setup', u.voucherCode || '-', u.role || '-', u.riwayatCount ?? 0, u.birthdate || '-', u.lokasi || '-', u.alumniNama || '-', u.alumniDaerah || '-', u.alumniTanggal || '-', u.school || '-'])
+    return [headers.join(','), ...rows.map(r => r.map(escapeCsv).join(','))].join('\n')
+  }
+  // tab === 'verifikasi', sub-tab 'pending' → kolom ikut VerifikasiTable.
+  const headers = ['Nama Pengguna', 'Email', 'Status', 'Tgl. Lahir', 'Lokasi', 'Alumni Pelatihan Daerah', 'Alumni Pelatihan Tanggal Mulai', 'Asal Sekolah']
+  const rows = users.map(u => [u.name, u.email, u.status, u.birthdate, u.lokasi, u.alumniDaerah || '-', u.alumniTanggal || '-', u.school || '-'])
   return [headers.join(','), ...rows.map(r => r.map(escapeCsv).join(','))].join('\n')
 }
 
@@ -201,6 +208,7 @@ export default function AdminDashboardPage({ user, onSignOut }) {
   const [isAddPelatihanModalOpen, setIsAddPelatihanModalOpen] = useState(false)
   const [perbaruiSession, setPerbaruiSession] = useState(null)
   const [pesertaSession, setPesertaSession] = useState(null)
+  const [riwayatDetailUser, setRiwayatDetailUser] = useState(null) // modal Riwayat Pelatihan (Lihat Detail)
 
   const [discourseGroups, setDiscourseGroups] = useState([])
   // Ref agar mapToManajemen selalu baca daftar group terbaru tanpa memicu ulang loadUsers.
@@ -736,13 +744,13 @@ export default function AdminDashboardPage({ user, onSignOut }) {
   }
 
   // Approve langkah-1 ("Approve Main Data"): WAITING(0) → PENDING_VOUCHER(3).
-  // discourseGroupId + lastTrainingSessionId WAJIB di payload — kehadirannya yang
+  // discourseGroupId + firstTrainingSessionId WAJIB di payload — kehadirannya yang
   // menandai request ini sebagai langkah-1. Optimistic + toast undo 5s.
-  const handleConfirmApprove = ({ discourseGroupId, lastTrainingSessionId }) => {
+  const handleConfirmApprove = ({ discourseGroupId, firstTrainingSessionId }) => {
     if (!approveCandidate) return
     const target = approveCandidate
     setApproveCandidate(null)
-    const vUser = { ...target, verifiedStatus: VERIFIED_STATUS.PENDING_VOUCHER, status: 'Pending Voucher', discourseGroupId, lastTrainingSessionId, role: roleNameFromId(discourseGroupId) || target.role, voucherCode: genVoucherCode() }
+    const vUser = { ...target, verifiedStatus: VERIFIED_STATUS.PENDING_VOUCHER, status: 'Pending Voucher', discourseGroupId, firstTrainingSessionId, role: roleNameFromId(discourseGroupId) || target.role, voucherCode: genVoucherCode() }
     setUsers(prev => prev.filter(u => u.id !== target.id))
     setPendingVoucherUsers(prev => [vUser, ...prev])
     setToast({
@@ -753,7 +761,7 @@ export default function AdminDashboardPage({ user, onSignOut }) {
       },
     })
     scheduleAction(
-      () => adminApi.verifyUser(target.id, { status: 'approved', discourseGroupId, lastTrainingSessionId }),
+      () => adminApi.verifyUser(target.id, { status: 'approved', discourseGroupId, firstTrainingSessionId }),
       () => {
         setPendingVoucherUsers(prev => prev.filter(u => u.id !== target.id))
         setUsers(prev => [target, ...prev])
@@ -763,7 +771,7 @@ export default function AdminDashboardPage({ user, onSignOut }) {
   }
 
   // Konfirmasi voucher → langkah-2 ("Finalize"): PENDING_VOUCHER(3) → APPROVED(1).
-  // Payload { status, discourseGroupId }. lastTrainingSessionId TETAP tidak dikirim:
+  // Payload { status, discourseGroupId }. firstTrainingSessionId TETAP tidak dikirim:
   // dulu kehadiran kedua field itu dibaca backend sebagai penanda langkah-1 sehingga
   // akun mental balik ke PENDING_VOUCHER. Sejak 20 Jul backend mewajibkan
   // discourseGroupId untuk status approved, jadi field itu terpaksa ikut.
@@ -802,13 +810,13 @@ export default function AdminDashboardPage({ user, onSignOut }) {
   // ── Bulk approve / reject ───────────────────────────────────────────────────
   // Pola sama dengan single: optimistic remove + toast undo 5 detik + commit batch
   // (Promise.all). Undo membatalkan timer, jadi API tak pernah dipanggil.
-  // Bulk approve langkah-1: kirim discourseGroupId + lastTrainingSessionId per baris.
+  // Bulk approve langkah-1: kirim discourseGroupId + firstTrainingSessionId per baris.
   const handleBulkApprove = (rows) => {
     const ids = rows.map(r => r.id)
     const removed = users.filter(u => ids.includes(u.id))
     const vUsers = rows.map(r => {
       const base = removed.find(u => u.id === r.id) || {}
-      return { ...base, verifiedStatus: VERIFIED_STATUS.PENDING_VOUCHER, status: 'Pending Voucher', discourseGroupId: r.discourseGroupId, lastTrainingSessionId: r.lastTrainingSessionId, role: roleNameFromId(r.discourseGroupId) || base.role, voucherCode: genVoucherCode() }
+      return { ...base, verifiedStatus: VERIFIED_STATUS.PENDING_VOUCHER, status: 'Pending Voucher', discourseGroupId: r.discourseGroupId, firstTrainingSessionId: r.firstTrainingSessionId, role: roleNameFromId(r.discourseGroupId) || base.role, voucherCode: genVoucherCode() }
     })
     setUsers(prev => prev.filter(u => !ids.includes(u.id)))
     setPendingVoucherUsers(prev => [...vUsers, ...prev])
@@ -821,7 +829,7 @@ export default function AdminDashboardPage({ user, onSignOut }) {
       },
     })
     scheduleAction(
-      () => Promise.all(rows.map(r => adminApi.verifyUser(r.id, { status: 'approved', discourseGroupId: r.discourseGroupId, lastTrainingSessionId: r.lastTrainingSessionId }))),
+      () => Promise.all(rows.map(r => adminApi.verifyUser(r.id, { status: 'approved', discourseGroupId: r.discourseGroupId, firstTrainingSessionId: r.firstTrainingSessionId }))),
       () => {
         setPendingVoucherUsers(prev => prev.filter(u => !ids.includes(u.id)))
         setUsers(prev => [...removed, ...prev])
@@ -929,8 +937,27 @@ export default function AdminDashboardPage({ user, onSignOut }) {
     )
   }
 
+  // Hapus akun PERMANEN (tab Baru Dihapus) → baris hilang total dari daftar.
+  // Optimistic remove + toast undo 5 dtk (clearTimeout membatalkan commit). Undo
+  // mengembalikan snapshot. Endpoint = adminApi.deleteUserPermanent (TODO: konfirmasi).
+  const handleConfirmHapusPermanen = () => {
+    const target = actionModal.user
+    if (!target) return
+    setActionModal({ type: null, user: null })
+    const snapshot = managementUsers
+    setManagementUsers(prev => prev.filter(u => u.id !== target.id))
+    setToast({
+      message: <>Akun {target.name} dihapus permanen</>,
+      undo: () => setManagementUsers(snapshot),
+    })
+    scheduleAction(
+      () => adminApi.deleteUserPermanent(target.id),
+      () => { setManagementUsers(snapshot); setApiError('Gagal menghapus akun permanen.') }
+    )
+  }
+
   // Setujui akun (tab Ditolak) → approve dgn role + pelatihan + voucher (dari modal).
-  const handleConfirmSetujuiAkun = ({ discourseGroupId, lastTrainingSessionId, voucherCode }) => {
+  const handleConfirmSetujuiAkun = ({ discourseGroupId, firstTrainingSessionId, voucherCode }) => {
     const target = actionModal.user
     if (!target) return
     setActionModal({ type: null, user: null })
@@ -941,7 +968,7 @@ export default function AdminDashboardPage({ user, onSignOut }) {
       : u))
     setToast({ message: <>Akun {target.name} telah disetujui</>, statusUndo: { id: target.id, prevStatus } })
     scheduleAction(
-      () => adminApi.verifyUser(target.id, { status: 'approved', discourseGroupId, lastTrainingSessionId }),
+      () => adminApi.verifyUser(target.id, { status: 'approved', discourseGroupId, firstTrainingSessionId }),
       () => { setManagementUsers(prev => prev.map(u => u.id === target.id ? { ...u, accountStatus: prevStatus } : u)); setApiError('Gagal menyetujui akun.') }
     )
   }
@@ -1122,13 +1149,14 @@ export default function AdminDashboardPage({ user, onSignOut }) {
   }
 
   const handleExport = () => {
-    const csv = buildCsvContent(activeTab, sortedUsers, activeFilter)
+    const csv = buildCsvContent(activeTab, sortedUsers, activeFilter, verifSubTab)
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
     const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
     link.setAttribute('href', url)
     link.setAttribute('download',
-      activeTab === 'verifikasi' ? 'verifikasi_akun-Export data.csv'
+      activeTab === 'verifikasi'
+        ? (verifSubTab === 'voucher' ? 'pending_voucher-Export data.csv' : 'verifikasi_akun-Export data.csv')
       : activeTab === 'verifikasi-pembayaran' ? 'verifikasi_pembayaran-Export data.csv'
       : 'manajemen_akun-Export data.csv')
     document.body.appendChild(link); link.click(); document.body.removeChild(link)
@@ -1220,9 +1248,20 @@ export default function AdminDashboardPage({ user, onSignOut }) {
               onSearchChange={setSearchQuery}
               onAdd={() => setIsAddPelatihanModalOpen(true)}
               onExport={() => {
+                // Ikut baris yang tampil di tabel: terapkan filter pencarian yang sama
+                // (nama / daerah / peserta) seperti RiwayatPelatihanTable.
+                const q = searchQuery.trim().toLowerCase()
+                const rows = q
+                  ? riwayatPelatihanData.filter(item =>
+                      (item.nama || '').toLowerCase().includes(q) ||
+                      (item.daerah || '').toLowerCase().includes(q) ||
+                      (item.pesertaNama || '').toLowerCase().includes(q) ||
+                      (item.pesertaEmail || '').toLowerCase().includes(q))
+                  : riwayatPelatihanData
+                // Kolom persis header tabel: tanpa "Status" (kolom itu tidak dirender).
                 const csv = [
-                  'Nama Pelatihan,Daerah Pelatihan,Tgl. Mulai,Status,Nama Peserta,Last Updated',
-                  ...riwayatPelatihanData.map(item => `"${item.nama}","${item.daerah}","${item.tglMulai}","${item.status}","${item.pesertaNama}","${item.lastUpdated}"`)
+                  'Nama Pelatihan,Daerah Pelatihan,Tgl. Mulai,Nama Peserta,Last Updated',
+                  ...rows.map(item => `"${item.nama}","${item.daerah}","${item.tglMulai}","${item.pesertaNama}","${item.lastUpdated}"`)
                 ].join('\n')
                 const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
                 const url = URL.createObjectURL(blob)
@@ -1287,6 +1326,7 @@ export default function AdminDashboardPage({ user, onSignOut }) {
                   searchQuery={searchQuery}
                   activeFilter={activeFilter}
                   onActionClick={handleActionClick}
+                  onRiwayatClick={setRiwayatDetailUser}
                   selectedIds={selectedIds}
                   onToggleSelect={toggleSelect}
                   onToggleSelectAll={toggleSelectAll}
@@ -1390,6 +1430,13 @@ export default function AdminDashboardPage({ user, onSignOut }) {
           onCancel={() => setActionModal({ type: null, user: null })}
         />
       )}
+      {actionModal.type === 'hapus-akun-permanen' && (
+        <HapusPermanenModal
+          user={actionModal.user}
+          onConfirm={handleConfirmHapusPermanen}
+          onCancel={() => setActionModal({ type: null, user: null })}
+        />
+      )}
       {actionModal.type === 'setujui-akun' && (
         <SetujuiAkunModal
           user={actionModal.user}
@@ -1424,6 +1471,10 @@ export default function AdminDashboardPage({ user, onSignOut }) {
         onClose={() => setPerbaruiSession(null)}
         onSave={handleUpdatePelatihan}
         onDelete={handleDeleteRiwayat}
+      />
+      <RiwayatDetailModal
+        user={riwayatDetailUser}
+        onClose={() => setRiwayatDetailUser(null)}
       />
       <DaftarPesertaModal
         isOpen={!!pesertaSession}

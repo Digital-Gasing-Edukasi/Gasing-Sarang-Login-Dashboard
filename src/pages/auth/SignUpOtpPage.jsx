@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { RightPanel } from '@/components/layout/RightPanel'
-import { StepBar } from '@/components/layout/StepIndicator'
+import { StepBar, StepHeader } from '@/components/layout/StepIndicator'
 import { OtpInput }     from '@/components/shared/OtpInput'
 import { useCountdown } from '@/hooks/useCountdown'
 import { authApi }      from '@/lib/api'
@@ -65,12 +65,11 @@ export function SignUpOtpPage({ onNavigate, otpToken, email, onOtpToken }) {
   }
 
   return (
-    <RightPanel topBar={<StepBar current={3} total={3} onBack={() => onNavigate('signup')} />}>
-      <div className="animate-fade-in-up delay-100 text-center">
-        <h1 className="text-2xl font-bold text-foreground mb-1">Verifikasi Email</h1>
+    <RightPanel topBar={<StepBar current={3} total={3} onBack={() => onNavigate('signup', { step: 2 })} />}>
+      <StepHeader title="Verifikasi Email">
         <p className="text-sm text-muted-foreground mb-1">Masukkan kode yang kami kirimkan ke</p>
         <p className="text-sm font-semibold text-foreground mb-8">{maskedEmail}</p>
-      </div>
+      </StepHeader>
       <div className="animate-fade-in-up delay-200 space-y-6">
         {error && (
           <p className="text-sm text-center font-medium text-[#EF4444] animate-fade-in" role="alert" aria-live="assertive">

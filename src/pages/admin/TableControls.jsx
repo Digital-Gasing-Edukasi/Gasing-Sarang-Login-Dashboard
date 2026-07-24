@@ -52,7 +52,7 @@ function ExpandableSearch({ value, onChange, placeholder = 'Cari user...' }) {
         value={value}
         onChange={e => onChange(e.target.value)}
         onBlur={() => { if (!value) setOpen(false) }}
-        className="w-full pl-10 pr-10 py-2.5 bg-white border border-gray-200 rounded-full text-sm outline-none focus:border-[#D946EF] focus:ring-1 focus:ring-[#D946EF] transition-all"
+        className="w-full pl-10 pr-10 py-2.5 bg-white border border-gray-200 rounded-full text-sm outline-none focus:border-[#0033EC] focus:ring-1 focus:ring-[#0033EC] transition-all"
       />
       <button
         onMouseDown={e => e.preventDefault()}

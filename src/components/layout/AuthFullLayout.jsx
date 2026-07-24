@@ -1,4 +1,3 @@
-import illustrationForgotImg from '@/assets/illustrasi_forgotPassword.png'
 import { Logo } from '@/components/shared/Logo'
 import { MobileHero } from '@/components/layout/MobileHero'
 
@@ -47,17 +46,8 @@ export function AuthFullLayout({ children, illustration = 'robot' }) {
 
       {/* Mobile: kartu putih "popup" naik menutupi hero (rounded-top). Desktop: full-bleed. */}
       <div className="relative z-10 -mt-6 lg:mt-0 rounded-t-[28px] lg:rounded-none bg-white shadow-[0_-12px_30px_rgba(0,0,0,0.10)] lg:shadow-none flex-1 overflow-hidden flex flex-col">
-        {/* Dekorasi ilustrasi hanya desktop */}
-        {illustration === 'forgotPassword' ? (
-          <>
-            <div className="hidden lg:block absolute bottom-0 left-0 w-64 sm:w-80 lg:w-96 translate-y-8 pointer-events-none select-none">
-              <img src={illustrationForgotImg} alt="" draggable="false" className="w-full h-full" />
-            </div>
-            <div className="hidden lg:block absolute bottom-0 right-0 w-64 sm:w-80 lg:w-96 translate-y-8 pointer-events-none select-none">
-              <img src={illustrationForgotImg} alt="" draggable="false" className="w-full h-full" style={{ transform: 'scaleX(-1)' }} />
-            </div>
-          </>
-        ) : (
+        {/* Dekorasi ilustrasi hanya desktop. forgotPassword: tanpa dekorasi (background ungu saja) */}
+        {illustration === 'forgotPassword' ? null : (
           <>
             <div className="hidden lg:block absolute bottom-0 left-0 w-44 sm:w-56 lg:w-64 pointer-events-none select-none">
               <EnvelopeCluster />
