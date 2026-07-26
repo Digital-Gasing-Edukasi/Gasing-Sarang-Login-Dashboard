@@ -25,7 +25,7 @@ export function SignUpReviewPage({ onNavigate }) {
       <div className="hidden lg:block">
         <AuthDarkLayout>
           <div className="text-center animate-fade-in-up">
-            <h1 className="font-cera-pro text-[48px] font-bold leading-tight text-white mb-4">
+            <h1 className="font-cera-pro text-[48px] font-black leading-[140%] text-white/90 text-center mb-4">
               Terima Kasih Telah Mendaftar!
             </h1>
             <p className="text-base font-normal leading-6 text-white/90 text-center mb-9">
@@ -40,8 +40,8 @@ export function SignUpReviewPage({ onNavigate }) {
               Mohon cek email secara berkala untuk status pengajuan akunmu.
             </p> 
 
-            <DarkPrimaryButton onClick={() => onNavigate("login")}>
-              <LogIn size={17} /> Kembali Ke Login
+            <DarkPrimaryButton variant="white" onClick={() => onNavigate("login")}>
+              Kembali Ke Login
             </DarkPrimaryButton>
           </div>
         </AuthDarkLayout>

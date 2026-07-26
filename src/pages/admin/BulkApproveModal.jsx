@@ -108,7 +108,7 @@ export function BulkApproveModal({ candidates = [], discourseGroups = [], traini
           <button
             disabled={!allFilled}
             onClick={handleSubmit}
-            className="flex-1 font-semibold px-6 py-3.5 rounded-full bg-blue-600 text-white hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex-1 font-semibold px-6 py-3.5 rounded-full bg-[#0033EC] text-white hover:bg-[#0029BD] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Setujui {candidates.length} Akun
           </button>

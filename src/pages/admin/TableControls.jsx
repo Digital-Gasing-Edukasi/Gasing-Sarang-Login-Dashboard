@@ -370,7 +370,7 @@ function FilterDrawer({
           </button>
           <button
             onClick={handleApply}
-            className="flex-1 py-3 rounded-full bg-blue-600 text-sm font-semibold text-white hover:bg-blue-700 transition-colors"
+            className="flex-1 py-3 rounded-full bg-[#0033EC] text-sm font-semibold text-white hover:bg-[#0029BD] transition-colors"
           >
             Terapkan
           </button>
@@ -554,7 +554,7 @@ export function PendaftaranTrainerControls({
       <div className="flex items-center gap-4">
         <button
           onClick={onAdd}
-          className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-full text-sm font-medium transition-colors shadow-sm"
+          className="flex items-center gap-2 bg-[#0033EC] hover:bg-[#0029BD] text-white px-5 py-2.5 rounded-full text-sm font-medium transition-colors shadow-sm"
         >
           <span className="text-lg leading-none">+</span> Pendaftaran Pelatihan
         </button>

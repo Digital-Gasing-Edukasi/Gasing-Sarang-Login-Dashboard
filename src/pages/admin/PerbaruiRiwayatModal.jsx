@@ -190,7 +190,7 @@ export function PerbaruiRiwayatModal({ isOpen, session, onClose, onSave, onDelet
             </button>
             <button
               type="submit"
-              className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 rounded-lg transition-colors"
+              className="flex-1 bg-[#0033EC] hover:bg-[#0029BD] text-white font-semibold py-2.5 rounded-lg transition-colors"
             >
               Simpan
             </button>

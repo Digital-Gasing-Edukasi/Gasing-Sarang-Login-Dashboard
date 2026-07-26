@@ -28,7 +28,7 @@ function ConfirmActionModal({ tone, Icon, title, body, confirmLabel, onConfirm, 
             onClick={onConfirm}
             className={cn(
               'flex-1 font-semibold px-6 py-3 rounded-full text-white transition-colors',
-              danger ? 'bg-red-500 hover:bg-red-600' : 'bg-blue-600 hover:bg-blue-700'
+              danger ? 'bg-red-500 hover:bg-red-600' : 'bg-[#0033EC] hover:bg-[#0029BD]'
             )}
           >
             {confirmLabel}

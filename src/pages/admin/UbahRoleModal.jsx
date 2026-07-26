@@ -42,7 +42,7 @@ export function UbahRoleModal({ user, discourseGroups = [], onConfirm, onCancel 
           <button
             disabled={!changed}
             onClick={() => onConfirm(groupId)}
-            className="flex-1 font-semibold px-6 py-3 rounded-full bg-blue-600 text-white hover:bg-blue-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            className="flex-1 font-semibold px-6 py-3 rounded-full bg-[#0033EC] text-white hover:bg-[#0029BD] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
             Simpan
           </button>

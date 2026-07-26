@@ -92,7 +92,7 @@ export function AddPendaftaranTrainerModal({ isOpen, onClose, onSave }) {
           <div className="mt-8">
             <button
               type="submit"
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 rounded-lg transition-colors"
+              className="w-full bg-[#0033EC] hover:bg-[#0029BD] text-white font-semibold py-2.5 rounded-lg transition-colors"
             >
               Simpan
             </button>

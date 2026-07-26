@@ -87,7 +87,7 @@ export function KonfirmasiVoucherModal({ candidate, onConfirm, onCancel }) {
               onClick={onConfirm}
               className={cn(
                 'font-semibold px-12 py-3.5 rounded-full text-white transition-colors',
-                copied ? 'bg-blue-600 hover:bg-blue-700' : 'bg-blue-300 cursor-not-allowed'
+                copied ? 'bg-[#0033EC] hover:bg-[#0029BD]' : 'bg-blue-300 cursor-not-allowed'
               )}
             >
               Konfirmasi
@@ -142,7 +142,7 @@ export function BulkVoucherModal({ candidates = [], onConfirm, onCancel }) {
         <div className="flex justify-end px-8 pb-7 pt-2 shrink-0">
           <button
             onClick={() => onConfirm(candidates)}
-            className="font-semibold px-16 py-3.5 rounded-full bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+            className="font-semibold px-16 py-3.5 rounded-full bg-[#0033EC] text-white hover:bg-[#0029BD] transition-colors"
           >
             Setujui
           </button>

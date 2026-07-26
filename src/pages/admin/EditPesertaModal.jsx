@@ -59,7 +59,7 @@ export function EditPesertaModal({ peserta, onSave, onCancel }) {
           <button
             type="submit"
             disabled={saving}
-            className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-semibold py-2.5 rounded-lg transition-colors"
+            className="w-full bg-[#0033EC] hover:bg-[#0029BD] disabled:opacity-60 text-white font-semibold py-2.5 rounded-lg transition-colors"
           >
             {saving ? 'Menyimpan...' : 'Simpan'}
           </button>

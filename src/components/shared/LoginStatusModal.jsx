@@ -78,13 +78,15 @@ export function LoginStatusModal({ type, meta = {}, onClose, onRenew, onRetry })
       icon: UserSearch,
       title: 'Kami Sedang Meninjau Akunmu',
       body: (
-        <>
-          <span className="font-semibold text-foreground">Akun kamu sedang kami tinjau maksimal dalam waktu 24 jam</span>{' '}
-          untuk memastikan kamu sudah terdaftar sebagai Trainer di Gasing Academy.
+        <p className="text-sm leading-normal">
+          <span className="font-medium text-foreground">
+            Akun kamu sedang kami tinjau maksimal dalam waktu 24 jam
+          </span>
+          <span className="text-[#424857]"> untuk memastikan kamu sudah terdaftar sebagai Trainer di Gasing Academy.</span>
           <br /><br />
-          <span className="font-semibold text-foreground">Mohon cek email secara berkala</span>{' '}
-          untuk status pengajuan akunmu.
-        </>
+          <span className="font-medium text-foreground">Mohon cek email secara berkala</span>
+          <span className="text-[#424857]"> untuk status pengajuan akunmu.</span>
+        </p>
       ),
       actions: [{ label: 'Oke', variant: 'primary', kind: 'close' }],
     },
@@ -111,7 +113,7 @@ export function LoginStatusModal({ type, meta = {}, onClose, onRenew, onRetry })
   return (
     <Shell tone="orange" icon={Icon}>
       <h2 className="text-2xl font-bold text-foreground mb-3">{cfg.title}</h2>
-      <p className="text-[15px] text-muted-foreground leading-relaxed mb-8">{cfg.body}</p>
+      <div className="text-[15px] text-muted-foreground leading-relaxed mb-8">{cfg.body}</div>
       <div className="flex items-center gap-4">
         {cfg.actions.map((a) => (
           <ActionButton key={a.label} {...a} onClick={() => run(a.kind)} />
@@ -185,8 +187,8 @@ function Shell({ tone, icon: Icon, children, variant = 'sheet' }) {
         className={cn(
           'bg-white shadow-2xl text-center animate-fade-in-up',
           sheet
-            ? 'w-full rounded-t-[28px] px-6 pb-8 pt-5 lg:w-full lg:max-w-[440px] lg:rounded-[24px] lg:px-8 lg:pt-8'
-            : 'w-full max-w-[360px] rounded-[24px] px-7 py-8'
+            ? 'w-full rounded-t-[28px] px-6 pb-8 pt-5 lg:w-full lg:max-w-[480px] lg:rounded-[24px] lg:px-8 lg:pt-16'
+            : 'w-full max-w-[480px] rounded-[24px] px-8 pt-16 pb-8'
         )}
       >
         {/* Drag handle — hanya bottom-sheet mobile */}
@@ -197,7 +199,9 @@ function Shell({ tone, icon: Icon, children, variant = 'sheet' }) {
             <Icon size={26} className={t.icon} />
           </div>
         </div>
-        {children}
+        <div className="flex flex-col items-center justify-center w-full">
+          {children}
+        </div>
       </div>
     </div>
   )
@@ -210,7 +214,7 @@ function ActionButton({ label, variant, icon: Icon, onClick }) {
       className={cn(
         'flex-1 flex items-center justify-center gap-2 font-semibold px-6 py-3.5 rounded-full transition-colors',
         variant === 'primary'
-          ? 'bg-blue-600 text-white hover:bg-blue-700'
+          ? 'bg-[#0033EC] text-white hover:bg-[#0029BD]'
           : variant === 'danger'
           ? 'bg-red-500 text-white hover:bg-red-600'
           : 'border border-gray-200 bg-white text-foreground hover:bg-gray-50'

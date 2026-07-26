@@ -88,7 +88,7 @@ export function KonfirmasiPembayaranModal({ candidate, onConfirm, onReject, onCa
           </button>
           <button
             onClick={() => onConfirm(candidate)}
-            className="flex-1 font-semibold px-6 py-3.5 rounded-full bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+            className="flex-1 font-semibold px-6 py-3.5 rounded-full bg-[#0033EC] text-white hover:bg-[#0029BD] transition-colors"
           >
             Konfirmasi Pembayaran
           </button>

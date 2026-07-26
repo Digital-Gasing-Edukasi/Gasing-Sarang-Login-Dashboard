@@ -234,7 +234,7 @@ export function ApproveModal({ candidate, discourseGroups = [], trainingSessions
           onClick={() => onConfirm({ discourseGroupId: parseInt(role, 10), firstTrainingSessionId: session })}
           className={cn(
             'w-full mt-8 font-semibold px-6 py-3.5 rounded-full text-white transition-colors',
-            canSubmit ? 'bg-blue-600 hover:bg-blue-700' : 'bg-blue-300 cursor-not-allowed'
+            canSubmit ? 'bg-[#0033EC] hover:bg-[#0029BD]' : 'bg-blue-300 cursor-not-allowed'
           )}
         >
           Konfirmasi

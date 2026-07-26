@@ -140,7 +140,7 @@ export function PendingVoucherTable({
                 <div className="flex items-center justify-center">
                   <button
                     onClick={() => onConfirm(user)}
-                    className="px-5 py-2 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium transition-colors"
+                    className="px-5 py-2 rounded-full bg-[#0033EC] hover:bg-[#0029BD] text-white text-sm font-medium transition-colors"
                   >
                     Konfirmasi
                   </button>
