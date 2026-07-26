@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { ArrowDownUp, MoreHorizontal, Edit, Trash2, Clock, CheckCircle2, History, SearchX, Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { getTableScrollProps } from './tableScroll'
+import { TableShell, FreezeBlurLeft, FreezeBlurRight } from './TableShell'
 import { RoleTag } from './RoleTag'
 import { VoucherCode } from './VoucherCode'
 
@@ -31,12 +31,14 @@ const MENU_W = 208
 
 // Menu aksi baris. Di-portal ke body + posisi fixed supaya tidak terpotong
 // container scroll tabel (overflow-auto). Buka ke atas bila mepet bawah viewport.
-function RowActionMenu({ tab, user, onAction }) {
+// `items` bisa dioper langsung (mis. dari tabel lain seperti Verifikasi Pembayaran);
+// kalau kosong, jatuh ke MENU_BY_TAB sesuai `tab`.
+export function RowActionMenu({ tab, items: itemsProp, user, onAction }) {
   const [open, setOpen] = useState(false)
   const [pos, setPos] = useState({ top: 0, left: 0 })
   const btnRef = useRef(null)
   const menuRef = useRef(null)
-  const items = MENU_BY_TAB[tab] || MENU_BY_TAB['Disetujui']
+  const items = itemsProp || MENU_BY_TAB[tab] || MENU_BY_TAB['Disetujui']
 
   useEffect(() => {
     if (!open) return
@@ -151,7 +153,7 @@ export function ManajemenTable({
   const isReducedView = activeFilter === 'Rejected' || activeFilter === 'Deleted' || activeFilter === 'Ditolak' || activeFilter === 'Baru Dihapus'
 
   return (
-    <div {...getTableScrollProps()}>
+    <TableShell>
       <table className="w-full text-left text-sm whitespace-nowrap">
         <thead className="bg-[#0A1128] text-white sticky top-0 z-20">
           <tr>
@@ -166,8 +168,9 @@ export function ManajemenTable({
                 {allSelected && <Check size={11} className="text-white" strokeWidth={3} />}
               </button>
             </th>
-            <th className="px-4 py-4 font-medium sticky left-[48px] z-30 bg-[#0A1128] shadow-[4px_0_10px_-4px_rgba(0,0,0,0.3)]">
+            <th className="px-4 py-4 font-medium sticky left-[48px] z-30 bg-[#0A1128] relative">
               <SortableHeader label="Nama Pengguna" sortKey="name" sortConfig={sortConfig} onSort={onSort} />
+              <FreezeBlurLeft />
             </th>
             <th className="px-4 py-4 font-medium">
               <SortableHeader label="Email" sortKey="email" sortConfig={sortConfig} onSort={onSort} />
@@ -218,7 +221,10 @@ export function ManajemenTable({
             <th className="px-4 py-4 font-medium">
               <SortableHeader label="Last Updated" sortKey="lastUpdated" sortConfig={sortConfig} onSort={onSort} />
             </th>
-            <th className="px-4 py-4 font-medium text-center sticky right-0 z-30 bg-[#0A1128] shadow-[-4px_0_10px_-4px_rgba(0,0,0,0.3)]">Action</th>
+            <th className="px-4 py-4 font-medium text-center sticky right-0 z-30 bg-[#0A1128] relative">
+              Action
+              <FreezeBlurRight />
+            </th>
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-100">
@@ -237,7 +243,7 @@ export function ManajemenTable({
                     {selected && <Check size={11} className="text-white" strokeWidth={3} />}
                   </button>
                 </td>
-                <td className={cn('px-4 py-4 sticky left-[48px] z-10 transition-colors shadow-[4px_0_10px_-4px_rgba(0,0,0,0.05)]', selected ? 'bg-[#F4F6FB]' : 'bg-white group-hover:bg-[#F9FAFB]')}>
+                <td className={cn('px-4 py-4 sticky left-[48px] z-10 transition-colors relative', selected ? 'bg-[#F4F6FB]' : 'bg-white group-hover:bg-[#F9FAFB]')}>
                   <div className="font-bold text-[#0A1128] flex items-center">
                     {user.name}
                     {user.isNew && (
@@ -245,6 +251,7 @@ export function ManajemenTable({
                     )}
                   </div>
                   <div className="text-xs text-gray-400 mt-0.5">{user.username}</div>
+                  <FreezeBlurLeft />
                 </td>
                 <td className="px-4 py-4 text-[#0A1128] font-medium">{user.email}</td>
                 <td className="px-4 py-4">
@@ -298,8 +305,9 @@ export function ManajemenTable({
                 <td className="px-4 py-4 text-[#0A1128] font-medium">{user.alumniTanggal || '-'}</td>
                 <td className="px-4 py-4 text-[#0A1128] font-medium whitespace-normal break-words max-w-[200px] leading-snug align-top">{user.school || '-'}</td>
                 <td className="px-4 py-4 text-[#0A1128] font-medium">{user.lastUpdated || '-'}</td>
-                <td className={cn('px-4 py-4 text-center sticky right-0 z-10 transition-colors shadow-[-4px_0_10px_-4px_rgba(0,0,0,0.05)]', selected ? 'bg-[#F4F6FB]' : 'bg-white group-hover:bg-[#F9FAFB]')}>
+                <td className={cn('px-4 py-4 text-center sticky right-0 z-10 transition-colors relative', selected ? 'bg-[#F4F6FB]' : 'bg-white group-hover:bg-[#F9FAFB]')}>
                   <RowActionMenu tab={activeFilter} user={user} onAction={onActionClick} />
+                  <FreezeBlurRight />
                 </td>
               </tr>
             )
@@ -322,6 +330,6 @@ export function ManajemenTable({
           )}
         </tbody>
       </table>
-    </div>
+    </TableShell>
   )
 }

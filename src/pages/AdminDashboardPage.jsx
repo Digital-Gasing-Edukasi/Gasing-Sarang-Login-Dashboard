@@ -489,17 +489,24 @@ export default function AdminDashboardPage({ user, onSignOut }) {
   const handleKonfirmasiPembayaran = (target) => {
     if (!target) return
     setKonfirmasiCandidate(null)
+    // Kandidat bisa datang dari sub-tab "menunggu" atau "ditolak" (aksi Setujui
+    // Pembayaran). Buang dari kedua list; restore diarahkan ke list asalnya.
+    const fromDitolak = target.statusMember === 'Pembayaran Ditolak'
+    const restore = () => fromDitolak
+      ? setPembayaranDitolak(prev => [target, ...prev])
+      : setPembayaranMenunggu(prev => [target, ...prev])
     setPembayaranMenunggu(prev => prev.filter(u => u.id !== target.id))
+    setPembayaranDitolak(prev => prev.filter(u => u.id !== target.id))
     setToast({
       message: <>Berhasil konfirmasi pembayaran akun {target.name}</>,
-      undo: () => setPembayaranMenunggu(prev => [target, ...prev]),
+      undo: restore,
     })
     scheduleAction(
       // Approve sukses → langganan aktif di BE. Refresh Manajemen supaya user
       // approved + status langganannya ikut muncul (state Manajemen kalau tidak
       // di-refetch tetap basi sampai pindah tab / hard reload).
       async () => { await adminApi.approveManualPayment(target.id); loadUsers('manajemen') },
-      () => { setPembayaranMenunggu(prev => [target, ...prev]); setApiError('Gagal mengonfirmasi pembayaran.') }
+      () => { restore(); setApiError('Gagal mengonfirmasi pembayaran.') }
     )
   }
 
@@ -525,6 +532,32 @@ export default function AdminDashboardPage({ user, onSignOut }) {
         setPembayaranMenunggu(prev => [target, ...prev])
         setApiError('Gagal menolak pembayaran.')
       }
+    )
+  }
+
+  // Menu "..." di sub-tab Pembayaran Ditolak → dua aksi:
+  //   setujui-pembayaran → buka modal bukti transfer (approve, sama alur menunggu)
+  //   hapus-akun         → konfirmasi lalu deletion-request (pindah ke Baru Dihapus)
+  const handlePembayaranRowAction = (type, user) => {
+    if (type === 'setujui-pembayaran') setKonfirmasiCandidate(user)
+    else if (type === 'hapus-akun') setActionModal({ type: 'hapus-akun-pembayaran', user })
+  }
+
+  // Hapus akun dari tab Pembayaran Ditolak → deletion-request + pindah ke Baru
+  // Dihapus. Row pembayaran: id = payment id, userId = id akun (dipakai endpoint).
+  const handleConfirmHapusAkunPembayaran = () => {
+    const target = actionModal.user
+    if (!target) return
+    setActionModal({ type: null, user: null })
+    setPembayaranDitolak(prev => prev.filter(u => u.id !== target.id))
+    setToast({
+      message: <>Akun {target.name} telah dihapus</>,
+      undo: () => setPembayaranDitolak(prev => [target, ...prev]),
+    })
+    scheduleAction(
+      // Refresh Manajemen supaya akun muncul di tab "Baru Dihapus".
+      async () => { await adminApi.requestUserDeletion(target.userId || target.id); loadUsers('manajemen') },
+      () => { setPembayaranDitolak(prev => [target, ...prev]); setApiError('Gagal menghapus akun.') }
     )
   }
 
@@ -1247,7 +1280,7 @@ export default function AdminDashboardPage({ user, onSignOut }) {
           </h1>
         </header>
 
-        <div className="flex-1 overflow-auto p-10 bg-[#F7F8FC]">
+        <div className="flex-1 p-10 bg-[#F7F8FC] overflow-hidden">
           {apiError && (
             <div className="mb-4 px-4 py-3 rounded-lg bg-red-50 text-red-700 text-sm border border-red-200">
               {apiError}
@@ -1348,9 +1381,7 @@ export default function AdminDashboardPage({ user, onSignOut }) {
             />
           )}
 
-          <div className="border border-gray-200 rounded-2xl overflow-hidden shadow-sm bg-white">
-            <div className="overflow-x-auto">
-              {activeTab === 'verifikasi' && verifSubTab === 'pending' && (
+          {activeTab === 'verifikasi' && verifSubTab === 'pending' && (
                 <VerifikasiTable
                   users={sortedUsers}
                   sortConfig={sortConfig}
@@ -1387,22 +1418,7 @@ export default function AdminDashboardPage({ user, onSignOut }) {
                   subTab={pembayaranSubTab}
                   onConfirm={setKonfirmasiCandidate}
                   onRiwayatClick={setRiwayatDetailUser}
-                />
-              )}
-              {activeTab === 'manajemen' && (
-                <ManajemenTable
-                  users={sortedUsers}
-                  sortConfig={sortConfig}
-                  onSort={handleSort}
-                  onRoleChange={handleRoleChange}
-                  searchQuery={searchQuery}
-                  activeFilter={activeFilter}
-                  onActionClick={handleActionClick}
-                  onRiwayatClick={setRiwayatDetailUser}
-                  selectedIds={selectedIds}
-                  onToggleSelect={toggleSelect}
-                  onToggleSelectAll={toggleSelectAll}
-                  allSelected={allSelected}
+                  onRowAction={handlePembayaranRowAction}
                 />
               )}
               {activeTab === 'pendaftaran-trainer' && (
@@ -1427,8 +1443,23 @@ export default function AdminDashboardPage({ user, onSignOut }) {
                   onViewPeserta={setPesertaSession}
                 />
               )}
-            </div>
-          </div>
+
+          {activeTab === 'manajemen' && (
+            <ManajemenTable
+              users={sortedUsers}
+              sortConfig={sortConfig}
+              onSort={handleSort}
+              onRoleChange={handleRoleChange}
+              searchQuery={searchQuery}
+              activeFilter={activeFilter}
+              onActionClick={handleActionClick}
+              onRiwayatClick={setRiwayatDetailUser}
+              selectedIds={selectedIds}
+              onToggleSelect={toggleSelect}
+              onToggleSelectAll={toggleSelectAll}
+              allSelected={allSelected}
+            />
+          )}
         </div>
       </main>
 
@@ -1492,6 +1523,13 @@ export default function AdminDashboardPage({ user, onSignOut }) {
         <HapusAkunModal
           user={actionModal.user}
           onConfirm={handleConfirmHapusAkun}
+          onCancel={() => setActionModal({ type: null, user: null })}
+        />
+      )}
+      {actionModal.type === 'hapus-akun-pembayaran' && (
+        <HapusAkunModal
+          user={actionModal.user}
+          onConfirm={handleConfirmHapusAkunPembayaran}
           onCancel={() => setActionModal({ type: null, user: null })}
         />
       )}

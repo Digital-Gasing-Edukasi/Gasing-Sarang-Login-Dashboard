@@ -1,6 +1,6 @@
 import { ArrowDownUp, Check, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { getTableScrollProps } from './tableScroll'
+import { TableShell, FreezeBlurLeft, FreezeBlurRight } from './TableShell'
 
 // Header sortable, dengan opsi sublabel (grup "Alumni Pelatihan").
 function SortableHeader({ label, sublabel, sortKey, sortConfig, onSort }) {
@@ -33,7 +33,7 @@ export function VerifikasiTable({
   selectedIds = [], onToggleSelect, onToggleSelectAll, allSelected = false,
 }) {
   return (
-    <div {...getTableScrollProps()}>
+    <TableShell>
     <table className="w-full text-left text-sm whitespace-nowrap">
       <thead className="bg-[#0A1128] text-white sticky top-0 z-20">
         <tr>
@@ -48,8 +48,9 @@ export function VerifikasiTable({
               {allSelected && <Check size={11} className="text-white" strokeWidth={3} />}
             </button>
           </th>
-          <th className="px-4 py-4 font-medium sticky left-[48px] z-30 bg-[#0A1128] shadow-[4px_0_10px_-4px_rgba(0,0,0,0.3)] align-bottom">
+          <th className="px-4 py-4 font-medium sticky left-[48px] z-30 bg-[#0A1128] align-bottom relative">
             <SortableHeader label="Nama Pengguna" sortKey="name" sortConfig={sortConfig} onSort={onSort} />
+            <FreezeBlurLeft />
           </th>
           <th className="px-4 py-4 font-medium align-bottom">Email</th>
           <th className="px-4 py-4 font-medium align-bottom">Status</th>
@@ -68,7 +69,7 @@ export function VerifikasiTable({
           <th className="px-4 py-4 font-medium align-bottom">
             <SortableHeader label="Asal Sekolah" sortKey="school" sortConfig={sortConfig} onSort={onSort} />
           </th>
-          {selectedIds.length === 0 && <th className="px-4 py-4 font-medium text-center align-bottom sticky right-0 z-30 bg-[#0A1128] shadow-[-4px_0_10px_-4px_rgba(0,0,0,0.3)]">Setuju?</th>}
+          {selectedIds.length === 0 && <th className="px-4 py-4 font-medium text-center align-bottom sticky right-0 z-30 bg-[#0A1128] relative">Setuju?<FreezeBlurRight /></th>}
         </tr>
       </thead>
       <tbody className="divide-y divide-gray-100">
@@ -87,7 +88,7 @@ export function VerifikasiTable({
                   {selected && <Check size={11} className="text-white" strokeWidth={3} />}
                 </button>
               </td>
-              <td className={cn('px-4 py-4 sticky left-[48px] z-10 transition-colors shadow-[4px_0_10px_-4px_rgba(0,0,0,0.05)]', selected ? 'bg-[#F4F6FB]' : 'bg-white group-hover:bg-[#F9FAFB]')}>
+              <td className={cn('px-4 py-4 sticky left-[48px] z-10 transition-colors relative', selected ? 'bg-[#F4F6FB]' : 'bg-white group-hover:bg-[#F9FAFB]')}>
                 <div className="flex items-center gap-2">
                   <span className="font-bold text-[#0A1128]">{user.name}</span>
                   {user.isNew && (
@@ -97,6 +98,7 @@ export function VerifikasiTable({
                   )}
                 </div>
                 <div className="text-xs text-gray-400 mt-0.5">{user.username}</div>
+                <FreezeBlurLeft />
               </td>
               <td className="px-4 py-4 text-[#0A1128] font-medium">{user.email}</td>
               <td className="px-4 py-4">
@@ -110,7 +112,8 @@ export function VerifikasiTable({
               <td className="px-4 py-4 text-[#0A1128] font-medium">{user.alumniTanggal || '-'}</td>
               <td className="px-4 py-4 text-[#0A1128] font-medium whitespace-normal max-w-[220px]" title={user.school}>{user.school || '-'}</td>
               {selectedIds.length === 0 && (
-                <td className={cn('px-4 py-4 sticky right-0 z-10 group-hover:z-40 transition-colors shadow-[-4px_0_10px_-4px_rgba(0,0,0,0.05)]', selected ? 'bg-[#F4F6FB]' : 'bg-white group-hover:bg-[#F9FAFB]')}>
+                <td className={cn('px-4 py-4 sticky right-0 z-10 group-hover:z-40 transition-colors relative', selected ? 'bg-[#F4F6FB]' : 'bg-white group-hover:bg-[#F9FAFB]')}>
+                  <FreezeBlurRight />
                   <div className="flex items-center justify-center gap-2">
                     <div className="relative group/tip">
                       <button
@@ -144,6 +147,6 @@ export function VerifikasiTable({
         )}
       </tbody>
     </table>
-    </div>
+    </TableShell>
   )
 }

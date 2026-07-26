@@ -1,6 +1,6 @@
 import { ArrowDownUp, Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { getTableScrollProps } from './tableScroll'
+import { TableShell, FreezeBlurLeft, FreezeBlurRight } from './TableShell'
 import { RoleTag } from './RoleTag'
 import { VoucherCode } from './VoucherCode'
 
@@ -27,7 +27,7 @@ export function PendingVoucherTable({
   selectedIds = [], onToggleSelect, onToggleSelectAll, allSelected = false,
 }) {
   return (
-    <div {...getTableScrollProps()}>
+    <TableShell>
     <table className="w-full text-left text-sm whitespace-nowrap">
       <thead className="bg-[#0A1128] text-white sticky top-0 z-20">
         <tr>
@@ -42,8 +42,9 @@ export function PendingVoucherTable({
               {allSelected && <Check size={11} className="text-white" strokeWidth={3} />}
             </button>
           </th>
-          <th className="px-4 py-4 font-medium sticky left-[48px] z-30 bg-[#0A1128] shadow-[4px_0_10px_-4px_rgba(0,0,0,0.3)] align-bottom">
+          <th className="px-4 py-4 font-medium sticky left-[48px] z-30 bg-[#0A1128] align-bottom relative">
             <SortableHeader label="Nama Pengguna" sortKey="name" sortConfig={sortConfig} onSort={onSort} />
+            <FreezeBlurLeft />
           </th>
           <th className="px-4 py-4 font-medium align-bottom">Email</th>
           <th className="px-4 py-4 font-medium align-bottom">Status Member</th>
@@ -74,7 +75,7 @@ export function PendingVoucherTable({
           <th className="px-4 py-4 font-medium align-bottom">
             <SortableHeader label="Asal Sekolah" sortKey="school" sortConfig={sortConfig} onSort={onSort} />
           </th>
-          <th className="px-4 py-4 font-medium text-center align-bottom sticky right-0 z-30 bg-[#0A1128] shadow-[-4px_0_10px_-4px_rgba(0,0,0,0.3)]">Action</th>
+          <th className="px-4 py-4 font-medium text-center align-bottom sticky right-0 z-30 bg-[#0A1128] relative">Action<FreezeBlurRight /></th>
         </tr>
       </thead>
       <tbody className="divide-y divide-gray-100">
@@ -93,7 +94,7 @@ export function PendingVoucherTable({
                   {selected && <Check size={11} className="text-white" strokeWidth={3} />}
                 </button>
               </td>
-              <td className={cn('px-4 py-4 sticky left-[48px] z-10 transition-colors shadow-[4px_0_10px_-4px_rgba(0,0,0,0.05)]', selected ? 'bg-blue-50/50' : 'bg-white group-hover:bg-[#F9FAFB]')}>
+              <td className={cn('px-4 py-4 sticky left-[48px] z-10 transition-colors relative', selected ? 'bg-blue-50/50' : 'bg-white group-hover:bg-[#F9FAFB]')}>
                 <div className="flex items-center gap-2">
                   <span className="font-bold text-[#0A1128]">{user.name}</span>
                   {user.isNew && (
@@ -101,6 +102,7 @@ export function PendingVoucherTable({
                   )}
                 </div>
                 <div className="text-xs text-gray-400 mt-0.5">{user.username}</div>
+                <FreezeBlurLeft />
               </td>
               <td className="px-4 py-4 text-[#0A1128] font-medium">{user.email}</td>
               <td className="px-4 py-4">
@@ -133,7 +135,8 @@ export function PendingVoucherTable({
               <td className="px-4 py-4 text-[#0A1128] font-medium whitespace-normal max-w-[200px]" title={user.alumniDaerah}>{user.alumniDaerah || '-'}</td>
               <td className="px-4 py-4 text-[#0A1128] font-medium">{user.alumniTanggal || '-'}</td>
               <td className="px-4 py-4 text-[#0A1128] font-medium whitespace-normal max-w-[220px]" title={user.school}>{user.school || '-'}</td>
-              <td className={cn('px-4 py-4 sticky right-0 z-10 transition-colors shadow-[-4px_0_10px_-4px_rgba(0,0,0,0.05)]', selected ? 'bg-blue-50/50' : 'bg-white group-hover:bg-[#F9FAFB]')}>
+              <td className={cn('px-4 py-4 sticky right-0 z-10 transition-colors relative', selected ? 'bg-blue-50/50' : 'bg-white group-hover:bg-[#F9FAFB]')}>
+                <FreezeBlurRight />
                 <div className="flex items-center justify-center">
                   <button
                     onClick={() => onConfirm(user)}
@@ -156,6 +159,6 @@ export function PendingVoucherTable({
         )}
       </tbody>
     </table>
-    </div>
+    </TableShell>
   )
 }

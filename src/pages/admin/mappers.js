@@ -202,6 +202,11 @@ export function mapToVerifikasi(u, regions = [], discourseGroups = []) {
     (Array.isArray(u.trainingHistories) ? u.trainingHistories.length : (hasRiwayat ? 1 : 0))
   const voucherCode = u.lastVoucher?.code || u.activeVoucher?.code || u.voucher?.code || u.voucherCode || ''
 
+  // Fallback modal "Lihat Detail" (sama seperti mapToManajemen). Tabel training-history
+  // sering kosong (record manual) → derive 1 baris dari firstTrainingSession supaya
+  // modal tidak kosong padahal kolom Riwayat Pelatihan menunjukkan angka.
+  const riwayatList = buildRiwayatList(u, regions, { lts, hasRiwayat, alumniNama, alumniDaerah, alumniTanggal })
+
   return {
     id:       u.id,
     name:     u.name || '-',
@@ -220,6 +225,7 @@ export function mapToVerifikasi(u, regions = [], discourseGroups = []) {
     alumniTanggal,
     hasRiwayat,
     riwayatCount,
+    riwayatList,
     voucherCode,
     year:      parseCreatedAtYear(u.createdAt),
     school:    u.schoolName || '-',

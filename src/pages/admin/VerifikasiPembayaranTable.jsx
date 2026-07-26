@@ -1,8 +1,15 @@
-import { ArrowDownUp, SearchX } from 'lucide-react'
+import { ArrowDownUp, SearchX, CheckCircle2, Trash2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { getTableScrollProps } from './tableScroll'
+import { TableShell, FreezeBlurLeft, FreezeBlurRight } from './TableShell'
 import { RoleTag } from './RoleTag'
 import { VoucherCode } from './VoucherCode'
+import { RowActionMenu } from './ManajemenTable'
+
+// Menu aksi baris tab "Pembayaran Ditolak". type dipetakan ke handler di AdminDashboardPage.
+const PEMBAYARAN_DITOLAK_MENU = [
+  { type: 'setujui-pembayaran', label: 'Setujui Pembayaran', Icon: CheckCircle2, danger: false },
+  { type: 'hapus-akun',         label: 'Hapus Akun',         Icon: Trash2,       danger: true  },
+]
 
 // Header sortable, dengan opsi sublabel (grup "Alumni Pelatihan").
 function SortableHeader({ label, sublabel, sortKey, sortConfig, onSort }) {
@@ -26,20 +33,21 @@ const STATUS_CLASSES = {
 }
 
 // Tabel Verifikasi Pembayaran. Tanpa bulk-select (keputusan: single-action).
-// subTab: 'menunggu' → kolom Action tampil (tombol Konfirmasi); 'ditolak' → tanpa Action.
+// subTab: 'menunggu' → Action = tombol Konfirmasi; 'ditolak' → Action = menu "..."
+// (Setujui Pembayaran / Hapus Akun). Kedua sub-tab punya kolom Action sticky-kanan.
 export function VerifikasiPembayaranTable({
-  users, sortConfig, onSort, searchQuery, subTab = 'menunggu', onConfirm, onRiwayatClick,
+  users, sortConfig, onSort, searchQuery, subTab = 'menunggu', onConfirm, onRiwayatClick, onRowAction,
 }) {
-  const showAction = subTab === 'menunggu'
-  const colSpan = showAction ? 16 : 15
+  const colSpan = 16
 
   return (
-    <div {...getTableScrollProps()}>
+    <TableShell>
       <table className="w-full text-left text-sm whitespace-nowrap">
         <thead className="bg-[#0A1128] text-white sticky top-0 z-20">
           <tr>
-            <th className="px-4 py-4 font-medium sticky left-0 z-30 bg-[#0A1128] shadow-[4px_0_10px_-4px_rgba(0,0,0,0.3)] align-bottom">
+            <th className="px-4 py-4 font-medium sticky left-0 z-30 bg-[#0A1128] align-bottom relative">
               <SortableHeader label="Nama Pengguna" sortKey="name" sortConfig={sortConfig} onSort={onSort} />
+              <FreezeBlurLeft />
             </th>
             <th className="px-4 py-4 font-medium align-bottom">Email</th>
             <th className="px-4 py-4 font-medium align-bottom">Status Member</th>
@@ -77,15 +85,13 @@ export function VerifikasiPembayaranTable({
             <th className="px-4 py-4 font-medium align-bottom">
               <SortableHeader label="Last Verified" sortKey="lastVerified" sortConfig={sortConfig} onSort={onSort} />
             </th>
-            {showAction && (
-              <th className="px-4 py-4 font-medium text-center sticky right-0 z-30 bg-[#0A1128] shadow-[-4px_0_10px_-4px_rgba(0,0,0,0.3)] align-bottom">Action</th>
-            )}
+            <th className="px-4 py-4 font-medium text-center sticky right-0 z-30 bg-[#0A1128] align-bottom relative">Action<FreezeBlurRight /></th>
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-100">
           {users.length > 0 ? users.map(user => (
             <tr key={user.id} className="group transition-colors hover:bg-[#F9FAFB]">
-              <td className="px-4 py-4 sticky left-0 z-10 bg-white group-hover:bg-[#F9FAFB] transition-colors shadow-[4px_0_10px_-4px_rgba(0,0,0,0.05)]">
+              <td className="px-4 py-4 sticky left-0 z-10 bg-white group-hover:bg-[#F9FAFB] transition-colors relative">
                 <div className="flex items-center gap-2">
                   <span className="font-bold text-[#0A1128]">{user.name}</span>
                   {user.isNew && (
@@ -93,6 +99,7 @@ export function VerifikasiPembayaranTable({
                   )}
                 </div>
                 <div className="text-xs text-gray-400 mt-0.5">{user.username}</div>
+                <FreezeBlurLeft />
               </td>
               <td className="px-4 py-4 text-[#0A1128] font-medium">{user.email}</td>
               <td className="px-4 py-4">
@@ -130,16 +137,19 @@ export function VerifikasiPembayaranTable({
               <td className="px-4 py-4 text-[#0A1128] font-medium">{user.alumniTanggal || '-'}</td>
               <td className="px-4 py-4 text-[#0A1128] font-medium whitespace-normal break-words max-w-[200px] leading-snug align-top">{user.school || '-'}</td>
               <td className="px-4 py-4 text-[#0A1128] font-medium">{user.lastVerified || '-'}</td>
-              {showAction && (
-                <td className="px-4 py-4 text-center sticky right-0 z-10 bg-white group-hover:bg-[#F9FAFB] transition-colors shadow-[-4px_0_10px_-4px_rgba(0,0,0,0.05)]">
+              <td className="px-4 py-4 text-center sticky right-0 z-10 bg-white group-hover:bg-[#F9FAFB] transition-colors relative">
+                <FreezeBlurRight />
+                {subTab === 'menunggu' ? (
                   <button
                     onClick={() => onConfirm && onConfirm(user)}
                     className="px-5 py-2 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold transition-colors"
                   >
                     Konfirmasi
                   </button>
-                </td>
-              )}
+                ) : (
+                  <RowActionMenu items={PEMBAYARAN_DITOLAK_MENU} user={user} onAction={onRowAction} />
+                )}
+              </td>
             </tr>
           )) : (
             <tr>
@@ -160,6 +170,6 @@ export function VerifikasiPembayaranTable({
           )}
         </tbody>
       </table>
-    </div>
+    </TableShell>
   )
 }

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { ArrowDownUp, Pencil, Download, Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { getTableScrollProps } from './tableScroll'
+import { TableShell, FreezeBlurLeft, FreezeBlurRight } from './TableShell'
 
 const ID_MONTHS = {
   jan: 0, feb: 1, mar: 2, apr: 3, mei: 4, jun: 5,
@@ -78,12 +78,13 @@ export function RiwayatPelatihanTable({
     : filteredData
 
   return (
-    <div {...getTableScrollProps()}>
+    <TableShell>
     <table className="w-full text-left text-sm whitespace-nowrap">
       <thead className="bg-[#0A1128] text-white sticky top-0 z-20">
         <tr>
-          <th className="px-4 py-4 w-12 text-center sticky left-0 z-30 bg-[#0A1128]">
+          <th className="px-4 py-4 w-12 text-center sticky left-0 z-30 bg-[#0A1128] relative">
             <div className="w-4 h-4 rounded border border-white/30 mx-auto" />
+            <FreezeBlurLeft />
           </th>
           <th className="px-4 py-4 font-medium align-bottom">
             <SortableHeader label="Nama Pelatihan" sortKey="nama" sortConfig={sortConfig} onSort={handleSort} />
@@ -100,7 +101,7 @@ export function RiwayatPelatihanTable({
           <th className="px-4 py-4 font-medium align-bottom">
             <SortableHeader label="Last Updated" sortKey="lastUpdated" sortConfig={sortConfig} onSort={handleSort} />
           </th>
-          <th className="px-4 py-4 font-medium align-bottom text-center sticky right-0 z-30 bg-[#0A1128] shadow-[-4px_0_10px_-4px_rgba(0,0,0,0.3)]">Action</th>
+          <th className="px-4 py-4 font-medium align-bottom text-center sticky right-0 z-30 bg-[#0A1128] relative">Action<FreezeBlurRight /></th>
         </tr>
       </thead>
       <tbody className="divide-y divide-gray-100">
@@ -109,7 +110,8 @@ export function RiwayatPelatihanTable({
             const selected = selectedIds.includes(item.id);
             return (
             <tr key={item.id} className={cn('group transition-colors', selected ? 'bg-[#F4F6FB]' : 'hover:bg-[#F9FAFB]')}>
-              <td className={cn('px-4 py-4 text-center sticky left-0 z-10 transition-colors', selected ? 'bg-[#F4F6FB]' : 'bg-white group-hover:bg-[#F9FAFB]')}>
+              <td className={cn('px-4 py-4 text-center sticky left-0 z-10 transition-colors relative', selected ? 'bg-[#F4F6FB]' : 'bg-white group-hover:bg-[#F9FAFB]')}>
+                <FreezeBlurLeft />
                 <button
                   onClick={() => onToggleSelect(item.id)}
                   className={cn(
@@ -148,7 +150,8 @@ export function RiwayatPelatihanTable({
                 )}
               </td>
               <td className="px-4 py-4 text-[#0A1128] font-medium">{item.lastUpdated || '-'}</td>
-              <td className={cn('px-4 py-4 sticky right-0 z-10 transition-colors shadow-[-4px_0_10px_-4px_rgba(0,0,0,0.05)]', selected ? 'bg-[#F4F6FB]' : 'bg-white group-hover:bg-[#F9FAFB]')}>
+              <td className={cn('px-4 py-4 sticky right-0 z-10 transition-colors relative', selected ? 'bg-[#F4F6FB]' : 'bg-white group-hover:bg-[#F9FAFB]')}>
+                <FreezeBlurRight />
                 <div className="flex items-center justify-center gap-1">
                   <button
                     onClick={() => onEdit && onEdit(item)}
@@ -178,6 +181,6 @@ export function RiwayatPelatihanTable({
         )}
       </tbody>
     </table>
-    </div>
+    </TableShell>
   )
 }

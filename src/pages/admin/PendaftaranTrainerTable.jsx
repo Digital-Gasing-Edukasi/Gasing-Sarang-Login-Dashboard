@@ -1,6 +1,6 @@
 import { ExternalLink, Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { getTableScrollProps } from './tableScroll'
+import { TableShell, FreezeBlurLeft, FreezeBlurRight } from './TableShell'
 
 function isPastDeadline(v) {
   if (!v) return false
@@ -32,19 +32,20 @@ export function PendaftaranTrainerTable({
   })
 
   return (
-    <div {...getTableScrollProps()}>
+    <TableShell>
     <table className="w-full text-left text-sm whitespace-nowrap">
       <thead className="bg-[#0A1128] text-white sticky top-0 z-20">
         <tr>
-          <th className="px-4 py-4 w-12 text-center sticky left-0 z-30 bg-[#0A1128]">
+          <th className="px-4 py-4 w-12 text-center sticky left-0 z-30 bg-[#0A1128] relative">
             <div className="w-4 h-4 rounded border border-white/30 mx-auto" />
+            <FreezeBlurLeft />
           </th>
           <th className="px-4 py-4 font-medium rounded-tl-lg">Nama Pelatihan</th>
           <th className="px-4 py-4 font-medium">Link</th>
           <th className="px-4 py-4 font-medium">Periode</th>
           <th className="px-4 py-4 font-medium">Batas Waktu</th>
           <th className="px-4 py-4 font-medium">Status</th>
-          <th className="px-4 py-4 font-medium text-center rounded-tr-lg sticky right-0 z-30 bg-[#0A1128] shadow-[-4px_0_10px_-4px_rgba(0,0,0,0.3)]">Tampilkan di Home?</th>
+          <th className="px-4 py-4 font-medium text-center sticky right-0 z-30 bg-[#0A1128] relative">Tampilkan di Home?<FreezeBlurRight /></th>
         </tr>
       </thead>
       <tbody className="divide-y divide-gray-100">
@@ -54,7 +55,8 @@ export function PendaftaranTrainerTable({
             const expired = isPastDeadline(item.batasWaktu);
             return (
             <tr key={item.id} className={cn('group transition-colors', selected ? 'bg-[#F4F6FB]' : 'hover:bg-[#F9FAFB]')}>
-              <td className={cn('px-4 py-4 text-center sticky left-0 z-10 transition-colors', selected ? 'bg-[#F4F6FB]' : 'bg-white group-hover:bg-[#F9FAFB]')}>
+              <td className={cn('px-4 py-4 text-center sticky left-0 z-10 transition-colors relative', selected ? 'bg-[#F4F6FB]' : 'bg-white group-hover:bg-[#F9FAFB]')}>
+                <FreezeBlurLeft />
                 <button
                   onClick={() => onToggleSelect(item.id)}
                   className={cn(
@@ -102,7 +104,8 @@ export function PendaftaranTrainerTable({
                   {item.isActive ? 'Aktif' : 'Berakhir'}
                 </span>
               </td>
-              <td className={cn('px-4 py-4 sticky right-0 z-10 transition-colors shadow-[-4px_0_10px_-4px_rgba(0,0,0,0.05)]', selected ? 'bg-[#F4F6FB]' : 'bg-white group-hover:bg-[#F9FAFB]')}>
+              <td className={cn('px-4 py-4 sticky right-0 z-10 transition-colors relative', selected ? 'bg-[#F4F6FB]' : 'bg-white group-hover:bg-[#F9FAFB]')}>
+                <FreezeBlurRight />
                 <div className="flex items-center justify-center">
                   <button
                     onClick={() => onToggleStatus(item.id)}
@@ -135,6 +138,6 @@ export function PendaftaranTrainerTable({
         )}
       </tbody>
     </table>
-    </div>
+    </TableShell>
   )
 }
