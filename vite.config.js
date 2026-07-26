@@ -5,10 +5,19 @@ import { fileURLToPath } from "url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
+// Cap waktu build (WIB) — di-inject ke bundle lewat `define`. Dipakai penanda
+// versi di halaman login supaya gampang identifikasi build mana yang lagi live.
+const BUILD_DATE = new Date().toLocaleString('sv-SE', {
+  timeZone: 'Asia/Jakarta',
+}).slice(0, 16).replace('T', ' '); // "2026-07-24 14:30"
+
 export default defineConfig(({ mode }) => ({
   // App di-serve dari root domain. Route publik: /login, /register,
   // /dashboard-admin, /payment/* (lihat src/lib/routes.js).
   base: mode === 'production' ? '/' : '/register',
+  define: {
+    __BUILD_DATE__: JSON.stringify(BUILD_DATE),
+  },
   plugins: [react()],
   resolve: {
     alias: {

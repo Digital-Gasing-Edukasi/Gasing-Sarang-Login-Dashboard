@@ -16,6 +16,15 @@ function pickNumber(...vals) {
   return null;
 }
 
+// Nama paket bahasa Inggris dari backend → Indonesia.
+// "Yearly"/"Annual" → "Tahunan", "Monthly" → "Bulanan". Nama lain dibiarkan.
+export function localizePlanName(name) {
+  const n = String(name || "").trim();
+  if (/^(yearly|annual|annually)$/i.test(n)) return "Tahunan";
+  if (/^monthly$/i.test(n)) return "Bulanan";
+  return n;
+}
+
 // Transform API package response → UI plan format
 function transformPlan(pkg) {
   const isAnnual =
@@ -36,7 +45,7 @@ function transformPlan(pkg) {
   if (isAnnual) {
     return {
       id: pkg.id,
-      name: pkg.name,
+      name: localizePlanName(pkg.name),
       billingCycle: "annual",
       priceMonthly: Math.round(pkg.price / months),
       priceTotal: pkg.price,
@@ -44,12 +53,12 @@ function transformPlan(pkg) {
       discount: explicitDiscount,
       label: explicitDiscount ? `Kamu Hemat ${explicitDiscount}%` : null,
       recommended: true,
-      planLabel: pkg.name,
+      planLabel: localizePlanName(pkg.name),
     };
   }
   return {
     id: pkg.id,
-    name: pkg.name,
+    name: localizePlanName(pkg.name),
     billingCycle: "monthly",
     priceMonthly: pkg.price,
     priceTotal: null,
@@ -57,7 +66,7 @@ function transformPlan(pkg) {
     discount: explicitDiscount,
     label: null,
     recommended: false,
-    planLabel: pkg.name,
+    planLabel: localizePlanName(pkg.name),
   };
 }
 

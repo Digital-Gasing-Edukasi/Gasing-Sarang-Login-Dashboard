@@ -214,6 +214,11 @@ export function LoginPage({ onNavigate, onLoginSuccess, isSsoMode = false }) {
         </button>
       </div>
 
+      {/* Penanda build (di-inject Vite). Buat identifikasi build mana yang live. */}
+      <p className="mt-6 text-center text-[11px] text-muted-foreground/60 select-all">
+        build {typeof __BUILD_DATE__ !== "undefined" ? __BUILD_DATE__ : "dev"}
+      </p>
+
       {noConn && <NoConnectionBanner onClose={() => setNoConn(false)} />}
 
       {gate && (

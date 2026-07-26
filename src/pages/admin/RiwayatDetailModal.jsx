@@ -45,7 +45,9 @@ export function RiwayatDetailModal({ user, onClose }) {
     let alive = true
     setFetched(null); setSortConfig(null); setLoading(true)
     setTotal(user.riwayatCount || (user.riwayatList?.length ?? 0))
-    adminApi.listUserTrainingHistories(user.id)
+    // Row Manajemen: id = user id. Row Verifikasi Pembayaran: id = payment id,
+    // user id ada di `userId`. Pakai userId dulu supaya fetch benar di kedua tabel.
+    adminApi.listUserTrainingHistories(user.userId || user.id)
       .then((res) => {
         if (!alive) return
         const list = asList(res).map((h, i) => mapToUserRiwayat(h, i, user.email))

@@ -123,6 +123,9 @@ function applySortToList(list, sortConfig) {
     if (sortConfig.key === 'lastUpdated') {
       valA = a.lastUpdatedMs || 0
       valB = b.lastUpdatedMs || 0
+    } else if (sortConfig.key === 'lastVerified') {
+      valA = a.lastVerifiedMs || 0
+      valB = b.lastVerifiedMs || 0
     } else if (sortConfig.key === 'birthdate' || sortConfig.key === 'endDate') {
       valA = valA ? new Date(valA).getTime() : 0
       valB = valB ? new Date(valB).getTime() : 0
@@ -150,8 +153,8 @@ function buildCsvContent(tab, users, activeFilter, verifSubTab = 'pending') {
     return s.includes(',') || s.includes('"') || s.includes('\n') ? `"${s.replace(/"/g, '""')}"` : s
   }
   if (tab === 'verifikasi-pembayaran') {
-    const headers = ['Nama Pengguna', 'Email', 'Status Member', 'Jenis Paket', 'Tgl. Berakhir', 'Kode Voucher', 'Role', 'Riwayat Pelatihan', 'Tgl. Lahir', 'Lokasi', 'Alumni Pelatihan Nama', 'Alumni Pelatihan Daerah', 'Alumni Pelatihan Tanggal Mulai', 'Asal Sekolah', 'Last Updated']
-    const rows = users.map(u => [u.name, u.email, u.statusMember || '-', u.plan || '-', u.endDate || '-', u.voucher || '-', u.role || '-', u.riwayatCount || 0, u.birthdate || '-', u.lokasi || '-', u.training || '-', u.alumniDaerah || '-', u.alumniTanggal || '-', u.school || '-', u.lastUpdated || '-'])
+    const headers = ['Nama Pengguna', 'Email', 'Status Member', 'Jenis Paket', 'Tgl. Berakhir', 'Kode Voucher', 'Role', 'Riwayat Pelatihan', 'Tgl. Lahir', 'Lokasi', 'Alumni Pelatihan Nama', 'Alumni Pelatihan Daerah', 'Alumni Pelatihan Tanggal Mulai', 'Asal Sekolah', 'Last Verified']
+    const rows = users.map(u => [u.name, u.email, u.statusMember || '-', u.plan || '-', u.endDate || '-', u.voucher || '-', u.role || '-', u.riwayatCount || 0, u.birthdate || '-', u.lokasi || '-', u.training || '-', u.alumniDaerah || '-', u.alumniTanggal || '-', u.school || '-', u.lastVerified || '-'])
     return [headers.join(','), ...rows.map(r => r.map(escapeCsv).join(','))].join('\n')
   }
   if (tab === 'manajemen') {
@@ -193,6 +196,10 @@ export default function AdminDashboardPage({ user, onSignOut }) {
   const [activeTab, setActiveTab] = useState('verifikasi')
   const [users, setUsers]                   = useState([])
   const [managementUsers, setManagementUsers] = useState([])
+  // Lookup user hasil GET /admin/users (mapToManajemen), keyed by id. Diisi sekali
+  // saat load Manajemen, dipakai ulang tabel lain (mis. Verifikasi Pembayaran) buat
+  // isi kolom yang tidak di-embed response payment (role, alumni, lokasi, dst).
+  const [usersById, setUsersById] = useState({})
   const [loadingUsers, setLoadingUsers]     = useState(false)
   const [apiError, setApiError]             = useState('')
   const [searchQuery, setSearchQuery]       = useState('')
@@ -218,6 +225,8 @@ export default function AdminDashboardPage({ user, onSignOut }) {
   // ikut trainingRegions. Kalau ikut, identity-nya berubah saat loadUsers nge-set
   // regions dan memicu ulang mount-effect → semua loader nembak 2x → 429.
   const trainingRegionsRef = useRef([])
+  // userId yang sudah pernah di-fetch on-demand (sukses/gagal) → jangan tembak ulang.
+  const fetchedUserIdsRef = useRef(new Set())
   const [trainingSessions, setTrainingSessions] = useState([])
   const [rejectCandidate, setRejectCandidate] = useState(null)
   const [approveCandidate, setApproveCandidate] = useState(null)
@@ -297,9 +306,14 @@ export default function AdminDashboardPage({ user, onSignOut }) {
       } else {
         const res = await adminApi.getUsers({})
         const rawList = Array.isArray(res) ? res : res.data || []
+        // Map sekali; simpan pasangan {raw, row} supaya bisa dipakai dua-duanya.
+        const mapped = rawList.map(u => ({ raw: u, row: mapToManajemen(u, regions, discourseGroupsRef.current) }))
+        // Lookup by id dari SEMUA user (belum disaring eligible) → tabel lain bisa
+        // join by userId walau user-nya bukan status Manajemen.
+        setUsersById(Object.fromEntries(mapped.map(({ row }) => [row.id, row])))
         // Hanya akun ber-keputusan final (approved/rejected) + voucher beres yang
         // masuk Manajemen. WAITING/REVISE/pending-voucher disaring keluar.
-        setManagementUsers(rawList.filter(isManajemenEligible).map(u => mapToManajemen(u, regions, discourseGroupsRef.current)))
+        setManagementUsers(mapped.filter(({ raw }) => isManajemenEligible(raw)).map(({ row }) => row))
       }
     } catch (err) {
       setApiError(err.message || 'Gagal memuat data')
@@ -387,6 +401,34 @@ export default function AdminDashboardPage({ user, onSignOut }) {
   useEffect(() => {
     if (activeTab === 'verifikasi-pembayaran') loadPembayaran()
   }, [activeTab, loadPembayaran])
+
+  // Enrich on-demand (opsi B): kalau baris payment usernya tidak ada di usersById
+  // (mis. di luar 20 user pertama yang ke-load Manajemen), fetch GET /admin/users/{id}
+  // per user yang kurang, map, lalu gabung ke usersById. Guard fetchedUserIdsRef
+  // supaya tidak menembak ulang (termasuk yang gagal) walau effect re-run.
+  useEffect(() => {
+    const rows = [...pembayaranMenunggu, ...pembayaranDitolak]
+    const missing = [...new Set(rows.map(r => r.userId).filter(Boolean))]
+      .filter(id => !usersById[id] && !fetchedUserIdsRef.current.has(id))
+    if (!missing.length) return
+    missing.forEach(id => fetchedUserIdsRef.current.add(id))
+    let cancelled = false
+    Promise.all(missing.map(id =>
+      adminApi.getUser(id)
+        .then(res => ({ id, raw: res?.data ?? res }))
+        .catch(() => null)
+    )).then(results => {
+      if (cancelled) return
+      const add = {}
+      for (const r of results) {
+        if (!r?.raw) continue
+        const row = mapToManajemen(r.raw, trainingRegionsRef.current, discourseGroupsRef.current)
+        add[row.id ?? r.id] = row
+      }
+      if (Object.keys(add).length) setUsersById(prev => ({ ...prev, ...add }))
+    })
+    return () => { cancelled = true }
+  }, [pembayaranMenunggu, pembayaranDitolak, usersById])
 
   // Muat semua dataset sekali di mount supaya titik biru navbar akurat walau
   // tab-nya belum pernah dibuka (dot = ada baris isNew / ada akun pending).
@@ -1069,10 +1111,37 @@ export default function AdminDashboardPage({ user, onSignOut }) {
     'pendaftaran-trainer':   pendaftaranData.some(r => r.isNew),
   }
 
+  // Kolom yang response payment TIDAK embed → ambil dari user (GET /admin/users)
+  // via usersById. Pakai nilai user hanya kalau "berisi" ('-'/''/null dianggap kosong);
+  // kalau tidak, pertahankan nilai dari payment (mis. plan Yearly/Monthly).
+  const enrichFromUser = (row) => {
+    const mu = usersById[row.userId]
+    if (!mu) return row
+    const has = (v) => v != null && v !== '' && v !== '-'
+    const pick = (k) => (has(mu[k]) ? mu[k] : row[k])
+    return {
+      ...row,
+      role:          pick('role'),
+      birthdate:     pick('birthdate'),
+      lokasi:        pick('lokasi'),
+      training:      pick('training'),
+      alumniDaerah:  pick('alumniDaerah'),
+      alumniTanggal: pick('alumniTanggal'),
+      school:        pick('school'),
+      voucher:       has(mu.voucher) ? mu.voucher : row.voucher,
+      // endDate SENGAJA tidak ditimpa: tabel ini pakai proyeksi manual dari
+      // mapToPembayaran (tgl payment + durasi), bukan endDate subscription user.
+      plan:          pick('plan'),
+      // riwayat: angka user (>0) menang; simpan juga list buat modal Lihat Detail.
+      riwayatCount:  mu.riwayatCount > 0 ? mu.riwayatCount : row.riwayatCount,
+      riwayatList:   mu.riwayatList ?? row.riwayatList,
+    }
+  }
+
   const currentData = activeTab === 'manajemen'
     ? managementUsers
     : activeTab === 'verifikasi-pembayaran'
-      ? (pembayaranSubTab === 'ditolak' ? pembayaranDitolak : pembayaranMenunggu)
+      ? (pembayaranSubTab === 'ditolak' ? pembayaranDitolak : pembayaranMenunggu).map(enrichFromUser)
       : (verifSubTab === 'voucher' ? pendingVoucherUsers : users)
 
   const filteredUsers = currentData.filter(user => {
@@ -1157,7 +1226,8 @@ export default function AdminDashboardPage({ user, onSignOut }) {
     link.setAttribute('download',
       activeTab === 'verifikasi'
         ? (verifSubTab === 'voucher' ? 'pending_voucher-Export data.csv' : 'verifikasi_akun-Export data.csv')
-      : activeTab === 'verifikasi-pembayaran' ? 'verifikasi_pembayaran-Export data.csv'
+      : activeTab === 'verifikasi-pembayaran'
+        ? (pembayaranSubTab === 'ditolak' ? 'pembayaran_ditolak-Export data.csv' : 'menunggu_verifikasi-Export data.csv')
       : 'manajemen_akun-Export data.csv')
     document.body.appendChild(link); link.click(); document.body.removeChild(link)
   }
@@ -1300,6 +1370,7 @@ export default function AdminDashboardPage({ user, onSignOut }) {
                   sortConfig={sortConfig}
                   onSort={handleSort}
                   onConfirm={setVoucherCandidate}
+                  onRiwayatDetail={setRiwayatDetailUser}
                   searchQuery={searchQuery}
                   selectedIds={selectedIds}
                   onToggleSelect={toggleSelect}
@@ -1315,6 +1386,7 @@ export default function AdminDashboardPage({ user, onSignOut }) {
                   searchQuery={searchQuery}
                   subTab={pembayaranSubTab}
                   onConfirm={setKonfirmasiCandidate}
+                  onRiwayatClick={setRiwayatDetailUser}
                 />
               )}
               {activeTab === 'manajemen' && (

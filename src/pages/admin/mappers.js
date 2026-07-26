@@ -35,8 +35,10 @@ function parseBirthdate(raw) {
   // Object dari API: { date: "1999-12-15", formatted: "15 Dec 1999" }
   if (typeof raw === 'object' && raw.formatted) return raw.formatted
   if (typeof raw === 'object' && raw.date)      return fmtDate(raw.date)
-  // Fallback: string ISO
-  return fmtDate(raw)
+  // Bentuk baru { unix, utc:{raw}, local } atau string ISO → lewat dateFieldMs
+  // supaya format tanggal konsisten ("15 Des 1999") dan tidak jadi '-'.
+  const ms = dateFieldMs(raw)
+  return ms ? fmtDate(ms) : '-'
 }
 
 function parseCreatedAtYear(raw) {
@@ -272,6 +274,15 @@ export function isManajemenEligible(u) {
          vs === 2 || vs === 'revise'
 }
 
+// Nama paket bahasa Inggris backend → Indonesia (fallback saat parsePlan gagal
+// menurunkan label dari durasi). "Yearly"/"Annual" → "Tahunan", "Monthly" → "Bulanan".
+function localizePlanName(name) {
+  const n = String(name || '').trim()
+  if (/^(yearly|annual|annually)$/i.test(n)) return 'Tahunan'
+  if (/^monthly$/i.test(n)) return 'Bulanan'
+  return n || '-'
+}
+
 // Jenis Paket → 'Tahunan' | 'Bulanan' | '-'. Diturunkan dari durasi paket.
 // (package: { duration, durationUnit } — lihat admin/packages Create Package.)
 function parsePlan(sub) {
@@ -283,6 +294,18 @@ function parsePlan(sub) {
   if (unit === 'year' || dur >= 12 || name.includes('year') || name.includes('tahun')) return 'Tahunan'
   if (unit === 'month' || dur >= 1 || name.includes('month') || name.includes('bulan')) return 'Bulanan'
   return '-'
+}
+
+// Durasi paket → jumlah hari. Dipakai hitung Tgl. Berakhir manual saat subscription
+// belum punya endDate (mis. payment masih pending/ditolak). Yearly=365, Monthly=30.
+function planDurationDays(sub, planLabel) {
+  const pkg  = sub?.package || sub?.plan || {}
+  const unit = String(pkg.durationUnit || pkg.duration_unit || '').toLowerCase()
+  const dur  = Number(pkg.duration || 0)
+  const name = String(pkg.name || sub?.packageName || planLabel || '').toLowerCase()
+  if (unit === 'year'  || dur >= 12 || name.includes('year')  || name.includes('tahun') || planLabel === 'Tahunan') return 365
+  if (unit === 'month' || dur >= 1  || name.includes('month') || name.includes('bulan') || planLabel === 'Bulanan') return 30
+  return 0
 }
 
 // Latest Update: <= 24 jam → jam ("9:20 AM"); > 24 jam → tanggal ("28 Mei 2026").
@@ -376,13 +399,33 @@ export function mapToPembayaran(p, regions = [], discourseGroups = []) {
     u.trainingHistoriesCount ?? u.trainingHistoryCount ?? u._count?.trainingHistories ??
     (Array.isArray(u.trainingHistories) ? u.trainingHistories.length : (hasRiwayat ? 1 : 0))
 
-  const subEnd = sub?.expiresAt || sub?.endDate || sub?.currentPeriodEnd || sub?.expiredAt || sub?.expires_at
-  const endMs  = dateFieldMs(subEnd)
+  // Paket: prioritas record payment (pay.package) — saat ditolak/pending user
+  // belum punya subscription aktif, jadi sub bisa null. Nama paket ("Yearly"/
+  // "Monthly") dipakai untuk label Jenis Paket sekaligus hitung durasi.
+  const pkg = pay.package || sub?.package || {}
+  const planLabel = parsePlan(sub) !== '-'
+    ? parsePlan(sub)
+    : localizePlanName(pkg.name)
 
-  const lu = fmtLastUpdated24h(pay.updatedAt || u.updatedAt || pay.createdAt || u.createdAt)
+  // Tgl. Berakhir: subscription belum tentu punya endDate saat payment masih
+  // pending/ditolak → hitung manual = tgl payment dibuat + durasi paket
+  // (Tahunan +365 hari, Bulanan +30 hari). Durasi dibaca dari nama paket payment
+  // (pkg.name) karena sub bisa kosong. Fallback ke endDate subscription asli.
+  const subEnd = sub?.expiresAt || sub?.endDate || sub?.currentPeriodEnd || sub?.expiredAt || sub?.expires_at
+  const payStartMs = dateFieldMs(pay.createdAt || pay.transferDate || pay.paidAt)
+  const durDays = planDurationDays(sub, pkg.name || planLabel)
+  const endMs = (payStartMs && durDays)
+    ? payStartMs + durDays * 86400000
+    : dateFieldMs(subEnd)
+
+  // Last Verified: waktu payment diverifikasi (approve/reject), BUKAN updatedAt umum.
+  // Menunggu (belum diverifikasi) → semua field null → '-'. Ditolak → pakai rejectedAt.
+  // TODO(be): nama field verifikasi belum dikonfirmasi backend (manual-transfer).
+  const lu = fmtLastUpdated24h(
+    pay.verifiedAt || pay.reviewedAt || pay.approvedAt || pay.rejectedAt || pay.verifiedDate
+  )
 
   // Detail bukti transfer (dipakai KonfirmasiPembayaranModal).
-  const pkg = pay.package || sub?.package || {}
   const transferMs = dateFieldMs(pay.transferDate || pay.paidAt || pay.createdAt)
 
   return {
@@ -393,7 +436,7 @@ export function mapToPembayaran(p, regions = [], discourseGroups = []) {
     email:    u.email || '-',
     isNew,
     statusMember,
-    plan:     parsePlan(sub) !== '-' ? parsePlan(sub) : (pkg.name || '-'),
+    plan:     planLabel !== '-' ? planLabel : localizePlanName(pkg.name),
     endDate:  endMs ? fmtDate(endMs) : '-',
     voucher,
     role:     resolveRole(u, discourseGroups),
@@ -404,15 +447,15 @@ export function mapToPembayaran(p, regions = [], discourseGroups = []) {
     alumniDaerah,
     alumniTanggal,
     school:    u.schoolName || '-',
-    lastUpdated:   lu.text,
-    lastUpdatedMs: lu.ms,
+    lastVerified:   lu.text,
+    lastVerifiedMs: lu.ms,
     // Detail transfer buat modal konfirmasi:
     payment: {
       senderName:   pay.senderName || pay.accountName || u.name || '-',
       bank:         pay.bankName || pay.senderBank || pay.bank || '-',
       transferDate: transferMs ? fmtDate(transferMs) : '-',
       amount:       fmtRupiah(pay.amount ?? pay.total ?? pay.grossAmount),
-      packageName:  pkg.name || pay.packageName || '-',
+      packageName:  localizePlanName(pkg.name || pay.packageName),
       receiptUrl:   pay.receiptUrl || pay.receipt?.url || pay.proofUrl || pay.proof?.url || '',
     },
   }

@@ -528,11 +528,13 @@ export const adminApi = {
     return request(`/admin/users/training-history/${userId}${q ? "?" + q : ""}`);
   },
 
-  // Peserta 1 session: user yang punya session tsb di riwayatnya.
-  // filter[trainingSessionId] = filter riwayat pelatihan (gantikan lastTrainingSessionId
-  // lama yang cuma cek session terakhir).
+  // Peserta 1 session. Pakai filter[firstTrainingSessionId] — sama dgn field yang
+  // dipakai tabel Manajemen/Verifikasi Akun ("Alumni Pelatihan" dari
+  // firstTrainingSession, di-set saat approve akun). filter[trainingSessionId]
+  // lama memfilter tabel training-history yang sering kosong (record dibuat manual),
+  // jadi peserta tidak muncul walau akunnya ada di Manajemen.
   getSessionParticipants: (sessionId, params = {}) => {
-    const q = buildQuery({ page: 1, limit: 20, "filter[trainingSessionId]": sessionId, ...params });
+    const q = buildQuery({ page: 1, limit: 20, "filter[firstTrainingSessionId]": sessionId, ...params });
     return request(`/admin/users${q ? "?" + q : ""}`);
   },
 

@@ -26,6 +26,7 @@ import { cn } from "@/lib/utils";
 import { subscriptionApi, fileManagerApi } from "@/lib/api";
 import mandiriLogo from "@/assets/subscription/mandiri-logo.png";
 import { Logo } from "@/components/shared/Logo";
+import { localizePlanName } from "./SubscriptionPage";
 
 // Rekening tujuan. Default statis (backend belum mengembalikan detail rekening);
 // bila payment membawa field rekening, nilai itu dipakai lebih dulu.
@@ -96,7 +97,7 @@ export default function TransferBankPage({
   const durationMonths =
     plan?.billingCycle === "annual" ? 12 : plan?.months || 1;
   const total = pick(payment, "amount", "grossAmount") ?? plan?.priceTotal ?? plan?.priceMonthly ?? 0;
-  const packageLabel = plan?.name ? `Paket ${plan.name}` : "Paket Langganan";
+  const packageLabel = plan?.name ? `Paket ${localizePlanName(plan.name)}` : "Paket Langganan";
 
   const [copied, setCopied] = useState(false);
   const [senderName, setSenderName] = useState("");

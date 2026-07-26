@@ -12,7 +12,7 @@ function SearchInput({ value, onChange, placeholder = 'Cari user...' }) {
         placeholder={placeholder}
         value={value}
         onChange={e => onChange(e.target.value)}
-        className="w-full pl-10 pr-10 py-2.5 bg-white border border-gray-200 rounded-full text-sm outline-none focus:border-[#D946EF] focus:ring-1 focus:ring-[#D946EF] transition-all"
+        className="w-full pl-10 pr-10 py-2.5 bg-white border border-gray-200 rounded-full text-sm outline-none focus:border-[#0033EC] focus:ring-1 focus:ring-[#0033EC] transition-all"
       />
       {value && (
         <button onClick={() => onChange('')} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
@@ -471,7 +471,9 @@ export function ManajemenControls({
 
       {/* Right controls */}
       <div className="flex items-center gap-3">
-        <ExpandableSearch value={searchQuery} onChange={onSearchChange} />
+        <div className="w-[300px]">
+          <SearchInput value={searchQuery} onChange={onSearchChange} />
+        </div>
 
         {/* Filter button (buka drawer). Saat ada filter aktif berubah jadi pill:
             [ikon filter | jumlah] + tombol X untuk hapus semua filter. */}

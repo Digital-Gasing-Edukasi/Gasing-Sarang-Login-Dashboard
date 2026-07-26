@@ -28,7 +28,7 @@ const STATUS_CLASSES = {
 // Tabel Verifikasi Pembayaran. Tanpa bulk-select (keputusan: single-action).
 // subTab: 'menunggu' → kolom Action tampil (tombol Konfirmasi); 'ditolak' → tanpa Action.
 export function VerifikasiPembayaranTable({
-  users, sortConfig, onSort, searchQuery, subTab = 'menunggu', onConfirm,
+  users, sortConfig, onSort, searchQuery, subTab = 'menunggu', onConfirm, onRiwayatClick,
 }) {
   const showAction = subTab === 'menunggu'
   const colSpan = showAction ? 16 : 15
@@ -75,7 +75,7 @@ export function VerifikasiPembayaranTable({
               <SortableHeader label="Asal Sekolah" sortKey="school" sortConfig={sortConfig} onSort={onSort} />
             </th>
             <th className="px-4 py-4 font-medium align-bottom">
-              <SortableHeader label="Last Updated" sortKey="lastUpdated" sortConfig={sortConfig} onSort={onSort} />
+              <SortableHeader label="Last Verified" sortKey="lastVerified" sortConfig={sortConfig} onSort={onSort} />
             </th>
             {showAction && (
               <th className="px-4 py-4 font-medium text-center sticky right-0 z-30 bg-[#0A1128] shadow-[-4px_0_10px_-4px_rgba(0,0,0,0.3)] align-bottom">Action</th>
@@ -114,7 +114,12 @@ export function VerifikasiPembayaranTable({
                 {user.riwayatCount ? (
                   <div className="flex items-center gap-2">
                     <span>{user.riwayatCount}</span>
-                    <span className="text-link cursor-pointer underline text-xs">Lihat Detail</span>
+                    <span
+                      onClick={() => onRiwayatClick && onRiwayatClick(user)}
+                      className="text-link cursor-pointer underline text-xs hover:text-blue-700"
+                    >
+                      Lihat Detail
+                    </span>
                   </div>
                 ) : '-'}
               </td>
@@ -124,7 +129,7 @@ export function VerifikasiPembayaranTable({
               <td className="px-4 py-4 text-[#0A1128] font-medium whitespace-normal break-words max-w-[200px] leading-snug align-top">{user.alumniDaerah || '-'}</td>
               <td className="px-4 py-4 text-[#0A1128] font-medium">{user.alumniTanggal || '-'}</td>
               <td className="px-4 py-4 text-[#0A1128] font-medium whitespace-normal break-words max-w-[200px] leading-snug align-top">{user.school || '-'}</td>
-              <td className="px-4 py-4 text-[#0A1128] font-medium">{user.lastUpdated || '-'}</td>
+              <td className="px-4 py-4 text-[#0A1128] font-medium">{user.lastVerified || '-'}</td>
               {showAction && (
                 <td className="px-4 py-4 text-center sticky right-0 z-10 bg-white group-hover:bg-[#F9FAFB] transition-colors shadow-[-4px_0_10px_-4px_rgba(0,0,0,0.05)]">
                   <button

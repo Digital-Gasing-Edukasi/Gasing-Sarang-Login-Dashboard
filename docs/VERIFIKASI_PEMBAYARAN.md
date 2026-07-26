@@ -133,3 +133,71 @@ Aksi memakai **optimistic + toast undo 5 detik** (`scheduleAction`) — commit A
 | 3 | "Lihat Detail" Riwayat = teks statis | Modal detail belum ada (sama gap Manajemen Akun) |
 | 4 | Tab "Menunggu" = `filter=receipt_uploaded` (bukan `pending`) | `pending` belum ada bukti → tidak bisa diverifikasi |
 | 5 | Reject `notes` = label alasan terpilih | Endpoint mewajibkan `notes` teks bebas |
+| 6 | Kolom identitas di-**enrich** dari data user, bukan hanya dari response payment | Response payment tidak meng-embed relasi lengkap → banyak kolom `-` |
+| 7 | Tgl. Berakhir **dihitung manual** (tgl payment + durasi) | Payment pending/ditolak belum punya `subscription.endDate` asli |
+
+---
+
+## 8. Enrichment kolom identitas (join dengan data user)
+
+### 8.1 Masalah
+
+Response `GET /admin/payments/manual-transfer/list` **tidak meng-embed relasi user secara lengkap** (subscription, region, training session, voucher, dst). Akibatnya baris tabel muncul, tapi kolom **Role, Riwayat Pelatihan, Tgl. Lahir, Lokasi, Alumni Pelatihan, Asal Sekolah, Kode Voucher** tampil `-` walau datanya ada di database.
+
+### 8.2 Solusi — 1 hit, dipakai bareng
+
+Data user diambil dari endpoint yang **sudah dipakai tabel Manajemen Akun** (`GET /admin/users`), disimpan sekali sebagai lookup, lalu di-join ke baris payment via `userId`.
+
+```
+buka tab Pembayaran
+  → payment list          (kolom milik payment: status, plan, detail transfer)
+  → enrich dari usersById (join by userId → isi kolom identitas yang bolong)
+  → user belum ada di lookup? → fetch GET /admin/users/{id} on-demand → merge
+  → kolom keisi lengkap
+```
+
+**Komponen** (semua di `AdminDashboardPage.jsx`):
+
+| Bagian | Peran |
+|---|---|
+| `usersById` (state) | Map `id → row mapToManajemen`, diisi saat load Manajemen dari **seluruh** raw user (belum disaring `isManajemenEligible`) |
+| `enrichFromUser(row)` | Timpa kolom identitas baris payment dengan nilai dari `usersById[row.userId]` |
+| Effect enrich on-demand | Untuk `userId` yang tidak ada di `usersById` (mis. di luar 20 user paginasi Manajemen), fetch `adminApi.getUser(id)`, map, merge ke `usersById`. Di-guard `fetchedUserIdsRef` agar tidak menembak ulang (termasuk yang gagal) |
+
+**Aturan merge** (`enrichFromUser`): nilai user dipakai **hanya jika "berisi"** (`!= null && != '' && != '-'`); kalau kosong, nilai dari payment dipertahankan. Contoh: `plan` "Yearly"/"Monthly" dari payment tidak tertimpa `-`.
+
+Kolom yang **tidak** di-enrich (tetap milik payment): `id`, `statusMember`, detail transfer (`payment`), `lastUpdated`, dan **`endDate`** (lihat §8.3).
+
+> **Catatan paginasi:** `GET /admin/users` dipaginasi (limit 20). `usersById` awal hanya berisi 20 user pertama; sisanya ditambal per-baris lewat fetch on-demand `getUser(id)`. Jadi enrichment tidak bergantung pada isi 20 user itu.
+
+### 8.3 Tgl. Berakhir — hitung manual
+
+Payment pending/ditolak belum tentu punya `subscription.endDate` asli, jadi kolom **Tgl. Berakhir** dihitung sebagai **proyeksi**:
+
+```
+endMs = dateFieldMs(pay.createdAt) + durasiHari * 86400000
+fallback → subscription.endDate  (bila tgl payment / durasi tak terbaca)
+```
+
+Durasi dari `planDurationDays(sub, planLabel)` — dibaca dari nama paket karena payload `package` hanya `{ id, name }` (tanpa field `duration`):
+
+| Paket | Durasi |
+|---|---|
+| `Yearly` / `Tahunan` (`year`, `dur≥12`) | **+365 hari** |
+| `Monthly` / `Bulanan` (`month`, `dur≥1`) | **+30 hari** |
+
+`endDate` **sengaja tidak** di-enrich dari user — supaya proyeksi ini (bukan `endDate` subscription user saat ini) yang tampil. Angka 30/365 bersifat flat (bukan kalender kabisat).
+
+### 8.4 Robustness tanggal (`mappers.js`)
+
+Field tanggal dari API bisa berbentuk objek `{ unix, utc:{raw,iso,formatted}, local:{…} }`, bukan string ISO.
+
+- `dateFieldMs` sudah menangani `{ unix }` dan `{ utc.raw }` → dipakai `endDate` & `alumniTanggal`.
+- `parseBirthdate` (kolom **Tgl. Lahir**) diperbaiki: setelah cek `{ formatted }` / `{ date }`, jatuh ke `dateFieldMs` agar bentuk `{ unix, utc }` tidak menjadi `-`.
+
+### 8.5 File tersentuh
+
+| File | Perubahan |
+|---|---|
+| `src/pages/AdminDashboardPage.jsx` | State `usersById`, ref `fetchedUserIdsRef`, `enrichFromUser`, effect enrich on-demand, populate `usersById` di `loadUsers` |
+| `src/pages/admin/mappers.js` | `planDurationDays` (baru), `mapToPembayaran` endDate manual, `parseBirthdate` robust |
