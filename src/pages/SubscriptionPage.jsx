@@ -6,6 +6,7 @@ import { subscriptionApi } from "@/lib/api";
 
 import bgDark from "@/assets/dark-mode/Background.png";
 import { Logo } from "@/components/shared/Logo";
+import { ProfileMenu } from "@/components/shared/ProfileMenu";
 // Ambil angka positif pertama dari beberapa kemungkinan field (nama field
 // diskon backend belum final — coba beberapa alias umum).
 function pickNumber(...vals) {
@@ -27,11 +28,27 @@ export function localizePlanName(name) {
 
 // Transform API package response → UI plan format
 function transformPlan(pkg) {
+  // Deteksi paket tahunan tahan-banting: sebagian backend mengirim durationUnit
+  // yang tak konsisten (mis. "years"/"annual") atau tak mengirimnya sama sekali,
+  // sehingga andalan pada durationUnit saja bikin paket tahunan salah dianggap
+  // bulanan. Karena itu deteksi juga dari NAMA paket (Yearly/Annual/Tahunan).
+  const unit = String(pkg.durationUnit || "").toLowerCase();
+  const rawName = String(pkg.name || "").toLowerCase();
   const isAnnual =
-    pkg.durationUnit === "year" ||
-    (pkg.durationUnit === "month" && pkg.duration >= 12);
-  const months =
-    pkg.durationUnit === "year" ? pkg.duration * 12 : pkg.duration || 1;
+    /year|annual/.test(unit) ||
+    /year|annual|tahun/.test(rawName) ||
+    (/month/.test(unit) && (pkg.duration || 0) >= 12);
+  let months = isAnnual
+    ? /year/.test(unit)
+      ? (pkg.duration || 1) * 12
+      : /month/.test(unit)
+      ? pkg.duration || 12
+      : 12
+    : 1;
+  // Paket tahunan minimal 12 bulan. Sebagian backend mengirim duration/unit
+  // tak konsisten (mis. duration=1) sehingga harga per-bulan meleset jauh
+  // (Rp396.000/bln, bukan Rp33.000/bln) dan diskon gagal dihitung.
+  if (isAnnual && months < 12) months = 12;
 
   // Field diskon/harga-coret bila backend menyediakannya (fallback: dihitung
   // di withComparison dengan membandingkan paket tahunan vs bulanan).
@@ -92,7 +109,8 @@ function withComparison(plans) {
     const originalPrice = p.originalPrice ?? monthly.priceMonthly;
     let discount = p.discount;
     if (!discount && originalPrice > p.priceMonthly) {
-      discount = Math.round((1 - p.priceMonthly / originalPrice) * 100);
+      // Bulatkan ke atas: hemat 17,3% ditampilkan "18%" sesuai desain.
+      discount = Math.ceil((1 - p.priceMonthly / originalPrice) * 100);
     }
     return {
       ...p,
@@ -163,29 +181,17 @@ function formatRp(n) {
   return new Intl.NumberFormat("id-ID").format(n);
 }
 
-// ─── AVATAR ──────────────────────────────────────────────────────────────────
-function Avatar({ name = "" }) {
-  const initials = name
-    .split(" ")
-    .map((w) => w[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
-  return (
-    <div className="w-9 h-9 rounded-full bg-[#fce4e4] text-red-500 flex items-center justify-center text-sm font-semibold">
-      {initials || "U"}
-    </div>
-  );
-}
-
 // ─── PLAN CARD (desktop, tema gelap) ─────────────────────────────────────────
 function PlanCard({ plan, selected, onSelect }) {
+  const featured = plan.billingCycle === "annual";
   return (
     <div
       onClick={() => onSelect(plan.id)}
       className={cn(
         "relative rounded-[24px] border p-7 cursor-pointer transition-all duration-300",
-        selected
+        featured
+          ? "border-[#8b7bff]/70 bg-gradient-to-b from-[#5b3fae]/45 to-[#241a5c]/30 shadow-[0_0_45px_rgba(124,58,237,0.28)]"
+          : selected
           ? "border-[#8b7bff]/70 bg-white/[0.07] shadow-[0_0_45px_rgba(124,58,237,0.28)]"
           : "border-white/10 bg-white/[0.04] hover:border-white/20"
       )}
@@ -250,12 +256,15 @@ function PlanCard({ plan, selected, onSelect }) {
 
 // ─── MOBILE PLAN CARD (tema gelap, sesuai reference mobile) ───────────────────
 function MobilePlanCard({ plan, selected, onSelect }) {
+  const featured = plan.billingCycle === "annual";
   return (
     <div
       onClick={() => onSelect(plan.id)}
       className={cn(
         "relative rounded-[22px] border p-5 cursor-pointer transition-all duration-300",
-        selected
+        featured
+          ? "border-[#8b7bff] bg-gradient-to-b from-[#5b3fae]/45 to-[#241a5c]/30 shadow-[0_0_30px_rgba(124,58,237,0.25)]"
+          : selected
           ? "border-[#8b7bff] bg-white/[0.06] shadow-[0_0_30px_rgba(124,58,237,0.25)]"
           : "border-white/10 bg-white/[0.03]"
       )}
@@ -366,10 +375,7 @@ export default function SubscriptionPage({ user, onSignOut, onPaymentSuccess, on
       >
         <div className="flex items-center justify-between px-4 pt-4 pb-2 shrink-0">
           <Logo variant="mobile" />
-          <div className="flex items-center gap-2">
-            <span className="text-[13px] text-white/70">Profile</span>
-            <Avatar name={user?.name || user?.profile?.namaLengkap || 'HK'} />
-          </div>
+          <ProfileMenu user={user} onSignOut={onSignOut} />
         </div>
 
         <div className="flex-1 px-6 pt-4 pb-6 overflow-y-auto">
@@ -441,14 +447,7 @@ export default function SubscriptionPage({ user, onSignOut, onPaymentSuccess, on
         {/* ── NAVBAR ── */}
         <nav className="relative z-10 flex items-center justify-between px-6 pt-6 pb-5 shrink-0">
           <Logo variant="full" />
-          <button
-            onClick={onSignOut}
-            title="Log Out"
-            className="flex h-10 w-10 items-center justify-center rounded-full bg-[#ef4444] text-white text-sm font-semibold transition-transform hover:scale-105"
-          >
-            {(user?.name || user?.profile?.namaLengkap || "HK")
-              .split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase()}
-          </button>
+          <ProfileMenu user={user} onSignOut={onSignOut} />
         </nav>
 
         {/* ── CONTENT ── */}

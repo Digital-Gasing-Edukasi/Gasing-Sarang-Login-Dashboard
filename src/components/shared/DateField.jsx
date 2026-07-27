@@ -15,13 +15,23 @@ const pad2 = (n) => String(n).padStart(2, "0");
 const toISO = (y, m, d) => `${y}-${pad2(m + 1)}-${pad2(d)}`;
 const daysInMonth = (y, m) => new Date(y, m + 1, 0).getDate();
 
-// Batas atas: kemarin. Hari ini & tanggal di masa depan tidak boleh dipilih.
-const maxDate = () => {
+// Batas atas default (dipakai Tanggal Lahir): kemarin. Hari ini & tanggal di
+// masa depan tidak boleh dipilih.
+const yesterday = () => {
   const d = new Date();
   d.setHours(0, 0, 0, 0);
   d.setDate(d.getDate() - 1);
   return d;
 };
+
+// Batas atas alternatif: hari ini (dipakai mis. Tanggal Transfer).
+const today = () => {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  return d;
+};
+
+export const DATE_MAX = { yesterday, today };
 
 const MIN_YEAR = 1900;
 
@@ -115,14 +125,26 @@ function WheelColumn({ items, value, onChange, label }) {
  * desktop & mobile, jadi tidak bergantung tampilan picker bawaan browser.
  * Nilai `value` tetap format ISO `yyyy-mm-dd`.
  */
-export function DateField({ value, onChange, className, id }) {
+export function DateField({
+  value,
+  onChange,
+  className,
+  id,
+  // Batas atas tanggal terpilih. Default: kemarin (Tanggal Lahir).
+  maxDate = yesterday,
+  // Nilai draft awal saat belum ada value.
+  defaultDraft,
+  dialogLabel = "Pilih tanggal lahir",
+}) {
   const [open, setOpen] = useState(false);
   const wrapRef = useRef(null);
-  const max = maxDate();
+  const max = typeof maxDate === "function" ? maxDate() : maxDate;
 
   const parsed = parseISO(value);
   // Default saat belum ada nilai: 17 tahun lalu (umur yang masuk akal untuk lahir).
-  const draft = parsed ?? { y: max.getFullYear() - 17, m: 0, d: 1 };
+  const draft =
+    parsed ??
+    defaultDraft ?? { y: max.getFullYear() - 17, m: 0, d: 1 };
 
   const emit = useCallback(
     (y, m, d) => {
@@ -203,7 +225,7 @@ export function DateField({ value, onChange, className, id }) {
       {open && (
         <div
           role="dialog"
-          aria-label="Pilih tanggal lahir"
+          aria-label={dialogLabel}
           className="absolute left-0 right-0 top-[calc(100%+8px)] z-50 overflow-hidden rounded-2xl border border-input bg-background p-2 shadow-xl animate-in fade-in slide-in-from-top-1"
         >
           <div className="relative flex">

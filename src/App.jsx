@@ -3,7 +3,7 @@ import { Routes, Route, Navigate, useNavigate, useLocation } from "react-router-
 import { tokenStorage, subscriptionApi, profileApi, authApi, regionsApi, webAppApi, discourseApi } from "@/lib/api";
 import { isSuperAdmin, isOperationalAdmin, isSsoDisabled, hasCapability } from "@/lib/roles";
 import { decodeFixPayload } from "@/lib/fixLink";
-import { evaluateLoginGate } from "@/lib/loginGate";
+import { evaluateLoginGate, evaluatePaymentGate } from "@/lib/loginGate";
 import { pathForPage, isPublicStaticPath, skipSessionRestore } from "@/lib/routes";
 import { LoginStatusModal } from "@/components/shared/LoginStatusModal";
 
@@ -184,6 +184,8 @@ export default function App() {
 
       // ── DEV: uji modal gate tanpa backend ────────────────────────────────
       // ?gatetest=suspended | pending | expired → paksa tampil LoginStatusModal.
+      // ?gatetest=payment_receipt | payment_amount | payment_account → modal
+      //   "Pembayaran Ditolak" (varian ikut sufiks setelah "payment_").
       const gatetest = params.get("gatetest");
       if (gatetest) {
         const meta =
@@ -192,6 +194,12 @@ export default function App() {
                 type: "suspended",
                 until: "2026-08-14 13:05:00",
                 reason: "Melanggar panduan komunitas",
+              }
+            : gatetest.startsWith("payment")
+            ? {
+                type: "payment_rejected",
+                variant: gatetest.split("_")[1] || "receipt",
+                amount: 1500000,
               }
             : { type: gatetest };
         setGate(meta);
@@ -335,18 +343,33 @@ export default function App() {
     // langganan belum aktif/expired (nunggu pembayaran diproses).
     // Dihitung sekali, dipakai di gate 'expired' + routing langganan di bawah.
     let paymentPending = false;
+    let paymentRejected = null;
     try {
       const latest = await subscriptionApi.getLatestPayment();
       const p = latest?.payment || latest?.data || latest || {};
       paymentPending = p.status === "pending";
+      // Payment terakhir ditolak admin (failed/rejected) → gate "Pembayaran Ditolak".
+      paymentRejected = evaluatePaymentGate(p);
     } catch {
-      // Gagal / belum pernah bayar → anggap tidak ada pending.
+      // Gagal / belum pernah bayar → anggap tidak ada pending / tolakan.
     }
 
-    // Guard status akun sebelum masuk: suspended / pending / expired → modal,
-    // jangan set currentUser / jangan routing ke halaman app.
+    // Guard status akun sebelum masuk. Prioritas:
+    //   suspended / pending akun → selalu menang (blokir mutlak).
+    //   payment ditolak          → menang atas 'expired' (arahkan perbaiki bayar).
+    //   expired                  → di-bypass bila ada payment pending.
     const blocked = evaluateLoginGate(user);
-    if (blocked && !(blocked.type === "expired" && paymentPending)) {
+    if (blocked && blocked.type !== "expired") {
+      setGate({ ...blocked, profile: user });
+      navigate("/login", { replace: true });
+      return;
+    }
+    if (paymentRejected) {
+      setGate({ ...paymentRejected, profile: user });
+      navigate("/login", { replace: true });
+      return;
+    }
+    if (blocked && blocked.type === "expired" && !paymentPending) {
       setGate({ ...blocked, profile: user });
       navigate("/login", { replace: true });
       return;
@@ -442,7 +465,7 @@ export default function App() {
   return (
     <>
       <Routes>
-        <Route path="/" element={<Navigate to="/register/review" replace />} />
+        <Route path="/" element={<Navigate to="/login" replace />} />
 
         {/* ── Login & turunannya ─────────────────────────────────────────── */}
         <Route
@@ -652,12 +675,29 @@ export default function App() {
             setGate(null);
             navigate("/login", { replace: true });
           }}
-          // "Perbarui Langganan" (expired) → lanjut ke halaman langganan.
+          // "Perbarui Langganan" (expired) / "Ulang Pembayaran" (payment ditolak
+          // varian amount/account) → pilih paket di halaman langganan.
           onRenew={() => {
             const p = gate.profile;
             setGate(null);
             setCurrentUser(p);
             navigate("/login/subscription", { replace: true });
+          }}
+          // "Upload Bukti Pembayaran" (payment ditolak varian receipt) → langsung
+          // ke TransferBankPage dgn paket terakhir (skip pilih paket). Tanpa paket
+          // terkenal → fallback ke halaman langganan.
+          onReupload={() => {
+            const p = gate.profile;
+            const plan = gate.plan;
+            setGate(null);
+            setCurrentUser(p);
+            if (plan?.id) {
+              setCheckoutPlan(plan);
+              setManualPayment(null);
+              navigate("/login/subscription/transfer", { replace: true });
+            } else {
+              navigate("/login/subscription", { replace: true });
+            }
           }}
         />
       )}

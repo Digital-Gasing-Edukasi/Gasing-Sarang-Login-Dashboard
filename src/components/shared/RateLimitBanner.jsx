@@ -21,8 +21,8 @@ export function RateLimitBanner({ seconds = 60, onClose, onExpire }) {
   if (left <= 0) return null
 
   return (
-    <div className="animate-fade-in-up mb-6 flex items-center gap-3 rounded-xl bg-[#EF4444] px-5 py-3.5 text-white shadow-lg">
-      <p className="min-w-0 flex-1 text-[15px] leading-tight">
+    <div className="animate-fade-in-up mb-6 inline-flex items-center justify-center gap-4 rounded-xl bg-[#EF4444] px-5 py-3 text-white shadow-lg">
+      <p className="min-w-0 text-[15px] leading-tight">
         Terlalu banyak percobaan login. Silakan coba lagi dalam {fmt(left)}.
       </p>
       <button

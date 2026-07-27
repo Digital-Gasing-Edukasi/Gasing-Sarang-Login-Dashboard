@@ -34,13 +34,16 @@ function durationLabel(value) {
 
 // Modal blocking di atas halaman login.
 // type   : 'pending' (flow 7) | 'expired' (flow 6) | 'suspended' | 'error' (flow 4)
+//        | 'payment_rejected' (payment terakhir ditolak admin; meta.variant =
+//          'receipt' | 'amount' | 'account', lihat evaluatePaymentGate)
 // onClose→ tutup / logout / dismiss: bersihkan sesi.
-// onRenew→ lanjut ke halaman langganan (skenario 'expired').
+// onRenew→ lanjut ke halaman langganan (skenario 'expired' & 'payment_rejected').
 // onRetry→ tutup modal untuk mencoba lagi (skenario 'error'; default onClose).
-export function LoginStatusModal({ type, meta = {}, onClose, onRenew, onRetry }) {
+export function LoginStatusModal({ type, meta = {}, onClose, onRenew, onRetry, onReupload }) {
   const [confirmLogout, setConfirmLogout] = useState(false)
 
   if (type === 'suspended') return <SuspendedModal meta={meta} onClose={onClose} />
+  if (type === 'payment_rejected') return <PaymentRejectedModal meta={meta} onClose={onClose} onRenew={onRenew} onReupload={onReupload} />
 
   // Flow 4 — server error. Kartu tengah (bukan bottom-sheet).
   if (type === 'error') {
@@ -153,6 +156,110 @@ function SuspendedModal({ meta, onClose }) {
   )
 }
 
+// Rekening resmi Sarang Gasing (varian 'account'). Sumber tunggal juga di
+// TransferBankPage (DEFAULT_BANK) — backend belum kembalikan detail rekening.
+const RECEIVER_BANK = {
+  bank: 'Bank Mandiri',
+  accountNumber: '1760007700071',
+  accountName: 'Yayasan Teknologi Indonesia Jaya',
+}
+
+// "Rp 1.500.000". Angka non-valid → "Rp 0".
+function fmtRupiah(raw) {
+  const n = Number(raw)
+  if (!raw || isNaN(n)) return 'Rp 0'
+  return 'Rp ' + n.toLocaleString('id-ID')
+}
+
+const RECEIPT_TIPS = [
+  'Pastikan pencahayaan cukup terang',
+  'Foto tidak goyang atau buram',
+  'Seluruh bagian struk terlihat jelas (atas ke bawah)',
+]
+
+// Modal "Pembayaran Ditolak" — 3 varian (meta.variant):
+//   receipt → bukti tak terbaca, unggah ulang bukti (+ tips foto struk)
+//   amount  → nominal salah, ulang pembayaran (+ total tagihan)
+//   account → rekening tujuan salah, ulang pembayaran (+ rekening resmi)
+function PaymentRejectedModal({ meta = {}, onClose, onRenew, onReupload }) {
+  const variant = meta.variant || 'receipt'
+
+  const V = {
+    receipt: {
+      body: 'Bukti pembayaran yang kamu unggah tidak dapat terbaca dengan jelas (buram, gelap, atau terpotong). Silakan unggah kembali foto struk pembayaran yang lebih jelas.',
+      primaryLabel: 'Upload Bukti Pembayaran',
+      // Unggah ulang bukti → langsung ke halaman pembayaran (paket terakhir),
+      // bukan pilih paket lagi.
+      onPrimary: onReupload,
+      content: (
+        <div className="w-full text-left rounded-xl border border-gray-100 bg-gray-50/60 px-4 py-3.5">
+          <p className="text-sm font-bold text-foreground mb-2">Tips Foto Struk yang Baik:</p>
+          <ul className="space-y-1.5">
+            {RECEIPT_TIPS.map((t) => (
+              <li key={t} className="flex items-start gap-2.5 text-sm text-muted-foreground">
+                <span className="mt-[7px] w-1.5 h-1.5 rounded-full bg-red-500 shrink-0" />
+                {t}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ),
+    },
+    amount: {
+      body: 'Nominal pembayaran yang kamu transfer tidak sesuai dengan jumlah tagihan. Mohon lakukan pembayaran ulang sesuai dengan rincian berikut.',
+      primaryLabel: 'Ulang Pembayaran',
+      content: (
+        <div className="w-full">
+          <div className="flex items-center justify-between gap-4 bg-gray-50 rounded-xl px-4 py-4">
+            <span className="text-sm text-muted-foreground shrink-0">Total Tagihan:</span>
+            <span className="text-lg font-bold text-red-500">{fmtRupiah(meta.amount)}</span>
+          </div>
+          <p className="text-xs text-muted-foreground italic text-center mt-4 leading-relaxed">
+            * Pembayaran yang tidak sesuai akan dikembalikan ke rekening yang kamu gunakan untuk pembayaran.
+          </p>
+        </div>
+      ),
+    },
+    account: {
+      body: 'Tujuan rekening pembayaran yang kamu gunakan salah. Dana tidak masuk ke rekening resmi Sarang Gasing. Silakan gunakan detail rekening di bawah ini.',
+      primaryLabel: 'Ulang Pembayaran',
+      content: (
+        <div className="w-full">
+          <div className="text-left rounded-xl border border-gray-100 bg-gray-50/60 divide-y divide-gray-100">
+            <AccountRow label="Bank Tujuan:" value={RECEIVER_BANK.bank} />
+            <AccountRow label="No. Rekening:" value={RECEIVER_BANK.accountNumber} valueClass="text-[#0033EC]" />
+            <AccountRow label="Atas Nama (a.n):" value={RECEIVER_BANK.accountName} />
+          </div>
+          <p className="text-xs text-muted-foreground text-center mt-4 leading-relaxed">
+            Jika kamu memiliki pertanyaan lebih lanjut terkait pembayaran yang ditolak, silakan hubungi admin kami untuk mendapatkan bantuan.
+          </p>
+        </div>
+      ),
+    },
+  }[variant] || {}
+
+  return (
+    <Shell tone="red" icon={AlertCircle}>
+      <h2 className="text-2xl font-bold text-foreground mb-3">Pembayaran Ditolak</h2>
+      <p className="text-[14px] text-muted-foreground leading-relaxed text-center mb-6">{V.body}</p>
+      <div className="w-full mb-8">{V.content}</div>
+      <div className="flex items-center gap-4 w-full">
+        <ActionButton label="Log Out" variant="outline" onClick={() => onClose?.()} />
+        <ActionButton label={V.primaryLabel} variant="primary" onClick={() => (V.onPrimary || onRenew)?.()} />
+      </div>
+    </Shell>
+  )
+}
+
+function AccountRow({ label, value, valueClass = 'text-foreground' }) {
+  return (
+    <div className="flex items-center justify-between gap-4 px-4 py-3.5">
+      <span className="text-sm text-muted-foreground shrink-0">{label}</span>
+      <span className={cn('text-sm font-bold text-right', valueClass)}>{value}</span>
+    </div>
+  )
+}
+
 function DetailRow({ label, value }) {
   return (
     <div className="flex items-center justify-between gap-4 bg-gray-50 rounded-xl px-4 py-3">
@@ -187,8 +294,8 @@ function Shell({ tone, icon: Icon, children, variant = 'sheet' }) {
         className={cn(
           'bg-white shadow-2xl text-center animate-fade-in-up',
           sheet
-            ? 'w-full rounded-t-[28px] px-6 pb-8 pt-5 lg:w-full lg:max-w-[480px] lg:rounded-[24px] lg:px-8 lg:pt-16'
-            : 'w-full max-w-[480px] rounded-[24px] px-8 pt-16 pb-8'
+            ? 'w-full rounded-t-[28px] px-6 pb-8 pt-5 lg:w-full lg:max-w-[520px] lg:rounded-[24px] lg:px-8 lg:pt-16'
+            : 'w-full max-w-[520px] rounded-[24px] px-8 pt-16 pb-8'
         )}
       >
         {/* Drag handle — hanya bottom-sheet mobile */}
@@ -212,7 +319,7 @@ function ActionButton({ label, variant, icon: Icon, onClick }) {
     <button
       onClick={onClick}
       className={cn(
-        'flex-1 flex items-center justify-center gap-2 font-semibold px-6 py-3.5 rounded-full transition-colors',
+        'flex-1 flex items-center justify-center gap-2 font-semibold px-6 py-3.5 rounded-full transition-colors whitespace-nowrap',
         variant === 'primary'
           ? 'bg-[#0033EC] text-white hover:bg-[#0029BD]'
           : variant === 'danger'

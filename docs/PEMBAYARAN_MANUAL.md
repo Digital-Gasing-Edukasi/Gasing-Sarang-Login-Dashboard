@@ -101,6 +101,43 @@ Catatan: cuma literal `'pending'` yang dihitung. Status `receipt_uploaded` (bukt
 diupload, nunggu admin) **belum** dihitung lolos — kalau mau ikut, tambah di kondisi
 `paymentPending`.
 
+### 5.1 Gate "Pembayaran Ditolak" (payment `failed`/`rejected`)
+
+Payment terakhir yang **ditolak admin** (status `failed` / `rejected`) memblokir masuk +
+tampilkan modal `LoginStatusModal type="payment_rejected"`. Discriminator varian dari
+alasan tolak (`evaluatePaymentGate` di [`src/lib/loginGate.js`](../src/lib/loginGate.js)):
+baca `rejectionReason`/`rejectReason`/`reason`/`notes`, cocokkan value-code **atau**
+kata kunci label `TOLAK_REASONS` (admin kirim LABEL sbg `notes`, lihat
+[`VERIFIKASI_PEMBAYARAN.md`](./VERIFIKASI_PEMBAYARAN.md) §2):
+
+| Alasan (value / kata kunci) | `meta.variant` | Isi modal | Tombol primary → tujuan |
+|---|---|---|---|
+| `receipt_unreadable` / "bukti", "terbaca" | `receipt` | Tips foto struk | **Upload Bukti Pembayaran** → `/login/subscription/transfer` (paket terakhir, skip pilih paket) |
+| `wrong_amount` / "nominal" | `amount` | Total tagihan (dari `amount`/`total`/`grossAmount`) | **Ulang Pembayaran** → `/login/subscription` (pilih paket) |
+| `wrong_account` / "rekening" | `account` | Rekening resmi (`RECEIVER_BANK`) | **Ulang Pembayaran** → `/login/subscription` (pilih paket) |
+
+Default (alasan tak dikenal) → `receipt` (paling aman: minta unggah ulang).
+
+**Paket terakhir** (`meta.plan`) dibaca `evaluatePaymentGate` dari payment terakhir
+(`package.id/name` · `packageId` · `amount`), dibentuk kompatibel dgn prop `plan`
+TransferBankPage. Tanpa `plan.id` terbaca → varian receipt **fallback** ke
+`/login/subscription`.
+
+**Prioritas gate** di `handleLoginSuccess` ([`src/App.jsx`](../src/App.jsx)):
+`suspended` / `pending` akun **> `payment_rejected` > `expired`**. Payment ditolak menang
+atas `expired` (arahkan user perbaiki bayar), tapi kalah dari blok akun. Tombol **Log Out**
+→ `onClose` (bersihkan sesi). Primary bercabang per varian: `receipt` → `onReupload`
+(set `checkoutPlan`, deep-link transfer), `amount`/`account` → `onRenew` (pilih paket).
+
+`RECEIVER_BANK` di [`LoginStatusModal.jsx`](../src/components/shared/LoginStatusModal.jsx)
+duplikat `DEFAULT_BANK` di [`TransferBankPage.jsx`](../src/pages/TransferBankPage.jsx) —
+backend belum kembalikan detail rekening; satukan bila endpoint sudah ada.
+
+**Revert Midtrans:** hapus blok `paymentRejected` bareng blok `paymentPending` (§3 #3) —
+Midtrans bayar realtime, gak ada tolakan admin manual.
+
+**Uji tanpa backend:** `?gatetest=payment_receipt` | `payment_amount` | `payment_account`.
+
 ---
 
 ## 6. Urutan Revert

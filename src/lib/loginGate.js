@@ -41,3 +41,47 @@ export function evaluateLoginGate(profile) {
 
   return null
 }
+
+// Evaluasi payment terakhir (GET /subscription/payments/latest) untuk gate
+// "Pembayaran Ditolak". Return null bila payment TIDAK ditolak.
+//
+// Status ditolak: 'failed' | 'rejected'. Varian modal ditentukan dari alasan
+// tolak admin (notes/reason) — cocokkan ke 3 kategori TOLAK_REASONS
+// (lihat src/pages/admin/PembayaranModals.jsx). Admin mengirim LABEL sbg `notes`,
+// jadi cocokkan value-code MAUPUN kata kunci label:
+//   receipt_unreadable / "bukti"/"terbaca" → 'receipt' (unggah ulang bukti)
+//   wrong_amount        / "nominal"        → 'amount'  (tampilkan total tagihan)
+//   wrong_account       / "rekening"       → 'account' (tampilkan rekening resmi)
+// Default (alasan tak dikenal) → 'receipt' (paling aman: minta unggah ulang).
+export function evaluatePaymentGate(payment) {
+  const p = payment?.payment || payment?.data || payment || {}
+  const status = String(p.status || '').toLowerCase()
+  if (status !== 'failed' && status !== 'rejected') return null
+
+  const raw = String(
+    p.rejectionReason || p.rejectReason || p.reason || p.notes || ''
+  ).toLowerCase()
+
+  let variant = 'receipt'
+  if (raw.includes('wrong_amount') || raw.includes('nominal')) variant = 'amount'
+  else if (raw.includes('wrong_account') || raw.includes('rekening')) variant = 'account'
+
+  const amount = p.amount ?? p.total ?? p.grossAmount ?? null
+
+  // Paket terakhir yang dibeli — dipakai varian 'receipt' untuk deep-link ke
+  // TransferBankPage (unggah ulang bukti tanpa memilih paket lagi). Bentuk
+  // dibuat kompatibel dgn prop `plan` TransferBankPage (id/name/priceTotal/...).
+  const pkg = p.package || p.packageDetail || {}
+  const planId = pkg.id ?? p.packageId ?? p.package_id ?? null
+  const plan = planId
+    ? {
+        id: planId,
+        name: pkg.name ?? p.packageName ?? p.planName ?? null,
+        priceTotal: amount,
+        billingCycle: pkg.billingCycle ?? p.billingCycle ?? null,
+        months: pkg.months ?? pkg.durationMonths ?? null,
+      }
+    : null
+
+  return { type: 'payment_rejected', variant, amount, plan }
+}

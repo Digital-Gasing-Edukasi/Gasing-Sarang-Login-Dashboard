@@ -94,11 +94,11 @@ export function LoginPage({ onNavigate, onLoginSuccess, isSsoMode = false }) {
         />
       )}
 
-      <div className="hidden lg:flex items-center justify-center mb-8 animate-fade-in-up">
+      <div className="hidden lg:flex items-center justify-center mb-9 animate-fade-in-up">
         <Logo variant="split" />
       </div>
       <div className="animate-fade-in-up delay-100 text-center lg:text-center">
-        <h1 className="text-2xl font-bold text-foreground mb-8 lg:mt-0 mt-2">
+        <h1 className="text-2xl font-bold text-foreground mb-6 lg:mt-0 mt-2">
           <span className="lg:hidden">Selamat Datang!</span>
           <span className="hidden lg:inline">Selamat Datang!</span>
         </h1>
@@ -173,14 +173,14 @@ export function LoginPage({ onNavigate, onLoginSuccess, isSsoMode = false }) {
           </div>
           <button
             onClick={() => onNavigate("forgot-password")}
-            className="text-sm text-[#0033EC] font-medium underline underline-offset-2 transition-colors"
+            className="text-sm text-[#0033EC] font-semibold underline underline-offset-2 transition-colors"
           >
             Lupa Password?
           </button>
         </div>
 
         <Button
-          className="!mt-8 w-full rounded-full"
+          className="!mt-5 w-full rounded-full"
           onClick={handleLogin}
           disabled={loading || !email || !password || !!rateLimit}
         >
@@ -194,7 +194,7 @@ export function LoginPage({ onNavigate, onLoginSuccess, isSsoMode = false }) {
         </Button>
       </div>
 
-      <div className="mt-6 animate-fade-in-up delay-300 text-center">
+      <div className="mt-4 animate-fade-in-up delay-300 text-center">
         <p className="text-sm text-muted-foreground">
           Belum punya akun?{" "}
           <button
