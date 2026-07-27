@@ -2,7 +2,7 @@
 
 > Dokumen ini menjelaskan **versi mobile** dari halaman auth & pembayaran, cara kerjanya, dan cara menambah/mengubahnya. Untuk arsitektur umum aplikasi lihat [`../ARCHITECTURE.md`](../ARCHITECTURE.md).
 
-**Status:** Flow 1–3 selesai (per 2026-07-10). Flow 4–10 belum. Lihat [Status per-flow](#status-per-flow).
+**Status:** Flow 1–9 selesai (per 2026-07-27). Flow 10 belum (belum ada reference). Lihat [Status per-flow](#status-per-flow).
 
 ---
 
@@ -57,6 +57,7 @@ Di desktop pola ini di-reset (`lg:mt-0 lg:rounded-none lg:shadow-none`) sehingga
 | [`components/layout/MobileHero.jsx`](../src/components/layout/MobileHero.jsx) | Hero ungu (wallpaper + bintang + blob + maskot). `lg:hidden`. Dipakai Login & AuthFullLayout. |
 | [`components/layout/RightPanel.jsx`](../src/components/layout/RightPanel.jsx) | Shell Login/SignUp. Terima prop `mobileHero`; konten putih jadi kartu popup di mobile. |
 | [`components/layout/AuthFullLayout.jsx`](../src/components/layout/AuthFullLayout.jsx) | Shell Lupa Password/Cek Email/Ubah Password (desktop). Header & dekorasi `hidden lg:block`, inject `MobileHero`, konten jadi kartu popup. |
+| [`components/layout/StepIndicator.jsx`](../src/components/layout/StepIndicator.jsx) | `StepBar` = header flow signup (back opsional + judul tengah + X tutup); `StepHeader` = pembungkus subtitle. Dipakai `SignUpPage` & `SignUpOtpPage`. |
 | [`pages/auth/LoginPage.jsx`](../src/pages/auth/LoginPage.jsx) | `mobileHero={<MobileHero/>}`; logo `hidden lg:flex`; heading "Selamat Datang!" (mobile) / "Selamat Datang Kembali" (desktop). |
 | [`pages/auth/ResetPasswordPage.jsx`](../src/pages/auth/ResetPasswordPage.jsx) | **Twin block**: mobile = layar gelap penuh ("Ubah Password"); desktop = `AuthFullLayout`. |
 | [`pages/SubscriptionPage.jsx`](../src/pages/SubscriptionPage.jsx) | **Twin block**: mobile = section gelap "Ada apa di Sarang Gasing?" + `MobilePlanCard`; desktop = grid 2 kolom terang. |
@@ -161,8 +162,15 @@ Catatan:
 ## 6c. Signup & Perbaikan Data (flow 8–9)
 
 - Halaman `SignUpPage`, `SignUpOtpPage`, `SignUpReviewPage`, `FixDataPage` pakai `RightPanel` **tanpa** `mobileHero` → tampil form putih polos (bukan popup-sheet). Ini disengaja: reference tak menampilkan hero ungu di layar form ini.
-- **X close** (pojok kanan-atas) ditambahkan di `SignUpPage` & `FixDataPage` → kembali ke login.
-- Judul step signup: **"Data Akun"** (step 1) & **"Data Pribadi"** (step 2), sesuai reference.
+- **Header step** (`StepIndicator.jsx` → `StepBar`) mengikuti reference mobile: **back opsional (kiri) + judul di tengah + X tutup (kanan)**. Progress bar segmen + counter "1/3" **dihapus**; spacer `w-9` menjaga judul tetap center saat back/X absen. X → kembali ke login.
+  - **Data Akun** (step 1): tanpa back · judul "Data Akun" · X.
+  - **Data Pribadi** (step 2): back → step 1 · judul "Data Pribadi" · X.
+  - **Verifikasi OTP** (dulu "Verifikasi Email"): back → step 2 · X. Subtitle ("Masukkan kode…" + email) pindah ke `StepHeader` yang kini **hanya** membungkus subtitle (judul sudah di `StepBar`).
+- **Spacing form Data Akun (mobile-only, `lg:` mempertahankan nilai desktop):**
+  - Antar-field **24px** (`space-y-6 lg:space-y-4`).
+  - Label → input **16px** (`space-y-4 lg:space-y-1.5`).
+  - Username & Email **ditumpuk full-width** di mobile, tetap 2 kolom di desktop (`grid-cols-1 gap-6 lg:grid-cols-2 lg:gap-3`).
+  - Checkbox persetujuan → tombol Lanjutkan **65px** (`!mt-[65px] lg:!mt-8`).
 - **Layar sukses gelap** dipakai bersama via [`MobileReviewNotice.jsx`](../src/components/shared/MobileReviewNotice.jsx) (`lg:hidden`, gradient ungu, ikon lingkaran dashed, tombol putih):
   - Perbaikan Data → "Akunmu Sedang Ditinjau Kembali" (ikon `UserSearch`)
   - Signup → "Terima Kasih Telah Mendaftar!" (ikon `CheckCircle2` hijau)
@@ -172,6 +180,7 @@ Catatan:
 
 - Aset `fade_bottom.png`, `glow.png`, `thumbs_up.png` belum terpakai.
 - Subscription & PaymentSuccess mobile memakai gradient (bukan `hero_bg`) agar teks tetap kontras.
+- **Kartu paket (`SubscriptionPage`):** paket **Tahunan selalu di atas** (`sortAnnualFirst`) & tampil *featured* (gradient ungu, `billingCycle === "annual"`) di mobile + desktop. Deteksi annual tahan-banting (`durationUnit` **atau** nama "Yearly/Annual/Tahunan") + clamp `months ≥ 12` supaya harga `/bln` = total ÷ 12 (bukan total mentah); badge "Kamu Hemat X%" dihitung dari selisih vs harga bulanan pakai `Math.ceil`. Lihat `transformPlan`/`withComparison`.
 - Verifikasi visual belum berjalan lewat preview otomatis (port 5173 dipakai instance dev user; proxy preview tidak stabil). Validasi via `npm run build` + cek manual di DevTools mobile / perangkat.
 - Angka yang mungkin perlu penyetelan setelah cek visual: overlap sheet `-mt-6`, radius `rounded-t-[28px]`, ukuran/posisi maskot di `MobileHero` (`w-[80%]`, `h-[150px]`, `-translate`).
 

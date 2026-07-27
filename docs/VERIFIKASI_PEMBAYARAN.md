@@ -44,9 +44,11 @@ Alasan penolakan (`TOLAK_REASONS` di `PembayaranModals.jsx`):
 
 | value | label |
 |---|---|
-| `receipt_unreadable` | Bukti pembayaran tidak terbaca / salah |
-| `wrong_amount` | Nominal transfer salah |
-| `wrong_account` | Rekening tujuan salah |
+| `insufficient_transfer` | Transfer tidak mencukupi |
+| `fund_not_retrieved` | Dana tidak diterima |
+| `payment_receipt_unclear` | Bukti pembayaran tidak jelas |
+
+Value alasan = enum BE, dipakai untuk menentukan **template notifikasi email penolakan** ke user.
 
 Kedua aksi **optimistic + toast undo 5 detik** — commit API baru terjadi setelah toast hilang (pola sama dengan approve/reject di Verifikasi Akun; lihat `scheduleAction`). Klik **Batalkan** di toast → timer dibatalkan, API tak pernah dipanggil.
 
@@ -89,7 +91,7 @@ Nilai `filter`: `all | pending | receipt_uploaded | paid | rejected`. Catatan: `
 
 Aksi:
 - **Konfirmasi** → `POST /admin/payments/manual-transfer/:id/approve` body `{ notes }` (opsional).
-- **Tolak** → `POST /admin/payments/manual-transfer/:id/reject` body `{ notes }` (**wajib** = alasan; FE mengirim label alasan terpilih).
+- **Tolak** → `POST /admin/payments/manual-transfer/:id/reject` body `{ reason, notes }` (**reason wajib** = enum value; notes opsional = catatan tambahan).
 
 Method di `adminApi`: `listManualPayments`, `approveManualPayment`, `rejectManualPayment`, `getManualPaymentStats`.
 
@@ -132,7 +134,7 @@ Aksi memakai **optimistic + toast undo 5 detik** (`scheduleAction`) — commit A
 | 2 | **Tanpa bulk-select** | Tidak ada di desain referensi; aksi per baris |
 | 3 | "Lihat Detail" Riwayat = teks statis | Modal detail belum ada (sama gap Manajemen Akun) |
 | 4 | Tab "Menunggu" = `filter=receipt_uploaded` (bukan `pending`) | `pending` belum ada bukti → tidak bisa diverifikasi |
-| 5 | Reject `notes` = label alasan terpilih | Endpoint mewajibkan `notes` teks bebas |
+| 5 | Reject `reason` = enum value; `notes` = label alasan | BE pakai `reason` untuk template email penolakan; `notes` sebagai catatan tambahan |
 | 6 | Kolom identitas di-**enrich** dari data user, bukan hanya dari response payment | Response payment tidak meng-embed relasi lengkap → banyak kolom `-` |
 | 7 | Tgl. Berakhir **dihitung manual** (tgl payment + durasi) | Payment pending/ditolak belum punya `subscription.endDate` asli |
 

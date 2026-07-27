@@ -61,7 +61,7 @@ Daripada 11 kolom, endpoint dikelompokkan jadi **7 profil akses**. Endpoint dala
 
 ### Isi tiap profil
 
-**A · Publik** (🌐 semua): `/auth/register` · `/auth/forgot-password` · `/auth/reset-password` · `/auth/revise` · `/auth/revise/submit` · `/profile/confirm-email` · `/packages` · `/forum/members` · `/forum/members-roles` · `/forum/member/:username` · `GET /teaching-records/:userId` · `/regions` · `/training-sessions` · `/timezones` · `GET /app-configs/:key` · `GET /forum-banner`
+**A · Publik** (🌐 semua): `/auth/register` · `/auth/forgot-password` · `/auth/reset-password` · `/auth/revise` · `/auth/revise/submit` · `/profile/confirm-email` · `/packages` · `/bank-accounts` · `/forum/members` · `/forum/members-roles` · `/forum/member/:username` · `GET /teaching-records/:userId` · `/regions` · `/training-sessions` · `/timezones` · `GET /app-configs/:key` · `GET /forum-banner`
 
 **B · Konfirmasi email**: `POST /auth/resend-otp` · `POST /auth/confirm-email`
 
@@ -128,6 +128,8 @@ Daripada 11 kolom, endpoint dikelompokkan jadi **7 profil akses**. Endpoint dala
 | `/admin/payments/manual-transfer/:id` | GET | `USER/VERIFY` |
 | `/admin/payments/manual-transfer/:id/approve` | POST | `USER/VERIFY` |
 | `/admin/payments/manual-transfer/:id/reject` | POST | `USER/VERIFY` |
+| `/admin/bank-accounts` | GET/POST | `PACKAGE/MGMT` |
+| `/admin/bank-accounts/:id` | GET/PATCH/DELETE | `PACKAGE/MGMT` |
 | `/admin/subscription-period-groups` | GET | `USER/DISCOURSE/CHANGE_GROUP` |
 | `/admin/subscription-period-groups/ensure` | POST | `USER/DISCOURSE/CHANGE_GROUP` |
 | `/admin/subscription-period-groups/resync/:subscriptionId` | POST | `USER/DISCOURSE/CHANGE_GROUP` |

@@ -425,6 +425,12 @@ export const subscriptionApi = {
 
   paymentHistory: (page = 1, limit = 20) =>
     request(`/subscription/history?page=${page}&limit=${limit}`),
+
+  // Rekening tujuan transfer manual aktif. Dipakai TransferBankPage untuk
+  // menampilkan info bank dinamis (menggantikan DEFAULT_BANK hardcoded).
+  getBankAccounts: () =>
+    dedupeFetch(`${BASE_URL}/bank-accounts`, { headers: { Accept: "application/json" } })
+      .then((r) => r.json()),
 };
 
 // ─── VOUCHERS ─────────────────────────────────────────────────────────────────
@@ -666,16 +672,41 @@ export const adminApi = {
       body: { notes },
     }),
 
-  // Tolak bukti transfer. `notes` WAJIB (alasan penolakan, teks bebas).
-  rejectManualPayment: (paymentId, notes) =>
+  // Tolak bukti transfer. `reason` WAJIB — enum value dari TOLAK_REASONS
+  // (insufficient_transfer | fund_not_retrieved | payment_receipt_unclear).
+  // BE memakai `reason` untuk menentukan template notifikasi email penolakan.
+  // `notes` opsional — catatan tambahan teks bebas.
+  rejectManualPayment: (paymentId, reason, notes) =>
     request(`/admin/payments/manual-transfer/${paymentId}/reject`, {
       method: "POST",
-      body: { notes },
+      body: { reason, notes },
     }),
 
   // Statistik manual transfer (jumlah pending/receipt_uploaded/paid/rejected).
   getManualPaymentStats: () =>
     request(`/admin/payments/manual-transfer/stats`),
+
+  // ── Bank Master Data ──
+  // Master data rekening tujuan transfer. Admin mengelola daftar bank account
+  // yang ditampilkan di halaman Transfer Bank user. Saat ini hardcoded di FE
+  // (DEFAULT_BANK di TransferBankPage) — endpoint ini supaya bisa dikelola
+  // dari dashboard tanpa deploy ulang.
+  listBankAccounts: (params = {}) => {
+    const q = buildQuery({ page: 1, limit: 20, ...params });
+    return request(`/admin/bank-accounts${q ? "?" + q : ""}`);
+  },
+
+  getBankAccount: (id) => request(`/admin/bank-accounts/${id}`),
+
+  createBankAccount: (data) =>
+    request("/admin/bank-accounts", { method: "POST", body: data }),
+
+  updateBankAccount: (id, data) =>
+    request(`/admin/bank-accounts/${id}`, { method: "PATCH", body: data }),
+
+  deleteBankAccount: (id) =>
+    request(`/admin/bank-accounts/${id}`, { method: "DELETE" }),
+
 
   // ── Regions ──
   createRegion: (data) =>

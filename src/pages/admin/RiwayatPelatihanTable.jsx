@@ -1,7 +1,6 @@
 import { useState } from 'react'
-import { ArrowDownUp, Pencil, Download, Check } from 'lucide-react'
-import { cn } from '@/lib/utils'
-import { TableShell, FreezeBlurLeft, FreezeBlurRight } from './TableShell'
+import { ArrowDownUp, Pencil, Download } from 'lucide-react'
+import { TableShell, FreezeBlurRight } from './TableShell'
 
 const ID_MONTHS = {
   jan: 0, feb: 1, mar: 2, apr: 3, mei: 4, jun: 5,
@@ -35,10 +34,6 @@ function SortableHeader({ label, sublabel, sortKey, sortConfig, onSort }) {
 
 export function RiwayatPelatihanTable({
   data, searchQuery, onEdit, onDownload, onViewPeserta,
-  selectedIds = [],
-  onToggleSelect,
-  onToggleSelectAll,
-  allSelected,
 }) {
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' })
 
@@ -82,11 +77,7 @@ export function RiwayatPelatihanTable({
     <table className="w-full text-left text-sm whitespace-nowrap">
       <thead className="bg-[#0A1128] text-white sticky top-0 z-20">
         <tr>
-          <th className="px-4 py-4 w-12 text-center sticky left-0 z-30 bg-[#0A1128] relative">
-            <div className="w-4 h-4 rounded border border-white/30 mx-auto" />
-            <FreezeBlurLeft />
-          </th>
-          <th className="px-4 py-4 font-medium align-bottom">
+          <th className="px-4 py-4 font-medium align-bottom rounded-tl-lg">
             <SortableHeader label="Nama Pelatihan" sortKey="nama" sortConfig={sortConfig} onSort={handleSort} />
           </th>
           <th className="px-4 py-4 font-medium align-bottom">
@@ -107,21 +98,8 @@ export function RiwayatPelatihanTable({
       <tbody className="divide-y divide-gray-100">
         {sortedData.length > 0 ? (
           sortedData.map(item => {
-            const selected = selectedIds.includes(item.id);
             return (
-            <tr key={item.id} className={cn('group transition-colors', selected ? 'bg-[#F4F6FB]' : 'hover:bg-[#F9FAFB]')}>
-              <td className={cn('px-4 py-4 text-center sticky left-0 z-10 transition-colors relative', selected ? 'bg-[#F4F6FB]' : 'bg-white group-hover:bg-[#F9FAFB]')}>
-                <FreezeBlurLeft />
-                <button
-                  onClick={() => onToggleSelect(item.id)}
-                  className={cn(
-                    'w-4 h-4 rounded border flex items-center justify-center mx-auto transition-colors',
-                    selected ? 'bg-blue-600 border-blue-600' : 'border-gray-300 bg-gray-50 hover:border-gray-400'
-                  )}
-                >
-                  {selected && <Check size={11} className="text-white" strokeWidth={3} />}
-                </button>
-              </td>
+            <tr key={item.id} className="group transition-colors hover:bg-[#F9FAFB]">
               <td className="px-4 py-4">
                 <div className="flex items-center gap-2">
                   <span className="font-bold text-[#0A1128] whitespace-normal max-w-[220px]">{item.nama}</span>
@@ -150,7 +128,7 @@ export function RiwayatPelatihanTable({
                 )}
               </td>
               <td className="px-4 py-4 text-[#0A1128] font-medium">{item.lastUpdated || '-'}</td>
-              <td className={cn('px-4 py-4 sticky right-0 z-10 transition-colors relative', selected ? 'bg-[#F4F6FB]' : 'bg-white group-hover:bg-[#F9FAFB]')}>
+              <td className="px-4 py-4 sticky right-0 z-10 transition-colors relative bg-white group-hover:bg-[#F9FAFB]">
                 <FreezeBlurRight />
                 <div className="flex items-center justify-center gap-1">
                   <button
@@ -174,7 +152,7 @@ export function RiwayatPelatihanTable({
           })
         ) : (
           <tr>
-            <td colSpan="7" className="px-4 py-12 text-center text-gray-500">
+            <td colSpan="6" className="px-4 py-12 text-center text-gray-500">
               Tidak ada data riwayat pelatihan {searchQuery ? `untuk pencarian "${searchQuery}"` : ''}.
             </td>
           </tr>

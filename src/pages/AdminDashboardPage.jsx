@@ -510,8 +510,9 @@ export default function AdminDashboardPage({ user, onSignOut }) {
     )
   }
 
-  // reasonLabel = teks alasan (dikirim sbg `notes`, wajib untuk endpoint reject).
-  const handleTolakPembayaran = ({ candidate: target, reasonLabel }) => {
+  // reason = enum value (BE pakai untuk template email penolakan).
+  // reasonLabel = teks alasan (dikirim sbg `notes` tambahan).
+  const handleTolakPembayaran = ({ candidate: target, reason, reasonLabel }) => {
     if (!target) return
     setTolakCandidate(null)
     setKonfirmasiCandidate(null)
@@ -526,7 +527,7 @@ export default function AdminDashboardPage({ user, onSignOut }) {
       },
     })
     scheduleAction(
-      () => adminApi.rejectManualPayment(target.id, reasonLabel),
+      () => adminApi.rejectManualPayment(target.id, reason, reasonLabel),
       () => {
         setPembayaranDitolak(prev => prev.filter(u => u.id !== target.id))
         setPembayaranMenunggu(prev => [target, ...prev])
@@ -654,6 +655,28 @@ export default function AdminDashboardPage({ user, onSignOut }) {
     }
   }
 
+
+  // Hapus pendaftaran pelatihan (baris berstatus Berakhir). Sumber data tab ini =
+  // app-config JSON (PENDAFTARAN_KEY), BUKAN training-sessions. Jadi "delete" =
+  // buang entry dari daftar rows lalu tulis balik JSON tanpa entry itu
+  // (persistPendaftaran → rowsToValue). Optimistic remove + revert bila gagal.
+  const handleDeletePendaftaran = async (item) => {
+    if (!item) return
+    const prev = pendaftaranData
+    const next = pendaftaranData.filter(r => r.id !== item.id)
+    setApiError('')
+    setPendaftaranData(next)
+    try {
+      await persistPendaftaran(next)
+      setToast({ message: <>Pelatihan {item.nama} berhasil dihapus</> })
+      if (toastTimeoutId) clearTimeout(toastTimeoutId)
+      const id = setTimeout(() => setToast(null), 5000)
+      setToastTimeoutId(id)
+    } catch (err) {
+      setPendaftaranData(prev) // revert
+      setApiError(err.message || 'Gagal menghapus pelatihan.')
+    }
+  }
 
   // Tambah pelatihan baru → POST /admin/training-sessions (optimistic).
   // Status = state upload: Processing (in-flight) → Saved (sukses) / Error (gagal).
@@ -1322,11 +1345,6 @@ export default function AdminDashboardPage({ user, onSignOut }) {
               searchQuery={searchQuery}
               onSearchChange={setSearchQuery}
               onAdd={() => setIsAddPendaftaranModalOpen(true)}
-              selectedCount={selectedIds.length}
-              bulkLimit={BULK_LIMIT}
-              limitHit={limitHit}
-              onClearSelection={clearSelection}
-              onDismissLimit={() => setLimitHit(false)}
             />
           )}
           {activeTab === 'manajemen' && (
@@ -1373,11 +1391,6 @@ export default function AdminDashboardPage({ user, onSignOut }) {
                 link.setAttribute('download', 'riwayat_pelatihan-Export data.csv')
                 document.body.appendChild(link); link.click(); document.body.removeChild(link)
               }}
-              selectedCount={selectedIds.length}
-              bulkLimit={BULK_LIMIT}
-              limitHit={limitHit}
-              onClearSelection={clearSelection}
-              onDismissLimit={() => setLimitHit(false)}
             />
           )}
 
@@ -1425,18 +1438,13 @@ export default function AdminDashboardPage({ user, onSignOut }) {
                 <PendaftaranTrainerTable
                   data={pendaftaranData}
                   onToggleStatus={handleTogglePendaftaranStatus}
-                  selectedIds={selectedIds}
-                  onToggleSelect={toggleSelect}
-                  onToggleSelectAll={() => toggleSelectAll(pendaftaranData.map(d => d.id))}
-                  allSelected={selectedIds.length > 0 && pendaftaranData.every(d => selectedIds.includes(d.id))}
+                  onDelete={handleDeletePendaftaran}
                   searchQuery={searchQuery}
                 />
               )}
               {activeTab === 'riwayat-pelatihan' && (
                 <RiwayatPelatihanTable
                   data={riwayatPelatihanData}
-                  selectedIds={selectedIds}
-                  onToggleSelect={toggleSelect}
                   searchQuery={searchQuery}
                   onEdit={setPerbaruiSession}
                   onDownload={handleDownloadRiwayat}

@@ -590,6 +590,7 @@ Impor peserta pelatihan lewat CSV (dipakai tab Riwayat Pelatihan).
 | POST   | `/subscription/subscribe`           | Subscribe paket (tanpa Midtrans)              |
 | POST   | `/subscription/cancel`              | Batalkan langganan aktif                      |
 | GET    | `/subscription/history`             | Riwayat pembayaran                            |
+| GET    | `/bank-accounts`                    | List rekening tujuan transfer aktif (public). Menggantikan `DEFAULT_BANK` hardcoded |
 
 #### Voucher (`voucherApi`)
 
@@ -668,8 +669,20 @@ Scope: `paymentMethod=manual_transfer` saja. Respons berupa envelope `{ data, me
 | ------ | ------------------------------------------------- | ----------------------- |
 | GET    | `/admin/payments/manual-transfer/list`            | List. `?filter=` : `all` \| `pending` \| `receipt_uploaded` (tab **Menunggu**) \| `paid` \| `rejected` (tab **Ditolak**) |
 | POST   | `/admin/payments/manual-transfer/:id/approve`     | Setujui bukti → langganan aktif. `notes` opsional |
-| POST   | `/admin/payments/manual-transfer/:id/reject`      | Tolak bukti. **`notes` wajib** (alasan) |
+| POST   | `/admin/payments/manual-transfer/:id/reject`      | Tolak bukti. **`reason` wajib** — enum: `insufficient_transfer` \| `fund_not_retrieved` \| `payment_receipt_unclear`. BE pakai `reason` untuk template notifikasi email penolakan. `notes` opsional (catatan tambahan) |
 | GET    | `/admin/payments/manual-transfer/stats`           | Jumlah per status (untuk titik biru sidebar) |
+
+**Bank Master Data** (rekening tujuan transfer)
+
+Master data rekening bank untuk halaman Transfer Bank user. Admin bisa CRUD tanpa deploy ulang FE.
+
+| Method | Path                       | Keterangan                       |
+| ------ | -------------------------- | -------------------------------- |
+| GET    | `/admin/bank-accounts`     | List semua rekening bank (paginasi) |
+| GET    | `/admin/bank-accounts/:id` | Detail satu rekening             |
+| POST   | `/admin/bank-accounts`     | Tambah rekening baru `{ bankName, accountNumber, accountName, isActive }` |
+| PATCH  | `/admin/bank-accounts/:id` | Update data rekening             |
+| DELETE | `/admin/bank-accounts/:id` | Hapus rekening                   |
 
 **Regions**
 

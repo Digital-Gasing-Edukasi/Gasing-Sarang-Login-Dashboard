@@ -99,10 +99,11 @@ export function KonfirmasiPembayaranModal({ candidate, onConfirm, onReject, onCa
 }
 
 // Alasan penolakan (value = dikirim ke BE; label = tampilan).
+// Value harus match enum BE — dipakai juga untuk template notifikasi email penolakan.
 export const TOLAK_REASONS = [
-  { value: 'receipt_unreadable', label: 'Bukti pembayaran tidak terbaca / salah' },
-  { value: 'wrong_amount',       label: 'Nominal transfer salah' },
-  { value: 'wrong_account',      label: 'Rekening tujuan salah' },
+  { value: 'insufficient_transfer', label: 'Transfer tidak mencukupi' },
+  { value: 'fund_not_retrieved',    label: 'Dana tidak diterima' },
+  { value: 'payment_receipt_unclear', label: 'Bukti pembayaran tidak jelas' },
 ]
 
 export function TolakPembayaranModal({ candidate, onConfirm, onCancel }) {
