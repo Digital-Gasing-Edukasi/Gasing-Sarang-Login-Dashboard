@@ -65,8 +65,8 @@ export function SignUpOtpPage({ onNavigate, otpToken, email, onOtpToken }) {
   }
 
   return (
-    <RightPanel topBar={<StepBar current={3} total={3} onBack={() => onNavigate('signup', { step: 2 })} />}>
-      <StepHeader title="Verifikasi Email">
+    <RightPanel topBar={<StepBar title="Verifikasi OTP" onBack={() => onNavigate('signup', { step: 2 })} onClose={() => onNavigate('login')} />}>
+      <StepHeader>
         <p className="text-sm text-muted-foreground mb-1">Masukkan kode yang kami kirimkan ke</p>
         <p className="text-sm font-semibold text-foreground mb-8">{maskedEmail}</p>
       </StepHeader>

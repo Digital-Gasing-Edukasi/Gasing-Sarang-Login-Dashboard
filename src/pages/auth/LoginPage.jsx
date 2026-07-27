@@ -98,7 +98,7 @@ export function LoginPage({ onNavigate, onLoginSuccess, isSsoMode = false }) {
         <Logo variant="split" />
       </div>
       <div className="animate-fade-in-up delay-100 text-center lg:text-center">
-        <h1 className="text-2xl font-bold text-foreground mb-6 lg:mt-0 mt-2">
+        <h1 className="text-2xl font-bold text-foreground mb-6 lg:mt-0 mt-3">
           <span className="lg:hidden">Selamat Datang!</span>
           <span className="hidden lg:inline">Selamat Datang!</span>
         </h1>
@@ -110,7 +110,7 @@ export function LoginPage({ onNavigate, onLoginSuccess, isSsoMode = false }) {
         </div>
       )}
 
-      <div className="space-y-4 animate-fade-in-up delay-200">
+      <div className="space-y-5 animate-fade-in-up delay-200">
         <div className="space-y-1">
           <Label htmlFor="login-email">Email</Label>
           <IconInput
@@ -180,7 +180,7 @@ export function LoginPage({ onNavigate, onLoginSuccess, isSsoMode = false }) {
         </div>
 
         <Button
-          className="!mt-5 w-full rounded-full"
+          className="!mt-8 w-full rounded-full"
           onClick={handleLogin}
           disabled={loading || !email || !password || !!rateLimit}
         >
@@ -194,7 +194,7 @@ export function LoginPage({ onNavigate, onLoginSuccess, isSsoMode = false }) {
         </Button>
       </div>
 
-      <div className="mt-4 animate-fade-in-up delay-300 text-center">
+      <div className="mt-6 animate-fade-in-up delay-300 text-center">
         <p className="text-sm text-muted-foreground">
           Belum punya akun?{" "}
           <button
@@ -208,7 +208,7 @@ export function LoginPage({ onNavigate, onLoginSuccess, isSsoMode = false }) {
         {/* Fake login: masuk sebagai tamu → halaman komunitas statis (ADR-0004) */}
         <button
           onClick={() => onNavigate("komunitas")}
-          className="mt-2 text-[14px] font-bold text-[#424857] transition-opacity hover:opacity-70"
+          className="mt-4 text-[14px] font-bold text-[#424857] transition-opacity hover:opacity-70"
         >
           Lanjut Sebagai Tamu
         </button>

@@ -13,7 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { RightPanel } from "@/components/layout/RightPanel";
-import { StepBar, StepHeader } from "@/components/layout/StepIndicator";
+import { StepBar } from "@/components/layout/StepIndicator";
 import { IconInput, TogglePassword } from "@/components/shared/IconInput";
 import { DateField } from "@/components/shared/DateField";
 import { authApi, regionsApi, trainingSessionsApi } from "@/lib/api";
@@ -279,23 +279,21 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
     <RightPanel
       topBar={
         <StepBar
-          current={step === 1 ? 1 : 2}
-          total={3}
+          title={step === 1 ? "Data Akun" : "Data Pribadi"}
           onBack={step === 2 ? () => setStep(1) : undefined}
+          onClose={() => onNavigate("login")}
         />
       }
     >
       {step === 1 ? (
         <>
-          <StepHeader title="Data Akun" />
-
-          <div className="space-y-4 animate-fade-in-up delay-200">
+          <div className="space-y-6 lg:space-y-4 animate-fade-in-up delay-200">
             {errors.general && (
               <p className="text-sm text-red-500 text-center">
                 {errors.general}
               </p>
             )}
-            <div className="space-y-1.5">
+            <div className="space-y-4 lg:space-y-1.5">
               <Label className="text-[13px] font-semibold">Nama Lengkap</Label>
               <Input
                 type="text"
@@ -311,8 +309,8 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
                 <p className="text-xs text-red-500">{errors.name}</p>
               )}
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 lg:gap-3">
+              <div className="space-y-4 lg:space-y-1.5">
                 <Label className="text-[13px] font-semibold">Username</Label>
                 <Input
                   type="text"
@@ -328,7 +326,7 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
                   <p className="text-xs text-red-500">{errors.username}</p>
                 )}
               </div>
-              <div className="space-y-1.5">
+              <div className="space-y-4 lg:space-y-1.5">
                 <Label className="text-[13px] font-semibold">Email</Label>
                 <Input
                   type="email"
@@ -345,7 +343,7 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
                 )}
               </div>
             </div>
-            <div className="space-y-1.5">
+            <div className="space-y-4 lg:space-y-1.5">
               <Label className="text-[13px] font-semibold">Password</Label>
               <IconInput
                 type={showPass ? "text" : "password"}
@@ -395,7 +393,7 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
                 </div>
               )}
             </div>
-            <div className="space-y-1.5">
+            <div className="space-y-4 lg:space-y-1.5">
               <Label className="text-[13px] font-semibold">
                 Konfirmasi Password
               </Label>
@@ -471,7 +469,7 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
               )}
             </div>
             <Button
-              className="!mt-8 w-full rounded-full"
+              className="!mt-[65px] lg:!mt-8 w-full rounded-full"
               onClick={handleNextToData}
               disabled={!step1Complete}
             >
@@ -493,8 +491,6 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
         </>
       ) : (
         <>
-          <StepHeader title="Data Pribadi" />
-
           <div className="space-y-4 animate-fade-in-up delay-200">
             {errors.general && (
               <p className="text-sm text-red-500 text-center">
