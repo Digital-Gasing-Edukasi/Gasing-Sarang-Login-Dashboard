@@ -77,7 +77,7 @@ export function RiwayatPelatihanTable({
     <table className="w-full text-left text-sm whitespace-nowrap">
       <thead className="bg-[#0A1128] text-white sticky top-0 z-20">
         <tr>
-          <th className="px-4 py-4 font-medium align-bottom rounded-tl-lg">
+          <th className="px-4 py-4 font-medium align-bottom">
             <SortableHeader label="Nama Pelatihan" sortKey="nama" sortConfig={sortConfig} onSort={handleSort} />
           </th>
           <th className="px-4 py-4 font-medium align-bottom">
@@ -101,7 +101,7 @@ export function RiwayatPelatihanTable({
             return (
             <tr key={item.id} className="group transition-colors hover:bg-[#F9FAFB]">
               <td className="px-4 py-4">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-3">
                   <span className="font-bold text-[#0A1128] whitespace-normal max-w-[220px]">{item.nama}</span>
                   {item.isNew && (
                     <span className="bg-blue-600 text-white text-[10px] px-2 py-0.5 rounded-full font-bold shrink-0">New</span>

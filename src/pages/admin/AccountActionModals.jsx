@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils'
 function ConfirmActionModal({ tone, Icon, title, body, confirmLabel, onConfirm, onCancel }) {
   const danger = tone === 'danger'
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#030B1F]/30 backdrop-blur-sm">
       <div className="bg-white rounded-[24px] p-8 w-full max-w-[400px] shadow-2xl mx-4 flex flex-col items-center text-center">
         <div className={cn(
           'w-16 h-16 rounded-full border border-dashed flex items-center justify-center mb-6',

@@ -64,7 +64,7 @@ export function VerifikasiTable({
             <SortableHeader label="Daerah" sublabel="Alumni Pelatihan" sortKey="alumniDaerah" sortConfig={sortConfig} onSort={onSort} />
           </th>
           <th className="px-4 py-4 font-medium align-bottom">
-            <SortableHeader label="Tanggal Mulai" sublabel="Alumni Pelatihan" sortKey="alumniTanggal" sortConfig={sortConfig} onSort={onSort} />
+            <SortableHeader label="Bulan & Tahun" sublabel="Alumni Pelatihan" sortKey="trainingPeriod" sortConfig={sortConfig} onSort={onSort} />
           </th>
           <th className="px-4 py-4 font-medium align-bottom">
             <SortableHeader label="Asal Sekolah" sortKey="school" sortConfig={sortConfig} onSort={onSort} />
@@ -109,7 +109,7 @@ export function VerifikasiTable({
               <td className="px-4 py-4 text-[#0A1128] font-medium">{user.birthdate}</td>
               <td className="px-4 py-4 text-[#0A1128] font-medium whitespace-normal max-w-[220px]" title={user.lokasi}>{user.lokasi}</td>
               <td className="px-4 py-4 text-[#0A1128] font-medium whitespace-normal max-w-[200px]" title={user.alumniDaerah}>{user.alumniDaerah || '-'}</td>
-              <td className="px-4 py-4 text-[#0A1128] font-medium">{user.alumniTanggal || '-'}</td>
+              <td className="px-4 py-4 text-[#0A1128] font-medium">{user.trainingPeriod || '-'}</td>
               <td className="px-4 py-4 text-[#0A1128] font-medium whitespace-normal max-w-[220px]" title={user.school}>{user.school || '-'}</td>
               {selectedIds.length === 0 && (
                 <td className={cn('px-4 py-4 sticky right-0 z-10 group-hover:z-40 transition-colors relative', selected ? 'bg-[#F4F6FB]' : 'bg-white group-hover:bg-[#F9FAFB]')}>

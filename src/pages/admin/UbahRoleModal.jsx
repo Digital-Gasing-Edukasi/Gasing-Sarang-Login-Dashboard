@@ -18,7 +18,7 @@ export function UbahRoleModal({ user, discourseGroups = [], onConfirm, onCancel 
   const changed = !!groupId && groupId !== currentId
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#030B1F]/30 backdrop-blur-sm">
       <div className="bg-white rounded-[24px] p-7 w-full max-w-[420px] shadow-2xl mx-4 overflow-visible">
         <h3 className="text-xl font-bold text-[#0A1128] mb-6">Ubah Role?</h3>
 

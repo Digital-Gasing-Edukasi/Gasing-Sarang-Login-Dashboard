@@ -46,7 +46,7 @@ export function RejectModal({ candidate, onConfirm, onCancel }) {
   }
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#030B1F]/30 backdrop-blur-sm">
       <div className="bg-white rounded-[24px] w-full max-w-[560px] shadow-2xl mx-4 max-h-[90vh] overflow-hidden flex flex-col">
         <div className="p-8 pb-5 overflow-y-auto">
           <h3 className="text-2xl font-bold text-red-500 mb-1.5">Tolak Akun</h3>
@@ -204,7 +204,7 @@ export function ApproveModal({ candidate, discourseGroups = [], trainingSessions
   const canSubmit = !!role && !!session
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#030B1F]/30 backdrop-blur-sm p-4">
       <div className="bg-white rounded-[24px] w-full max-w-[480px] shadow-2xl p-7">
         <div className="flex items-start justify-between mb-7">
           <h3 className="text-xl font-bold text-[#0A1128]">Setujui Akun Ini?</h3>

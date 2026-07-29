@@ -87,6 +87,7 @@ Login-Dashboard/
     │   ├── roles.js        ← ADMIN_CAPABILITIES, isSuperAdmin, isOperationalAdmin
     │   ├── loginGate.js    ← evaluateLoginGate — blok login: suspended > pending > expired
     │   ├── fixLink.js      ← encode/decode payload revisi data (legacy ?fix=)
+    │   ├── env.js          ← helper environment: isStaging(), isProduction()
     │   └── utils.js        ← helper cn()
     ├── hooks/useCountdown.js       ← countdown timer (OTP & resend)
     ├── context/AuthContext.jsx     ← TIDAK DIPAKAI (App.jsx kelola auth sendiri)
@@ -298,6 +299,26 @@ server: {
 
 - `/api` — bantuan CORS dev lokal. **Catatan:** `src/lib/api.js` memakai `VITE_API_URL` langsung, jadi proxy ini hanya kepakai kalau `VITE_API_URL` sengaja diarahkan ke path `/api`.
 - `/midtrans-api` — dipakai `MidtransTestPage` untuk memanggil Midtrans Sandbox dari browser tanpa kena CORS.
+
+### Compile-time `define`
+
+Dua variabel di-inject ke bundle via `define` di `vite.config.js`:
+
+| Variabel | Isi | Pemakai |
+| -------- | --- | ------- |
+| `__BUILD_DATE__` | Cap waktu build WIB, contoh `"2026-07-28 14:30"` | `LoginPage.jsx` (staging only) |
+| `__APP_MODE__` | `"staging"` atau `"production"` (dari flag `--mode`) | `lib/env.js` → `isStaging()`, `isProduction()` |
+
+### Komponen staging-only
+
+Beberapa komponen hanya tampil di **staging** dan tersembunyi di **production**:
+
+| Komponen | File | Mekanisme |
+| -------- | ---- | --------- |
+| Menu **Daftar User** di sidebar admin | `AdminSidebar.jsx` | Flag `stagingOnly: true` pada item NAV, difilter `isProduction()` |
+| Teks **tanggal build** di halaman login | `LoginPage.jsx` | `{isStaging() && (...)}` conditional render |
+
+Helper ada di `src/lib/env.js`. Untuk menambah komponen staging-only baru, import `isStaging` dari `@/lib/env` dan bungkus dengan conditional. Lihat [ADR-0005](docs/adr/0005-environment-visibility.md).
 
 ---
 

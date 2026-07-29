@@ -10,7 +10,7 @@ import { TABLE_HEADER_H } from './tableScroll'
 // - group/scroll + data-at-left/right: dipakai FreezeBlur* buat fade tepi kolom
 //   freeze yang mati saat scroll horizontal sudah mentok.
 const FALLBACK_ROW_H = 81
-const VISIBLE_ROWS = 7.35
+const VISIBLE_ROWS = 6.5
 
 export function TableShell({ children, rows = VISIBLE_ROWS }) {
   const scrollRef = useRef(null)
@@ -44,8 +44,8 @@ export function TableShell({ children, rows = VISIBLE_ROWS }) {
         ref={scrollRef}
         data-at-left={edge.atLeft}
         data-at-right={edge.atRight}
-        className="group/scroll overflow-auto"
-        style={{ maxHeight: TABLE_HEADER_H + rowH * rows }}
+        className="group/scroll overflow-auto thin-scrollbar"
+        style={{ maxHeight: `min(${TABLE_HEADER_H + rowH * rows}px, calc(100vh - 220px))` }}
       >
         {children}
       </div>

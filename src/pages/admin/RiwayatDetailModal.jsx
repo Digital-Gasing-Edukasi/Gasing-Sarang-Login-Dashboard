@@ -87,7 +87,7 @@ export function RiwayatDetailModal({ user, onClose }) {
   const showFade = sorted.length > 7
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#030B1F]/30 backdrop-blur-sm p-4">
       <div className="bg-white rounded-2xl w-full max-w-3xl shadow-2xl overflow-hidden">
         <div className="px-8 pt-7 pb-5 flex items-start justify-between">
           <div>

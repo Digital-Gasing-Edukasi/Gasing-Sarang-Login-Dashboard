@@ -76,7 +76,7 @@ Aplikasi adalah **Single Page Application murni client-side**. Tidak ada server-
 | **Components** | `components/ui`, `layout`, `shared` | UI reusable. `ui/` = shadcn primitives; `layout/` = struktur; `shared/` = widget lintas-halaman. |
 | **Hooks** | `hooks/useCountdown.js` | Logika timer (OTP & resend). |
 | **Data layer** | `lib/api.js` | Wrapper `fetch`, token, refresh, semua endpoint per-domain. |
-| **Utilities** | `lib/utils.js` (`cn`), `lib/fixLink.js` (encode/decode link perbaikan data), `lib/roles.js` (aturan peran) | Helper murni tanpa side-effect (kecuali `buildFixUrl` yang baca `window.location`). |
+| **Utilities** | `lib/utils.js` (`cn`), `lib/fixLink.js` (encode/decode link perbaikan data), `lib/roles.js` (aturan peran), `lib/env.js` (helper environment: `isStaging`/`isProduction`) | Helper murni tanpa side-effect (kecuali `buildFixUrl` yang baca `window.location`). |
 | **Context (unused)** | `context/AuthContext.jsx` | Alternatif auth global — tidak di-wire ke pohon komponen saat ini. |
 
 ---
@@ -635,6 +635,7 @@ Hal yang **tidak konsisten / perlu diketahui maintainer** (ditemukan langsung da
 9. **401 → hard redirect `/`.** Saat refresh token gagal, `request()` memaksa `window.location.href = "/"`. Dengan `base: '/'`, `/` diarahkan router ke `/login` — perilaku benar, tapi ini reload penuh (state hilang), bukan navigasi React Router.
 10. **Kode mati di `AccountActionModals.jsx`.** Mengekspor `SetujuiAkunModal` & `TangguhkanAkunModal` yang tidak diimpor di mana pun; versi aktif ada di `SetujuiAkunModal.jsx` & `SuspendModal.jsx`.
 11. **`bad-words` dipin di v3.** Jangan upgrade ke 4.x — tarball-nya tanpa `dist/`, dev jalan tapi `npm run build` mati.
+12. **Visibilitas komponen per-environment.** `lib/env.js` meng-expose `isStaging()`/`isProduction()` (sumber: `__APP_MODE__` yang di-inject Vite dari `--mode`). Komponen staging-only: menu **Daftar User** (`AdminSidebar.jsx`, flag `stagingOnly`) dan **tanggal build** di `LoginPage.jsx`. Lihat [ADR-0005](docs/adr/0005-environment-visibility.md). Untuk menambah komponen staging-only baru, import helper dari `@/lib/env` dan bungkus dengan conditional.
 
 ---
 

@@ -1,16 +1,21 @@
 import { useState } from 'react'
-import { UserSearch, Wallet, Users, Calendar, ClipboardList, LogOut, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
+import { UserSearch, Wallet, Users, Users2, Calendar, ClipboardList, LogOut, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { isProduction } from '@/lib/env'
 import logoRect from '@/assets/logo-saranggasing.png'
 import logoSquare from '@/assets/icon_sg.png'
 
-const NAV = [
+const NAV_ALL = [
   { id: 'verifikasi',            label: 'Verifikasi Akun',       icon: UserSearch },
   { id: 'verifikasi-pembayaran', label: 'Verifikasi Pembayaran', icon: Wallet },
   { id: 'manajemen',             label: 'Manajemen Akun',        icon: Users },
+  { id: 'daftar-user',           label: 'Daftar User',           icon: Users2,  stagingOnly: true },
   { id: 'riwayat-pelatihan',     label: 'Riwayat Pelatihan',     icon: Calendar },
   { id: 'pendaftaran-trainer',   label: 'Pendaftaran Trainer',   icon: ClipboardList },
 ]
+
+// Production: sembunyikan item bertanda stagingOnly.
+const NAV = isProduction() ? NAV_ALL.filter(i => !i.stagingOnly) : NAV_ALL
 
 export function AdminSidebar({ activeTab, onTabChange, onSignOut, user, navFlags = {} }) {
   const [collapsed, setCollapsed] = useState(false)
@@ -19,7 +24,10 @@ export function AdminSidebar({ activeTab, onTabChange, onSignOut, user, navFlags
   return (
     <aside
       className={cn(
-        'flex-none bg-white border-r border-gray-100 text-[#0A1128] flex flex-col h-full transition-all duration-200',
+        // sticky top-0 left-0 + h-screen self-start: tetap terpaku ke tepi viewport saat
+        // halaman di-scroll (style A / document scroll). Tab lain (root h-screen overflow-hidden)
+        // tidak scroll, jadi sticky tak berefek — aman.
+        'flex-none bg-white border-r border-gray-100 text-[#0A1128] flex flex-col h-screen sticky top-0 left-0 self-start z-40 transition-all duration-200',
         collapsed ? 'w-[84px] min-w-[84px]' : 'w-[260px] min-w-[260px]'
       )}
     >
@@ -38,7 +46,7 @@ export function AdminSidebar({ activeTab, onTabChange, onSignOut, user, navFlags
         </button>
       </div>
 
-      <nav className="flex-1 px-3 mt-2 space-y-1.5">
+      <nav className="flex-1 px-3 mt-2 space-y-3">
         {NAV.map(item => {
           const Icon = item.icon
           const active = activeTab === item.id
@@ -49,7 +57,7 @@ export function AdminSidebar({ activeTab, onTabChange, onSignOut, user, navFlags
               onClick={() => onTabChange(item.id)}
               title={collapsed ? item.label : undefined}
               className={cn(
-                'w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors text-sm font-medium',
+                'w-full flex items-center gap-3 px-4 py-3 rounded-full transition-colors text-sm font-medium',
                 collapsed && 'justify-center',
                 active ? 'bg-blue-50 text-blue-600' : 'text-[#0A1128] hover:bg-gray-50'
               )}
@@ -62,7 +70,7 @@ export function AdminSidebar({ activeTab, onTabChange, onSignOut, user, navFlags
         })}
       </nav>
 
-      <div className="p-5 border-t border-gray-100 flex items-center justify-between">
+      <div className="p-4 border-t border-gray-100 flex items-center justify-between">
         <div className="flex items-center gap-3 min-w-0">
           <div className="w-10 h-10 rounded-full bg-blue-500 overflow-hidden shrink-0">
             <img

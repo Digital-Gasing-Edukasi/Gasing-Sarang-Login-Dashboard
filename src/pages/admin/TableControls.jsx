@@ -6,13 +6,13 @@ import { cn } from '@/lib/utils'
 function SearchInput({ value, onChange, placeholder = 'Cari user...' }) {
   return (
     <div className="relative">
-      <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+      <Search size={16} className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400" />
       <input
         type="text"
         placeholder={placeholder}
         value={value}
         onChange={e => onChange(e.target.value)}
-        className="w-full pl-10 pr-10 py-2.5 bg-white border border-gray-200 rounded-full text-sm outline-none focus:border-[#0033EC] focus:ring-1 focus:ring-[#0033EC] transition-all"
+        className="w-full pl-11 pr-10 py-2.5 bg-white border border-gray-200 rounded-full text-sm outline-none focus:border-[#0033EC] focus:ring-1 focus:ring-[#0033EC] transition-all"
       />
       {value && (
         <button onClick={() => onChange('')} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
@@ -44,7 +44,7 @@ function ExpandableSearch({ value, onChange, placeholder = 'Cari user...' }) {
 
   return (
     <div className="relative w-[280px] animate-in fade-in slide-in-from-right-2 duration-200">
-      <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+      <Search size={16} className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400" />
       <input
         ref={inputRef}
         type="text"
@@ -52,7 +52,7 @@ function ExpandableSearch({ value, onChange, placeholder = 'Cari user...' }) {
         value={value}
         onChange={e => onChange(e.target.value)}
         onBlur={() => { if (!value) setOpen(false) }}
-        className="w-full pl-10 pr-10 py-2.5 bg-white border border-gray-200 rounded-full text-sm outline-none focus:border-[#0033EC] focus:ring-1 focus:ring-[#0033EC] transition-all"
+        className="w-full pl-11 pr-10 py-2.5 bg-white border border-gray-200 rounded-full text-sm outline-none focus:border-[#0033EC] focus:ring-1 focus:ring-[#0033EC] transition-all"
       />
       <button
         onMouseDown={e => e.preventDefault()}
@@ -179,12 +179,14 @@ export function VerifikasiControls({
   )
 }
 
-// Switcher sub-menu Verifikasi Pembayaran: Menunggu Verifikasi & Pembayaran Ditolak.
-function PembayaranSubTabSwitcher({ subTab, onSubTabChange, menungguCount = 0, ditolakCount = 0 }) {
+// Switcher sub-menu Verifikasi Pembayaran: Belum Langganan, Menunggu Verifikasi &
+// Pembayaran Ditolak.
+function PembayaranSubTabSwitcher({ subTab, onSubTabChange, belumLanggananCount = 0, menungguCount = 0, ditolakCount = 0 }) {
   const fmt = (n) => (n > 99 ? '99+' : String(n))
   const tabs = [
-    { id: 'menunggu', label: 'Menunggu Verifikasi', count: menungguCount },
-    { id: 'ditolak',  label: 'Pembayaran Ditolak',  count: ditolakCount },
+    { id: 'belum-langganan', label: 'Belum Langganan',    count: belumLanggananCount },
+    { id: 'menunggu',        label: 'Menunggu Verifikasi', count: menungguCount },
+    { id: 'ditolak',         label: 'Pembayaran Ditolak',  count: ditolakCount },
   ]
   return (
     <div className="flex items-center gap-1 bg-gray-50/70 border border-gray-100 p-1.5 rounded-full">
@@ -212,13 +214,14 @@ function PembayaranSubTabSwitcher({ subTab, onSubTabChange, menungguCount = 0, d
 
 export function VerifikasiPembayaranControls({
   searchQuery, onSearchChange, onExport,
-  subTab = 'menunggu', onSubTabChange, menungguCount = 0, ditolakCount = 0,
+  subTab = 'menunggu', onSubTabChange, belumLanggananCount = 0, menungguCount = 0, ditolakCount = 0,
 }) {
   return (
     <div className="flex items-center justify-between mb-6">
       <PembayaranSubTabSwitcher
         subTab={subTab}
         onSubTabChange={onSubTabChange}
+        belumLanggananCount={belumLanggananCount}
         menungguCount={menungguCount}
         ditolakCount={ditolakCount}
       />
@@ -321,7 +324,7 @@ function FilterDrawer({
   return (
     <div className={cn('fixed inset-0 z-[90]', open ? '' : 'pointer-events-none')}>
       <div
-        className={cn('absolute inset-0 bg-black/30 transition-opacity duration-300', open ? 'opacity-100' : 'opacity-0')}
+        className={cn('absolute inset-0 bg-[#030B1F]/30 transition-opacity duration-300', open ? 'opacity-100' : 'opacity-0')}
         onClick={onClose}
       />
       <aside className={cn(
@@ -601,7 +604,7 @@ export function RiwayatPelatihanControls({
       <div className="flex items-center gap-4">
         <button
           onClick={onAdd}
-          className="flex items-center gap-2 border border-gray-200 text-[#0A1128] hover:bg-gray-50 px-5 py-2.5 rounded-full text-sm font-medium transition-colors shadow-sm"
+          className="flex items-center gap-2 border border-gray-200 text-[#0A1128] hover:bg-gray-50 px-6 py-2.5 rounded-full text-sm font-medium transition-colors shadow-sm"
         >
           <span className="text-lg leading-none">+</span> Tambah Pelatihan Baru
         </button>

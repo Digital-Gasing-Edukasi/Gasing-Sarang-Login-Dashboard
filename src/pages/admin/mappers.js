@@ -66,6 +66,18 @@ export function fmtDate(iso) {
   return d.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })
 }
 
+// Bulan+tahun pelatihan pertama yang DIKETIK user saat sign up (firstTrainingMonth
+// 1-12 + firstTrainingYear). BUKAN startDate sesi pelatihan (itu dibuat admin).
+// Dipakai kolom "Alumni Pelatihan / Bulan & Tahun" di tabel Verifikasi Akun (Pending),
+// karena di tahap WAITING user belum di-assign ke sesi mana pun.
+const ID_MONTHS = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember']
+function fmtTrainingPeriod(month, year) {
+  const m = Number(month)
+  const y = Number(year)
+  if (!m || m < 1 || m > 12 || !y) return { text: '-', ms: 0 }
+  return { text: `${ID_MONTHS[m - 1]} ${y}`, ms: new Date(y, m - 1, 1).getTime() }
+}
+
 // Ambil epoch-ms dari field date API (object { unix } / { utc:{raw} } / { date } / ISO).
 function dateFieldMs(raw) {
   if (!raw) return null
@@ -207,6 +219,9 @@ export function mapToVerifikasi(u, regions = [], discourseGroups = []) {
   // modal tidak kosong padahal kolom Riwayat Pelatihan menunjukkan angka.
   const riwayatList = buildRiwayatList(u, regions, { lts, hasRiwayat, alumniNama, alumniDaerah, alumniTanggal })
 
+  // Bulan & tahun pelatihan pertama dari input sign up (bukan startDate sesi).
+  const trainingPeriod = fmtTrainingPeriod(u.firstTrainingMonth, u.firstTrainingYear)
+
   return {
     id:       u.id,
     name:     u.name || '-',
@@ -223,6 +238,8 @@ export function mapToVerifikasi(u, regions = [], discourseGroups = []) {
     alumniNama,
     alumniDaerah,
     alumniTanggal,
+    trainingPeriod:   trainingPeriod.text,
+    trainingPeriodMs: trainingPeriod.ms,
     hasRiwayat,
     riwayatCount,
     riwayatList,

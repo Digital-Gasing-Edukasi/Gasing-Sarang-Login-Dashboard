@@ -55,7 +55,7 @@ export function KonfirmasiVoucherModal({ candidate, onConfirm, onCancel }) {
   }
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#030B1F]/30 backdrop-blur-sm p-4">
       {toast && (
         <div className="fixed top-8 left-1/2 -translate-x-1/2 z-[110] bg-[#030B1F] text-white pl-6 pr-4 py-3.5 rounded-2xl shadow-lg flex items-center gap-6 font-sans text-[16px] animate-in slide-in-from-top-4 fade-in duration-300">
           <span className="font-medium">Kode voucher telah disalin</span>
@@ -106,7 +106,7 @@ export function BulkVoucherModal({ candidates = [], onConfirm, onCancel }) {
   const cols  = [candidates.slice(0, half), candidates.slice(half)]
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#030B1F]/30 backdrop-blur-sm p-4">
       <div className="bg-white rounded-[24px] w-full max-w-[1100px] shadow-2xl max-h-[90vh] overflow-hidden flex flex-col">
         <div className="flex items-start justify-between px-8 py-6 shrink-0">
           <h3 className="text-xl font-bold text-[#0A1128]">Setujui Akun Ini?</h3>

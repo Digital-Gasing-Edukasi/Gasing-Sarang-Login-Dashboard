@@ -61,7 +61,7 @@ export function BulkApproveModal({ candidates = [], discourseGroups = [], traini
     )
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#030B1F]/30 backdrop-blur-sm">
       <div className="bg-white rounded-[24px] w-full max-w-[860px] shadow-2xl mx-4 max-h-[90vh] overflow-hidden flex flex-col">
         <div className="p-8 pb-4">
           <h3 className="text-2xl font-bold text-[#0A1128] mb-1.5">Setujui Akun ini?</h3>

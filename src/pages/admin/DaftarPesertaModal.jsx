@@ -51,7 +51,7 @@ export function DaftarPesertaModal({ isOpen, session, onClose }) {
   }
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#030B1F]/30 p-4">
       <div className="bg-white rounded-2xl w-full max-w-2xl shadow-xl flex flex-col max-h-[90vh]">
         <div className="px-6 py-4 border-b border-gray-100 flex items-start justify-between shrink-0">
           <div>

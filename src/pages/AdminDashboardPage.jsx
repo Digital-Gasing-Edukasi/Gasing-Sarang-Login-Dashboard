@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
+import { Search } from 'lucide-react'
 import { adminApi, discourseApi, regionsApi, appConfigApi, trainingSessionsApi, trainingHistoriesApi, queueApi } from '@/lib/api'
 import { mapToVerifikasi, mapToManajemen, mapToRiwayat, mapToPembayaran, fmtDate, computeIsNew, isManajemenEligible, VERIFIED_STATUS } from './admin/mappers'
 import { canonicalRole } from './admin/roleOptions'
@@ -12,8 +13,10 @@ import { KonfirmasiVoucherModal, BulkVoucherModal } from './admin/VoucherModals'
 import { VerifikasiControls, VerifikasiPembayaranControls, ManajemenControls, PendaftaranTrainerControls, RiwayatPelatihanControls } from './admin/TableControls'
 import { VerifikasiTable } from './admin/VerifikasiTable'
 import { VerifikasiPembayaranTable } from './admin/VerifikasiPembayaranTable'
+import { BelumLanggananTable } from './admin/BelumLanggananTable'
 import { KonfirmasiPembayaranModal, TolakPembayaranModal } from './admin/PembayaranModals'
 import { ManajemenTable }  from './admin/ManajemenTable'
+import { DaftarUserTable } from './admin/DaftarUserTable'
 import { PendaftaranTrainerTable } from './admin/PendaftaranTrainerTable'
 import { RiwayatPelatihanTable } from './admin/RiwayatPelatihanTable'
 import { AddPendaftaranTrainerModal } from './admin/AddPendaftaranTrainerModal'
@@ -126,6 +129,9 @@ function applySortToList(list, sortConfig) {
     } else if (sortConfig.key === 'lastVerified') {
       valA = a.lastVerifiedMs || 0
       valB = b.lastVerifiedMs || 0
+    } else if (sortConfig.key === 'trainingPeriod') {
+      valA = a.trainingPeriodMs || 0
+      valB = b.trainingPeriodMs || 0
     } else if (sortConfig.key === 'birthdate' || sortConfig.key === 'endDate') {
       valA = valA ? new Date(valA).getTime() : 0
       valB = valB ? new Date(valB).getTime() : 0
@@ -147,12 +153,19 @@ const CSV_STATUS_LABELS = {
   Deleted: 'Baru Dihapus', Dihapus: 'Baru Dihapus', 'Baru Dihapus': 'Baru Dihapus',
 }
 
-function buildCsvContent(tab, users, activeFilter, verifSubTab = 'pending') {
+function buildCsvContent(tab, users, activeFilter, verifSubTab = 'pending', pembayaranSubTab = 'menunggu') {
   const escapeCsv = (str) => {
     const s = String(str ?? '')
     return s.includes(',') || s.includes('"') || s.includes('\n') ? `"${s.replace(/"/g, '""')}"` : s
   }
   if (tab === 'verifikasi-pembayaran') {
+    // Sub-tab "Belum Langganan" pakai kolom read-only (tanpa Jenis Paket/Tgl. Berakhir,
+    // + Last Updated) mengikuti BelumLanggananTable.
+    if (pembayaranSubTab === 'belum-langganan') {
+      const headers = ['Nama Pengguna', 'Email', 'Status Member', 'Kode Voucher', 'Role', 'Riwayat Pelatihan', 'Tgl. Lahir', 'Lokasi', 'Alumni Pelatihan Nama', 'Alumni Pelatihan Daerah', 'Alumni Pelatihan Tanggal Mulai', 'Asal Sekolah', 'Last Updated']
+      const rows = users.map(u => [u.name, u.email, 'Belum Langganan', u.voucher || '-', u.role || '-', u.riwayatCount || 0, u.birthdate || '-', u.lokasi || '-', u.training || '-', u.alumniDaerah || '-', u.alumniTanggal || '-', u.school || '-', u.lastUpdated || '-'])
+      return [headers.join(','), ...rows.map(r => r.map(escapeCsv).join(','))].join('\n')
+    }
     const headers = ['Nama Pengguna', 'Email', 'Status Member', 'Jenis Paket', 'Tgl. Berakhir', 'Kode Voucher', 'Role', 'Riwayat Pelatihan', 'Tgl. Lahir', 'Lokasi', 'Alumni Pelatihan Nama', 'Alumni Pelatihan Daerah', 'Alumni Pelatihan Tanggal Mulai', 'Asal Sekolah', 'Last Verified']
     const rows = users.map(u => [u.name, u.email, u.statusMember || '-', u.plan || '-', u.endDate || '-', u.voucher || '-', u.role || '-', u.riwayatCount || 0, u.birthdate || '-', u.lokasi || '-', u.training || '-', u.alumniDaerah || '-', u.alumniTanggal || '-', u.school || '-', u.lastVerified || '-'])
     return [headers.join(','), ...rows.map(r => r.map(escapeCsv).join(','))].join('\n')
@@ -181,8 +194,8 @@ function buildCsvContent(tab, users, activeFilter, verifSubTab = 'pending') {
     return [headers.join(','), ...rows.map(r => r.map(escapeCsv).join(','))].join('\n')
   }
   // tab === 'verifikasi', sub-tab 'pending' → kolom ikut VerifikasiTable.
-  const headers = ['Nama Pengguna', 'Email', 'Status', 'Tgl. Lahir', 'Lokasi', 'Alumni Pelatihan Daerah', 'Alumni Pelatihan Tanggal Mulai', 'Asal Sekolah']
-  const rows = users.map(u => [u.name, u.email, u.status, u.birthdate, u.lokasi, u.alumniDaerah || '-', u.alumniTanggal || '-', u.school || '-'])
+  const headers = ['Nama Pengguna', 'Email', 'Status', 'Tgl. Lahir', 'Lokasi', 'Alumni Pelatihan Daerah', 'Alumni Pelatihan Bulan & Tahun', 'Asal Sekolah']
+  const rows = users.map(u => [u.name, u.email, u.status, u.birthdate, u.lokasi, u.alumniDaerah || '-', u.trainingPeriod || '-', u.school || '-'])
   return [headers.join(','), ...rows.map(r => r.map(escapeCsv).join(','))].join('\n')
 }
 
@@ -1194,16 +1207,30 @@ export default function AdminDashboardPage({ user, onSignOut }) {
     }
   }
 
+  // Sub-tab "Belum Langganan" (langkah verifikasi pembayaran): akun yang datanya SUDAH
+  // disetujui (langkah-1 beres) tapi BELUM pernah berlangganan (subscription 'Not Active').
+  // Belum lolos langkah-2 → belum masuk Manajemen. Sumber = managementUsers (mapToManajemen).
+  // Catatan: 'Expired' = pernah bayar → tetap di Manajemen, bukan di sini.
+  const belumLangganan = managementUsers.filter(
+    u => u.accountStatus === 'Disetujui' && u.subscription === 'Not Active'
+  )
+
   const currentData = activeTab === 'manajemen'
     ? managementUsers
     : activeTab === 'verifikasi-pembayaran'
-      ? (pembayaranSubTab === 'ditolak' ? pembayaranDitolak : pembayaranMenunggu).map(enrichFromUser)
+      ? (pembayaranSubTab === 'belum-langganan'
+          ? belumLangganan
+          : (pembayaranSubTab === 'ditolak' ? pembayaranDitolak : pembayaranMenunggu).map(enrichFromUser))
       : (verifSubTab === 'voucher' ? pendingVoucherUsers : users)
 
   const filteredUsers = currentData.filter(user => {
     if (activeTab === 'manajemen') {
       // Tiap tab = 1 tabel utama → hanya baris dgn status == tab aktif.
       if (user.accountStatus !== activeFilter) return false
+      // Flow: hanya akun yang lolos 2 langkah (verifikasi akun + pembayaran) yang masuk
+      // Manajemen. Akun Disetujui tapi belum pernah langganan ('Not Active') masih di
+      // langkah pembayaran (tab "Belum Langganan") → jangan tampil di Manajemen Disetujui.
+      if (activeFilter === 'Disetujui' && user.subscription === 'Not Active') return false
       // Tab Ditolak & Baru Dihapus: tanpa filter (tombol filter disembunyikan) →
       // filter tersisa dari tab lain jangan ikut memotong baris.
       const filterable = activeFilter !== 'Ditolak' && activeFilter !== 'Baru Dihapus'
@@ -1274,7 +1301,7 @@ export default function AdminDashboardPage({ user, onSignOut }) {
   }
 
   const handleExport = () => {
-    const csv = buildCsvContent(activeTab, sortedUsers, activeFilter, verifSubTab)
+    const csv = buildCsvContent(activeTab, sortedUsers, activeFilter, verifSubTab, pembayaranSubTab)
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
     const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
@@ -1283,27 +1310,54 @@ export default function AdminDashboardPage({ user, onSignOut }) {
       activeTab === 'verifikasi'
         ? (verifSubTab === 'voucher' ? 'pending_voucher-Export data.csv' : 'verifikasi_akun-Export data.csv')
       : activeTab === 'verifikasi-pembayaran'
-        ? (pembayaranSubTab === 'ditolak' ? 'pembayaran_ditolak-Export data.csv' : 'menunggu_verifikasi-Export data.csv')
+        ? (pembayaranSubTab === 'belum-langganan' ? 'belum_langganan-Export data.csv'
+           : pembayaranSubTab === 'ditolak' ? 'pembayaran_ditolak-Export data.csv'
+           : 'menunggu_verifikasi-Export data.csv')
       : 'manajemen_akun-Export data.csv')
     document.body.appendChild(link); link.click(); document.body.removeChild(link)
   }
 
+  // ── Style A (document scroll) khusus tab Daftar User ────────────────────────
+  // Zona beku bertingkat: header (top:0) → controls (top:headerH) → thead (top:headerH+controlsH).
+  // Tinggi header & controls diukur runtime supaya offset thead selalu pas.
+  const isPageScroll = activeTab === 'daftar-user'
+  const daftarHeaderRef = useRef(null)
+  const daftarControlsRef = useRef(null)
+  const [daftarStick, setDaftarStick] = useState({ h: 96, c: 68 })
+  useEffect(() => {
+    if (!isPageScroll) return
+    const measure = () => setDaftarStick({
+      h: daftarHeaderRef.current?.offsetHeight || 96,
+      c: daftarControlsRef.current?.offsetHeight || 68,
+    })
+    measure()
+    const ro = new ResizeObserver(measure)
+    if (daftarHeaderRef.current) ro.observe(daftarHeaderRef.current)
+    if (daftarControlsRef.current) ro.observe(daftarControlsRef.current)
+    window.addEventListener('resize', measure)
+    return () => { ro.disconnect(); window.removeEventListener('resize', measure) }
+  }, [isPageScroll])
+
   return (
-    <div className="h-screen bg-white flex font-sans overflow-hidden">
+    <div className={`bg-white flex font-sans ${isPageScroll ? 'min-h-screen' : 'h-screen overflow-hidden'}`}>
       <AdminSidebar activeTab={activeTab} onTabChange={handleTabChange} onSignOut={onSignOut} user={user} navFlags={navFlags} />
 
-      <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <header className="px-10 py-8 border-b border-gray-100 shrink-0 bg-white">
+      <main className={`flex-1 flex flex-col min-w-0 ${isPageScroll ? '' : 'overflow-hidden'}`}>
+        <header
+          ref={daftarHeaderRef}
+          className={`px-10 py-8 border-b border-gray-100 bg-white ${isPageScroll ? 'sticky top-0 z-30' : 'shrink-0'}`}
+        >
           <h1 className="text-3xl font-bold text-[#0A1128]">
             {activeTab === 'verifikasi' && 'Verifikasi Akun'}
             {activeTab === 'verifikasi-pembayaran' && 'Verifikasi Pembayaran'}
             {activeTab === 'manajemen' && 'Manajemen Akun'}
+            {activeTab === 'daftar-user' && 'Daftar User'}
             {activeTab === 'pendaftaran-trainer' && 'Pendaftaran Pelatihan Trainer'}
             {activeTab === 'riwayat-pelatihan' && 'Riwayat Pelatihan'}
           </h1>
         </header>
 
-        <div className="flex-1 p-10 bg-[#F7F8FC] overflow-hidden">
+        <div className={`flex-1 p-10 pt-8 bg-[#F7F8FC] ${isPageScroll ? '' : 'overflow-hidden'}`}>
           {apiError && (
             <div className="mb-4 px-4 py-3 rounded-lg bg-red-50 text-red-700 text-sm border border-red-200">
               {apiError}
@@ -1336,6 +1390,7 @@ export default function AdminDashboardPage({ user, onSignOut }) {
               onExport={handleExport}
               subTab={pembayaranSubTab}
               onSubTabChange={setPembayaranSubTab}
+              belumLanggananCount={belumLangganan.length}
               menungguCount={pembayaranMenunggu.length}
               ditolakCount={pembayaranDitolak.length}
             />
@@ -1362,6 +1417,26 @@ export default function AdminDashboardPage({ user, onSignOut }) {
               onClearSelection={clearSelection}
               onBulkAction={handleManajemenBulk}
             />
+          )}
+          {activeTab === 'daftar-user' && (
+            <div
+              ref={daftarControlsRef}
+              style={{ top: daftarStick.h }}
+              className="sticky z-20 -mx-10 px-10 pt-1 pb-6 bg-[#F7F8FC] flex items-center justify-between gap-4"
+            >
+              <p className="text-sm text-gray-500">
+                Total <span className="font-bold text-[#0A1128]">{Object.keys(usersById).length}</span> user
+              </p>
+              <div className="flex items-center gap-3 bg-white border border-gray-200 rounded-full px-5 py-3 w-full max-w-sm">
+                <Search size={18} className="text-gray-400 shrink-0" />
+                <input
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Cari user..."
+                  className="w-full bg-transparent text-sm outline-none placeholder:text-gray-400"
+                />
+              </div>
+            </div>
           )}
           {activeTab === 'riwayat-pelatihan' && (
             <RiwayatPelatihanControls
@@ -1422,7 +1497,16 @@ export default function AdminDashboardPage({ user, onSignOut }) {
                   allSelected={allSelected}
                 />
               )}
-              {activeTab === 'verifikasi-pembayaran' && (
+              {activeTab === 'verifikasi-pembayaran' && pembayaranSubTab === 'belum-langganan' && (
+                <BelumLanggananTable
+                  users={sortedUsers}
+                  sortConfig={sortConfig}
+                  onSort={handleSort}
+                  onRiwayatDetail={setRiwayatDetailUser}
+                  searchQuery={searchQuery}
+                />
+              )}
+              {activeTab === 'verifikasi-pembayaran' && pembayaranSubTab !== 'belum-langganan' && (
                 <VerifikasiPembayaranTable
                   users={sortedUsers}
                   sortConfig={sortConfig}
@@ -1468,6 +1552,17 @@ export default function AdminDashboardPage({ user, onSignOut }) {
               allSelected={allSelected}
             />
           )}
+          {activeTab === 'daftar-user' && (() => {
+            const q = searchQuery.trim().toLowerCase()
+            const list = Object.values(usersById)
+            const filtered = q
+              ? list.filter(u =>
+                  (u.name || '').toLowerCase().includes(q) ||
+                  (u.email || '').toLowerCase().includes(q) ||
+                  (u.username || '').toLowerCase().includes(q))
+              : list
+            return <DaftarUserTable users={filtered} searchQuery={searchQuery} stickTop={daftarStick.h + daftarStick.c} />
+          })()}
         </div>
       </main>
 

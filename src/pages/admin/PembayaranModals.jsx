@@ -23,7 +23,7 @@ export function KonfirmasiPembayaranModal({ candidate, onConfirm, onReject, onCa
   }
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#030B1F]/30 backdrop-blur-sm">
       <div className="bg-white rounded-[24px] w-full max-w-[620px] shadow-2xl mx-4 max-h-[90vh] overflow-hidden flex flex-col">
         <div className="p-8 pb-5 overflow-y-auto">
           <div className="flex items-start justify-between mb-1">
@@ -115,7 +115,7 @@ export function TolakPembayaranModal({ candidate, onConfirm, onCancel }) {
   if (!candidate) return null
 
   return (
-    <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/40 backdrop-blur-sm">
+    <div className="fixed inset-0 z-[110] flex items-center justify-center bg-[#030B1F]/30 backdrop-blur-sm">
       <div className="bg-white rounded-[24px] w-full max-w-[460px] shadow-2xl mx-4 flex flex-col">
         <div className="p-8 pb-5">
           <h3 className="text-2xl font-bold text-red-500 mb-1.5">

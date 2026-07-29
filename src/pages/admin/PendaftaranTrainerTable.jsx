@@ -41,11 +41,11 @@ export function PendaftaranTrainerTable({
     <table className="w-full text-left text-sm whitespace-nowrap">
       <thead className="bg-[#0A1128] text-white sticky top-0 z-20">
         <tr>
-          <th className="px-4 py-4 font-medium rounded-tl-lg">Nama Pelatihan</th>
-          <th className="px-4 py-4 font-medium">Link</th>
-          <th className="px-4 py-4 font-medium">Periode</th>
-          <th className="px-4 py-4 font-medium">Batas Waktu</th>
-          <th className="px-4 py-4 font-medium">Status</th>
+          <th className="px-4 py-4 font-medium align-bottom">Nama Pelatihan</th>
+          <th className="px-4 py-4 font-medium align-bottom">Link</th>
+          <th className="px-4 py-4 font-medium align-bottom">Periode</th>
+          <th className="px-4 py-4 font-medium align-bottom">Batas Waktu</th>
+          <th className="px-4 py-4 font-medium align-bottom">Status</th>
           <th className="px-4 py-4 font-medium text-center sticky right-0 z-30 bg-[#0A1128] relative">Tampilkan di Home?<FreezeBlurRight /></th>
         </tr>
       </thead>

@@ -11,6 +11,7 @@ import { NoConnectionBanner } from '@/components/shared/NoConnectionBanner'
 import { RateLimitBanner } from '@/components/shared/RateLimitBanner'
 import { authApi, profileApi, tokenStorage } from '@/lib/api'
 import { Logo } from '@/components/shared/Logo'
+import { isStaging } from '@/lib/env'
 
 const ERR_INPUT = '!border-red-500 focus-visible:!border-red-500 focus-visible:ring-red-200'
 const EMAIL_RE  = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -214,10 +215,12 @@ export function LoginPage({ onNavigate, onLoginSuccess, isSsoMode = false }) {
         </button>
       </div>
 
-      {/* Penanda build (di-inject Vite). Buat identifikasi build mana yang live. */}
-      <p className="mt-6 text-center text-[11px] text-muted-foreground/60 select-all">
-        build {typeof __BUILD_DATE__ !== "undefined" ? __BUILD_DATE__ : "dev"}
-      </p>
+      {/* Penanda build (di-inject Vite). Tampil hanya di staging. */}
+      {isStaging() && (
+        <p className="mt-6 text-center text-[11px] text-muted-foreground/60 select-all">
+          build {typeof __BUILD_DATE__ !== "undefined" ? __BUILD_DATE__ : "dev"}
+        </p>
+      )}
 
       {noConn && <NoConnectionBanner onClose={() => setNoConn(false)} />}
 

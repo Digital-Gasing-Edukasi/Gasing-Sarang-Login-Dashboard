@@ -17,6 +17,7 @@ export default defineConfig(({ mode }) => ({
   base: mode === 'production' ? '/' : '/register',
   define: {
     __BUILD_DATE__: JSON.stringify(BUILD_DATE),
+    __APP_MODE__: JSON.stringify(mode),
   },
   plugins: [react()],
   resolve: {
