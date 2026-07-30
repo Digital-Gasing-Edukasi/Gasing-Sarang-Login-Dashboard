@@ -275,8 +275,11 @@ export const profileApi = {
   updatePicture: (fileId) =>
     request("/profile/picture", { method: "PATCH", body: { fileId } }),
 
+  // Konfirmasi ubah email dari link email: {baseurl}/confirm-email-change?token=…
+  // noAuth — auth cuma lewat `token` di body (link bisa dibuka di browser tanpa
+  // sesi login), konsisten dgn jalur link-email lain (authApi.getRevise/resetPassword).
   confirmEmailChange: (token) =>
-    request("/profile/confirm-email", { method: "POST", body: { token } }),
+    request("/profile/confirm-email", { method: "POST", body: { token }, noAuth: true }),
 };
 
 // ─── REGIONS (Province → Regency hierarchy) ─────────────────────────────────────

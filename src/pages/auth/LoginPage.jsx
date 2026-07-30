@@ -86,7 +86,17 @@ export function LoginPage({ onNavigate, onLoginSuccess, isSsoMode = false }) {
   }
 
   return (
-    <RightPanel mobileHero={<MobileHero />}>
+    <RightPanel
+      mobileHero={<MobileHero />}
+      footer={
+        // Penanda build (di-inject Vite). Tampil hanya di staging, di paling bawah.
+        isStaging() && (
+          <p className="mt-1 text-center text-[11px] text-muted-foreground/60 select-all">
+            build {typeof __BUILD_DATE__ !== "undefined" ? __BUILD_DATE__ : "dev"}
+          </p>
+        )
+      }
+    >
       {rateLimit && (
         <RateLimitBanner
           seconds={rateLimit}
@@ -99,7 +109,7 @@ export function LoginPage({ onNavigate, onLoginSuccess, isSsoMode = false }) {
         <Logo variant="split" />
       </div>
       <div className="animate-fade-in-up delay-100 text-center lg:text-center">
-        <h1 className="text-2xl font-bold text-foreground mb-6 lg:mt-0 mt-3">
+        <h1 className="text-2xl font-bold text-foreground mb-6 lg:mt-0">
           <span className="lg:hidden">Selamat Datang!</span>
           <span className="hidden lg:inline">Selamat Datang!</span>
         </h1>
@@ -214,13 +224,6 @@ export function LoginPage({ onNavigate, onLoginSuccess, isSsoMode = false }) {
           Lanjut Sebagai Tamu
         </button>
       </div>
-
-      {/* Penanda build (di-inject Vite). Tampil hanya di staging. */}
-      {isStaging() && (
-        <p className="mt-6 text-center text-[11px] text-muted-foreground/60 select-all">
-          build {typeof __BUILD_DATE__ !== "undefined" ? __BUILD_DATE__ : "dev"}
-        </p>
-      )}
 
       {noConn && <NoConnectionBanner onClose={() => setNoConn(false)} />}
 

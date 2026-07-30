@@ -1,4 +1,3 @@
-import { CheckCircle2, LogIn } from 'lucide-react'
 import { MobileReviewNotice } from '@/components/shared/MobileReviewNotice'
 import { AuthDarkLayout, DarkPrimaryButton } from '@/components/shared/DarkAuth'
 
@@ -8,17 +7,15 @@ export function SignUpReviewPage({ onNavigate }) {
     <>
       {/* MOBILE — layar gelap "Terima Kasih Telah Mendaftar!" */}
       <MobileReviewNotice
-        icon={CheckCircle2}
-        iconTone="green"
         title="Terima Kasih Telah Mendaftar!"
         onButton={() => onNavigate("login")}
       >
-        Akun kamu sedang kami tinjau maksimal{" "}
-        <span className="font-semibold text-white">1×24 jam</span> untuk
-        memastikan kamu terdaftar sebagai Trainer di Sarang Gasing.
+        Akun kamu akan kami tinjau maksimal dalam{" "}
+        <span className="font-semibold text-white">24 jam</span>untuk memastikan
+        kamu sudah terdaftar sebagai Trainer di Gasing Academy.
         <br />
         <br />
-        Mohon cek email secara berkala untuk status pengajuan akunmu.
+        Mohon cek email secara berkala untuk status pendaftaran akunmu.
       </MobileReviewNotice>
 
       {/* DESKTOP — tema gelap, sejalan dengan halaman pembayaran */}
@@ -30,17 +27,20 @@ export function SignUpReviewPage({ onNavigate }) {
             </h1>
             <p className="text-base font-normal leading-6 text-white/90 text-center mb-9">
               Akun kamu sedang kami tinjau maksimal{" "}
-              <span className="font-bold text-white/90">24 jam</span> untuk memastikan
-              kamu terdaftar sebagai Trainer di Sarang Gasing.
+              <span className="font-bold text-white/90">24 jam</span> untuk
+              memastikan kamu sudah terdaftar sebagai Trainer di Gasing Academy.
             </p>
           </div>
 
           <div className="space-y-6 animate-fade-in-up delay-100">
             <p className="text-base font-normal leading-6 text-white/90 text-center">
-              Mohon cek email secara berkala untuk status pengajuan akunmu.
-            </p> 
+              Mohon cek email secara berkala untuk status pendaftaran akunmu.
+            </p>
 
-            <DarkPrimaryButton variant="white" onClick={() => onNavigate("login")}>
+            <DarkPrimaryButton
+              variant="white"
+              onClick={() => onNavigate("login")}
+            >
               Kembali Ke Login
             </DarkPrimaryButton>
           </div>

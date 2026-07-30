@@ -74,3 +74,14 @@ manajemen akun
 
 Table : 
 scrool nya di luar semua (kaya browser) -> Tambah Reference di desain. (DUMMY )
+
+-> untuk dara :
+capability = 
+approve user, 
+suspend user, 
+reject user, 
+riwayat pelatihan : CREATE,
+riwayat pelatihan : UPDATE. 
+approve voucher, 
+voucher related, 
+Aprrove pemabayran manual.

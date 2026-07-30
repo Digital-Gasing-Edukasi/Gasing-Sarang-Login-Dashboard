@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, lazy, Suspense } from "react";
 import { Routes, Route, Navigate, useNavigate, useLocation } from "react-router-dom";
 import { tokenStorage, subscriptionApi, profileApi, authApi, regionsApi, webAppApi, discourseApi } from "@/lib/api";
-import { isSuperAdmin, isOperationalAdmin, isSsoDisabled, hasCapability } from "@/lib/roles";
+import { isSuperAdmin, isOperationalAdmin, isSsoDisabled, hasAllAdminCapabilities, hasCapability } from "@/lib/roles";
 import { decodeFixPayload } from "@/lib/fixLink";
 import { evaluateLoginGate, evaluatePaymentGate } from "@/lib/loginGate";
 import { pathForPage, isPublicStaticPath, skipSessionRestore } from "@/lib/routes";
@@ -60,6 +60,7 @@ import { SignUpReviewPage } from "@/pages/auth/SignUpReviewPage";
 import { ForgotPasswordPage } from "@/pages/auth/ForgotPasswordPage";
 import { CheckEmailPage } from "@/pages/auth/CheckEmailPage";
 import { ResetPasswordPage } from "@/pages/auth/ResetPasswordPage";
+import { ConfirmEmailChangePage } from "@/pages/auth/ConfirmEmailChangePage";
 import { SsoCallbackPage } from "@/pages/auth/SsoCallbackPage";
 import { AuthChoicePage } from "@/pages/auth/AuthChoicePage";
 import { TermsPage } from "@/pages/legal/TermsPage";
@@ -144,6 +145,7 @@ export default function App() {
   const [fpEmail, setFpEmail] = useState("");
   const [resetToken, setResetToken] = useState("");
   const [resetEmail, setResetEmail] = useState("");
+  const [confirmEmailToken, setConfirmEmailToken] = useState("");
   const [ssoParams, setSsoParams] = useState(null);
   const [fixData, setFixData] = useState(null);
   const [reviseData, setReviseData] = useState(null);
@@ -284,6 +286,20 @@ export default function App() {
         return;
       }
 
+      // ── Link konfirmasi ubah email dari email: …/confirm-email-change?token=… ──
+      // Path backend beda per-env: STAGING `/register/confirm-email-change`,
+      // PRODUCTION `/confirm-email-change`. Cocokkan KEDUA bentuk (endsWith) supaya
+      // link jalan lintas-env. Harus diproses SEBELUM branch `token` generik di bawah
+      // (yang melempar ke reset-password). Token disimpan lalu dibuang dari URL;
+      // `clearUrlParams()` default mempertahankan pathname aktif (env-aware). Page
+      // yang menembak POST /profile/confirm-email saat mount.
+      if (pathname.toLowerCase().endsWith("/confirm-email-change")) {
+        setConfirmEmailToken(params.get("token") || "");
+        clearUrlParams();
+        setSessionChecked(true);
+        return;
+      }
+
       // ── Link reset password dari email: /login/reset-password?token=... ────
       // (path lama /register/reset-password di-redirect oleh <Routes> di bawah)
       const token = params.get("token");
@@ -379,7 +395,7 @@ export default function App() {
 
     // Punya DISABLED-SSO DAN GROUP/SYNC → langsung ke Dashboard Admin
     // (jangan lewat SSO, jangan ke web app). Cek ini duluan sebelum cabang lain.
-    if (isSsoDisabled(user) && hasCapability(user, "DISCOURSE/GROUP/SYNC")) {
+    if (isSsoDisabled(user) || hasAllAdminCapabilities(user)) {
       navigate("/dashboard-admin", { replace: true });
       return;
     }
@@ -400,6 +416,7 @@ export default function App() {
     }
 
     if (isOperationalAdmin(user)) {
+
       navigate("/dashboard-admin", { replace: true });
       return;
     }
@@ -500,6 +517,20 @@ export default function App() {
               email={resetEmail}
               onNavigate={go}
             />
+          }
+        />
+        {/* Konfirmasi ubah email — dua path: STAGING `/register/…`, PRODUCTION `/…`.
+            Keduanya didaftarkan supaya link email jalan tanpa peduli env build. */}
+        <Route
+          path="/register/confirm-email-change"
+          element={
+            <ConfirmEmailChangePage token={confirmEmailToken} onNavigate={go} />
+          }
+        />
+        <Route
+          path="/confirm-email-change"
+          element={
+            <ConfirmEmailChangePage token={confirmEmailToken} onNavigate={go} />
           }
         />
         <Route
@@ -629,11 +660,6 @@ export default function App() {
               />
             </Suspense>,
           )}
-        />
-        {/* Path lama. */}
-        <Route
-          path="/admin-dashboard"
-          element={<Navigate to="/dashboard-admin" replace />}
         />
 
         {/* ── Pembayaran (landing Snap Redirect Midtrans) ─────────────────── */}

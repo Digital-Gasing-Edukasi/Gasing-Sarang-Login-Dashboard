@@ -141,10 +141,10 @@ export function DateField({
   const max = typeof maxDate === "function" ? maxDate() : maxDate;
 
   const parsed = parseISO(value);
-  // Default saat belum ada nilai: 17 tahun lalu (umur yang masuk akal untuk lahir).
+  // Default saat belum ada nilai: 26 tahun lalu (umur yang masuk akal untuk lahir).
   const draft =
     parsed ??
-    defaultDraft ?? { y: max.getFullYear() - 17, m: 0, d: 1 };
+    defaultDraft ?? { y: max.getFullYear() - 26, m: 0, d: 1 };
 
   const emit = useCallback(
     (y, m, d) => {
@@ -186,9 +186,13 @@ export function DateField({
 
   // Opsi dibatasi supaya tanggal > batas atas tidak pernah muncul di roda.
   const maxY = max.getFullYear();
-  const yearItems = range(MIN_YEAR, maxY)
-    .reverse()
-    .map((y) => ({ value: y, label: String(y) }));
+  // RULE: Tahun urut naik — tahun paling lama (1900) di atas, tahun terbaru
+  // (maxY) di bawah. Konsisten dengan Tanggal & Bulan (nilai kecil di atas,
+  // besar di bawah). Sengaja TANPA .reverse().
+  const yearItems = range(MIN_YEAR, maxY).map((y) => ({
+    value: y,
+    label: String(y),
+  }));
   const lastMonth = draft.y === maxY ? max.getMonth() : 11;
   const monthItems = MONTHS.slice(0, lastMonth + 1).map((label, m) => ({
     value: m,

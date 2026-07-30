@@ -1,9 +1,10 @@
 import { ArrowLeft, X } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
-// Header per-langkah flow signup (mobile-first, sesuai mock): tombol back
-// opsional (kiri) + judul di tengah + tombol X tutup (kanan). Spacer w-9 dipakai
-// saat back/close absen supaya judul tetap center. Pembungkus sticky & lebar
-// kolom disediakan RightPanel (prop topBar).
+// ── MOBILE ────────────────────────────────────────────────────────────────
+// Header per-langkah (mock lama): back opsional (kiri) + judul tengah + X close
+// (kanan). Spacer w-9 saat back/close absen supaya judul tetap center. Fill bar
+// progress mobile disediakan RightPanel (prop `progress`), tepat di bawah header.
 export function StepBar({ title, onBack, onClose }) {
   return (
     <div className="flex items-center gap-2">
@@ -38,8 +39,41 @@ export function StepBar({ title, onBack, onClose }) {
   )
 }
 
-// Subtitle opsional di bawah header. Dipakai step OTP untuk teks
-// "Masukkan kode..." + email; judul langkah sendiri kini ada di StepBar.
+// ── DESKTOP ───────────────────────────────────────────────────────────────
+// Progress header: tombol back bulat (kiri) + bar tersegmen + counter
+// "current/total" (kanan). Judul langkah tampil sebagai heading di konten.
+export function StepProgress({ current, total, onBack }) {
+  return (
+    <div className="flex items-center gap-3">
+      {onBack && (
+        <button
+          onClick={onBack}
+          aria-label="Kembali"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-700 shadow-sm transition-colors hover:bg-gray-50"
+        >
+          <ArrowLeft size={18} />
+        </button>
+      )}
+      <div className="flex flex-1 items-center gap-1.5">
+        {Array.from({ length: total }).map((_, i) => (
+          <span
+            key={i}
+            className={cn(
+              'h-1.5 flex-1 rounded-full transition-colors duration-300',
+              i < current ? 'bg-[#0033EC]' : 'bg-gray-200'
+            )}
+          />
+        ))}
+      </div>
+      <span className="shrink-0 text-[13px] font-semibold tabular-nums text-gray-500">
+        {current}/{total}
+      </span>
+    </div>
+  )
+}
+
+// Subtitle opsional di bawah judul. Dipakai step OTP untuk judul besar (desktop)
+// + "Masukkan kode..." + email.
 export function StepHeader({ children }) {
   return (
     <div className="animate-fade-in-up delay-100 text-center">

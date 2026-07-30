@@ -13,7 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { RightPanel } from "@/components/layout/RightPanel";
-import { StepBar } from "@/components/layout/StepIndicator";
+import { StepBar, StepProgress } from "@/components/layout/StepIndicator";
 import { IconInput, TogglePassword } from "@/components/shared/IconInput";
 import { DateField } from "@/components/shared/DateField";
 import { authApi, regionsApi, trainingSessionsApi } from "@/lib/api";
@@ -275,25 +275,69 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
     }
   };
 
+  // Satu definisi CTA per-step; dipakai di footer sticky (mobile) & inline (desktop).
+  const cta =
+    step === 1 ? (
+      <Button
+        className="w-full rounded-full"
+        onClick={handleNextToData}
+        disabled={!step1Complete}
+      >
+        Lanjutkan
+      </Button>
+    ) : (
+      <Button
+        className="w-full rounded-full"
+        onClick={handleRegister}
+        disabled={loading || !step2Complete}
+      >
+        {loading ? (
+          <>
+            <Loader2 size={16} className="animate-spin" /> Mendaftarkan...
+          </>
+        ) : (
+          "Lanjutkan"
+        )}
+      </Button>
+    );
+
   return (
     <RightPanel
+      stickyFooter={cta}
+      progress={step === 1 ? 1 / 3 : 2 / 3}
       topBar={
-        <StepBar
-          title={step === 1 ? "Data Akun" : "Data Pribadi"}
-          onBack={step === 2 ? () => setStep(1) : undefined}
-          onClose={() => onNavigate("login")}
-        />
+        <>
+          {/* MOBILE: header lama (back + judul + close) + fill bar dari RightPanel. */}
+          <div className="lg:hidden">
+            <StepBar
+              title={step === 1 ? "Data Akun" : "Data Pribadi"}
+              onBack={step === 2 ? () => setStep(1) : undefined}
+              onClose={() => onNavigate("login")}
+            />
+          </div>
+          {/* DESKTOP: progress tersegmen + counter + back bulat. */}
+          <div className="hidden lg:block">
+            <StepProgress
+              current={step}
+              total={3}
+              onBack={step === 2 ? () => setStep(1) : () => onNavigate("login")}
+            />
+          </div>
+        </>
       }
     >
       {step === 1 ? (
         <>
-          <div className="space-y-6 lg:space-y-4 animate-fade-in-up delay-200">
+          <h1 className="hidden lg:block mb-6 text-2xl font-bold text-foreground animate-fade-in-up">
+            Data Akun
+          </h1>
+          <div className="space-y-6 lg:space-y-5 animate-fade-in-up delay-200">
             {errors.general && (
               <p className="text-sm text-red-500 text-center">
                 {errors.general}
               </p>
             )}
-            <div className="space-y-4 lg:space-y-1.5">
+            <div className="space-y-4 lg:space-y-2">
               <Label className="text-[13px] font-semibold">Nama Lengkap</Label>
               <Input
                 type="text"
@@ -309,8 +353,8 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
                 <p className="text-xs text-red-500">{errors.name}</p>
               )}
             </div>
-            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 lg:gap-3">
-              <div className="space-y-4 lg:space-y-1.5">
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 lg:gap-5">
+              <div className="space-y-4 lg:space-y-2">
                 <Label className="text-[13px] font-semibold">Username</Label>
                 <Input
                   type="text"
@@ -326,7 +370,7 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
                   <p className="text-xs text-red-500">{errors.username}</p>
                 )}
               </div>
-              <div className="space-y-4 lg:space-y-1.5">
+              <div className="space-y-4 lg:space-y-2">
                 <Label className="text-[13px] font-semibold">Email</Label>
                 <Input
                   type="email"
@@ -343,7 +387,7 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
                 )}
               </div>
             </div>
-            <div className="space-y-4 lg:space-y-1.5">
+            <div className="space-y-4 lg:space-y-2">
               <Label className="text-[13px] font-semibold">Password</Label>
               <IconInput
                 type={showPass ? "text" : "password"}
@@ -371,7 +415,7 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
                   <p className="text-[13px] font-medium text-foreground">
                     Password kamu harus memiliki:
                   </p>
-                  <ul className="space-y-1.5">
+                  <ul className="space-y-1.5 lg:space-y-2">
                     {passwordRules.map((rule) => (
                       <li
                         key={rule.label}
@@ -393,7 +437,7 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
                 </div>
               )}
             </div>
-            <div className="space-y-4 lg:space-y-1.5">
+            <div className="space-y-4 lg:space-y-2">
               <Label className="text-[13px] font-semibold">
                 Konfirmasi Password
               </Label>
@@ -401,6 +445,7 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
                 type={showConfirm ? "text" : "password"}
                 placeholder="Konfirmasi passwordmu"
                 value={confirm}
+                disabled={!password}
                 className={errors.confirm ? ERR_INPUT : "bg-muted/40"}
                 onChange={(e) => {
                   setConfirm(e.target.value);
@@ -423,7 +468,7 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
                 </p>
               ) : null}
             </div>
-            <div className="space-y-1.5">
+            <div className="space-y-1.5 lg:space-y-2">
               <div className="flex items-start gap-2.5">
                 <Checkbox
                   id="agree"
@@ -438,9 +483,7 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
                 <Label
                   htmlFor="agree"
                   className={`text-[13px] font-normal leading-snug text-muted-foreground ${
-                    step1FieldsValid
-                      ? "cursor-pointer"
-                      : "cursor-not-allowed opacity-70"
+                    step1FieldsValid ? "cursor-pointer" : "cursor-not-allowed"
                   }`}
                 >
                   Dengan mendaftar akun, saya menyetujui{" "}
@@ -468,13 +511,8 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
                 <p className="text-xs text-red-500">{errors.agree}</p>
               )}
             </div>
-            <Button
-              className="!mt-[65px] lg:!mt-8 w-full rounded-full"
-              onClick={handleNextToData}
-              disabled={!step1Complete}
-            >
-              Lanjutkan
-            </Button>
+            {/* Desktop: tombol inline. Mobile: dipindah ke footer sticky. */}
+            <div className="hidden lg:block !mt-10">{cta}</div>
           </div>
 
           <div className="mt-6 animate-fade-in-up delay-300">
@@ -491,13 +529,16 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
         </>
       ) : (
         <>
-          <div className="space-y-4 animate-fade-in-up delay-200">
+          <h1 className="hidden lg:block mb-6 text-2xl font-bold text-foreground animate-fade-in-up">
+            Data Pribadi
+          </h1>
+          <div className="space-y-4 lg:space-y-5 animate-fade-in-up delay-200">
             {errors.general && (
               <p className="text-sm text-red-500 text-center">
                 {errors.general}
               </p>
             )}
-            <div className="space-y-1.5">
+            <div className="space-y-1.5 lg:space-y-2">
               <Label className="text-[13px] font-semibold">Tanggal Lahir</Label>
               <DateField
                 value={birthdate}
@@ -512,11 +553,11 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
               )}
             </div>
 
-            <div className="space-y-1.5">
+            <div className="space-y-1.5 lg:space-y-2">
               <Label className="text-[13px] font-semibold">
                 Lokasi kamu saat ini
               </Label>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-3 lg:gap-5">
                 <Select
                   value={provinceId}
                   onValueChange={handleProvinceChange}
@@ -566,11 +607,11 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
               )}
             </div>
 
-            <div className="space-y-1.5">
+            <div className="space-y-1.5 lg:space-y-2">
               <Label className="text-[13px] font-semibold">
                 Kapan kamu mendapat pelatihan Gasing pertama?
               </Label>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-3 lg:gap-5">
                 <Select
                   value={kapanYear}
                   onValueChange={handleYearChange}
@@ -608,7 +649,7 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
               </div>
             </div>
 
-            <div className="space-y-1.5">
+            <div className="space-y-1.5 lg:space-y-2">
               <Label className="text-[13px] font-semibold">
                 Dimana kamu mendapat pelatihan Gasing pertama?
               </Label>
@@ -636,7 +677,7 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
               )}
             </div>
 
-            <div className="space-y-1.5">
+            <div className="space-y-1.5 lg:space-y-2">
               <Label className="text-[13px] font-semibold">
                 Sekolah asal kamu saat pelatihan Gasing pertama?
               </Label>
@@ -653,19 +694,8 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
                 <p className="text-xs text-red-500">{errors.schoolName}</p>
               )}
             </div>
-            <Button
-              className="!mt-8 w-full rounded-full"
-              onClick={handleRegister}
-              disabled={loading || !step2Complete}
-            >
-              {loading ? (
-                <>
-                  <Loader2 size={16} className="animate-spin" /> Mendaftarkan...
-                </>
-              ) : (
-                "Lanjutkan"
-              )}
-            </Button>
+            {/* Desktop: tombol inline. Mobile: dipindah ke footer sticky. */}
+            <div className="hidden lg:block !mt-10">{cta}</div>
           </div>
         </>
       )}

@@ -23,6 +23,7 @@ dashboard admin GASING CIRCLE. Backend NestJS terpisah. 94 file `.js`/`.jsx` di 
 | Bikin tabel admin baru | [`docs/ADMIN_TABLE_LIMITS.md`](ADMIN_TABLE_LIMITS.md), [`docs/ADMIN_TABLE_SCROLL.md`](ADMIN_TABLE_SCROLL.md) | Limit, bulk action, aturan scroll |
 | Kerja di alur revisi akun | [`docs/FIX_DATA_FLOW.md`](FIX_DATA_FLOW.md) + [ADR-0003](adr/0003-revise-token-flow.md) | Token JWT one-time dari email |
 | Kerja di flow reset password | [`docs/RESET_PASSWORD_ROUTING.md`](RESET_PASSWORD_ROUTING.md) | Route `/login/reset-password` + kompat link email lama |
+| Kerja di flow konfirmasi ubah email | [`docs/CONFIRM_EMAIL_CHANGE.md`](CONFIRM_EMAIL_CHANGE.md) + [ADR-0006](adr/0006-confirm-email-change-flow.md) | Route `confirm-email-change?token=` (staging `/register/…`, prod `/…`), noAuth, fire-on-mount |
 | Kerja di tampilan mobile | [`docs/MOBILE_RESPONSIVE.md`](MOBILE_RESPONSIVE.md) | 1 codebase, breakpoint `lg:` |
 | Ubah bentuk field/tombol (radius) | [`docs/PILL_SHAPE_INPUTS.md`](PILL_SHAPE_INPUTS.md) | Input, dropdown, calendar, CTA = pill (`rounded-full`) |
 | Value dropdown ke-indent saat dipilih | [`docs/DROPDOWN_TEXT_ALIGN.md`](DROPDOWN_TEXT_ALIGN.md) | `text-left` di `TRIGGER_CLS` — fix warisan `text-align: center` |
@@ -53,6 +54,7 @@ docs/
   ADMIN_TABLE_SCROLL.md ... `getTableScrollProps` — aturan scroll tabel
   FIX_DATA_FLOW.md ........ Alur perbaikan data / revise
   RESET_PASSWORD_ROUTING.md Routing reset password + kompat link email lama
+  CONFIRM_EMAIL_CHANGE.md . Routing konfirmasi ubah email (link email, noAuth token)
   MOBILE_RESPONSIVE.md .... Strategi responsive auth & payment
   LEGAL_PAGES.md .......... Halaman TOS & Privacy — routing, file, cara ubah isi
   GUEST_KOMUNITAS.md ...... Halaman tamu Komunitas (route /komunitas/* publik, statis)
@@ -63,6 +65,8 @@ docs/
     0002-refactor-junior-maintainability.md  Accepted
     0003-revise-token-flow.md ............ Accepted
     0004-guest-static-komunitas.md ....... Accepted (route /komunitas/* publik, statis)
+    0005-environment-visibility.md ....... Accepted
+    0006-confirm-email-change-flow.md .... Accepted (konfirmasi ubah email, noAuth token)
 ```
 
 ---
@@ -78,7 +82,7 @@ docs/
 | `lib/loginGate.js` | `evaluateLoginGate` — blok login: suspended > pending > expired | TEST_SCENARIOS §2 |
 | `lib/fixLink.js` | Encode/decode payload perbaikan data (legacy `?fix=`) | FIX_DATA_FLOW |
 | `lib/utils.js` | `cn()` — gabung className (`clsx` saja, **bukan** tailwind-merge) | [PILL_SHAPE_INPUTS.md §5](PILL_SHAPE_INPUTS.md) |
-| `pages/auth/` | 10 halaman: login, signup, OTP, forgot/reset, revise, SSO, choice | README §8.1 |
+| `pages/auth/` | 11 halaman: login, signup, OTP, forgot/reset, revise, SSO, choice, confirm-email-change | README §8.1 |
 | `pages/legal/` | TermsPage, PrivacyPage, LegalLayout | LEGAL_PAGES |
 | `pages/admin/` | 31 file: tabel, modal, mapper, helper scroll | README §8.2 |
 | `pages/` (root) | AdminDashboardPage (shell admin), Subscription, TransferBank, 4 halaman status Payment, MidtransTest | ARCHITECTURE §7.5–7.6 |

@@ -271,7 +271,12 @@ export function mapToVerifikasi(u, regions = [], discourseGroups = []) {
 // Prioritas flag: penghapusan > penangguhan > hasil verifikasi.
 // (suspend & deletion mengacu endpoint admin: /suspend & /deletion-request.)
 function parseManajemenStatus(u) {
-  if (u.deletionPending || u.deletionScheduledAt || u.deletedAt) return 'Baru Dihapus'
+  // Penghapusan terjadwal (soft delete). Backend baru mengirim object `deletion`
+  // { set_at, deletion_cause, will_be_deleted_at, remaining }. Field flat lama
+  // (deletionPending/deletionScheduledAt/deletedAt) dipertahankan sbg fallback.
+  const del = u.deletion
+  const hasDeletion = !!(del && (del.set_at || del.will_be_deleted_at || del.deletion_cause))
+  if (hasDeletion || u.deletionPending || u.deletionScheduledAt || u.deletedAt) return 'Baru Dihapus'
   if (u.suspendedUntil || u.suspended) return 'Ditangguhkan'
   const vs = u.verifiedStatus
   // REJECTED(-1) = tolak final; REVISE(2) = diminta perbaiki data. Keduanya hasil
@@ -562,10 +567,10 @@ export function mapToManajemen(u, regions = [], discourseGroups = []) {
   const subEnd = sub?.expiresAt || sub?.endDate || sub?.currentPeriodEnd || sub?.expiredAt || sub?.expires_at
   const endMs  = dateFieldMs(subEnd)
 
-  // List /admin/users ("need update") belum tentu embed updatedAt → fallback ke
-  // createdAt (selalu ada; jadi default sort backend) supaya kolom Last Updated
-  // tidak kosong. Record yang belum pernah diubah punya updatedAt == createdAt.
-  const lu = fmtLastUpdated24h(u.updatedAt || u.updated_at || u.modifiedAt || u.createdAt)
+  // Kolom Last Updated murni dari field `updatedAt` (updated_at = varian snake_case
+  // dari field yang sama). Tanpa fallback ke createdAt/modifiedAt: kalau backend tak
+  // embed updatedAt di list /admin/users, kolom tampil '-'.
+  const lu = fmtLastUpdated24h(u.updatedAt || u.updated_at)
 
   return {
     id:       u.id,

@@ -382,7 +382,7 @@ export default function SubscriptionPage({ user, onSignOut, onPaymentSuccess, on
           <h1 className="text-[27px] font-bold leading-tight mb-6">
             Ada apa di Sarang Gasing?
           </h1>
-          <ul className="space-y-4 mb-8">
+          <ul className="space-y-6 mb-8">
             {BENEFITS.map((b, i) => {
               const Icon = b.icon;
               return (
@@ -394,7 +394,7 @@ export default function SubscriptionPage({ user, onSignOut, onPaymentSuccess, on
             })}
           </ul>
 
-          <div className="space-y-5">
+          <div className="space-y-3">
             {loadingPlans ? (
               <div className="flex justify-center py-10 text-white/40">
                 <Loader2 size={26} className="animate-spin" />
@@ -419,7 +419,7 @@ export default function SubscriptionPage({ user, onSignOut, onPaymentSuccess, on
           )}
         </div>
 
-        <div className="sticky bottom-0 px-6 pb-7 pt-3 bg-gradient-to-t from-[#120833] via-[#120833]/95 to-transparent shrink-0">
+        <div className="sticky bottom-0 px-6 pb-6 pt-3 bg-gradient-to-t from-[#120833] via-[#120833]/95 to-transparent shrink-0">
           <button
             onClick={handleCheckout}
             disabled={loading}

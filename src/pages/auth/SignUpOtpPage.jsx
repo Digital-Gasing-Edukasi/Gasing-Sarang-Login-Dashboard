@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { RightPanel } from '@/components/layout/RightPanel'
-import { StepBar, StepHeader } from '@/components/layout/StepIndicator'
+import { StepBar, StepProgress, StepHeader } from '@/components/layout/StepIndicator'
 import { OtpInput }     from '@/components/shared/OtpInput'
 import { useCountdown } from '@/hooks/useCountdown'
 import { authApi }      from '@/lib/api'
@@ -64,10 +64,33 @@ export function SignUpOtpPage({ onNavigate, otpToken, email, onOtpToken }) {
     }
   }
 
+  // Satu definisi CTA; dipakai di footer sticky (mobile) & inline (desktop).
+  const cta = (
+    <Button className="w-full rounded-full" disabled={loading || otpCode.length !== 6} onClick={handleVerify}>
+      {loading ? <><Loader2 size={16} className="animate-spin" /> Memverifikasi...</> : 'Konfirmasi'}
+    </Button>
+  )
+
   return (
-    <RightPanel topBar={<StepBar title="Verifikasi OTP" onBack={() => onNavigate('signup', { step: 2 })} onClose={() => onNavigate('login')} />}>
+    <RightPanel
+      stickyFooter={cta}
+      progress={1}
+      topBar={
+        <>
+          {/* MOBILE: header lama + fill bar. */}
+          <div className="lg:hidden">
+            <StepBar title="Verifikasi OTP" onBack={() => onNavigate('signup', { step: 2 })} onClose={() => onNavigate('login')} />
+          </div>
+          {/* DESKTOP: progress tersegmen + counter + back bulat. */}
+          <div className="hidden lg:block">
+            <StepProgress current={3} total={3} onBack={() => onNavigate('signup', { step: 2 })} />
+          </div>
+        </>
+      }
+    >
       <StepHeader>
-        <p className="text-sm text-muted-foreground mb-1">Masukkan kode yang kami kirimkan ke</p>
+        <h1 className="hidden lg:block mb-5 text-2xl font-bold text-foreground">Verifikasi OTP</h1>
+        <p className="text-sm text-muted-foreground mb-1">Masukkan kode yang telah kami kirimkan ke email</p>
         <p className="text-sm font-semibold text-foreground mb-8">{maskedEmail}</p>
       </StepHeader>
       <div className="animate-fade-in-up delay-200 space-y-6">
@@ -79,19 +102,22 @@ export function SignUpOtpPage({ onNavigate, otpToken, email, onOtpToken }) {
         {info && <p className="text-sm text-center text-green-600">{info}</p>}
         {/* error di OtpInput → outline 6 kotak jadi merah, reset begitu user mengetik lagi */}
         <OtpInput disabled={loading} error={!!error} onChange={code => { setOtpCode(code); setError('') }} />
-        <Button className="w-full rounded-full" disabled={loading || otpCode.length !== 6} onClick={handleVerify}>
-          {loading ? <><Loader2 size={16} className="animate-spin" /> Memverifikasi...</> : 'Verifikasi Kode OTP'}
-        </Button>
+        {/* Desktop: tombol inline. Mobile: dipindah ke footer sticky. */}
+        <div className="hidden lg:block">{cta}</div>
         <div className="text-center">
           {expired
-            ? <button
-                onClick={handleResend}
-                disabled={resending}
-                className="text-sm text-[#0033EC] font-medium underline underline-offset-2 disabled:opacity-50 inline-flex items-center gap-1.5"
-              >
-                {resending ? <><Loader2 size={14} className="animate-spin" /> Mengirim ulang...</> : 'Kirim ulang kode'}
-              </button>
-            : <p className="text-sm text-muted-foreground">Tidak menerima kode? Kirim ulang dalam <span className="font-bold text-[#EF4444]">{display}</span></p>
+            ? <p className="text-sm text-muted-foreground">
+                {/* Prefix "Tidak menerima kode?" hanya desktop; mobile tombol saja. */}
+                <span className="hidden lg:inline">Tidak menerima kode? </span>
+                <button
+                  onClick={handleResend}
+                  disabled={resending}
+                  className="align-middle text-[#0033EC] font-medium underline underline-offset-2 disabled:opacity-50 inline-flex items-center gap-1.5"
+                >
+                  {resending ? <><Loader2 size={14} className="animate-spin" /> Mengirim ulang...</> : 'Kirim ulang kode'}
+                </button>
+              </p>
+            : <p className="text-sm text-muted-foreground">Tidak menerima kode? <span className="font-bold text-[#EF4444]">{display}</span></p>
           }
         </div>
       </div>

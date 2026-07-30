@@ -216,7 +216,6 @@ export function FixDataPage({ fixData, reviseToken, onNavigate }) {
       <>
         {/* MOBILE — layar gelap "Akunmu Sedang Ditinjau Kembali" */}
         <MobileReviewNotice
-          icon={UserSearch}
           title="Akunmu Sedang Ditinjau Kembali"
           onButton={() => onNavigate("login")}
         >
