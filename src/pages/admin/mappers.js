@@ -477,6 +477,9 @@ export function mapToPembayaran(p, regions = [], discourseGroups = []) {
     school:    u.schoolName || '-',
     lastVerified:   lu.text,
     lastVerifiedMs: lu.ms,
+    // Waktu user submit request verifikasi pembayaran (dipakai kolom Reminded Time
+    // = countdown 24 jam). payStartMs = createdAt payment (fallback transferDate/paidAt).
+    createdMs:      payStartMs,
     // Detail transfer buat modal konfirmasi:
     payment: {
       senderName:   pay.senderName || pay.accountName || u.name || '-',

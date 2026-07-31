@@ -19,6 +19,7 @@ import {
   FileText,
   ArrowRight,
   ChevronLeft,
+  ChevronDown,
   Download,
   Trash2,
 } from "lucide-react";
@@ -107,6 +108,8 @@ export default function TransferBankPage({
   const [submitted, setSubmitted] = useState(initialSubmitted);
   const [receiptFileId, setReceiptFileId] = useState(initialReceiptFileId);
   const [txnId, setTxnId] = useState(null);
+  // "Cara Pembayaran": collapsible di mobile (default tutup), selalu tampil desktop.
+  const [caraOpen, setCaraOpen] = useState(false);
   const fileInputRef = useRef(null);
 
   const ADMIN_EMAIL = import.meta.env.VITE_CONTACT_ADMIN || "admin@gasingacademy.org";
@@ -198,12 +201,40 @@ export default function TransferBankPage({
   const inputCls =
     "w-full rounded-2xl bg-white/[0.04] border border-white/10 px-5 py-4 text-[15px] text-white placeholder:text-white/30 outline-none transition-colors focus:border-[#22d3ee]/60 focus:bg-white/[0.06]";
 
+  // Satu definisi CTA; dipakai di footer sticky (mobile) & inline (desktop).
+  const cta = (
+    <button
+      onClick={handleSubmit}
+      disabled={
+        loading ||
+        !senderName.trim() ||
+        !senderBank.trim() ||
+        !transferDate ||
+        !file
+      }
+      className={cn(
+        "w-full py-4 rounded-2xl font-bold text-[15px] transition-all duration-200",
+        "bg-gradient-to-r from-[#7c3aed] to-[#4338ca] text-white hover:opacity-90 active:scale-[0.98]",
+        "disabled:opacity-60 disabled:cursor-not-allowed",
+        "flex items-center justify-center gap-2"
+      )}
+    >
+      {loading ? (
+        <>
+          <Loader2 size={18} className="animate-spin" /> Mengirim...
+        </>
+      ) : (
+        "Konfirmasi Pembayaran"
+      )}
+    </button>
+  );
+
   return (
-    <div className="min-h-screen relative overflow-hidden font-sans text-white">
+    <div className="relative overflow-hidden font-sans text-white flex flex-col h-[100dvh] lg:block lg:h-auto lg:min-h-screen">
       <Decorations />
 
-      {/* ── NAVBAR ── */}
-      <nav className="relative z-10 flex items-center justify-between px-4 py-4 lg:px-6 lg:py-6">
+      {/* ── NAVBAR (nempel atas, mobile app-shell) ── */}
+      <nav className="relative z-20 shrink-0 flex items-center justify-between px-4 py-4 lg:px-6 lg:py-6">
         {/* Mobile: pembayaran manual pakai tombol back, bukan logo. Desktop: logo. */}
         <button
           type="button"
@@ -217,7 +248,8 @@ export default function TransferBankPage({
         <ProfileMenu user={user} onSignOut={onSignOut} />
       </nav>
 
-      {/* ── CONTENT ── */}
+      {/* ── CONTENT (scroll di tengah pada mobile app-shell) ── */}
+      <div className="relative z-10 flex-1 min-h-0 overflow-y-auto lg:overflow-visible lg:flex-none">
       {submitted ? (
         <div className="relative z-10 max-w-xl mx-auto px-6 pt-6 pb-24 flex flex-col items-center text-center animate-fade-in-up">
           {/* Ceklis hijau */}
@@ -286,13 +318,13 @@ export default function TransferBankPage({
           </p>
         </div>
       ) : (
-        <div className="relative z-10 max-w-[1180px] mx-auto px-6 lg:px-10 pt-4 pb-24 grid lg:grid-cols-2 gap-8 lg:gap-14 items-start animate-fade-in-up">
+        <div className="relative z-10 max-w-[1180px] mx-auto px-6 lg:px-10 pt-4 pb-6 lg:pb-24 grid lg:grid-cols-2 gap-4 lg:gap-14 items-start animate-fade-in-up">
           {/* ── KIRI ── */}
           <div>
             {onBack && (
               <button
                 onClick={onBack}
-                className="flex items-center gap-2 text-[14px] text-white/60 hover:text-white transition-colors mb-4"
+                className="hidden lg:flex items-center gap-2 text-[14px] text-white/60 hover:text-white transition-colors mb-4"
               >
                 <ChevronLeft size={18} />
                 Kembali ke Pilihan Paket
@@ -301,12 +333,12 @@ export default function TransferBankPage({
             <h1 className="text-[28px] font-bold leading-[140%] mb-2">
               Transfer Pembayaran
             </h1>
-            <p className="text-white/50 text-[15px] mb-8">
+            <p className="text-white/50 text-[15px] mb-4 lg:mb-8">
               Mohon transfer ke rekening bank berikut:
             </p>
 
             {/* Kartu rekening */}
-            <div className="relative rounded-3xl border border-[#7c3aed]/60 bg-gradient-to-br from-[#7c3aed]/25 to-[#4338ca]/10 p-7 mb-6 shadow-[0_0_40px_rgba(124,58,237,0.15)]">
+            <div className="relative rounded-3xl border border-[#7c3aed]/60 bg-gradient-to-br from-[#7c3aed]/25 to-[#4338ca]/10 p-5 lg:p-7 mb-4 lg:mb-6 shadow-[0_0_40px_rgba(124,58,237,0.15)]">
               <div className="flex items-center gap-4 mb-6">
                 <div className="h-8 w-15 bg-white rounded-md flex items-center justify-center overflow-hidden p-1">
                   <img
@@ -334,10 +366,23 @@ export default function TransferBankPage({
               <p className="text-lg font-semibold">{bank.accountName}</p>
             </div>
 
-            {/* Cara Pembayaran */}
-            <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-7 mb-6">
-              <p className="font-semibold mb-4">Cara Pembayaran:</p>
-              <ol className="space-y-3">
+            {/* Cara Pembayaran — collapsible di mobile, selalu tampil di desktop */}
+            <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-5 lg:p-7 mb-4 lg:mb-6">
+              <button
+                type="button"
+                onClick={() => setCaraOpen((o) => !o)}
+                className="flex w-full items-center justify-between font-semibold lg:cursor-default"
+              >
+                <span>Cara Pembayaran:</span>
+                <ChevronDown
+                  size={20}
+                  className={cn(
+                    "lg:hidden text-white/60 transition-transform duration-200",
+                    caraOpen && "rotate-180"
+                  )}
+                />
+              </button>
+              <ol className={cn("space-y-3 mt-4", !caraOpen && "hidden lg:block")}>
                 {[
                   "Salin nomor rekening di atas",
                   'Transfer nominal sesuai "Total Bayar" ke rekening tersebut',
@@ -360,9 +405,9 @@ export default function TransferBankPage({
           </div>
 
           {/* ── KANAN ── */}
-          <div className="space-y-6">
+          <div className="space-y-4 lg:space-y-6">
             {/* Ringkasan */}
-            <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-7">
+            <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-5 lg:p-7">
               <p className="text-xl font-bold mb-5">Ringkasan Pesanan</p>
               <SummaryRow label={packageLabel} value={`Rp${formatRp(total)}`} />
               <SummaryRow
@@ -489,40 +534,25 @@ export default function TransferBankPage({
               </div>
             )}
 
-            {/* CTA */}
-            <button
-              onClick={handleSubmit}
-              disabled={
-                loading ||
-                !senderName.trim() ||
-                !senderBank.trim() ||
-                !transferDate ||
-                !file
-              }
-              className={cn(
-                "w-full py-4 rounded-2xl font-bold text-[15px] transition-all duration-200",
-                "bg-gradient-to-r from-[#7c3aed] to-[#4338ca] text-white hover:opacity-90 active:scale-[0.98]",
-                "disabled:opacity-60 disabled:cursor-not-allowed",
-                "flex items-center justify-center gap-2",
-              )}
-            >
-              {loading ? (
-                <>
-                  <Loader2 size={18} className="animate-spin" /> Mengirim...
-                </>
-              ) : (
-                "Konfirmasi Pembayaran"
-              )}
-            </button>
+            {/* CTA — desktop inline; mobile dipindah ke footer sticky. */}
+            <div className="hidden lg:block">{cta}</div>
           </div>
         </div>
       )}
 
-      <footer className="relative z-10 pb-8 text-center">
+      <footer className="hidden lg:block relative z-10 pb-8 text-center">
         <p className="text-[13px] text-white/30">
           ©2026 Gasing Academy. All rights reserved..
         </p>
       </footer>
+      </div>
+
+      {/* CTA nempel bawah — khusus mobile (form). Desktop pakai tombol inline. */}
+      {!submitted && (
+        <div className="lg:hidden shrink-0 relative z-20 px-6 pt-4 pb-6 bg-gradient-to-t from-[#0b0a1f] via-[#0b0a1f]/95 to-transparent">
+          {cta}
+        </div>
+      )}
     </div>
   );
 }

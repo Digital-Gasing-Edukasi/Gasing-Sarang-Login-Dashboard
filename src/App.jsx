@@ -75,6 +75,7 @@ import PaymentErrorPage from "@/pages/PaymentErrorPage";
 const AdminDashboardPage = lazy(() => import("@/pages/AdminDashboardPage"));
 import MidtransTestPage from "@/pages/MidtransTestPage";
 import KomunitasPage from "@/pages/komunitas/KomunitasPage";
+import TestMenuPage from "@/pages/TestMenuPage";
 
 // Shell dua kolom untuk halaman auth (login/signup/otp/...): panel kiri + konten.
 function SplitLayout({ children }) {
@@ -678,6 +679,42 @@ export default function App() {
         <Route path="/payment/error" element={<PaymentErrorPage />} />
 
         <Route path="/midtrans-test" element={<MidtransTestPage />} />
+
+        {/* Menu test navigasi (dev/QA) — daftar link ke semua route. */}
+        <Route path="/test-menu" element={<TestMenuPage />} />
+        {/* Test-only: langganan & pembayaran TANPA auth, pakai data dummy, biar
+            bisa diakses dari menu test tanpa login. */}
+        <Route
+          path="/test-menu/subscription"
+          element={
+            <SubscriptionPage
+              user={{ name: "Test User" }}
+              onSignOut={() => navigate("/test-menu")}
+              onPaymentSuccess={() => navigate("/payment/success")}
+              onPaymentPending={() => navigate("/test-menu")}
+              onCheckoutManual={() => navigate("/test-menu/transfer")}
+            />
+          }
+        />
+        <Route
+          path="/test-menu/transfer"
+          element={
+            <TransferBankPage
+              user={{ name: "Test User" }}
+              plan={{
+                id: "test",
+                name: "Tahunan",
+                billingCycle: "annual",
+                months: 12,
+                priceTotal: 396000,
+                priceMonthly: 33000,
+              }}
+              payment={null}
+              onSignOut={() => navigate("/test-menu")}
+              onBack={() => navigate("/test-menu/subscription")}
+            />
+          }
+        />
 
         {/* ── Komunitas statis (guest / fake login) — publik, tanpa auth ──── */}
         {/* Lihat ADR-0004. Route catch-all /komunitas/* biar subpath ikut ke page. */}

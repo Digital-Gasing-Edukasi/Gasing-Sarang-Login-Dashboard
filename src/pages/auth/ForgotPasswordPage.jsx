@@ -77,7 +77,7 @@ export function ForgotPasswordPage({ onNavigate, onEmailSent }) {
         <AuthDarkLayout>
           <div className="animate-fade-in-up">
             <h1 className="font-cera-pro text-[48px] font-bold text-white mb-4">Lupa Password?</h1>
-            <p className="text-[15px] text-white/60 leading-relaxed mb-10 max-w-[440px]">
+            <p className="text-[15px] text-white/60 leading-relaxed mb-10 max-w-[520px]">
               Masukkan email kamu yang terdaftar dan kami akan mengirimkan tautan untuk mengatur ulang kata sandi kamu.
             </p>
           </div>

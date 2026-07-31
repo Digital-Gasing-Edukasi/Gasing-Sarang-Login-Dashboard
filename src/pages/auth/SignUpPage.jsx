@@ -328,10 +328,10 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
     >
       {step === 1 ? (
         <>
-          <h1 className="hidden lg:block mb-6 text-2xl font-bold text-foreground animate-fade-in-up">
+          <h1 className="hidden lg:block mb-6 text-center text-2xl font-bold text-foreground animate-fade-in-up">
             Data Akun
           </h1>
-          <div className="space-y-6 lg:space-y-5 animate-fade-in-up delay-200">
+          <div className="space-y-6 animate-fade-in-up delay-200">
             {errors.general && (
               <p className="text-sm text-red-500 text-center">
                 {errors.general}
@@ -515,7 +515,7 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
             <div className="hidden lg:block !mt-10">{cta}</div>
           </div>
 
-          <div className="mt-6 animate-fade-in-up delay-300">
+          <div className="mt-6 lg:mt-4 animate-fade-in-up delay-300">
             <p className="text-sm text-center text-muted-foreground">
               Sudah punya akun?{" "}
               <button
@@ -529,10 +529,10 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
         </>
       ) : (
         <>
-          <h1 className="hidden lg:block mb-6 text-2xl font-bold text-foreground animate-fade-in-up">
+          <h1 className="hidden lg:block mb-5 text-center text-2xl font-bold text-foreground animate-fade-in-up">
             Data Pribadi
           </h1>
-          <div className="space-y-4 lg:space-y-5 animate-fade-in-up delay-200">
+          <div className="space-y-4 lg:space-y-6 animate-fade-in-up delay-200">
             {errors.general && (
               <p className="text-sm text-red-500 text-center">
                 {errors.general}

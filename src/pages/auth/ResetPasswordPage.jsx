@@ -82,7 +82,7 @@ export function ResetPasswordPage({ token, email, onNavigate }) {
 
   return (
     <>
-      {success && <SuccessToast message="Berhasil ubah password baru" />}
+      {success && <SuccessToast message="Berhasil mengubah password. Silahkan login kembali" />}
 
       {/* ═══════════════ MOBILE (tema gelap, sesuai reference) ═══════════════ */}
       <div
@@ -97,27 +97,8 @@ export function ResetPasswordPage({ token, email, onNavigate }) {
           <Logo variant="mobile" />
         </div>
 
-        {success ? (
-          <div className="flex-1 flex flex-col items-center justify-center text-center animate-fade-in-up">
-            <div className="w-20 h-20 rounded-full bg-[#22c55e] flex items-center justify-center mb-7 shadow-[0_0_40px_rgba(34,197,94,0.4)]">
-              <Check size={40} strokeWidth={3} className="text-white" />
-            </div>
-            <h1 className="text-[26px] font-bold mb-3">Berhasil mengubah password!</h1>
-            <p className="text-white/55 text-[14px] leading-relaxed max-w-xs mb-8">
-              Password kamu berhasil diperbarui. Silakan login dengan password baru.
-            </p>
-            <button
-              onClick={() => onNavigate('login')}
-              className="px-10 py-3.5 rounded-full bg-white text-[#1a0b3d] font-bold text-[15px] hover:bg-white/90 active:scale-[0.98] transition-all"
-            >
-              Kembali Ke Login
-            </button>
-            <p className="text-[13px] text-white/40 mt-6">
-              Mengalihkan dalam <span className="font-semibold text-white/70">{redirectSecs}</span> detik...
-            </p>
-          </div>
-        ) : (
-          <div className="flex-1 flex flex-col animate-fade-in-up">
+        {/* Sukses = toast di atas (form tetap tampil), sesuai reference state-3. */}
+        <div className="flex-1 flex flex-col animate-fade-in-up">
             <h1 className="font-cera-pro text-[28px] font-bold mb-6">Ubah Password</h1>
 
             <div className="space-y-4">
@@ -138,8 +119,9 @@ export function ResetPasswordPage({ token, email, onNavigate }) {
                 {errors.password && <p className="text-xs text-red-300">{errors.password}</p>}
               </div>
 
-              {/* Ketentuan password — muncul hanya saat mulai ngetik */}
-              {password.length > 0 && (
+              {/* Ketentuan password — muncul saat ngetik password, sembunyi begitu
+                  pindah isi konfirmasi (reference state-2). */}
+              {password.length > 0 && !confirm && (
                 <ul className="space-y-2 py-1">
                   {passwordRules.map(rule => (
                     <li
@@ -177,7 +159,7 @@ export function ResetPasswordPage({ token, email, onNavigate }) {
 
               <button
                 onClick={handleReset}
-                disabled={loading || !password || !confirm}
+                disabled={loading || success || !password || !confirm}
                 className="w-full py-4 rounded-2xl font-bold text-[15px] bg-white text-[#1a0b3d] hover:bg-white/90 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-all"
               >
                 {loading ? <><Loader2 size={18} className="animate-spin" /> Memproses...</> : 'Ubah Password'}
@@ -191,7 +173,6 @@ export function ResetPasswordPage({ token, email, onNavigate }) {
               </button>
             </div>
           </div>
-        )}
       </div>
 
       {/* ═══════════════════════════ DESKTOP (dark) ═══════════════════════════ */}

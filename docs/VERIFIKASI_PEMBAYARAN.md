@@ -8,12 +8,15 @@ Dokumentasi sub-menu **Verifikasi Pembayaran** pada Dashboard Admin (`src/pages/
 
 Layar admin untuk memverifikasi **bukti transfer manual** dari member yang berlangganan lewat Transfer Bank. Admin memeriksa bukti transfer lalu **mengonfirmasi** (aktifkan langganan) atau **menolak** (dengan alasan).
 
-Terdiri dari **2 sub-tab**:
+Terdiri dari **3 sub-tab**:
 
 | Sub-tab | Isi | Aksi |
 |---|---|---|
-| **Menunggu Verifikasi** | Payment status `pending` + bukti sudah diunggah | Tombol **Konfirmasi** per baris |
-| **Pembayaran Ditolak** | Payment yang sudah ditolak admin | (tanpa aksi) |
+| **Belum Langganan** | User `APPROVED` tapi belum aktif langganan (read-only) — komponen terpisah `BelumLanggananTable` | (tanpa aksi) |
+| **Menunggu Verifikasi** | Payment `receipt_uploaded` (bukti sudah diunggah, menunggu review) | Tombol **Konfirmasi** per baris + kolom **Reminded Time** (§4.1) |
+| **Pembayaran Ditolak** | Payment yang sudah ditolak admin | Menu `...` per baris (Setujui Pembayaran / Hapus Akun) |
+
+Tab **Belum Langganan** dirender oleh `BelumLanggananTable` (bukan `VerifikasiPembayaranTable`); dua tab lain berbagi `VerifikasiPembayaranTable` via prop `subTab`.
 
 Sub-menu ini berada di posisi **ke-2** pada sidebar, setelah Verifikasi Akun.
 
@@ -60,7 +63,8 @@ Kedua aksi **optimistic + toast undo 5 detik** — commit API baru terjadi setel
 |---|---|
 | `src/pages/admin/AdminSidebar.jsx` | Entri nav `verifikasi-pembayaran` (ikon `Wallet`) |
 | `src/pages/admin/mappers.js` | `mapToPembayaran(p, regions, groups)` — payment → row tabel |
-| `src/pages/admin/VerifikasiPembayaranTable.jsx` | Tabel (tanpa bulk-select) + tombol Konfirmasi |
+| `src/pages/admin/VerifikasiPembayaranTable.jsx` | Tabel (tanpa bulk-select) + tombol Konfirmasi + kolom Reminded Time (tab Menunggu & Ditolak) |
+| `src/pages/admin/BelumLanggananTable.jsx` | Tabel read-only sub-tab **Belum Langganan** |
 | `src/pages/admin/TableControls.jsx` | `VerifikasiPembayaranControls` + sub-tab switcher |
 | `src/pages/admin/PembayaranModals.jsx` | `KonfirmasiPembayaranModal` + `TolakPembayaranModal` |
 | `src/pages/AdminDashboardPage.jsx` | State, load, handler, wiring |
@@ -70,9 +74,24 @@ Kedua aksi **optimistic + toast undo 5 detik** — commit API baru terjadi setel
 
 ## 4. Kolom tabel
 
-`Nama Pengguna · Email · Status Member · Jenis Paket · Tgl. Berakhir · Kode Voucher · Role · Riwayat Pelatihan · Tgl. Lahir · Lokasi · Alumni Pelatihan (Nama/Daerah/Tanggal Mulai) · Asal Sekolah · Last Updated · Action`
+`Nama Pengguna · Email · Reminded Time · Status Member · Jenis Paket · Tgl. Berakhir · Kode Voucher · Role · Riwayat Pelatihan · Tgl. Lahir · Lokasi · Alumni Pelatihan (Nama/Daerah/Tanggal Mulai) · Asal Sekolah · Last Verified · Action`
 
-Kolom **Action** (tombol Konfirmasi) hanya muncul di sub-tab **Menunggu Verifikasi**. Sebagian besar kolom identitas di-map ulang dari logika `mapToManajemen` (reuse `parsePlan`, `resolveRole`, `resolveRegionLabel`, dst).
+Kolom **Action** (tombol Konfirmasi) hanya muncul di sub-tab **Menunggu Verifikasi**; di sub-tab **Pembayaran Ditolak** Action = menu `...` (Setujui Pembayaran / Hapus Akun). Sebagian besar kolom identitas di-map ulang dari logika `mapToManajemen` (reuse `parsePlan`, `resolveRole`, `resolveRegionLabel`, dst).
+
+### 4.1 Reminded Time (countdown 24 jam)
+
+Kolom **Reminded Time** = countdown **hidup** (turun tiap detik) dari batas 24 jam sejak user submit request verifikasi. Hanya relevan di sub-tab **Menunggu Verifikasi**.
+
+| Kondisi | Tampilan |
+|---|---|
+| `now - createdMs >= 24 jam` (lewat batas) atau `createdMs` kosong | `-` (abu-abu) |
+| `now - createdMs < 24 jam` | sisa waktu `HH:MM:SS` (merah), turun tiap detik |
+| Sub-tab **Pembayaran Ditolak** | selalu `-` |
+
+- Sumber waktu submit = `createdMs` dari `mapToPembayaran` (= `payStartMs` = `pay.createdAt`, fallback `transferDate`/`paidAt`). Field yang sama dipakai proyeksi Tgl. Berakhir (§8.3).
+- Tick pakai **1 `setInterval` global** di `VerifikasiPembayaranTable` (bukan per-baris), hanya aktif saat `subTab === 'menunggu'`. Helper `fmtReminded(createdMs, nowMs)`.
+- Angka pakai `tabular-nums` biar lebar digit stabil (tidak goyang tiap detik).
+- Kalau BE ternyata pakai field waktu-submit lain (bukan `createdAt`/`transferDate`/`paidAt`), `createdMs` → null → kolom tampil `-`.
 
 ---
 
@@ -202,4 +221,5 @@ Field tanggal dari API bisa berbentuk objek `{ unix, utc:{raw,iso,formatted}, lo
 | File | Perubahan |
 |---|---|
 | `src/pages/AdminDashboardPage.jsx` | State `usersById`, ref `fetchedUserIdsRef`, `enrichFromUser`, effect enrich on-demand, populate `usersById` di `loadUsers` |
-| `src/pages/admin/mappers.js` | `planDurationDays` (baru), `mapToPembayaran` endDate manual, `parseBirthdate` robust |
+| `src/pages/admin/mappers.js` | `planDurationDays` (baru), `mapToPembayaran` endDate manual + expose `createdMs`, `parseBirthdate` robust |
+| `src/pages/admin/VerifikasiPembayaranTable.jsx` | Kolom **Reminded Time**: helper `fmtReminded`, tick 1 detik (`nowMs` state, hanya tab menunggu), header + cell (§4.1) |

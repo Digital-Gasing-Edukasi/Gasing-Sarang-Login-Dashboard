@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react'
 import { ArrowDownUp, SearchX, CheckCircle2, Trash2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { TableShell, FreezeBlurLeft, FreezeBlurRight } from './TableShell'
@@ -32,13 +33,39 @@ const STATUS_CLASSES = {
   'Pembayaran Ditolak':            'bg-orange-50 text-orange-500',
 }
 
+const DAY_MS = 24 * 60 * 60 * 1000
+
+// Reminded Time = countdown 24 jam sejak user submit request (createdMs).
+// nowMs - createdMs >= 24 jam  → '-' (lewat batas).
+// selain itu → sisa waktu (24 jam - berlalu) format HH:MM:SS.
+function fmtReminded(createdMs, nowMs) {
+  if (!createdMs) return '-'
+  const remaining = DAY_MS - (nowMs - createdMs)
+  if (remaining <= 0) return '-'
+  const totalSec = Math.floor(remaining / 1000)
+  const h = Math.floor(totalSec / 3600)
+  const m = Math.floor((totalSec % 3600) / 60)
+  const s = totalSec % 60
+  const pad = n => String(n).padStart(2, '0')
+  return `${pad(h)}:${pad(m)}:${pad(s)}`
+}
+
 // Tabel Verifikasi Pembayaran. Tanpa bulk-select (keputusan: single-action).
 // subTab: 'menunggu' → Action = tombol Konfirmasi; 'ditolak' → Action = menu "..."
 // (Setujui Pembayaran / Hapus Akun). Kedua sub-tab punya kolom Action sticky-kanan.
 export function VerifikasiPembayaranTable({
   users, sortConfig, onSort, searchQuery, subTab = 'menunggu', onConfirm, onRiwayatClick, onRowAction,
 }) {
-  const colSpan = 16
+  const colSpan = 17
+
+  // Countdown Reminded Time hidup: re-render tiap detik. Cukup 1 interval global
+  // (bukan per-baris). Hanya jalan di tab 'menunggu' — tab lain gak butuh countdown.
+  const [nowMs, setNowMs] = useState(() => Date.now())
+  useEffect(() => {
+    if (subTab !== 'menunggu') return
+    const id = setInterval(() => setNowMs(Date.now()), 1000)
+    return () => clearInterval(id)
+  }, [subTab])
 
   return (
     <TableShell>
@@ -50,6 +77,7 @@ export function VerifikasiPembayaranTable({
               <FreezeBlurLeft />
             </th>
             <th className="px-4 py-4 font-medium align-bottom">Email</th>
+            <th className="px-4 py-4 font-medium align-bottom">Reminded Time</th>
             <th className="px-4 py-4 font-medium align-bottom">Status Member</th>
             <th className="px-4 py-4 font-medium align-bottom">
               <SortableHeader label="Jenis Paket" sortKey="plan" sortConfig={sortConfig} onSort={onSort} />
@@ -102,6 +130,14 @@ export function VerifikasiPembayaranTable({
                 <FreezeBlurLeft />
               </td>
               <td className="px-4 py-4 text-[#0A1128] font-medium">{user.email}</td>
+              <td className="px-4 py-4 font-medium tabular-nums">
+                {subTab === 'menunggu'
+                  ? (() => {
+                      const t = fmtReminded(user.createdMs, nowMs)
+                      return <span className={t === '-' ? 'text-gray-400' : 'text-red-500'}>{t}</span>
+                    })()
+                  : <span className="text-gray-400">-</span>}
+              </td>
               <td className="px-4 py-4">
                 <span className={cn('inline-flex items-center px-3 py-1 rounded-full text-xs font-bold', STATUS_CLASSES[user.statusMember] || 'bg-orange-50 text-orange-500')}>
                   {user.statusMember}

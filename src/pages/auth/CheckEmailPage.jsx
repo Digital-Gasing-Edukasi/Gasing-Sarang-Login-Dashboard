@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Mail, LogIn, Loader2 } from 'lucide-react'
 import { AuthFullLayout } from '@/components/layout/AuthFullLayout'
-import { Divider }        from '@/components/layout/RightPanel'
 import { ErrorAlert }     from '@/components/shared/ErrorAlert'
 import { AuthDarkLayout, DarkGhostButton, DarkDivider } from '@/components/shared/DarkAuth'
 import { cn }             from '@/lib/utils'
@@ -38,44 +37,35 @@ export function CheckEmailPage({ email, onNavigate }) {
       <div className="lg:hidden">
         <AuthFullLayout illustration="envelope">
           <div className="text-center animate-fade-in-up">
-            <div className="w-20 h-20 rounded-full border-2 border-dashed border-green-300 bg-green-50 flex items-center justify-center mx-auto mb-6">
-              <Mail size={30} className="text-green-500" />
-            </div>
-            <h1 className="font-cera-pro text-3xl font-bold text-foreground mb-4">Cek Email Anda</h1>
-            <p className="text-sm text-muted-foreground">
-              Kami telah mengirimkan tautan pemulihan ke email
-            </p>
-            <p className="text-sm font-bold text-foreground mt-1 mb-2">{email}</p>
-            <p className="text-sm text-muted-foreground mb-8">
-              Jika Anda belum menerima email tersebut, periksa folder spam.
+            <h1 className="font-cera-pro text-2xl font-bold text-foreground mb-3">Cek Email Kamu</h1>
+            <p className="text-sm text-muted-foreground leading-relaxed mb-8">
+              Kami telah mengirimkan tautan pemulihan ke email{" "}
+              <span className="font-bold text-foreground">{email}</span>. Jika kamu belum
+              menerima email tersebut, periksa folder spam.
             </p>
           </div>
 
-          <div className="space-y-2 animate-fade-in-up delay-100">
+          <div className="space-y-4 animate-fade-in-up delay-100">
             <ErrorAlert message={error} />
             <button
               onClick={handleResend}
               disabled={!canResend || loading}
               className={cn(
-                'w-full border rounded-full py-3 px-4 text-sm font-medium transition-colors',
+                'w-full rounded-full py-3.5 text-[15px] font-bold text-white transition-colors',
                 canResend && !loading
-                  ? 'border-border text-foreground hover:bg-muted cursor-pointer'
-                  : 'border-border text-muted-foreground cursor-not-allowed'
+                  ? 'bg-[#0033EC] hover:bg-[#0033EC]/90 cursor-pointer'
+                  : 'bg-[#0033EC]/50 cursor-not-allowed'
               )}
             >
               {loading
-                ? <span className="flex items-center justify-center gap-2"><Loader2 size={14} className="animate-spin" /> Mengirim...</span>
-                : <>Kirim Ulang Link{!canResend && <span className="text-orange-500"> ({seconds})</span>}</>
+                ? <span className="flex items-center justify-center gap-2"><Loader2 size={16} className="animate-spin" /> Mengirim...</span>
+                : <>Kirim Ulang Tautan{!canResend && <span> ({seconds})</span>}</>
               }
             </button>
-          </div>
 
-          <Divider />
-
-          <div className="text-center">
             <button onClick={() => onNavigate('login')}
-              className="flex items-center gap-1.5 text-sm text-muted-foreground underline underline-offset-2 hover:text-foreground transition-colors mx-auto">
-              <LogIn size={15} /> Kembali ke Login
+              className="flex items-center justify-center gap-1.5 text-[15px] font-bold text-[#0033EC] hover:opacity-80 transition-opacity mx-auto pt-1">
+              <LogIn size={16} /> Kembali ke Login
             </button>
           </div>
         </AuthFullLayout>
