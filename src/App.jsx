@@ -680,41 +680,46 @@ export default function App() {
 
         <Route path="/midtrans-test" element={<MidtransTestPage />} />
 
-        {/* Menu test navigasi (dev/QA) — daftar link ke semua route. */}
-        <Route path="/test-menu" element={<TestMenuPage />} />
-        {/* Test-only: langganan & pembayaran TANPA auth, pakai data dummy, biar
-            bisa diakses dari menu test tanpa login. */}
-        <Route
-          path="/test-menu/subscription"
-          element={
-            <SubscriptionPage
-              user={{ name: "Test User" }}
-              onSignOut={() => navigate("/test-menu")}
-              onPaymentSuccess={() => navigate("/payment/success")}
-              onPaymentPending={() => navigate("/test-menu")}
-              onCheckoutManual={() => navigate("/test-menu/transfer")}
+        {/* Menu test navigasi (dev/QA) — HANYA di dev lokal (import.meta.env.DEV).
+            Di build staging & production gate ini false → route test-menu tidak
+            terdaftar, navigasi ke /test-menu jatuh ke catch-all → /login.
+            Pakai data dummy TANPA auth, route terpisah dari flow asli. */}
+        {import.meta.env.DEV && (
+          <>
+            <Route path="/test-menu" element={<TestMenuPage />} />
+            <Route
+              path="/test-menu/subscription"
+              element={
+                <SubscriptionPage
+                  user={{ name: "Test User" }}
+                  onSignOut={() => navigate("/test-menu")}
+                  onPaymentSuccess={() => navigate("/payment/success")}
+                  onPaymentPending={() => navigate("/test-menu")}
+                  onCheckoutManual={() => navigate("/test-menu/transfer")}
+                />
+              }
             />
-          }
-        />
-        <Route
-          path="/test-menu/transfer"
-          element={
-            <TransferBankPage
-              user={{ name: "Test User" }}
-              plan={{
-                id: "test",
-                name: "Tahunan",
-                billingCycle: "annual",
-                months: 12,
-                priceTotal: 396000,
-                priceMonthly: 33000,
-              }}
-              payment={null}
-              onSignOut={() => navigate("/test-menu")}
-              onBack={() => navigate("/test-menu/subscription")}
+            <Route
+              path="/test-menu/transfer"
+              element={
+                <TransferBankPage
+                  user={{ name: "Test User" }}
+                  plan={{
+                    id: "test",
+                    name: "Tahunan",
+                    billingCycle: "annual",
+                    months: 12,
+                    priceTotal: 396000,
+                    priceMonthly: 33000,
+                  }}
+                  payment={null}
+                  onSignOut={() => navigate("/test-menu")}
+                  onBack={() => navigate("/test-menu/subscription")}
+                />
+              }
             />
-          }
-        />
+          </>
+        )}
 
         {/* ── Komunitas statis (guest / fake login) — publik, tanpa auth ──── */}
         {/* Lihat ADR-0004. Route catch-all /komunitas/* biar subpath ikut ke page. */}

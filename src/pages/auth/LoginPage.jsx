@@ -89,12 +89,16 @@ export function LoginPage({ onNavigate, onLoginSuccess, isSsoMode = false }) {
     <RightPanel
       mobileHero={<MobileHero />}
       footer={
-        // Penanda build (di-inject Vite). Tampil hanya di staging, di paling bawah.
-        isStaging() && (
-          <p className="mt-1 text-center text-[11px] text-muted-foreground/60 select-all">
-            build {typeof __BUILD_DATE__ !== "undefined" ? __BUILD_DATE__ : "dev"}
-          </p>
-        )
+        // Desktop-only (RightPanel bungkus `hidden lg:block`). Copyright tampil di
+        // semua env; penanda build (di-inject Vite) hanya staging.
+        <div className="text-center">
+          <p className="text-xs text-muted-foreground">©2026 Gasing Academy. All rights reserved.</p>
+          {isStaging() && (
+            <p className="mt-1 text-[11px] text-muted-foreground/60 select-all">
+              build {typeof __BUILD_DATE__ !== "undefined" ? __BUILD_DATE__ : "dev"}
+            </p>
+          )}
+        </div>
       }
     >
       {rateLimit && (

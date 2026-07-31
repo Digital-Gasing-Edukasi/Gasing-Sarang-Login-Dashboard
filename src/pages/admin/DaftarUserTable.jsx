@@ -1,14 +1,10 @@
 import { SearchX } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { TableShell } from './TableShell'
 
-// STYLE A — scroll pakai scrollbar BROWSER (document), 2 sumbu:
-//   vertical  → halaman manjang, scrollbar browser kanan
-//   horizontal→ tabel lebih lebar dari viewport → scrollbar browser bawah (sticky di bawah page)
-// Syarat: SEMUA ancestor dari <thead> harus overflow:visible (root/main/konten/card),
-//   biar <thead> sticky-nya ngunci ke DOCUMENT (bukan ke container). Makanya card di sini
-//   TIDAK pakai overflow-hidden. `stickTop` = tinggi (header + controls) yang dibekukan.
-// Batas A: freeze kolom (sticky-left) TIDAK dipakai — di body-scroll dia ngunci ke tepi
-//   viewport dan nyangkut di belakang sidebar. Jadi cuma baris header yang beku.
+// Tabel read-only "Daftar User". Pakai TableShell standar (2 lapis rounded +
+// scroll internal): header & sidebar dashboard tetap diam, cuma isi tabel yang
+// scroll. thead sticky-top di dalam container. Tanpa freeze kolom.
 
 const STATUS_CLASSES = {
   Disetujui:     'bg-green-50 text-green-500',
@@ -26,28 +22,26 @@ const Td = ({ children, className }) => (
   <td className={cn('px-4 py-4 text-[#0A1128] font-medium', className)}>{children}</td>
 )
 
-export function DaftarUserTable({ users = [], searchQuery = '', stickTop = 0 }) {
-  // thead beku di bawah zona header+controls. z tinggi biar nutup baris yg lewat.
-  const thStyle = { top: stickTop }
-  const th = 'px-4 py-4 font-medium sticky z-20 bg-[#0A1128]'
+const th = 'px-4 py-4 font-medium'
 
+export function DaftarUserTable({ users = [], searchQuery = '' }) {
   return (
-    <div className="w-max min-w-full rounded-2xl border border-gray-200 shadow-sm bg-white">
+    <TableShell>
       <table className="w-full text-left text-sm whitespace-nowrap">
-        <thead className="bg-[#0A1128] text-white">
+        <thead className="bg-[#0A1128] text-white sticky top-0 z-20">
           <tr>
-            <th style={thStyle} className={th}>Nama Pengguna</th>
-            <th style={thStyle} className={th}>Email</th>
-            <th style={thStyle} className={th}>Status Member</th>
-            <th style={thStyle} className={th}>Langganan</th>
-            <th style={thStyle} className={th}>Jenis Paket</th>
-            <th style={thStyle} className={th}>Tgl. Berakhir</th>
-            <th style={thStyle} className={th}>Role</th>
-            <th style={thStyle} className={th}>Riwayat Pelatihan</th>
-            <th style={thStyle} className={th}>Tgl. Lahir</th>
-            <th style={thStyle} className={th}>Lokasi</th>
-            <th style={thStyle} className={th}>Asal Sekolah</th>
-            <th style={thStyle} className={th}>Last Updated</th>
+            <th className={th}>Nama Pengguna</th>
+            <th className={th}>Email</th>
+            <th className={th}>Status Member</th>
+            <th className={th}>Langganan</th>
+            <th className={th}>Jenis Paket</th>
+            <th className={th}>Tgl. Berakhir</th>
+            <th className={th}>Role</th>
+            <th className={th}>Riwayat Pelatihan</th>
+            <th className={th}>Tgl. Lahir</th>
+            <th className={th}>Lokasi</th>
+            <th className={th}>Asal Sekolah</th>
+            <th className={th}>Last Updated</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-100">
@@ -101,6 +95,6 @@ export function DaftarUserTable({ users = [], searchQuery = '', stickTop = 0 }) 
           )}
         </tbody>
       </table>
-    </div>
+    </TableShell>
   )
 }

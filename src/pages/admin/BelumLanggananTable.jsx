@@ -1,4 +1,4 @@
-import { ArrowDownUp } from 'lucide-react'
+import { ArrowDownUp, SearchX } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { TableShell, FreezeBlurLeft, FreezeBlurRight } from './TableShell'
 import { RoleTag } from './RoleTag'
@@ -110,11 +110,11 @@ export function BelumLanggananTable({ users, sortConfig, onSort, onRiwayatDetail
               ) : '-'}
             </td>
             <td className="px-4 py-4 text-[#0A1128] font-medium">{user.birthdate || '-'}</td>
-            <td className="px-4 py-4 text-[#0A1128] font-medium whitespace-normal max-w-[200px]" title={user.lokasi}>{user.lokasi || '-'}</td>
-            <td className="px-4 py-4 text-[#0A1128] font-medium whitespace-normal max-w-[200px]" title={user.training}>{user.training || '-'}</td>
-            <td className="px-4 py-4 text-[#0A1128] font-medium whitespace-normal max-w-[200px]" title={user.alumniDaerah}>{user.alumniDaerah || '-'}</td>
+            <td className="px-4 py-4 text-[#0A1128] font-medium whitespace-normal break-words max-w-[200px] leading-snug align-top" title={user.lokasi}>{user.lokasi || '-'}</td>
+            <td className="px-4 py-4 text-[#0A1128] font-medium whitespace-normal break-words max-w-[200px] leading-snug align-top" title={user.training}>{user.training || '-'}</td>
+            <td className="px-4 py-4 text-[#0A1128] font-medium whitespace-normal break-words max-w-[200px] leading-snug align-top" title={user.alumniDaerah}>{user.alumniDaerah || '-'}</td>
             <td className="px-4 py-4 text-[#0A1128] font-medium">{user.alumniTanggal || '-'}</td>
-            <td className="px-4 py-4 text-[#0A1128] font-medium whitespace-normal max-w-[220px]" title={user.school}>{user.school || '-'}</td>
+            <td className="px-4 py-4 text-[#0A1128] font-medium whitespace-normal break-words max-w-[220px] leading-snug align-top" title={user.school}>{user.school || '-'}</td>
             <td className="px-4 py-4 text-[#0A1128] font-medium sticky right-0 z-10 bg-white group-hover:bg-[#F9FAFB] transition-colors relative">
               <FreezeBlurRight />
               {user.lastUpdated || '-'}
@@ -122,10 +122,18 @@ export function BelumLanggananTable({ users, sortConfig, onSort, onRiwayatDetail
           </tr>
         )) : (
           <tr>
-            <td colSpan="13" className="px-4 py-12 text-center text-gray-500">
-              {searchQuery
-                ? <>Tidak ada data yang cocok dengan pencarian <span className="font-semibold">"{searchQuery}"</span></>
-                : 'Tidak ada akun yang belum berlangganan.'}
+            <td colSpan={13} className="px-4 py-16">
+              {searchQuery ? (
+                <div className="flex flex-col items-center text-center gap-2">
+                  <div className="w-14 h-14 rounded-full border border-gray-200 flex items-center justify-center text-gray-300 mb-1">
+                    <SearchX size={26} />
+                  </div>
+                  <p className="font-bold text-[#0A1128]">Tidak bisa menemukan "{searchQuery}"</p>
+                  <p className="text-sm text-gray-400">Coba cari lagi menggunakan ejaan atau kata kunci berbeda.</p>
+                </div>
+              ) : (
+                <p className="text-center text-gray-500">Tidak ada akun yang belum berlangganan.</p>
+              )}
             </td>
           </tr>
         )}

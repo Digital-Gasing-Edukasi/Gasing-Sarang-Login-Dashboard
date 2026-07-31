@@ -113,10 +113,13 @@ export function RightPanel({ children, mobileHero = null, topBar = null, footer 
           {stickyFooter}
         </div>
       )}
-      {/* <div className="pb-6">
-        <p className="text-xs text-muted-foreground text-center">©2026 Gasing Academy. All rights reserved.</p>
-        {footer}
-      </div> */}
+      {/* Footer (copyright + build date) hanya desktop — mobile disembunyiin.
+          Isi footer di-supply pemanggil (cuma LoginPage yang kirim). */}
+      {footer && (
+        <div className="hidden lg:block pb-6">
+          {footer}
+        </div>
+      )}
     </div>
   )
 }

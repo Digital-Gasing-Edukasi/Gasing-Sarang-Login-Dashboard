@@ -444,8 +444,9 @@ export default function SubscriptionPage({ user, onSignOut, onPaymentSuccess, on
           className="pointer-events-none absolute inset-0 h-full w-full select-none object-cover"
         />
 
-        {/* ── NAVBAR ── */}
-        <nav className="relative z-10 flex items-center justify-between px-6 pt-6 pb-5 shrink-0">
+        {/* ── NAVBAR ── (z-20 > content z-10 supaya dropdown ProfileMenu tampil
+            & bisa diklik; kalau sama-sama z-10, content nutupin popup) */}
+        <nav className="relative z-20 flex items-center justify-between px-6 pt-6 pb-5 shrink-0">
           <Logo variant="full" />
           <ProfileMenu user={user} onSignOut={onSignOut} />
         </nav>

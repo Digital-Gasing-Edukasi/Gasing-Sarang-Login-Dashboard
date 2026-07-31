@@ -1317,36 +1317,12 @@ export default function AdminDashboardPage({ user, onSignOut }) {
     document.body.appendChild(link); link.click(); document.body.removeChild(link)
   }
 
-  // ── Style A (document scroll) khusus tab Daftar User ────────────────────────
-  // Zona beku bertingkat: header (top:0) → controls (top:headerH) → thead (top:headerH+controlsH).
-  // Tinggi header & controls diukur runtime supaya offset thead selalu pas.
-  const isPageScroll = activeTab === 'daftar-user'
-  const daftarHeaderRef = useRef(null)
-  const daftarControlsRef = useRef(null)
-  const [daftarStick, setDaftarStick] = useState({ h: 96, c: 68 })
-  useEffect(() => {
-    if (!isPageScroll) return
-    const measure = () => setDaftarStick({
-      h: daftarHeaderRef.current?.offsetHeight || 96,
-      c: daftarControlsRef.current?.offsetHeight || 68,
-    })
-    measure()
-    const ro = new ResizeObserver(measure)
-    if (daftarHeaderRef.current) ro.observe(daftarHeaderRef.current)
-    if (daftarControlsRef.current) ro.observe(daftarControlsRef.current)
-    window.addEventListener('resize', measure)
-    return () => { ro.disconnect(); window.removeEventListener('resize', measure) }
-  }, [isPageScroll])
-
   return (
-    <div className={`bg-white flex font-sans ${isPageScroll ? 'min-h-screen' : 'h-screen overflow-hidden'}`}>
+    <div className="bg-white flex font-sans h-screen overflow-hidden">
       <AdminSidebar activeTab={activeTab} onTabChange={handleTabChange} onSignOut={onSignOut} user={user} navFlags={navFlags} />
 
-      <main className={`flex-1 flex flex-col min-w-0 ${isPageScroll ? '' : 'overflow-hidden'}`}>
-        <header
-          ref={daftarHeaderRef}
-          className={`px-10 py-8 border-b border-gray-100 bg-white ${isPageScroll ? 'sticky top-0 z-30' : 'shrink-0'}`}
-        >
+      <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
+        <header className="px-10 py-8 border-b border-gray-100 bg-white shrink-0">
           <h1 className="text-3xl font-bold text-[#0A1128]">
             {activeTab === 'verifikasi' && 'Verifikasi Akun'}
             {activeTab === 'verifikasi-pembayaran' && 'Verifikasi Pembayaran'}
@@ -1357,7 +1333,7 @@ export default function AdminDashboardPage({ user, onSignOut }) {
           </h1>
         </header>
 
-        <div className={`flex-1 p-10 pt-8 bg-[#F7F8FC] ${isPageScroll ? '' : 'overflow-hidden'}`}>
+        <div className="flex-1 p-10 pt-8 bg-[#F7F8FC] overflow-hidden">
           {apiError && (
             <div className="mb-4 px-4 py-3 rounded-lg bg-red-50 text-red-700 text-sm border border-red-200">
               {apiError}
@@ -1419,11 +1395,7 @@ export default function AdminDashboardPage({ user, onSignOut }) {
             />
           )}
           {activeTab === 'daftar-user' && (
-            <div
-              ref={daftarControlsRef}
-              style={{ top: daftarStick.h }}
-              className="sticky z-20 -mx-10 px-10 pt-1 pb-6 bg-[#F7F8FC] flex items-center justify-between gap-4"
-            >
+            <div className="mb-6 flex items-center justify-between gap-4">
               <p className="text-sm text-gray-500">
                 Total <span className="font-bold text-[#0A1128]">{Object.keys(usersById).length}</span> user
               </p>
@@ -1561,7 +1533,7 @@ export default function AdminDashboardPage({ user, onSignOut }) {
                   (u.email || '').toLowerCase().includes(q) ||
                   (u.username || '').toLowerCase().includes(q))
               : list
-            return <DaftarUserTable users={filtered} searchQuery={searchQuery} stickTop={daftarStick.h + daftarStick.c} />
+            return <DaftarUserTable users={filtered} searchQuery={searchQuery} />
           })()}
         </div>
       </main>

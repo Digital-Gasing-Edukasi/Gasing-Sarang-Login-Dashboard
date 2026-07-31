@@ -64,23 +64,23 @@ export function ProfileMenu({ user, onSignOut, onContact }) {
       {open && (
         <div
           role="menu"
-          className="absolute right-0 top-full mt-3 w-[220px] rounded-2xl border border-gray-100 bg-white py-1.5 text-left shadow-xl shadow-black/10 animate-fade-in-up z-50"
+          className="absolute right-0 top-full mt-3 w-[220px] rounded-2xl border border-white/10 bg-[#030B1F] py-1.5 text-left shadow-xl shadow-black/30 animate-fade-in-up z-50"
         >
           <button
             type="button"
             role="menuitem"
             onClick={handleContact}
-            className="flex w-full items-center gap-3 px-4 py-3 text-sm font-medium text-[#0A1128] hover:bg-gray-50 transition-colors"
+            className="flex w-full items-center gap-3 px-4 py-3 text-sm font-medium text-[#FFFFFF] hover:bg-white/5 transition-colors"
           >
-            <Headphones size={18} className="text-[#0A1128]" />
+            <Headphones size={18} className="text-[#FFFFFF]" />
             Hubungi Kami
           </button>
-          <div className="mx-3 border-t border-gray-100" />
+          <div className="mx-3 border-t border-white/10" />
           <button
             type="button"
             role="menuitem"
             onClick={handleLogout}
-            className="flex w-full items-center gap-3 px-4 py-3 text-sm font-medium text-[#ef4444] hover:bg-red-50 transition-colors"
+            className="flex w-full items-center gap-3 px-4 py-3 text-sm font-medium text-[#ef4444] hover:bg-white/5 transition-colors"
           >
             <LogOut size={18} className="text-[#ef4444]" />
             Logout
