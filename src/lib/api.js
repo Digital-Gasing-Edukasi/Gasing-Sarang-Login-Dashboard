@@ -1,14 +1,33 @@
 // src/lib/api.js
+import { withBase } from "./format";
+
 const BASE_URL = import.meta.env.VITE_API_URL;
 
 // ─── Token helpers ────────────────────────────────────────────────────────────
 export const tokenStorage = {
   getAccess:  () => localStorage.getItem("accessToken") || sessionStorage.getItem("accessToken"),
   getRefresh: () => localStorage.getItem("refreshToken") || sessionStorage.getItem("refreshToken"),
+  // true bila token disimpan persistent (localStorage) — dipakai refresh & handoff
+  // supaya token baru ditulis ke storage yang sama, tidak bikin salinan basi.
+  isPersistent: () => !!localStorage.getItem("accessToken"),
   setTokens:  (a, r, persistent = false) => {
     const storage = persistent ? localStorage : sessionStorage;
+    const other   = persistent ? sessionStorage : localStorage;
     storage.setItem("accessToken", a);
     if (r) storage.setItem("refreshToken", r);
+    // getAccess baca localStorage DULU. Kalau nulis ke sessionStorage tapi masih
+    // ada salinan lama di localStorage → yang kebaca token basi. Buang salinan
+    // di storage satunya biar cuma ada satu sumber kebenaran.
+    other.removeItem("accessToken");
+    other.removeItem("refreshToken");
+  },
+  // Pindahkan token sesi → localStorage supaya selamat dari round-trip redirect
+  // pembayaran (mis. Midtrans lempar keluar origin lalu balik di tab/halaman baru,
+  // sessionStorage bisa hilang). Dipanggil saat MASUK alur bayar.
+  promoteToPersistent: () => {
+    const a = tokenStorage.getAccess();
+    const r = tokenStorage.getRefresh();
+    if (a) tokenStorage.setTokens(a, r, true);
   },
   clear: () => {
     localStorage.removeItem("accessToken");
@@ -130,7 +149,7 @@ async function request(endpoint, options = {}) {
       return data;
     } else {
       tokenStorage.clear();
-      window.location.href = (import.meta.env.BASE_URL === '/' ? '' : import.meta.env.BASE_URL) + "/login";
+      window.location.href = withBase("/login");
       return;
     }
   }
@@ -188,7 +207,8 @@ async function tryRefreshToken() {
     });
     if (!res.ok) return false;
     const data = await res.json();
-    tokenStorage.setTokens(data.accessToken, data.refreshToken || null);
+    // Pertahankan lokasi storage semula (jangan turunkan localStorage → session).
+    tokenStorage.setTokens(data.accessToken, data.refreshToken || null, tokenStorage.isPersistent());
     return true;
   } catch {
     return false;
@@ -478,17 +498,28 @@ export const discourseApi = {
 const WEB_APP_CALLBACK_URL = import.meta.env.VITE_WEB_APP_CALLBACK_URL || "https://gasing.vercel.app/api/auth/callback";
 
 export const webAppApi = {
-  redirectWithTokens() {
+  async redirectWithTokens() {
+    // Access token bisa sudah basi (mis. lama di halaman bayar / balik dari
+    // Midtrans). Refresh DULU sebelum handoff, biar web app terima token valid
+    // dan tidak langsung menendang user balik ke login.
+    if (tokenStorage.getRefresh()) {
+      try { await tryRefreshToken(); } catch { /* pakai token lama seadanya */ }
+    }
+
     const access  = tokenStorage.getAccess();
     const refresh = tokenStorage.getRefresh();
 
+    // Token tidak lengkap → jangan kirim param kosong ke web app (pasti ditolak
+    // lalu bounce ke login). Langsung arahkan ke login lokal.
     if (!access || !refresh) {
-      console.warn("[webAppApi] redirectWithTokens: token tidak lengkap", { access: !!access, refresh: !!refresh });
+      console.warn("[webAppApi] redirectWithTokens: token tidak lengkap, balik ke login", { access: !!access, refresh: !!refresh });
+      window.location.href = withBase("/login");
+      return;
     }
 
     const params = new URLSearchParams();
-    if (access)  params.append("token", access);
-    if (refresh) params.append("refresh", refresh);
+    params.append("token", access);
+    params.append("refresh", refresh);
     window.location.href = `${WEB_APP_CALLBACK_URL}?${params.toString()}`;
   },
 };

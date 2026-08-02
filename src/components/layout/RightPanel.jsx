@@ -1,13 +1,17 @@
 import { useRef, useState, useEffect, useCallback } from 'react'
 import { cn } from '@/lib/utils'
 
-export function RightPanel({ children, mobileHero = null, topBar = null, footer = null, stickyFooter = null, progress = null, maxWidth = 'max-w-md', padX = 'px-6' }) {
+export function RightPanel({ children, mobileHero = null, topBar = null, footer = null, stickyFooter = null, progress = null, maxWidth = 'max-w-md', padX = 'px-6', lockDesktop = false }) {
   // Kartu putih jadi "popup sheet" (rounded-top, naik menutupi hero) HANYA saat
   // ada hero ungu di atasnya. Halaman tanpa hero (signup/perbaikan) tampil polos.
   const sheet = !!mobileHero
   // App-shell (signup mobile): header nempel atas + CTA nempel bawah + konten
   // scroll di tengah. Aktif kalau ada stickyFooter. Desktop tetap normal.
   const appShell = !!stickyFooter
+  // lockDesktop: bawa pola app-shell ke DESKTOP juga (khusus signup). Header &
+  // CTA diam, hanya title+body yang scroll. Title top-align jarak tetap dari
+  // header (bukan di-tengah). Page lain (Fix/Otp/Login) tetap perilaku lama.
+  const deskShell = appShell && lockDesktop
 
   // Edge blur: konten yang lewat di bawah header/footer sticky diberi strip
   // blur+fade (ala table dashboard). Mati saat scroll mentok di atas/bawah.
@@ -36,7 +40,10 @@ export function RightPanel({ children, mobileHero = null, topBar = null, footer 
     <div
       className={cn(
         'flex-1 flex flex-col bg-background',
-        sheet || appShell
+        deskShell
+          // Desktop app-shell: kunci 1 viewport di mobile & desktop.
+          ? 'h-[100dvh] overflow-hidden'
+          : sheet || appShell
           // Mobile: kunci tepat 1 viewport (100dvh). Desktop normal (scroll bila perlu).
           ? 'h-[100dvh] overflow-hidden lg:h-auto lg:min-h-screen lg:overflow-y-auto'
           : 'min-h-screen overflow-y-auto'
@@ -65,7 +72,8 @@ export function RightPanel({ children, mobileHero = null, topBar = null, footer 
           {appShell && (
             <div
               className={cn(
-                'lg:hidden pointer-events-none absolute inset-x-0 top-full h-5 z-10 bg-gradient-to-b from-background to-transparent backdrop-blur-[1.5px] transition-opacity duration-200',
+                'pointer-events-none absolute inset-x-0 top-full h-5 z-10 bg-gradient-to-b from-background to-transparent backdrop-blur-[1.5px] transition-opacity duration-200',
+                !deskShell && 'lg:hidden',
                 edge.atTop ? 'opacity-0' : 'opacity-100'
               )}
             />
@@ -76,20 +84,29 @@ export function RightPanel({ children, mobileHero = null, topBar = null, footer 
         ref={scrollRef}
         onScroll={appShell ? measure : undefined}
         className={cn(
-          'flex flex-col justify-start lg:justify-center w-full mx-auto bg-background',
+          'flex flex-col justify-start w-full mx-auto bg-background',
+          // Desktop biasa: konten di-tengah vertikal. lockDesktop: top-align
+          // (title jarak tetap dari header), jadi lg:justify-center dilepas.
+          !deskShell && 'lg:justify-center',
           // Sheet (login): card setinggi konten, hero yang mengisi sisa ruang.
           // Non-sheet: card flex-1 seperti biasa (footer nempel bawah).
           sheet ? 'flex-none lg:flex-1' : 'flex-1',
-          // App-shell: konten jadi area scroll di antara header & CTA (mobile).
-          appShell && 'min-h-0 overflow-y-auto lg:overflow-visible',
+          // App-shell: konten jadi area scroll di antara header & CTA. Mobile
+          // selalu; desktop hanya saat lockDesktop.
+          appShell &&
+            (deskShell
+              ? 'min-h-0 overflow-y-auto'
+              : 'min-h-0 overflow-y-auto lg:overflow-visible'),
           padX,
           maxWidth,
           sheet
             ? 'relative z-10 -mt-6 lg:mt-0 rounded-t-[28px] lg:rounded-none shadow-[0_-12px_30px_rgba(0,0,0,0.10)] lg:shadow-none pt-6 lg:pt-12'
             : appShell
-            ? 'pt-4 lg:pt-12'
+            // lockDesktop: jarak title→header = 42px (desktop). pb=0 supaya
+            // jarak body→cta murni ditentukan spacer di dalam konten.
+            ? (deskShell ? 'pt-4 lg:pt-[42px]' : 'pt-4 lg:pt-12')
             : 'pt-8 lg:pt-12',
-          appShell ? 'pb-6 lg:pb-8' : 'pb-8'
+          appShell ? (deskShell ? 'pb-6 lg:pb-0' : 'pb-6 lg:pb-8') : 'pb-8'
         )}
       >
         {children}
@@ -98,7 +115,11 @@ export function RightPanel({ children, mobileHero = null, topBar = null, footer 
       {stickyFooter && (
         <div
           className={cn(
-            'lg:hidden relative shrink-0 w-full mx-auto bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 pt-3 pb-6',
+            'relative shrink-0 w-full mx-auto bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 pt-3 pb-6',
+            // Desktop: default sembunyi (pakai tombol inline). lockDesktop: CTA
+            // nempel bawah di desktop juga. pt-0 supaya jarak body→cta murni dari spacer.
+            !deskShell && 'lg:hidden',
+            deskShell && 'lg:pt-0 lg:pb-8',
             padX,
             maxWidth
           )}

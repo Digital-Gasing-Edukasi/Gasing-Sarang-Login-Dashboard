@@ -29,7 +29,7 @@ import mandiriLogo from "@/assets/subscription/mandiri-logo.png";
 import { Logo } from "@/components/shared/Logo";
 import { ProfileMenu } from "@/components/shared/ProfileMenu";
 import { DateField, DATE_MAX } from "@/components/shared/DateField";
-import { localizePlanName } from "./SubscriptionPage";
+import { formatRp, localizePlanName } from "@/lib/format";
 
 // Rekening tujuan. Default statis (backend belum mengembalikan detail rekening);
 // bila payment membawa field rekening, nilai itu dipakai lebih dulu.
@@ -40,10 +40,6 @@ const DEFAULT_BANK = {
 
 const MAX_FILE_MB = 5;
 const ACCEPTED = ["image/jpeg", "image/png", "application/pdf"];
-
-function formatRp(n) {
-  return new Intl.NumberFormat("id-ID").format(Number(n) || 0);
-}
 
 // Format ukuran file jadi "245 KB" / "1,2 MB".
 function formatFileSize(bytes) {
@@ -213,10 +209,10 @@ export default function TransferBankPage({
         !file
       }
       className={cn(
-        "w-full py-4 rounded-2xl font-bold text-[15px] transition-all duration-200",
-        "bg-gradient-to-r from-[#7c3aed] to-[#4338ca] text-white hover:opacity-90 active:scale-[0.98]",
+        "w-full py-4 rounded-full font-bold text-[15px] transition-all duration-200",
+        "bg-gradient-to-r from-[#FFFFFF] to-[#FFFFFF] text-black hover:opacity-90 active:scale-[0.98]",
         "disabled:opacity-60 disabled:cursor-not-allowed",
-        "flex items-center justify-center gap-2"
+        "flex items-center justify-center gap-2",
       )}
     >
       {loading ? (
@@ -318,9 +314,9 @@ export default function TransferBankPage({
           </p>
         </div>
       ) : (
-        <div className="relative z-10 max-w-[1180px] mx-auto px-6 lg:px-10 pt-4 pb-6 lg:pb-24 grid lg:grid-cols-2 gap-4 lg:gap-14 items-start animate-fade-in-up">
+        <div className="relative z-10 max-w-[1180px] mx-auto px-4 lg:px-10 pt-4 pb-6 lg:pb-24 grid lg:grid-cols-2 gap-4 lg:gap-14 items-start animate-fade-in-up">
           {/* ── KIRI ── */}
-          <div>
+          <div className="min-w-0">
             {onBack && (
               <button
                 onClick={onBack}
@@ -330,7 +326,7 @@ export default function TransferBankPage({
                 Kembali ke Pilihan Paket
               </button>
             )}
-            <h1 className="text-[28px] font-bold leading-[140%] mb-2">
+            <h1 className="text-[28px] font-bold leading-[140%] mb-1 lg:mb-2">
               Transfer Pembayaran
             </h1>
             <p className="text-white/50 text-[15px] mb-4 lg:mb-8">
@@ -339,7 +335,7 @@ export default function TransferBankPage({
 
             {/* Kartu rekening */}
             <div className="relative rounded-3xl border border-[#7c3aed]/60 bg-gradient-to-br from-[#7c3aed]/25 to-[#4338ca]/10 p-5 lg:p-7 mb-4 lg:mb-6 shadow-[0_0_40px_rgba(124,58,237,0.15)]">
-              <div className="flex items-center gap-4 mb-6">
+              <div className="flex items-center gap-4 mb-4 lg:mb-6">
                 <div className="h-8 w-15 bg-white rounded-md flex items-center justify-center overflow-hidden p-1">
                   <img
                     src={mandiriLogo}
@@ -350,8 +346,8 @@ export default function TransferBankPage({
                 <span className="text-lg font-bold">Bank Mandiri</span>
               </div>
               <p className="text-white/50 text-sm mb-2">No. Rekening</p>
-              <div className="flex items-center justify-between gap-4">
-                <span className="text-[30px] font-bold tracking-wide">
+              <div className="flex items-center justify-between gap-3">
+                <span className="min-w-0 break-all text-2xl lg:text-[30px] font-bold tracking-wide">
                   {bank.accountNumber}
                 </span>
                 <button
@@ -362,7 +358,7 @@ export default function TransferBankPage({
                   {copied ? "Tersalin" : "Salin"}
                 </button>
               </div>
-              <p className="text-white/50 text-sm mt-5 mb-1">Atas Nama</p>
+              <p className="text-white/50 text-sm mt-4 lg:mt-5 mb-1">Atas Nama</p>
               <p className="text-lg font-semibold">{bank.accountName}</p>
             </div>
 
@@ -405,7 +401,7 @@ export default function TransferBankPage({
           </div>
 
           {/* ── KANAN ── */}
-          <div className="space-y-4 lg:space-y-6">
+          <div className="min-w-0 space-y-4 lg:space-y-6">
             {/* Ringkasan */}
             <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-5 lg:p-7">
               <p className="text-xl font-bold mb-5">Ringkasan Pesanan</p>
@@ -549,7 +545,7 @@ export default function TransferBankPage({
 
       {/* CTA nempel bawah — khusus mobile (form). Desktop pakai tombol inline. */}
       {!submitted && (
-        <div className="lg:hidden shrink-0 relative z-20 px-6 pt-4 pb-6 bg-gradient-to-t from-[#0b0a1f] via-[#0b0a1f]/95 to-transparent">
+        <div className="lg:hidden shrink-0 relative z-20 px-4 pt-4 pb-6 bg-gradient-to-t from-[#0b0a1f] via-[#0b0a1f]/95 to-transparent">
           {cta}
         </div>
       )}

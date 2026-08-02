@@ -17,6 +17,8 @@ import { StepBar, StepProgress } from "@/components/layout/StepIndicator";
 import { IconInput, TogglePassword } from "@/components/shared/IconInput";
 import { DateField } from "@/components/shared/DateField";
 import { authApi, regionsApi, trainingSessionsApi } from "@/lib/api";
+import { ID_MONTHS as MONTHS, withBase } from "@/lib/format";
+import { getPasswordRules, isPasswordValid } from "@/lib/password";
 // Dipin ke bad-words 3.x: rilis 4.0.0 (masih `latest` di npm) di-publish tanpa
 // folder `dist/` yang ditunjuk package.json-nya, jadi build gagal me-resolve-nya.
 // v3 mengekspor Filter sebagai default, bukan named export.
@@ -30,7 +32,11 @@ const indonesianBadWords = [
   "ngentot", "ngewe", "memek", "kontol", "peler", "jembut", "bawok", "sange", "bokep", "porno", "bugil", "cipok",
   "lonte", "pelacur", "perek", "sundal", "kimpek", "jablay", "banci",
   "tai", "berak", "telek", "sampah", "jahanam",
-  "kafir", "cina", "cokin", "tiko", "kristen", "islam", "yahudi", "budha", "hindu", "komunis", "pki"
+  // Slur etnis/penghinaan (bukan sekadar penyebutan identitas) tetap diblokir.
+  // Kata identitas/agama netral (cina/islam/kristen/yahudi/budha/hindu/komunis/pki)
+  // SENGAJA tidak dimasukkan: memblokirnya menolak nama & nama sekolah yang sah
+  // (mis. "Sekolah Kristen ...", "SD Islam ..."). Filter SARA jangan nabrak identitas.
+  "kafir", "cokin", "tiko"
 ];
 filter.addWords(...indonesianBadWords);
 
@@ -47,11 +53,6 @@ const sessionDate = (s) => {
   const d = sd?.unix ? new Date(sd.unix * 1000) : raw ? new Date(raw) : null;
   return d && !isNaN(d) ? d : null;
 };
-
-const MONTHS = [
-  "Januari", "Februari", "Maret", "April", "Mei", "Juni",
-  "Juli", "Agustus", "September", "Oktober", "November", "Desember",
-];
 
 // "Kapan" = tahun + bulan pelatihan
 const sessionYear = (s) => {
@@ -148,13 +149,8 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
     .filter((s) => sessionYear(s) === kapanYear)
     .sort((a, b) => String(a.name).localeCompare(String(b.name)));
 
-  const passwordRules = [
-    { label: "Minimal 10 karakter", ok: password.length >= 10 },
-    { label: "Minimal 1 huruf kapital", ok: /[A-Z]/.test(password) },
-    { label: "Minimal 1 angka", ok: /\d/.test(password) },
-    { label: "Minimal 1 karakter spesial", ok: /[^A-Za-z0-9]/.test(password) },
-  ];
-  const allRulesOk = passwordRules.every((r) => r.ok);
+  const passwordRules = getPasswordRules(password);
+  const allRulesOk = isPasswordValid(password);
 
   // Semua field step 1 valid (belum termasuk checkbox persetujuan).
   const step1FieldsValid =
@@ -181,7 +177,9 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
     kapanMonth &&
     lastTrainingSessionId &&
     schoolName;
-  const showPasswordRules = passwordFocused || password.length > 0;
+  // Checklist password hanya tampil saat field password sedang fokus (bukan lagi
+  // setelah blur walau ada isi). onBlur ikon mata dijaga preventDefault → tak kedip.
+  const showPasswordRules = passwordFocused;
 
   const handleNextToData = () => {
     const next = {};
@@ -275,7 +273,7 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
     }
   };
 
-  // Satu definisi CTA per-step; dipakai di footer sticky (mobile) & inline (desktop).
+  // Satu definisi CTA per-step; dipakai di footer sticky (mobile + desktop app-shell).
   const cta =
     step === 1 ? (
       <Button
@@ -301,9 +299,52 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
       </Button>
     );
 
+  // Link "Log In" (step 1 saja). Desktop app-shell menaruhnya di footer sticky
+  // (di bawah CTA, sesuai desain). Mobile tetap pakai versi di dalam konten.
+  const loginLink = (
+    <p className="text-sm text-center text-muted-foreground">
+      Sudah punya akun?{" "}
+      <button
+        onClick={() => onNavigate("login")}
+        className="font-bold text-[#0033EC] underline underline-offset-2 hover:text-[#0033EC]/80 transition-colors"
+      >
+        Log In
+      </button>
+    </p>
+  );
+
+  // Isi footer sticky: CTA + link Log In (step 1). Step 2 tetap render link tapi
+  // `invisible` (tinggi tetap dipesan) supaya tinggi container CTA identik antar-step.
+  const footerNode = (
+    <div className="space-y-4">
+      {cta}
+      <div
+        className={`hidden lg:block ${step !== 1 ? "invisible" : ""}`}
+        aria-hidden={step !== 1}
+      >
+        {loginLink}
+      </div>
+    </div>
+  );
+
+  // Spacer fleksibel desktop app-shell (flex item area scroll). Ngisi ruang kosong:
+  // step padat → nyusut ke min, step pendek (OTP) → mekar sampai max 148.
+  // gapTop = title→body (min 20), gapBottom = body→cta (min 40). Mobile: disembunyiin.
+  const gapTop = (
+    <div aria-hidden className="hidden lg:block flex-1 min-h-[20px] max-h-[148px]" />
+  );
+  // Jarak body→CTA FIXED 40px di step 1 & 2 supaya IDENTIK. Karena footer nempel
+  // bawah, gapBottom fixed bikin button selalu 40px di bawah body. Slack diserap
+  // gapTop; link "Log In" di footer step 1 pun nyolong dari gapTop, bukan sini —
+  // jadi jarak ke button "Lanjutkan" gak kehitung link tsb.
+  const gapBottom = (
+    <div aria-hidden className="hidden lg:block h-10 shrink-0" />
+  );
+
   return (
     <RightPanel
-      stickyFooter={cta}
+      stickyFooter={footerNode}
+      lockDesktop
       progress={step === 1 ? 1 / 3 : 2 / 3}
       topBar={
         <>
@@ -328,10 +369,11 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
     >
       {step === 1 ? (
         <>
-          <h1 className="hidden lg:block mb-6 text-center text-2xl font-bold text-foreground animate-fade-in-up">
+          <h1 className="hidden lg:block text-center text-2xl font-bold text-foreground animate-fade-in-up">
             Data Akun
           </h1>
-          <div className="space-y-6 animate-fade-in-up delay-200">
+          {gapTop}
+          <div className="space-y-6 animate-fade-in-up delay-200 lg:shrink-0">
             {errors.general && (
               <p className="text-sm text-red-500 text-center">
                 {errors.general}
@@ -488,7 +530,7 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
                 >
                   Dengan mendaftar akun, saya menyetujui{" "}
                   <a
-                    href={`${import.meta.env.BASE_URL === "/" ? "" : import.meta.env.BASE_URL}/register/id/TOS`}
+                    href={withBase("/register/id/TOS")}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="underline font-medium text-[#0033EC] hover:text-[#0033EC]/80"
@@ -497,7 +539,7 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
                   </a>{" "}
                   &amp;{" "}
                   <a
-                    href={`${import.meta.env.BASE_URL === "/" ? "" : import.meta.env.BASE_URL}/register/id/privacy`}
+                    href={withBase("/register/id/privacy")}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="underline font-medium text-[#0033EC] hover:text-[#0033EC]/80"
@@ -511,28 +553,24 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
                 <p className="text-xs text-red-500">{errors.agree}</p>
               )}
             </div>
-            {/* Desktop: tombol inline. Mobile: dipindah ke footer sticky. */}
-            <div className="hidden lg:block !mt-10">{cta}</div>
           </div>
+          {gapBottom}
 
-          <div className="mt-6 lg:mt-4 animate-fade-in-up delay-300">
-            <p className="text-sm text-center text-muted-foreground">
-              Sudah punya akun?{" "}
-              <button
-                onClick={() => onNavigate("login")}
-                className="font-bold text-[#0033EC] underline underline-offset-2 hover:text-[#0033EC]/80 transition-colors"
-              >
-                Log In
-              </button>
-            </p>
+          {/* CTA & Log In pindah ke footer sticky (mobile + desktop app-shell).
+              Link ini versi MOBILE saja; desktop menaruhnya di footer. */}
+          <div className="lg:hidden mt-6 animate-fade-in-up delay-300">
+            {loginLink}
           </div>
         </>
       ) : (
         <>
-          <h1 className="hidden lg:block mb-5 text-center text-2xl font-bold text-foreground animate-fade-in-up">
+          <h1 className="hidden lg:block text-center text-2xl font-bold text-foreground animate-fade-in-up">
             Data Pribadi
           </h1>
-          <div className="space-y-4 lg:space-y-6 animate-fade-in-up delay-200">
+          {gapTop}
+          {/* Desktop dirapetin (lg:space-y-4, 16px) supaya step 2 fit tanpa scroll
+              di viewport 1366x768 dengan rules jarak yang ada. Mobile tetap 16px. */}
+          <div className="space-y-4 animate-fade-in-up delay-200 lg:shrink-0">
             {errors.general && (
               <p className="text-sm text-red-500 text-center">
                 {errors.general}
@@ -694,9 +732,8 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
                 <p className="text-xs text-red-500">{errors.schoolName}</p>
               )}
             </div>
-            {/* Desktop: tombol inline. Mobile: dipindah ke footer sticky. */}
-            <div className="hidden lg:block !mt-10">{cta}</div>
           </div>
+          {gapBottom}
         </>
       )}
     </RightPanel>

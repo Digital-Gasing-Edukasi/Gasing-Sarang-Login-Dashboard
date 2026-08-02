@@ -2,7 +2,8 @@
 import { useState, useEffect } from "react";
 import { Loader2, AlertCircle, Users, Video, BookOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { subscriptionApi } from "@/lib/api";
+import { subscriptionApi, tokenStorage } from "@/lib/api";
+import { formatRp, localizePlanName } from "@/lib/format";
 
 import bgDark from "@/assets/dark-mode/Background.png";
 import { Logo } from "@/components/shared/Logo";
@@ -15,15 +16,6 @@ function pickNumber(...vals) {
     if (Number.isFinite(n) && n > 0) return n;
   }
   return null;
-}
-
-// Nama paket bahasa Inggris dari backend → Indonesia.
-// "Yearly"/"Annual" → "Tahunan", "Monthly" → "Bulanan". Nama lain dibiarkan.
-export function localizePlanName(name) {
-  const n = String(name || "").trim();
-  if (/^(yearly|annual|annually)$/i.test(n)) return "Tahunan";
-  if (/^monthly$/i.test(n)) return "Bulanan";
-  return n;
 }
 
 // Transform API package response → UI plan format
@@ -175,11 +167,6 @@ const BENEFITS = [
     ),
   },
 ];
-
-// Format harga ke Rupiah
-function formatRp(n) {
-  return new Intl.NumberFormat("id-ID").format(n);
-}
 
 // ─── PLAN CARD (desktop, tema gelap) ─────────────────────────────────────────
 function PlanCard({ plan, selected, onSelect }) {
@@ -349,6 +336,11 @@ export default function SubscriptionPage({ user, onSignOut, onPaymentSuccess, on
     setError("");
     setLoading(true);
     try {
+      // Amankan token untuk round-trip pembayaran: pindah ke localStorage supaya
+      // selamat walau nanti Midtrans lempar keluar origin & balik di halaman baru
+      // (sessionStorage rapuh). Handoff ke web app baru butuh token ini.
+      tokenStorage.promoteToPersistent();
+
       // ── Transfer manual (Midtrans belum siap) ──────────────────────────────
       // Cuma pindah ke halaman Transfer Bank; payment BELUM dibuat di sini.
       // checkout-manual baru dipanggil saat user menekan "Konfirmasi Pembayaran"
@@ -370,7 +362,7 @@ export default function SubscriptionPage({ user, onSignOut, onPaymentSuccess, on
         className="lg:hidden relative min-h-screen flex flex-col text-white"
         style={{
           background:
-            'radial-gradient(ellipse at 50% 0%, #4c1d95 0%, #2e1065 40%, #1a0b3d 75%, #120833 100%)',
+            "radial-gradient(ellipse at 50% 0%, #4c1d95 0%, #2e1065 40%, #1a0b3d 75%, #120833 100%)",
         }}
       >
         <div className="flex items-center justify-between px-4 pt-4 pb-2 shrink-0">
@@ -387,8 +379,13 @@ export default function SubscriptionPage({ user, onSignOut, onPaymentSuccess, on
               const Icon = b.icon;
               return (
                 <li key={i} className="flex items-start gap-4">
-                  <Icon className="w-6 h-6 text-[#22d3ee] shrink-0 mt-0.5" strokeWidth={2} />
-                  <p className="text-white/70 text-base leading-relaxed">{b.text}</p>
+                  <Icon
+                    className="w-6 h-6 text-[#22d3ee] shrink-0 mt-0.5"
+                    strokeWidth={2}
+                  />
+                  <p className="text-white/70 text-base leading-relaxed">
+                    {b.text}
+                  </p>
                 </li>
               );
             })}
@@ -423,12 +420,19 @@ export default function SubscriptionPage({ user, onSignOut, onPaymentSuccess, on
           <button
             onClick={handleCheckout}
             disabled={loading}
-            className="w-full py-4 rounded-2xl font-bold text-[15px] bg-white text-[#1a0b3d] hover:bg-white/90 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-all"
+            className={cn(
+              "w-full py-4 rounded-full font-bold text-[15px] transition-all duration-200",
+              "bg-gradient-to-r from-[#FFFFFF] to-[#FFFFFF] text-black hover:opacity-90 active:scale-[0.98]",
+              "disabled:opacity-60 disabled:cursor-not-allowed",
+              "flex items-center justify-center gap-2",
+            )}
           >
             {loading ? (
-              <><Loader2 size={18} className="animate-spin" /> Memproses...</>
+              <>
+                <Loader2 size={18} className="animate-spin" /> Memproses...
+              </>
             ) : (
-              'Mulai Berlangganan'
+              "Mulai Berlangganan"
             )}
           </button>
         </div>
@@ -464,8 +468,13 @@ export default function SubscriptionPage({ user, onSignOut, onPaymentSuccess, on
                   const Icon = b.icon;
                   return (
                     <li key={i} className="flex items-start gap-4">
-                      <Icon className="w-6 h-6 text-[#22d3ee] shrink-0 mt-0.5" strokeWidth={2} />
-                      <p className="text-white/70 text-base leading-relaxed">{b.text}</p>
+                      <Icon
+                        className="w-6 h-6 text-[#22d3ee] shrink-0 mt-0.5"
+                        strokeWidth={2}
+                      />
+                      <p className="text-white/70 text-base leading-relaxed">
+                        {b.text}
+                      </p>
                     </li>
                   );
                 })}
@@ -510,12 +519,13 @@ export default function SubscriptionPage({ user, onSignOut, onPaymentSuccess, on
                     "w-full py-4 rounded-full font-bold text-[#1a0b3d] text-base transition-all duration-200",
                     "bg-white hover:bg-white/90 active:scale-[0.98]",
                     "disabled:opacity-60 disabled:cursor-not-allowed",
-                    "flex items-center justify-center gap-2 shadow-sm"
+                    "flex items-center justify-center gap-2 shadow-sm",
                   )}
                 >
                   {loading ? (
                     <>
-                      <Loader2 size={18} className="animate-spin" /> Memproses...
+                      <Loader2 size={18} className="animate-spin" />{" "}
+                      Memproses...
                     </>
                   ) : (
                     "Mulai Berlangganan"

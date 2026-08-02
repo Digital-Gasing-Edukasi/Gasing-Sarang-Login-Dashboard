@@ -4,11 +4,12 @@ import { AuthDarkLayout, DarkInput, DarkTogglePassword, DarkPrimaryButton } from
 import { SuccessToast }              from '@/components/shared/SuccessToast'
 import { cn }      from '@/lib/utils'
 import { authApi } from '@/lib/api'
+import { getPasswordRules, isPasswordValid } from '@/lib/password'
 import { Logo } from '@/components/shared/Logo'
 
 
 // Input password bertema gelap khusus layar mobile.
-function DarkPwdInput({ value, onChange, placeholder, show, onToggle, error }) {
+function DarkPwdInput({ value, onChange, placeholder, show, onToggle, error, onFocus, onBlur }) {
   return (
     <div className="relative">
       <Lock size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40" />
@@ -16,6 +17,8 @@ function DarkPwdInput({ value, onChange, placeholder, show, onToggle, error }) {
         type={show ? 'text' : 'password'}
         value={value}
         onChange={onChange}
+        onFocus={onFocus}
+        onBlur={onBlur}
         placeholder={placeholder}
         className={cn(
           'w-full rounded-full bg-white/[0.06] border pl-12 pr-12 py-3.5 text-[15px] text-white placeholder:text-white/30 outline-none transition-colors focus:border-[#a78bfa]/70 focus:bg-white/[0.09]',
@@ -24,6 +27,7 @@ function DarkPwdInput({ value, onChange, placeholder, show, onToggle, error }) {
       />
       <button
         type="button"
+        onMouseDown={(e) => e.preventDefault()}
         onClick={onToggle}
         className="absolute right-4 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/70 transition-colors"
       >
@@ -41,6 +45,7 @@ export function ResetPasswordPage({ token, email, onNavigate }) {
   const [loading, setLoading]         = useState(false)
   const [errors, setErrors]           = useState({})
   const [success, setSuccess]         = useState(false)
+  const [passwordFocused, setPasswordFocused] = useState(false)
 
   const clearFieldError = (field) =>
     setErrors(prev => ({ ...prev, [field]: '' }))
@@ -53,13 +58,8 @@ export function ResetPasswordPage({ token, email, onNavigate }) {
     return () => clearTimeout(t)
   }, [success, redirectSecs])
 
-  const passwordRules = [
-    { label: 'Minimal 10 karakter', ok: password.length >= 10 },
-    { label: 'Minimal 1 huruf kapital', ok: /[A-Z]/.test(password) },
-    { label: 'Minimal 1 angka', ok: /\d/.test(password) },
-    { label: 'Minimal 1 karakter spesial', ok: /[^A-Za-z0-9]/.test(password) },
-  ]
-  const allRulesOk = passwordRules.every(r => r.ok)
+  const passwordRules = getPasswordRules(password)
+  const allRulesOk = isPasswordValid(password)
 
   const handleReset = async () => {
     const next = {}
@@ -114,14 +114,16 @@ export function ResetPasswordPage({ token, email, onNavigate }) {
                   show={showPass}
                   onToggle={() => setShowPass(v => !v)}
                   error={errors.password}
+                  onFocus={() => setPasswordFocused(true)}
+                  onBlur={() => setPasswordFocused(false)}
                   onChange={e => { setPassword(e.target.value); clearFieldError('password') }}
                 />
                 {errors.password && <p className="text-xs text-red-300">{errors.password}</p>}
               </div>
 
-              {/* Ketentuan password — muncul saat ngetik password, sembunyi begitu
-                  pindah isi konfirmasi (reference state-2). */}
-              {password.length > 0 && !confirm && (
+              {/* Ketentuan password — hanya saat field password fokus (blur begitu
+                  pindah ke konfirmasi → checklist ikut hilang). */}
+              {passwordFocused && (
                 <ul className="space-y-2 py-1">
                   {passwordRules.map(rule => (
                     <li
@@ -212,11 +214,13 @@ export function ResetPasswordPage({ token, email, onNavigate }) {
                   <label className="text-[14px] font-semibold text-white/85">Password Baru</label>
                   <DarkInput icon={Lock} type={showPass ? 'text' : 'password'}
                     placeholder="Masukkan password baru" value={password} error={errors.password}
+                    onFocus={() => setPasswordFocused(true)}
+                    onBlur={() => setPasswordFocused(false)}
                     onChange={e => { setPassword(e.target.value); clearFieldError('password') }}
                     iconRight={<DarkTogglePassword show={showPass} onToggle={() => setShowPass(v => !v)} />} />
                   {errors.password && <p className="text-xs text-red-300">{errors.password}</p>}
 
-                  {password.length > 0 && (
+                  {passwordFocused && (
                     <ul className="space-y-2 pt-2">
                       {passwordRules.map(rule => (
                         <li

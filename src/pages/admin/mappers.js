@@ -1,4 +1,5 @@
 import { canonicalRole } from './roleOptions'
+import { ID_MONTHS, fmtRupiah, localizePlanName, fmtTimeAmPm } from '@/lib/format'
 
 // Username user (untuk kolom identitas di semua tabel admin).
 // JANGAN pernah menurunkan dari email (mis. email.split('@')[0]): itu MENGARANG
@@ -70,7 +71,6 @@ export function fmtDate(iso) {
 // 1-12 + firstTrainingYear). BUKAN startDate sesi pelatihan (itu dibuat admin).
 // Dipakai kolom "Alumni Pelatihan / Bulan & Tahun" di tabel Verifikasi Akun (Pending),
 // karena di tahap WAITING user belum di-assign ke sesi mana pun.
-const ID_MONTHS = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember']
 function fmtTrainingPeriod(month, year) {
   const m = Number(month)
   const y = Number(year)
@@ -91,25 +91,25 @@ function dateFieldMs(raw) {
   return isNaN(d) ? null : d.getTime()
 }
 
-// Rule Last Updated: kalau di-update hari ini → tampilkan jam; selain itu → tanggal.
-// Balik { text, ms } — ms buat sorting.
-function fmtLastUpdated(raw) {
+// Format Last Updated: bila `withinWindow(ms)` true → tampilkan jam (fmtTimeAmPm),
+// selain itu → tanggal. Balik { text, ms } — ms buat sorting.
+function fmtUpdated(raw, withinWindow) {
   const ms = dateFieldMs(raw)
   if (!ms) return { text: '-', ms: 0 }
+  return { text: withinWindow(ms) ? fmtTimeAmPm(ms) : fmtDate(ms), ms }
+}
+
+function isSameDay(ms) {
   const d = new Date(ms)
   const now = new Date()
-  const today =
-    d.getFullYear() === now.getFullYear() &&
+  return d.getFullYear() === now.getFullYear() &&
     d.getMonth() === now.getMonth() &&
     d.getDate() === now.getDate()
-  if (today) {
-    let h = d.getHours()
-    const ampm = h >= 12 ? 'PM' : 'AM'
-    h = h % 12 || 12
-    const mm = String(d.getMinutes()).padStart(2, '0')
-    return { text: `${h}:${mm} ${ampm}`, ms }
-  }
-  return { text: fmtDate(ms), ms }
+}
+
+// Rule: di-update hari ini → jam; selain itu → tanggal.
+function fmtLastUpdated(raw) {
+  return fmtUpdated(raw, isSameDay)
 }
 
 // Training session (GET /training-sessions) → row tabel Riwayat Pelatihan.
@@ -173,6 +173,29 @@ function parseVerifiedStatus(v) {
   return 'Pending'
 }
 
+// "Alumni Pelatihan" = sesi pelatihan pertama user (firstTrainingSession, embed
+// region { full_name }). Sama persis dipakai mapToVerifikasi/Pembayaran/Manajemen:
+//   lts          = record sesi (fallback lastTrainingSession/trainingSession)
+//   alumniNama   = nama sesi
+//   alumniDaerah = region.full_name → nama sesi → (opsional) regionFallback
+//   alumniTanggal= startDate (fallback endDate) diformat
+//   riwayatCount = jumlah histori; fallback ada/tidaknya sesi
+// regionFallback dipakai tabel Verifikasi Akun (region pelatihan user) saat sesi
+// belum meng-embed region.
+function deriveAlumni(u, { regionFallback } = {}) {
+  const lts = u.firstTrainingSession || u.lastTrainingSession || u.trainingSession || {}
+  const ltsStartMs = dateFieldMs(lts.startDate) || dateFieldMs(lts.endDate)
+  const hasRiwayat = !!(lts.id || lts.name)
+  const alumniNama = lts.name || '-'
+  const alumniDaerah = lts.region?.full_name || lts.name ||
+    (regionFallback && regionFallback !== '-' ? regionFallback : '-')
+  const alumniTanggal = ltsStartMs ? fmtDate(ltsStartMs) : '-'
+  const riwayatCount =
+    u.trainingHistoriesCount ?? u.trainingHistoryCount ?? u._count?.trainingHistories ??
+    (Array.isArray(u.trainingHistories) ? u.trainingHistories.length : (hasRiwayat ? 1 : 0))
+  return { lts, ltsStartMs, hasRiwayat, alumniNama, alumniDaerah, alumniTanggal, riwayatCount }
+}
+
 export function mapToVerifikasi(u, regions = [], discourseGroups = []) {
   // Nama kanonik field region pelatihan = firstTrainingRegionId (lihat SignUpPage).
   // Tetap terima trainingRegionId lama sebagai fallback agar tidak breaking.
@@ -201,17 +224,9 @@ export function mapToVerifikasi(u, regions = [], discourseGroups = []) {
   //   Daerah  = fts.region.full_name (mis. "Kabupaten Toba, Sumatera Utara")
   //   Tanggal = fts.startDate
   // Riwayat Pelatihan = ada/tidaknya sesi (punya firstTrainingSession → true).
-  const lts = u.firstTrainingSession || u.lastTrainingSession || u.trainingSession || {}
-  // Kolom = "Tanggal Mulai" → pakai startDate; endDate cuma cadangan.
-  const ltsStartMs    = dateFieldMs(lts.startDate) || dateFieldMs(lts.endDate)
-  const hasRiwayat    = !!(lts.id || lts.name)
-  const alumniNama    = lts.name || '-'
-  // Daerah: region ter-embed (full_name) → nama sesi → region pelatihan pertama user.
-  const alumniDaerah  = lts.region?.full_name || lts.name || (regionName !== '-' ? regionName : '-')
-  const alumniTanggal = ltsStartMs ? fmtDate(ltsStartMs) : '-'
-  const riwayatCount =
-    u.trainingHistoriesCount ?? u.trainingHistoryCount ?? u._count?.trainingHistories ??
-    (Array.isArray(u.trainingHistories) ? u.trainingHistories.length : (hasRiwayat ? 1 : 0))
+  // Daerah alumni untuk tabel ini punya fallback region pelatihan pertama user.
+  const { lts, hasRiwayat, alumniNama, alumniDaerah, alumniTanggal, riwayatCount } =
+    deriveAlumni(u, { regionFallback: regionName })
   const voucherCode = u.lastVoucher?.code || u.activeVoucher?.code || u.voucher?.code || u.voucherCode || ''
 
   // Fallback modal "Lihat Detail" (sama seperti mapToManajemen). Tabel training-history
@@ -302,15 +317,6 @@ export function isManajemenEligible(u) {
          vs === 2 || vs === 'revise'
 }
 
-// Nama paket bahasa Inggris backend → Indonesia (fallback saat parsePlan gagal
-// menurunkan label dari durasi). "Yearly"/"Annual" → "Tahunan", "Monthly" → "Bulanan".
-function localizePlanName(name) {
-  const n = String(name || '').trim()
-  if (/^(yearly|annual|annually)$/i.test(n)) return 'Tahunan'
-  if (/^monthly$/i.test(n)) return 'Bulanan'
-  return n || '-'
-}
-
 // Jenis Paket → 'Tahunan' | 'Bulanan' | '-'. Diturunkan dari durasi paket.
 // (package: { duration, durationUnit } — lihat admin/packages Create Package.)
 function parsePlan(sub) {
@@ -337,18 +343,8 @@ function planDurationDays(sub, planLabel) {
 }
 
 // Latest Update: <= 24 jam → jam ("9:20 AM"); > 24 jam → tanggal ("28 Mei 2026").
-// Balik { text, ms } — ms untuk sorting.
 function fmtLastUpdated24h(raw) {
-  const ms = dateFieldMs(raw)
-  if (!ms) return { text: '-', ms: 0 }
-  if (Date.now() - ms <= 24 * 60 * 60 * 1000) {
-    const d = new Date(ms)
-    let h = d.getHours()
-    const ampm = h >= 12 ? 'PM' : 'AM'
-    h = h % 12 || 12
-    return { text: `${h}:${String(d.getMinutes()).padStart(2, '0')} ${ampm}`, ms }
-  }
-  return { text: fmtDate(ms), ms }
+  return fmtUpdated(raw, (ms) => Date.now() - ms <= 24 * 60 * 60 * 1000)
 }
 
 // Nama role (discourse group). Prioritas embedded; fallback resolve id → daftar groups.
@@ -385,13 +381,6 @@ function resolveRegionLabel(regionObj, regionId, regions = []) {
   return [regencyName, provinceName].filter(Boolean).join(', ') || '-'
 }
 
-// Format nominal → "Rp 500.000". Angka non-valid → "-".
-function fmtRupiah(raw) {
-  const n = Number(raw)
-  if (!raw || isNaN(n)) return '-'
-  return 'Rp ' + n.toLocaleString('id-ID')
-}
-
 // Payment manual transfer (GET /admin/payments/manual-transfer/list) → row tabel
 // Verifikasi Pembayaran. Diasumsikan record payment membawa `user` ter-embed +
 // field bukti transfer (bank, amount, receipt). Defensif: kalau yang datang
@@ -414,18 +403,8 @@ export function mapToPembayaran(p, regions = [], discourseGroups = []) {
   const voucher = u.activeVoucher?.code || u.voucher?.code || u.voucherCode || pay.voucherCode || ''
   const lokasi = resolveRegionLabel(u.region || u.regency, u.regionId, regions)
 
-  // Alumni Pelatihan dari firstTrainingSession (embed region { full_name }):
-  // Daerah = region.full_name → nama sesi; Tanggal = startDate.
-  const lts = u.firstTrainingSession || u.lastTrainingSession || u.trainingSession || {}
-  const ltsStartMs    = dateFieldMs(lts.startDate) || dateFieldMs(lts.endDate)
-  const hasRiwayat    = !!(lts.id || lts.name)
-  const alumniNama    = lts.name || '-'
-  const alumniDaerah  = lts.region?.full_name || lts.name || '-'
-  const alumniTanggal = ltsStartMs ? fmtDate(ltsStartMs) : '-'
-
-  const riwayatCount =
-    u.trainingHistoriesCount ?? u.trainingHistoryCount ?? u._count?.trainingHistories ??
-    (Array.isArray(u.trainingHistories) ? u.trainingHistories.length : (hasRiwayat ? 1 : 0))
+  // Alumni Pelatihan dari firstTrainingSession (embed region { full_name }).
+  const { alumniNama, alumniDaerah, alumniTanggal, riwayatCount } = deriveAlumni(u)
 
   // Paket: prioritas record payment (pay.package) — saat ditolak/pending user
   // belum punya subscription aktif, jadi sub bisa null. Nama paket ("Yearly"/
@@ -433,7 +412,7 @@ export function mapToPembayaran(p, regions = [], discourseGroups = []) {
   const pkg = pay.package || sub?.package || {}
   const planLabel = parsePlan(sub) !== '-'
     ? parsePlan(sub)
-    : localizePlanName(pkg.name)
+    : (localizePlanName(pkg.name) || '-')
 
   // Tgl. Berakhir: subscription belum tentu punya endDate saat payment masih
   // pending/ditolak → hitung manual = tgl payment dibuat + durasi paket
@@ -446,12 +425,10 @@ export function mapToPembayaran(p, regions = [], discourseGroups = []) {
     ? payStartMs + durDays * 86400000
     : dateFieldMs(subEnd)
 
-  // Last Verified: waktu payment diverifikasi (approve/reject), BUKAN updatedAt umum.
-  // Menunggu (belum diverifikasi) → semua field null → '-'. Ditolak → pakai rejectedAt.
-  // TODO(be): nama field verifikasi belum dikonfirmasi backend (manual-transfer).
-  const lu = fmtLastUpdated24h(
-    pay.verifiedAt || pay.reviewedAt || pay.approvedAt || pay.rejectedAt || pay.verifiedDate
-  )
+  // Submitted Date: waktu user upload bukti bayar (receiptFile.createdAt).
+  // Format sama dengan Last Updated (fmtLastUpdated24h: <24 jam → jam AM/PM,
+  // selain itu → tgl "31 Jul 2026").
+  const sd = fmtLastUpdated24h(pay.receiptFile?.createdAt)
 
   // Detail bukti transfer (dipakai KonfirmasiPembayaranModal).
   const transferMs = dateFieldMs(pay.transferDate || pay.paidAt || pay.createdAt)
@@ -464,7 +441,7 @@ export function mapToPembayaran(p, regions = [], discourseGroups = []) {
     email:    u.email || '-',
     isNew,
     statusMember,
-    plan:     planLabel !== '-' ? planLabel : localizePlanName(pkg.name),
+    plan:     planLabel !== '-' ? planLabel : (localizePlanName(pkg.name) || '-'),
     endDate:  endMs ? fmtDate(endMs) : '-',
     voucher,
     role:     resolveRole(u, discourseGroups),
@@ -475,8 +452,8 @@ export function mapToPembayaran(p, regions = [], discourseGroups = []) {
     alumniDaerah,
     alumniTanggal,
     school:    u.schoolName || '-',
-    lastVerified:   lu.text,
-    lastVerifiedMs: lu.ms,
+    submittedDate:  sd.text,
+    submittedMs:    sd.ms,
     // Waktu user submit request verifikasi pembayaran (dipakai kolom Reminded Time
     // = countdown 24 jam). payStartMs = createdAt payment (fallback transferDate/paidAt).
     createdMs:      payStartMs,
@@ -486,7 +463,7 @@ export function mapToPembayaran(p, regions = [], discourseGroups = []) {
       bank:         pay.bankName || pay.senderBank || pay.bank || '-',
       transferDate: transferMs ? fmtDate(transferMs) : '-',
       amount:       fmtRupiah(pay.amount ?? pay.total ?? pay.grossAmount),
-      packageName:  localizePlanName(pkg.name || pay.packageName),
+      packageName:  localizePlanName(pkg.name || pay.packageName) || '-',
       receiptUrl:   pay.receiptUrl || pay.receipt?.url || pay.proofUrl || pay.proof?.url || '',
     },
   }
@@ -552,17 +529,7 @@ export function mapToManajemen(u, regions = [], discourseGroups = []) {
 
   // Alumni Pelatihan = sesi yang diikuti user (firstTrainingSession, embed region
   // { full_name }): Daerah = region.full_name → nama sesi; Tanggal = startDate.
-  const lts = u.firstTrainingSession || u.lastTrainingSession || u.trainingSession || {}
-  const ltsStartMs    = dateFieldMs(lts.startDate) || dateFieldMs(lts.endDate)
-  const hasRiwayat    = !!(lts.id || lts.name)
-  const alumniNama    = lts.name || '-'
-  const alumniDaerah  = lts.region?.full_name || lts.name || '-'
-  const alumniTanggal = ltsStartMs ? fmtDate(ltsStartMs) : '-'
-
-  // Riwayat Pelatihan = jumlah histori; fallback ke ada/tidaknya lastTrainingSession.
-  const riwayatCount =
-    u.trainingHistoriesCount ?? u.trainingHistoryCount ?? u._count?.trainingHistories ??
-    (Array.isArray(u.trainingHistories) ? u.trainingHistories.length : (hasRiwayat ? 1 : 0))
+  const { lts, hasRiwayat, alumniNama, alumniDaerah, alumniTanggal, riwayatCount } = deriveAlumni(u)
 
   // List detail untuk modal "Riwayat Pelatihan" (dibuka dari kolom → Lihat Detail).
   const riwayatList = buildRiwayatList(u, regions, { lts, hasRiwayat, alumniNama, alumniDaerah, alumniTanggal })

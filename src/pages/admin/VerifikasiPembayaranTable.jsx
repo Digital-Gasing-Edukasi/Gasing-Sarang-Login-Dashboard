@@ -36,12 +36,12 @@ const STATUS_CLASSES = {
 const DAY_MS = 24 * 60 * 60 * 1000
 
 // Reminded Time = countdown 24 jam sejak user submit request (createdMs).
-// nowMs - createdMs >= 24 jam  → '-' (lewat batas).
+// nowMs - createdMs >= 24 jam  → '00:00:00' (timer habis).
 // selain itu → sisa waktu (24 jam - berlalu) format HH:MM:SS.
 function fmtReminded(createdMs, nowMs) {
   if (!createdMs) return '-'
   const remaining = DAY_MS - (nowMs - createdMs)
-  if (remaining <= 0) return '-'
+  if (remaining <= 0) return '00:00:00'
   const totalSec = Math.floor(remaining / 1000)
   const h = Math.floor(totalSec / 3600)
   const m = Math.floor((totalSec % 3600) / 60)
@@ -77,7 +77,7 @@ export function VerifikasiPembayaranTable({
               <FreezeBlurLeft />
             </th>
             <th className="px-4 py-4 font-medium align-bottom">Email</th>
-            <th className="px-4 py-4 font-medium align-bottom">Reminded Time</th>
+            <th className="px-4 py-4 font-medium align-bottom">Deadline</th>
             <th className="px-4 py-4 font-medium align-bottom">Status Member</th>
             <th className="px-4 py-4 font-medium align-bottom">
               <SortableHeader label="Jenis Paket" sortKey="plan" sortConfig={sortConfig} onSort={onSort} />
@@ -111,7 +111,7 @@ export function VerifikasiPembayaranTable({
               <SortableHeader label="Asal Sekolah" sortKey="school" sortConfig={sortConfig} onSort={onSort} />
             </th>
             <th className="px-4 py-4 font-medium align-bottom">
-              <SortableHeader label="Last Verified" sortKey="lastVerified" sortConfig={sortConfig} onSort={onSort} />
+              <SortableHeader label="Submitted Date" sortKey="submittedDate" sortConfig={sortConfig} onSort={onSort} />
             </th>
             <th className="px-4 py-4 font-medium text-center sticky right-0 z-30 bg-[#0A1128] align-bottom relative">Action<FreezeBlurRight /></th>
           </tr>
@@ -172,7 +172,7 @@ export function VerifikasiPembayaranTable({
               <td className="px-4 py-4 text-[#0A1128] font-medium whitespace-normal break-words max-w-[200px] leading-snug align-top">{user.alumniDaerah || '-'}</td>
               <td className="px-4 py-4 text-[#0A1128] font-medium">{user.alumniTanggal || '-'}</td>
               <td className="px-4 py-4 text-[#0A1128] font-medium whitespace-normal break-words max-w-[200px] leading-snug align-top">{user.school || '-'}</td>
-              <td className="px-4 py-4 text-[#0A1128] font-medium">{user.lastVerified || '-'}</td>
+              <td className="px-4 py-4 text-[#0A1128] font-medium">{user.submittedDate || '-'}</td>
               <td className="px-4 py-4 text-center sticky right-0 z-10 bg-white group-hover:bg-[#F9FAFB] transition-colors relative">
                 <FreezeBlurRight />
                 {subTab === 'menunggu' ? (

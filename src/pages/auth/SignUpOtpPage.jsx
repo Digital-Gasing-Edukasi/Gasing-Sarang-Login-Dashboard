@@ -64,16 +64,55 @@ export function SignUpOtpPage({ onNavigate, otpToken, email, onOtpToken }) {
     }
   }
 
-  // Satu definisi CTA; dipakai di footer sticky (mobile) & inline (desktop).
+  // Satu definisi CTA; dipakai di footer sticky (mobile + desktop app-shell).
   const cta = (
     <Button className="w-full rounded-full" disabled={loading || otpCode.length !== 6} onClick={handleVerify}>
       {loading ? <><Loader2 size={16} className="animate-spin" /> Memverifikasi...</> : 'Konfirmasi'}
     </Button>
   )
 
+  // Blok "Kirim ulang kode" / countdown. Desktop app-shell menaruhnya di footer
+  // (di bawah CTA); mobile tetap pakai versi di dalam konten.
+  const resendBlock = (
+    <div className="text-center">
+      {expired
+        ? <p className="text-sm text-muted-foreground">
+            {/* Prefix "Tidak menerima kode?" hanya desktop; mobile tombol saja. */}
+            <span className="hidden lg:inline">Tidak menerima kode? </span>
+            <button
+              onClick={handleResend}
+              disabled={resending}
+              className="align-middle text-[#0033EC] font-medium underline underline-offset-2 disabled:opacity-50 inline-flex items-center gap-1.5"
+            >
+              {resending ? <><Loader2 size={14} className="animate-spin" /> Mengirim ulang...</> : 'Kirim ulang kode'}
+            </button>
+          </p>
+        : <p className="text-sm text-muted-foreground">Tidak menerima kode? <span className="font-bold text-[#EF4444]">{display}</span></p>
+      }
+    </div>
+  )
+
+  // Isi footer sticky: CTA + (desktop) blok kirim-ulang di bawahnya.
+  const footerNode = (
+    <div className="space-y-4">
+      {cta}
+      <div className="hidden lg:block">{resendBlock}</div>
+    </div>
+  )
+
+  // Spacer fleksibel desktop app-shell: konten OTP pendek → mekar sampai max 148.
+  // gapTop = title→body (min 20), gapBottom = body→cta (min 40). Mobile disembunyiin.
+  const gapTop = (
+    <div aria-hidden className="hidden lg:block flex-1 min-h-[20px] max-h-[148px]" />
+  )
+  const gapBottom = (
+    <div aria-hidden className="hidden lg:block flex-1 min-h-[40px] max-h-[148px]" />
+  )
+
   return (
     <RightPanel
-      stickyFooter={cta}
+      stickyFooter={footerNode}
+      lockDesktop
       progress={1}
       topBar={
         <>
@@ -91,9 +130,11 @@ export function SignUpOtpPage({ onNavigate, otpToken, email, onOtpToken }) {
       <StepHeader>
         <h1 className="hidden lg:block mb-5 text-2xl font-bold text-foreground">Verifikasi OTP</h1>
         <p className="text-sm text-muted-foreground mb-1">Masukkan kode yang telah kami kirimkan ke email</p>
-        <p className="text-sm font-semibold text-foreground mb-8">{maskedEmail}</p>
+        {/* Desktop: jarak title→body diambil alih spacer, jadi mb dinolkan. */}
+        <p className="text-sm font-semibold text-foreground mb-8 lg:mb-0">{maskedEmail}</p>
       </StepHeader>
-      <div className="animate-fade-in-up delay-200 space-y-6">
+      {gapTop}
+      <div className="animate-fade-in-up delay-200 space-y-6 lg:shrink-0">
         {error && (
           <p className="text-sm text-center font-medium text-[#EF4444] animate-fade-in" role="alert" aria-live="assertive">
             {error}
@@ -102,25 +143,11 @@ export function SignUpOtpPage({ onNavigate, otpToken, email, onOtpToken }) {
         {info && <p className="text-sm text-center text-green-600">{info}</p>}
         {/* error di OtpInput → outline 6 kotak jadi merah, reset begitu user mengetik lagi */}
         <OtpInput disabled={loading} error={!!error} onChange={code => { setOtpCode(code); setError('') }} />
-        {/* Desktop: tombol inline. Mobile: dipindah ke footer sticky. */}
-        <div className="hidden lg:block">{cta}</div>
-        <div className="text-center">
-          {expired
-            ? <p className="text-sm text-muted-foreground">
-                {/* Prefix "Tidak menerima kode?" hanya desktop; mobile tombol saja. */}
-                <span className="hidden lg:inline">Tidak menerima kode? </span>
-                <button
-                  onClick={handleResend}
-                  disabled={resending}
-                  className="align-middle text-[#0033EC] font-medium underline underline-offset-2 disabled:opacity-50 inline-flex items-center gap-1.5"
-                >
-                  {resending ? <><Loader2 size={14} className="animate-spin" /> Mengirim ulang...</> : 'Kirim ulang kode'}
-                </button>
-              </p>
-            : <p className="text-sm text-muted-foreground">Tidak menerima kode? <span className="font-bold text-[#EF4444]">{display}</span></p>
-          }
-        </div>
+        {/* CTA & kirim-ulang pindah ke footer sticky (mobile + desktop app-shell).
+            Blok ini versi MOBILE saja; desktop menaruhnya di footer. */}
+        <div className="lg:hidden">{resendBlock}</div>
       </div>
+      {gapBottom}
     </RightPanel>
   )
 }

@@ -82,6 +82,8 @@ docs/
 | `lib/loginGate.js` | `evaluateLoginGate` — blok login: suspended > pending > expired | TEST_SCENARIOS §2 |
 | `lib/fixLink.js` | Encode/decode payload perbaikan data (legacy `?fix=`) | FIX_DATA_FLOW |
 | `lib/utils.js` | `cn()` — gabung className (`clsx` saja, **bukan** tailwind-merge) | [PILL_SHAPE_INPUTS.md §5](PILL_SHAPE_INPUTS.md) |
+| `lib/format.js` | Format bersama: `formatRp`/`fmtRupiah`, `localizePlanName`, `fmtTimeAmPm`, `ID_MONTHS`, `withBase`, `downloadCsv` | — |
+| `lib/password.js` | Aturan password bersama: `getPasswordRules(pw)`, `isPasswordValid(pw)` — dipakai SignUp & ResetPassword | — |
 | `pages/auth/` | 11 halaman: login, signup, OTP, forgot/reset, revise, SSO, choice, confirm-email-change | README §8.1 |
 | `pages/legal/` | TermsPage, PrivacyPage, LegalLayout | LEGAL_PAGES |
 | `pages/admin/` | 31 file: tabel, modal, mapper, helper scroll | README §8.2 |
@@ -154,6 +156,7 @@ Baca [`.env.example`](../.env.example) sebelum ngisi environment.
 | Kode mati di `AccountActionModals.jsx` | `pages/admin/` | `SetujuiAkunModal` & `TangguhkanAkunModal` diekspor tapi ga dipakai — versi aktif ada di `SetujuiAkunModal.jsx` & `SuspendModal.jsx` |
 | `authApi.submitCorrection` deprecated | `lib/api.js` | Diganti `getRevise`/`submitRevise`, hapus setelah migrasi kelar — ADR-0003 |
 | `bad-words` dipin di v3 | `package.json` | Jangan upgrade ke 4.x — tarball tanpa `dist/`, build mati |
+| Filter SARA tanpa term identitas | `SignUpPage.jsx` | Daftar kata sengaja tak memuat identitas/agama netral (cina/islam/kristen/dst) — tolak nama & sekolah sah. Cuma slur asli. Jangan tambah balik |
 | `VITE_DISCOURSE_URL` tidak dibaca kode | README, DEPLOYMENT_GUIDE | Disebut di dokumen tapi ga ada di `src/` — redirect datang dari `redirectUrl` response backend |
 | Belum ada test runner | — | `TEST_SCENARIOS.md` masih manual, belum ada Vitest/RTL |
 | Isi halaman legal masih placeholder | `pages/legal/TermsPage.jsx`, `PrivacyPage.jsx` | Lorem ipsum — ganti teks legal final sebelum produksi, [LEGAL_PAGES.md](LEGAL_PAGES.md) |

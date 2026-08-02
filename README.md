@@ -88,6 +88,8 @@ Login-Dashboard/
     │   ├── loginGate.js    ← evaluateLoginGate — blok login: suspended > pending > expired
     │   ├── fixLink.js      ← encode/decode payload revisi data (legacy ?fix=)
     │   ├── env.js          ← helper environment: isStaging(), isProduction()
+    │   ├── format.js       ← format bersama: formatRp, localizePlanName, fmtTimeAmPm, ID_MONTHS, withBase, downloadCsv
+    │   ├── password.js     ← aturan password bersama: getPasswordRules, isPasswordValid
     │   └── utils.js        ← helper cn()
     ├── hooks/useCountdown.js       ← countdown timer (OTP & resend)
     ├── context/AuthContext.jsx     ← TIDAK DIPAKAI (App.jsx kelola auth sendiri)
@@ -503,6 +505,8 @@ Logika non-UI dipusatkan di sini supaya `App.jsx` dan komponen tetap tipis.
 | `loginGate.js` | `evaluateLoginGate(profile)`                                           | Tentukan apakah login diblokir. Prioritas: **suspended > pending > expired**. Return `null` kalau lolos |
 | `fixLink.js`   | `FIELD_DEFS`, `FIELD_LABEL`, `encodeFixPayload()`, `decodeFixPayload()`, `buildFixUrl()`, `defaultFieldMessage()` | Payload & URL alur perbaikan data — lihat [docs/FIX_DATA_FLOW.md](docs/FIX_DATA_FLOW.md) |
 | `utils.js`     | `cn()`                                                                 | Gabung className — `clsx` saja (**bukan** tailwind-merge; class `rounded-*` bisa tabrakan, lihat [docs/PILL_SHAPE_INPUTS.md §5](docs/PILL_SHAPE_INPUTS.md)) |
+| `format.js`    | `formatRp`, `fmtRupiah`, `localizePlanName`, `fmtTimeAmPm`, `ID_MONTHS`, `withBase`, `downloadCsv` | Util format bersama — dulu di-copy di banyak file. `downloadCsv` selalu `revokeObjectURL` (cegah leak). `withBase` prepend `BASE_URL` (dipakai redirect di `api.js` & link legal di SignUp). Dipakai `mappers.js`, Subscription, TransferBank, SignUp, AdminDashboard |
+| `password.js`  | `getPasswordRules(pw)`, `isPasswordValid(pw)` | Aturan password (10 char, 1 kapital, 1 angka, 1 spesial) — 1 sumber, dipakai SignUp & ResetPassword. Terpisah dari `format.js` (validasi ≠ format tampilan). Checklist di UI hanya tampil saat field password fokus |
 
 ---
 

@@ -18,7 +18,9 @@ export function IconInput({ icon: Icon, iconRight, className, ...props }) {
 
 export function TogglePassword({ show, onToggle }) {
   return (
-    <button type="button" onClick={onToggle}
+    // onMouseDown preventDefault: klik ikon mata tidak mencuri fokus dari input,
+    // supaya checklist password yang bergantung fokus tidak kedip hilang.
+    <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={onToggle}
       className="absolute right-3 z-10 text-muted-foreground hover:text-foreground transition-colors">
       {show ? <Eye size={16} /> : <EyeOff size={16} />}
     </button>

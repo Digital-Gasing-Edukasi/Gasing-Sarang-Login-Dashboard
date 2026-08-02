@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import { Search } from 'lucide-react'
 import { adminApi, discourseApi, regionsApi, appConfigApi, trainingSessionsApi, trainingHistoriesApi, queueApi } from '@/lib/api'
 import { mapToVerifikasi, mapToManajemen, mapToRiwayat, mapToPembayaran, fmtDate, computeIsNew, isManajemenEligible, VERIFIED_STATUS } from './admin/mappers'
+import { downloadCsv, fmtTimeAmPm } from '@/lib/format'
 import { canonicalRole } from './admin/roleOptions'
 import { AdminSidebar }    from './admin/AdminSidebar'
 import { AdminToast }      from './admin/AdminToast'
@@ -126,9 +127,9 @@ function applySortToList(list, sortConfig) {
     if (sortConfig.key === 'lastUpdated') {
       valA = a.lastUpdatedMs || 0
       valB = b.lastUpdatedMs || 0
-    } else if (sortConfig.key === 'lastVerified') {
-      valA = a.lastVerifiedMs || 0
-      valB = b.lastVerifiedMs || 0
+    } else if (sortConfig.key === 'submittedDate') {
+      valA = a.submittedMs || 0
+      valB = b.submittedMs || 0
     } else if (sortConfig.key === 'trainingPeriod') {
       valA = a.trainingPeriodMs || 0
       valB = b.trainingPeriodMs || 0
@@ -158,17 +159,19 @@ function buildCsvContent(tab, users, activeFilter, verifSubTab = 'pending', pemb
     const s = String(str ?? '')
     return s.includes(',') || s.includes('"') || s.includes('\n') ? `"${s.replace(/"/g, '""')}"` : s
   }
+  const toCsv = (headers, rows) =>
+    [headers.join(','), ...rows.map(r => r.map(escapeCsv).join(','))].join('\n')
   if (tab === 'verifikasi-pembayaran') {
     // Sub-tab "Belum Langganan" pakai kolom read-only (tanpa Jenis Paket/Tgl. Berakhir,
     // + Last Updated) mengikuti BelumLanggananTable.
     if (pembayaranSubTab === 'belum-langganan') {
       const headers = ['Nama Pengguna', 'Email', 'Status Member', 'Kode Voucher', 'Role', 'Riwayat Pelatihan', 'Tgl. Lahir', 'Lokasi', 'Alumni Pelatihan Nama', 'Alumni Pelatihan Daerah', 'Alumni Pelatihan Tanggal Mulai', 'Asal Sekolah', 'Last Updated']
       const rows = users.map(u => [u.name, u.email, 'Belum Langganan', u.voucher || '-', u.role || '-', u.riwayatCount || 0, u.birthdate || '-', u.lokasi || '-', u.training || '-', u.alumniDaerah || '-', u.alumniTanggal || '-', u.school || '-', u.lastUpdated || '-'])
-      return [headers.join(','), ...rows.map(r => r.map(escapeCsv).join(','))].join('\n')
+      return toCsv(headers, rows)
     }
-    const headers = ['Nama Pengguna', 'Email', 'Status Member', 'Jenis Paket', 'Tgl. Berakhir', 'Kode Voucher', 'Role', 'Riwayat Pelatihan', 'Tgl. Lahir', 'Lokasi', 'Alumni Pelatihan Nama', 'Alumni Pelatihan Daerah', 'Alumni Pelatihan Tanggal Mulai', 'Asal Sekolah', 'Last Verified']
-    const rows = users.map(u => [u.name, u.email, u.statusMember || '-', u.plan || '-', u.endDate || '-', u.voucher || '-', u.role || '-', u.riwayatCount || 0, u.birthdate || '-', u.lokasi || '-', u.training || '-', u.alumniDaerah || '-', u.alumniTanggal || '-', u.school || '-', u.lastVerified || '-'])
-    return [headers.join(','), ...rows.map(r => r.map(escapeCsv).join(','))].join('\n')
+    const headers = ['Nama Pengguna', 'Email', 'Status Member', 'Jenis Paket', 'Tgl. Berakhir', 'Kode Voucher', 'Role', 'Riwayat Pelatihan', 'Tgl. Lahir', 'Lokasi', 'Alumni Pelatihan Nama', 'Alumni Pelatihan Daerah', 'Alumni Pelatihan Tanggal Mulai', 'Asal Sekolah', 'Submitted Date']
+    const rows = users.map(u => [u.name, u.email, u.statusMember || '-', u.plan || '-', u.endDate || '-', u.voucher || '-', u.role || '-', u.riwayatCount || 0, u.birthdate || '-', u.lokasi || '-', u.training || '-', u.alumniDaerah || '-', u.alumniTanggal || '-', u.school || '-', u.submittedDate || '-'])
+    return toCsv(headers, rows)
   }
   if (tab === 'manajemen') {
     // Kolom mengikuti ManajemenTable persis, termasuk "reduced view" untuk
@@ -185,13 +188,13 @@ function buildCsvContent(tab, users, activeFilter, verifSubTab = 'pending', pemb
       const tail = [u.riwayatCount || '-', u.birthdate || '-', u.lokasi || '-', u.training || '-', u.alumniDaerah || '-', u.alumniTanggal || '-', u.school || '-', u.lastUpdated || '-']
       return isReducedView ? [...head, ...tail] : [...head, ...mid, ...tail]
     })
-    return [headers.join(','), ...rows.map(r => r.map(escapeCsv).join(','))].join('\n')
+    return toCsv(headers, rows)
   }
   // tab === 'verifikasi', sub-tab 'voucher' → kolom ikut PendingVoucherTable.
   if (verifSubTab === 'voucher') {
     const headers = ['Nama Pengguna', 'Email', 'Status Member', 'Kode Voucher', 'Role', 'Riwayat Pelatihan', 'Tgl. Lahir', 'Lokasi', 'Alumni Pelatihan Nama', 'Alumni Pelatihan Daerah', 'Alumni Pelatihan Tanggal Mulai', 'Asal Sekolah']
     const rows = users.map(u => [u.name, u.email, 'Pending Voucher Setup', u.voucherCode || '-', u.role || '-', u.riwayatCount ?? 0, u.birthdate || '-', u.lokasi || '-', u.alumniNama || '-', u.alumniDaerah || '-', u.alumniTanggal || '-', u.school || '-'])
-    return [headers.join(','), ...rows.map(r => r.map(escapeCsv).join(','))].join('\n')
+    return toCsv(headers, rows)
   }
   // tab === 'verifikasi', sub-tab 'pending' → kolom ikut VerifikasiTable.
   const headers = ['Nama Pengguna', 'Email', 'Status', 'Tgl. Lahir', 'Lokasi', 'Alumni Pelatihan Daerah', 'Alumni Pelatihan Bulan & Tahun', 'Asal Sekolah']
@@ -594,6 +597,13 @@ export default function AdminDashboardPage({ user, onSignOut }) {
   const persistPendaftaran = (rows) =>
     appConfigApi.set(PENDAFTARAN_KEY, rowsToValue(rows, sharedContent))
 
+  // Auto-dismiss toast (aksi tanpa API) setelah 5 detik; reset timer sebelumnya.
+  const armToastDismiss = () => {
+    if (toastTimeoutId) clearTimeout(toastTimeoutId)
+    const id = setTimeout(() => setToast(null), 5000)
+    setToastTimeoutId(id)
+  }
+
   const handleAddPendaftaran = async (data) => {
     const threadId = parseThreadId(data.url)
     if (!threadId) {
@@ -682,9 +692,7 @@ export default function AdminDashboardPage({ user, onSignOut }) {
     try {
       await persistPendaftaran(next)
       setToast({ message: <>Pelatihan {item.nama} berhasil dihapus</> })
-      if (toastTimeoutId) clearTimeout(toastTimeoutId)
-      const id = setTimeout(() => setToast(null), 5000)
-      setToastTimeoutId(id)
+      armToastDismiss()
     } catch (err) {
       setPendaftaranData(prev) // revert
       setApiError(err.message || 'Gagal menghapus pelatihan.')
@@ -707,7 +715,7 @@ export default function AdminDashboardPage({ user, onSignOut }) {
       pesertaLainnya: 0,
       pesertaEmail: '-',
       langganan: '-',
-      lastUpdated: (() => { const d = new Date(); let h = d.getHours(); const ap = h >= 12 ? 'PM' : 'AM'; h = h % 12 || 12; return `${h}:${String(d.getMinutes()).padStart(2, '0')} ${ap}` })(),
+      lastUpdated: fmtTimeAmPm(new Date()),
       lastUpdatedMs: Date.now(),
       regionId: data.regionId,
       startMs: data.startDate ? new Date(data.startDate).getTime() : null,
@@ -745,9 +753,7 @@ export default function AdminDashboardPage({ user, onSignOut }) {
         prev.map(r => (r.id === sessionId ? { ...r, status: 'Saved' } : r))
       )
       setToast({ message: <>Pelatihan {data.name} berhasil ditambahkan{pesertaWarn}</> })
-      if (toastTimeoutId) clearTimeout(toastTimeoutId)
-      const tid = setTimeout(() => setToast(null), 5000)
-      setToastTimeoutId(tid)
+      armToastDismiss()
     } catch (err) {
       setRiwayatPelatihanData(prev =>
         prev.map(r => (r.id === tempId ? { ...r, status: 'Error' } : r))
@@ -765,9 +771,7 @@ export default function AdminDashboardPage({ user, onSignOut }) {
     try {
       await adminApi.deleteTrainingSession(item.id)
       setToast({ message: 'Berhasil menghapus riwayat pelatihan' })
-      if (toastTimeoutId) clearTimeout(toastTimeoutId)
-      const id = setTimeout(() => setToast(null), 5000)
-      setToastTimeoutId(id)
+      armToastDismiss()
     } catch (err) {
       setRiwayatPelatihanData(prev) // revert
       setApiError(err.message || 'Gagal menghapus riwayat pelatihan.')
@@ -798,9 +802,7 @@ export default function AdminDashboardPage({ user, onSignOut }) {
       }
       setRiwayatPelatihanData(p => p.map(r => r.id === data.id ? { ...r, status: 'Saved' } : r))
       setToast({ message: <>Berhasil menyimpan riwayat {data.name}{pesertaWarn}</> })
-      if (toastTimeoutId) clearTimeout(toastTimeoutId)
-      const tid = setTimeout(() => setToast(null), 5000)
-      setToastTimeoutId(tid)
+      armToastDismiss()
     } catch (err) {
       setRiwayatPelatihanData(prev) // revert
       setApiError(err.message || 'Gagal menyimpan riwayat pelatihan.')
@@ -812,12 +814,7 @@ export default function AdminDashboardPage({ user, onSignOut }) {
       'Nama Pelatihan,Daerah Pelatihan,Tgl. Mulai,Status,Nama Peserta,Last Updated',
       `"${item.nama}","${item.daerah}","${item.tglMulai}","${item.status}","${item.pesertaNama}","${item.lastUpdated}"`
     ].join('\n')
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    link.setAttribute('href', url)
-    link.setAttribute('download', `${item.nama}-Export data.csv`)
-    document.body.appendChild(link); link.click(); document.body.removeChild(link)
+    downloadCsv(`${item.nama}-Export data.csv`, csv)
   }
 
   const scheduleAction = (apiCall, onError) => {
@@ -837,9 +834,7 @@ export default function AdminDashboardPage({ user, onSignOut }) {
   // `undo` mengembalikan state, auto-dismiss 5 detik.
   const showUndoToast = (message, undo) => {
     setToast({ message, undo })
-    if (toastTimeoutId) clearTimeout(toastTimeoutId)
-    const id = setTimeout(() => setToast(null), 5000)
-    setToastTimeoutId(id)
+    armToastDismiss()
   }
 
   // Role + Pelatihan kini dipilih di dalam ApproveModal (bukan lagi di baris tabel),
@@ -1101,11 +1096,23 @@ export default function AdminDashboardPage({ user, onSignOut }) {
 
   const handleConfirmKirimVoucher = (voucherCode) => {
     const target = actionModal.user
-    setManagementUsers(managementUsers.map(u => u.id === target.id ? { ...u, voucher: voucherCode } : u))
+    if (!target) return
+    const prevVoucher = target.voucher
+    setManagementUsers(prev => prev.map(u => u.id === target.id ? { ...u, voucher: voucherCode } : u))
     setActionModal({ type: null, user: null })
-    setToast({ message: <>Voucher {voucherCode} berhasil dikirim ke {target.name}</> })
-    // Call API here...
-    // adminApi.grantPersonalVoucher(...)
+    setToast({
+      message: <>Voucher {voucherCode} berhasil dikirim ke {target.name}</>,
+      undo: () => setManagementUsers(prev => prev.map(u => u.id === target.id ? { ...u, voucher: prevVoucher } : u)),
+    })
+    // Commit ke backend (optimistic + toast undo 5s). TODO(be): konfirmasi bentuk
+    // payload personal voucher — { userId, code } masih tebakan sampai kontrak final.
+    scheduleAction(
+      () => adminApi.grantPersonalVoucher({ userId: target.id, code: voucherCode }),
+      () => {
+        setManagementUsers(prev => prev.map(u => u.id === target.id ? { ...u, voucher: prevVoucher } : u))
+        setApiError('Gagal mengirim voucher.')
+      }
+    )
   }
 
   const handleUndoToast = () => {
@@ -1302,28 +1309,58 @@ export default function AdminDashboardPage({ user, onSignOut }) {
 
   const handleExport = () => {
     const csv = buildCsvContent(activeTab, sortedUsers, activeFilter, verifSubTab, pembayaranSubTab)
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    link.setAttribute('href', url)
-    link.setAttribute('download',
+    const filename =
       activeTab === 'verifikasi'
         ? (verifSubTab === 'voucher' ? 'pending_voucher-Export data.csv' : 'verifikasi_akun-Export data.csv')
       : activeTab === 'verifikasi-pembayaran'
         ? (pembayaranSubTab === 'belum-langganan' ? 'belum_langganan-Export data.csv'
            : pembayaranSubTab === 'ditolak' ? 'pembayaran_ditolak-Export data.csv'
            : 'menunggu_verifikasi-Export data.csv')
-      : 'manajemen_akun-Export data.csv')
-    document.body.appendChild(link); link.click(); document.body.removeChild(link)
+      : 'manajemen_akun-Export data.csv'
+    downloadCsv(filename, csv)
   }
 
+  // ── Style A (document scroll) khusus tab Daftar User ────────────────────────
+  // Zona beku bertingkat: header (top:0) → controls (top:headerH) → thead (top:headerH+controlsH).
+  // Tinggi header & controls diukur runtime supaya offset thead selalu pas.
+  const isPageScroll = activeTab === 'daftar-user'
+  const daftarHeaderRef = useRef(null)
+  const daftarControlsRef = useRef(null)
+  // sb = lebar sidebar (260 / 84 saat collapse). Dipakai buat pin header title &
+  // controls ke area terlihat: root jadi w-max (selebar tabel) supaya bg header/controls
+  // ikut selebar konten (nutup "tembus" saat scroll kanan), lalu isinya di-sticky left
+  // ke tepi sidebar biar tetap kelihatan.
+  const [daftarStick, setDaftarStick] = useState({ h: 96, c: 68, sb: 260 })
+  useEffect(() => {
+    if (!isPageScroll) return
+    const aside = document.querySelector('aside')
+    const measure = () => setDaftarStick({
+      h: daftarHeaderRef.current?.offsetHeight || 96,
+      c: daftarControlsRef.current?.offsetHeight || 68,
+      sb: aside?.offsetWidth || 260,
+    })
+    measure()
+    const ro = new ResizeObserver(measure)
+    if (daftarHeaderRef.current) ro.observe(daftarHeaderRef.current)
+    if (daftarControlsRef.current) ro.observe(daftarControlsRef.current)
+    if (aside) ro.observe(aside)
+    window.addEventListener('resize', measure)
+    return () => { ro.disconnect(); window.removeEventListener('resize', measure) }
+  }, [isPageScroll])
+
   return (
-    <div className="bg-white flex font-sans h-screen overflow-hidden">
+    <div className={`bg-white flex font-sans ${isPageScroll ? 'min-h-screen w-max min-w-full' : 'h-screen overflow-hidden'}`}>
       <AdminSidebar activeTab={activeTab} onTabChange={handleTabChange} onSignOut={onSignOut} user={user} navFlags={navFlags} />
 
-      <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <header className="px-10 py-8 border-b border-gray-100 bg-white shrink-0">
-          <h1 className="text-3xl font-bold text-[#0A1128]">
+      <main className={`flex-1 flex flex-col min-w-0 ${isPageScroll ? '' : 'overflow-hidden'}`}>
+        <header
+          ref={daftarHeaderRef}
+          className={`px-10 py-8 border-b border-gray-100 bg-white ${isPageScroll ? 'sticky top-0 z-30' : 'shrink-0'}`}
+        >
+          <h1
+            className={`text-3xl font-bold text-[#0A1128] ${isPageScroll ? 'w-max sticky' : ''}`}
+            style={isPageScroll ? { left: daftarStick.sb } : undefined}
+          >
             {activeTab === 'verifikasi' && 'Verifikasi Akun'}
             {activeTab === 'verifikasi-pembayaran' && 'Verifikasi Pembayaran'}
             {activeTab === 'manajemen' && 'Manajemen Akun'}
@@ -1333,7 +1370,7 @@ export default function AdminDashboardPage({ user, onSignOut }) {
           </h1>
         </header>
 
-        <div className="flex-1 p-10 pt-8 bg-[#F7F8FC] overflow-hidden">
+        <div className={`flex-1 p-10 pt-8 bg-[#F7F8FC] ${isPageScroll ? '' : 'overflow-hidden'}`}>
           {apiError && (
             <div className="mb-4 px-4 py-3 rounded-lg bg-red-50 text-red-700 text-sm border border-red-200">
               {apiError}
@@ -1395,18 +1432,29 @@ export default function AdminDashboardPage({ user, onSignOut }) {
             />
           )}
           {activeTab === 'daftar-user' && (
-            <div className="mb-6 flex items-center justify-between gap-4">
-              <p className="text-sm text-gray-500">
-                Total <span className="font-bold text-[#0A1128]">{Object.keys(usersById).length}</span> user
-              </p>
-              <div className="flex items-center gap-3 bg-white border border-gray-200 rounded-full px-5 py-3 w-full max-w-sm">
-                <Search size={18} className="text-gray-400 shrink-0" />
-                <input
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Cari user..."
-                  className="w-full bg-transparent text-sm outline-none placeholder:text-gray-400"
-                />
+            <div
+              ref={daftarControlsRef}
+              style={{ top: daftarStick.h }}
+              className="sticky z-20 -mx-10 bg-[#F7F8FC]"
+            >
+              {/* outer selebar konten (bg nutup area saat scroll kanan); inner di-pin
+                  sticky-left ke tepi sidebar & selebar viewport biar search tetap tampak */}
+              <div
+                className="sticky flex items-center justify-between gap-4 px-10 pt-1 pb-6"
+                style={{ left: daftarStick.sb, width: `calc(100vw - ${daftarStick.sb}px)` }}
+              >
+                <p className="text-sm text-gray-500">
+                  Total <span className="font-bold text-[#0A1128]">{Object.keys(usersById).length}</span> user
+                </p>
+                <div className="flex items-center gap-3 bg-white border border-gray-200 rounded-full px-5 py-3 w-full max-w-sm">
+                  <Search size={18} className="text-gray-400 shrink-0" />
+                  <input
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Cari user..."
+                    className="w-full bg-transparent text-sm outline-none placeholder:text-gray-400"
+                  />
+                </div>
               </div>
             </div>
           )}
@@ -1431,12 +1479,7 @@ export default function AdminDashboardPage({ user, onSignOut }) {
                   'Nama Pelatihan,Daerah Pelatihan,Tgl. Mulai,Nama Peserta,Last Updated',
                   ...rows.map(item => `"${item.nama}","${item.daerah}","${item.tglMulai}","${item.pesertaNama}","${item.lastUpdated}"`)
                 ].join('\n')
-                const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
-                const url = URL.createObjectURL(blob)
-                const link = document.createElement('a')
-                link.setAttribute('href', url)
-                link.setAttribute('download', 'riwayat_pelatihan-Export data.csv')
-                document.body.appendChild(link); link.click(); document.body.removeChild(link)
+                downloadCsv('riwayat_pelatihan-Export data.csv', csv)
               }}
             />
           )}
@@ -1533,7 +1576,7 @@ export default function AdminDashboardPage({ user, onSignOut }) {
                   (u.email || '').toLowerCase().includes(q) ||
                   (u.username || '').toLowerCase().includes(q))
               : list
-            return <DaftarUserTable users={filtered} searchQuery={searchQuery} />
+            return <DaftarUserTable users={filtered} searchQuery={searchQuery} stickTop={daftarStick.h + daftarStick.c} />
           })()}
         </div>
       </main>
