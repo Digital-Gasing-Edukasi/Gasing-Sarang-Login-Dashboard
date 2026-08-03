@@ -196,7 +196,16 @@ export default function App() {
             ? {
                 type: "suspended",
                 until: "2026-08-14 13:05:00",
-                reason: "Melanggar panduan komunitas",
+                reason: "Terlalu agresif dan mengandung SARA",
+              }
+            : gatetest === "rejected"
+            ? {
+                type: "rejected",
+                reasons: [
+                  "Tanggal lahir tidak sesuai",
+                  "Riwayat pelatihan tidak ditemukan",
+                  "Nama sekolah tidak sesuai",
+                ],
               }
             : gatetest.startsWith("payment")
             ? {
@@ -757,6 +766,14 @@ export default function App() {
             } else {
               navigate("/login/subscription", { replace: true });
             }
+          }}
+          // "Daftar Ulang" (akun ditolak / rejected) → bersihkan sesi lalu mulai
+          // pendaftaran dari awal.
+          onReregister={() => {
+            tokenStorage.clear();
+            setCurrentUser(null);
+            setGate(null);
+            navigate("/register", { replace: true });
           }}
         />
       )}

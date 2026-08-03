@@ -28,6 +28,21 @@ export function evaluateLoginGate(profile) {
   const approved = vs === 1 || vs === 'approved'
   const revise   = vs === 2 || vs === 'revise'
   const rejected = vs === -1 || vs === 'rejected'
+
+  // 2a. Ditolak — pendaftaran tidak disetujui admin (verifiedStatus = -1) →
+  //     modal "Akun Belum Dapat Disetujui" (bukan alur email). Revise (2) tetap
+  //     lewat alur email/FixData tersendiri.
+  //     TODO(verify): nama field alasan penolakan dari /profile/me
+  //     (rejectionReasons | rejectReasons | reviseFields). Fallback: default 3
+  //     alasan di LoginStatusModal.
+  if (rejected) {
+    const reasons = p.rejectionReasons || p.rejectReasons || p.reviseFields || p.rejectionReason || null
+    return {
+      type: 'rejected',
+      reasons: Array.isArray(reasons) ? reasons : reasons ? [reasons] : undefined,
+    }
+  }
+
   if (vs !== undefined && vs !== null && !approved && !revise && !rejected) {
     return { type: 'pending' }
   }

@@ -1,10 +1,13 @@
 import { useState } from 'react'
-import { Clock, UserSearch, ShieldAlert, LogOut, AlertCircle } from 'lucide-react'
+import { Clock, UserSearch, UserX, ShieldAlert, LogOut, AlertCircle, ServerCrash, Copy, Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { WA_URL } from '@/components/shared/PaymentStatusLayout'
 
-// "panduan komunitas" → halaman Ketentuan Layanan (TOS). Dibuka di tab baru,
-// sama seperti tautan TOS di SignUpPage.
+// "panduan komunitas" / "ketentuan komunitas" → halaman Ketentuan Layanan (TOS).
+// "syarat" → halaman Kebijakan Privasi. Dibuka di tab baru, sama seperti tautan
+// legal di SignUpPage.
 const COMMUNITY_URL = '/register/id/TOS'
+const TERMS_URL = '/register/id/privacy'
 
 const ID_MONTHS = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember']
 
@@ -39,21 +42,23 @@ function durationLabel(value) {
 // onClose→ tutup / logout / dismiss: bersihkan sesi.
 // onRenew→ lanjut ke halaman langganan (skenario 'expired' & 'payment_rejected').
 // onRetry→ tutup modal untuk mencoba lagi (skenario 'error'; default onClose).
-export function LoginStatusModal({ type, meta = {}, onClose, onRenew, onRetry, onReupload }) {
+export function LoginStatusModal({ type, meta = {}, onClose, onRenew, onRetry, onReupload, onReregister }) {
   const [confirmLogout, setConfirmLogout] = useState(false)
 
   if (type === 'suspended') return <SuspendedModal meta={meta} onClose={onClose} />
+  if (type === 'rejected') return <RejectedModal meta={meta} onClose={onClose} onReregister={onReregister} />
   if (type === 'payment_rejected') return <PaymentRejectedModal meta={meta} onClose={onClose} onRenew={onRenew} onReupload={onReupload} />
 
-  // Flow 4 — server error. Kartu tengah (bukan bottom-sheet).
+  // Flow 4 — internal server error. Mobile: bottom-sheet (gaya sama layar status
+  // lain). Desktop: kartu tengah (otomatis via Shell varian 'sheet' + lg:).
   if (type === 'error') {
     return (
-      <Shell tone="red" icon={AlertCircle} variant="center">
-        <h2 className="text-xl font-bold text-foreground mb-2">Terjadi Kesalahan</h2>
-        <p className="text-[14px] text-muted-foreground leading-relaxed mb-6">
-          Server sedang bermasalah. Coba beberapa saat lagi.
+      <Shell tone="red" icon={ServerCrash}>
+        <h2 className="text-2xl font-bold text-foreground lg:mb-3">Terjadi Kesalahan</h2>
+        <p className="text-[15px] text-muted-foreground leading-relaxed lg:mb-8">
+          Server sedang mengalami gangguan internal (Error 500). Mohon tunggu sebentar, lalu coba lagi.
         </p>
-        <div className="flex">
+        <div className="flex flex-col gap-3 w-full">
           <ActionButton label="Coba Lagi" variant="primary" onClick={() => (onRetry || onClose)?.()} />
         </div>
       </Shell>
@@ -140,7 +145,10 @@ function SuspendedModal({ meta, onClose }) {
         Akun Kamu Ditangguhkan
       </h2>
       <p className="text-[15px] text-muted-foreground leading-relaxed lg:mb-6">
-        Akun kamu ditangguhkan karena {reason.toLowerCase()}. Silakan baca{' '}
+        {/* Mobile (Figma): kalimat generik. Desktop: pertahankan alasan spesifik lama. */}
+        Akun kamu ditangguhkan karena{' '}
+        <span className="lg:hidden">melanggar panduan komunitas</span>
+        <span className="hidden lg:inline">{reason.toLowerCase()}</span>. Silakan baca{' '}
         <a href={COMMUNITY_URL} target="_blank" rel="noopener noreferrer" className="font-semibold text-[#0033EC] underline hover:opacity-80">panduan komunitas</a>{' '}
         kami untuk menghindari pelanggaran serupa.
       </p>
@@ -224,17 +232,34 @@ function PaymentRejectedModal({ meta = {}, onClose, onRenew, onReupload }) {
       ),
     },
     account: {
-      body: 'Tujuan rekening pembayaran yang kamu gunakan salah. Dana tidak masuk ke rekening resmi Sarang Gasing. Silakan gunakan detail rekening di bawah ini.',
+      // Mobile (Figma): teks ringkas. Desktop: pertahankan teks lama.
+      body: (
+        <>
+          <span className="lg:hidden">Rekening tujuan yang kamu gunakan salah. Gunakan detail rekening resmi Sarang Gasing di bawah ini.</span>
+          <span className="hidden lg:inline">Tujuan rekening pembayaran yang kamu gunakan salah. Dana tidak masuk ke rekening resmi Sarang Gasing. Silakan gunakan detail rekening di bawah ini.</span>
+        </>
+      ),
       primaryLabel: 'Ulang Pembayaran',
       content: (
         <div className="w-full">
-          <div className="text-left rounded-xl border border-gray-100 bg-gray-50/60 divide-y divide-gray-100">
-            <AccountRow label="Bank Tujuan:" value={RECEIVER_BANK.bank} />
-            <AccountRow label="No. Rekening:" value={RECEIVER_BANK.accountNumber} valueClass="text-[#0033EC]" />
-            <AccountRow label="Atas Nama (a.n):" value={RECEIVER_BANK.accountName} />
+          {/* Kartu rekening: mobile = stacked 2-baris + copy (Figma); desktop = 1-baris (look lama). */}
+          <div className="text-left rounded-2xl border border-[#e2e8f0] bg-[#f8fafc] px-3 py-3 shadow-[0px_4px_6px_rgba(0,0,0,0.04)] divide-y divide-gray-100 lg:rounded-xl lg:border-gray-100 lg:bg-gray-50/60 lg:px-4 lg:py-1 lg:shadow-none">
+            <StackedRow label="Bank Tujuan" value={RECEIVER_BANK.bank} />
+            <StackedRow label="No. Rekening">
+              <span className="text-base font-semibold text-[#0033EC] lg:text-sm lg:font-bold">{RECEIVER_BANK.accountNumber}</span>
+              {/* Tombol salin hanya mobile — desktop tetap seperti sebelumnya. */}
+              <span className="lg:hidden"><CopyButton value={RECEIVER_BANK.accountNumber} /></span>
+            </StackedRow>
+            <StackedRow label="Atas Nama (a.n)" value={RECEIVER_BANK.accountName} />
           </div>
-          <p className="text-xs text-muted-foreground text-center mt-4 leading-relaxed">
-            Jika kamu memiliki pertanyaan lebih lanjut terkait pembayaran yang ditolak, silakan hubungi admin kami untuk mendapatkan bantuan.
+          <p className="text-xs text-muted-foreground text-center mt-4 leading-relaxed opacity-80 lg:opacity-100">
+            <span className="lg:hidden">
+              Ada pertanyaan soal pembayaran yang ditolak?{' '}
+              <a href={WA_URL} target="_blank" rel="noopener noreferrer" className="font-semibold text-[#0033EC] underline hover:opacity-80">Hubungi admin</a>
+            </span>
+            <span className="hidden lg:inline">
+              Jika kamu memiliki pertanyaan lebih lanjut terkait pembayaran yang ditolak, silakan hubungi admin kami untuk mendapatkan bantuan.
+            </span>
           </p>
         </div>
       ),
@@ -246,20 +271,99 @@ function PaymentRejectedModal({ meta = {}, onClose, onRenew, onReupload }) {
       <h2 className="text-2xl font-bold text-foreground lg:mb-3">Pembayaran Ditolak</h2>
       <p className="text-[14px] text-muted-foreground leading-relaxed text-center lg:mb-6">{V.body}</p>
       <div className="w-full lg:mb-8">{V.content}</div>
-      <div className="flex items-center gap-4 w-full">
-        <ActionButton label="Log Out" variant="outline" onClick={() => onClose?.()} />
+      {/* Mobile (Figma): tumpuk vertikal (primary atas). Desktop: baris berdampingan
+          seperti sebelumnya (row-reverse → Log Out kiri, primary kanan). */}
+      <div className="flex flex-col gap-3 w-full lg:flex-row-reverse lg:items-center lg:gap-4">
         <ActionButton label={V.primaryLabel} variant="primary" onClick={() => (V.onPrimary || onRenew)?.()} />
+        <ActionButton label="Log Out" variant="outline" onClick={() => onClose?.()} />
       </div>
     </Shell>
   )
 }
 
-function AccountRow({ label, value, valueClass = 'text-foreground' }) {
+// Baris kartu rekening.
+//  Mobile (Figma): bertumpuk — label kecil abu di atas, value bold 16px di bawah.
+//  Desktop: 1-baris (label kiri, value kanan) seperti AccountRow lama.
+function StackedRow({ label, value, children }) {
   return (
-    <div className="flex items-center justify-between gap-4 px-4 py-3.5">
-      <span className="text-sm text-muted-foreground shrink-0">{label}</span>
-      <span className={cn('text-sm font-bold text-right', valueClass)}>{value}</span>
+    <div className="flex flex-col gap-1 px-1 py-2.5 first:pt-1 last:pb-1 lg:flex-row lg:items-center lg:justify-between lg:gap-4 lg:px-4 lg:py-3.5 lg:first:pt-3.5 lg:last:pb-3.5">
+      <span className="text-xs font-medium text-[#424857] lg:text-sm lg:font-normal lg:text-muted-foreground">{label}</span>
+      {children ? (
+        <span className="flex items-center gap-2 lg:justify-end">{children}</span>
+      ) : (
+        <span className="text-base font-semibold text-[#061446] break-words lg:text-sm lg:font-bold lg:text-right lg:text-foreground">{value}</span>
+      )}
     </div>
+  )
+}
+
+// Tombol salin nomor rekening (pola sama TransferBankPage) — ikon berubah
+// jadi centang ~1.5s setelah disalin.
+function CopyButton({ value }) {
+  const [copied, setCopied] = useState(false)
+  const copy = async () => {
+    try {
+      await navigator.clipboard?.writeText(String(value).replace(/\D/g, ''))
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1500)
+    } catch {
+      /* noop */
+    }
+  }
+  return (
+    <button type="button" onClick={copy} aria-label="Salin nomor rekening" className="text-[#0033EC] transition-opacity hover:opacity-70">
+      {copied ? <Check size={16} /> : <Copy size={16} />}
+    </button>
+  )
+}
+
+// Modal "Akun Belum Dapat Disetujui" — pendaftaran ditolak admin
+// (verifiedStatus = -1). meta.reasons = daftar alasan penolakan.
+const DEFAULT_REJECT_REASONS = [
+  'Tanggal lahir tidak sesuai',
+  'Riwayat pelatihan tidak ditemukan',
+  'Nama sekolah tidak sesuai',
+]
+
+function RejectedModal({ meta = {}, onClose, onReregister }) {
+  const reasons = Array.isArray(meta.reasons) && meta.reasons.length ? meta.reasons : DEFAULT_REJECT_REASONS
+
+  return (
+    <Shell tone="red" icon={UserX}>
+      <h2 className="text-2xl font-bold text-foreground lg:mb-3">Akun Belum Dapat Disetujui</h2>
+      <p className="text-[14px] text-muted-foreground leading-relaxed text-center lg:mb-6">
+        Tim kami telah selesai memeriksa data kamu. Mohon maaf, pendaftaran akun kamu saat ini belum dapat kami setujui karena belum memenuhi{' '}
+        <a href={TERMS_URL} target="_blank" rel="noopener noreferrer" className="font-medium text-[#0033EC] underline hover:opacity-80">syarat</a>{' '}
+        dan{' '}
+        <a href={COMMUNITY_URL} target="_blank" rel="noopener noreferrer" className="font-medium text-[#0033EC] underline hover:opacity-80">ketentuan komunitas</a>.
+      </p>
+
+      <div className="w-full text-left rounded-2xl border border-[#e2e8f0] bg-[#f8fafc] px-3 py-3 lg:mb-6">
+        <p className="text-xs font-semibold text-foreground mb-3">Alasan Penolakan:</p>
+        <ul className="space-y-2">
+          {reasons.map((r) => (
+            <li key={r} className="flex items-center gap-2 text-sm font-medium text-[#424857]">
+              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-red-100 shrink-0">
+                <AlertCircle size={13} className="text-red-500" />
+              </span>
+              {r}
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      <p className="text-xs text-muted-foreground text-center leading-relaxed opacity-80 lg:mb-6">
+        Jika kamu merasa ini adalah kesalahan, silakan{' '}
+        <a href={WA_URL} target="_blank" rel="noopener noreferrer" className="font-semibold text-[#0033EC] underline hover:opacity-80">Hubungi Kami</a>{' '}
+        untuk bantuan lebih lanjut.
+      </p>
+
+      {/* Mobile (Figma): tumpuk vertikal. Desktop: baris berdampingan. */}
+      <div className="flex flex-col gap-3 w-full lg:flex-row-reverse lg:items-center lg:gap-4">
+        <ActionButton label="Daftar Ulang" variant="primary" onClick={() => (onReregister || onClose)?.()} />
+        <ActionButton label="Log Out" variant="outline" onClick={() => onClose?.()} />
+      </div>
+    </Shell>
   )
 }
 
