@@ -29,6 +29,21 @@ export function localizePlanName(name) {
   return n
 }
 
+// Ringkas nama daerah untuk tampilan: "Kabupaten Bogor" → "KAB. BOGOR",
+// "Kota Bandung" → "KOTA BANDUNG". Kalau ada ", Provinsi" di belakang, hanya
+// segmen kab/kota yang diringkas + huruf besar; provinsi dibiarkan apa adanya.
+export function abbrevRegion(name) {
+  const s = String(name ?? '').trim()
+  if (!s) return s
+  const [head, ...rest] = s.split(',')
+  const region = head
+    .trim()
+    .replace(/^kabupaten\s+/i, 'KAB. ')
+    .replace(/^kota\s+/i, 'KOTA ')
+    .toUpperCase()
+  return rest.length ? `${region}, ${rest.join(',').trim()}` : region
+}
+
 // Date → "9:20 AM" (jam 12-an + AM/PM, menit 2-digit).
 export function fmtTimeAmPm(date) {
   const d = date instanceof Date ? date : new Date(date)

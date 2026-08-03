@@ -1,5 +1,6 @@
 import { ArrowDownUp, SearchX } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { abbrevRegion } from '@/lib/format'
 import { TableShell, FreezeBlurLeft, FreezeBlurRight } from './TableShell'
 import { RoleTag } from './RoleTag'
 import { VoucherCode } from './VoucherCode'
@@ -110,9 +111,9 @@ export function BelumLanggananTable({ users, sortConfig, onSort, onRiwayatDetail
               ) : '-'}
             </td>
             <td className="px-4 py-4 text-[#0A1128] font-medium">{user.birthdate || '-'}</td>
-            <td className="px-4 py-4 text-[#0A1128] font-medium whitespace-normal break-words max-w-[200px] leading-snug align-top" title={user.lokasi}>{user.lokasi || '-'}</td>
+            <td className="px-4 py-4 text-[#0A1128] font-medium whitespace-normal break-words max-w-[200px] leading-snug align-top" title={user.lokasi}>{abbrevRegion(user.lokasi) || '-'}</td>
             <td className="px-4 py-4 text-[#0A1128] font-medium whitespace-normal break-words max-w-[200px] leading-snug align-top" title={user.training}>{user.training || '-'}</td>
-            <td className="px-4 py-4 text-[#0A1128] font-medium whitespace-normal break-words max-w-[200px] leading-snug align-top" title={user.alumniDaerah}>{user.alumniDaerah || '-'}</td>
+            <td className="px-4 py-4 text-[#0A1128] font-medium whitespace-normal break-words max-w-[200px] leading-snug align-top" title={user.alumniDaerah}>{abbrevRegion(user.alumniDaerah) || '-'}</td>
             <td className="px-4 py-4 text-[#0A1128] font-medium">{user.alumniTanggal || '-'}</td>
             <td className="px-4 py-4 text-[#0A1128] font-medium whitespace-normal break-words max-w-[220px] leading-snug align-top" title={user.school}>{user.school || '-'}</td>
             <td className="px-4 py-4 text-[#0A1128] font-medium sticky right-0 z-10 bg-white group-hover:bg-[#F9FAFB] transition-colors relative">

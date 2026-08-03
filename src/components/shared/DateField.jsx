@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { Calendar } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -138,6 +139,9 @@ export function DateField({
 }) {
   const [open, setOpen] = useState(false);
   const wrapRef = useRef(null);
+  // Sheet mobile di-portal keluar wrapRef, jadi ikut dihitung "dalam" agar
+  // sentuhan pada roda tidak dianggap klik-luar (yang akan menutup sheet).
+  const sheetRef = useRef(null);
   const max = typeof maxDate === "function" ? maxDate() : maxDate;
 
   const parsed = parseISO(value);
@@ -166,7 +170,11 @@ export function DateField({
   useEffect(() => {
     if (!open) return;
     const onDown = (e) => {
-      if (!wrapRef.current?.contains(e.target)) setOpen(false);
+      if (
+        !wrapRef.current?.contains(e.target) &&
+        !sheetRef.current?.contains(e.target)
+      )
+        setOpen(false);
     };
     const onKey = (e) => e.key === "Escape" && setOpen(false);
     document.addEventListener("mousedown", onDown);
@@ -270,22 +278,28 @@ export function DateField({
             {pickerBody}
           </div>
 
-          {/* Mobile: bottom-sheet tinggi 428 (desain Figma iPhone base) */}
-          <div className="fixed inset-0 z-[100] lg:hidden">
-            <div
-              className="absolute inset-0 bg-black/10 backdrop-blur-sm animate-in fade-in-0"
-              onClick={() => setOpen(false)}
-            />
-            <div className="absolute inset-x-0 bottom-0 flex h-[428px] max-h-[85vh] flex-col rounded-t-3xl bg-background px-2 pb-[env(safe-area-inset-bottom)] shadow-[0_-8px_30px_rgba(0,0,0,0.18)] animate-in slide-in-from-bottom duration-200">
-              <div className="mx-auto mt-3 h-1.5 w-10 shrink-0 rounded-full bg-gray-300" />
-              <h3 className="shrink-0 px-2 pt-3 pb-4 text-center text-[17px] font-bold text-gray-900">
-                {dialogLabel}
-              </h3>
-              <div className="flex flex-1 items-center justify-center">
-                {pickerBody}
+          {/* Mobile: bottom-sheet tinggi 428 (desain Figma iPhone base).
+              Di-portal ke <body> supaya `fixed` tetap relatif ke viewport —
+              tanpa ini, ancestor ber-transform (animasi/kartu auth) menjebak
+              elemen fixed sehingga posisi sheet melenceng. */}
+          {createPortal(
+            <div className="fixed inset-0 z-[100] lg:hidden">
+              <div
+                className="absolute inset-0 bg-black/10 backdrop-blur-sm animate-in fade-in-0"
+                onClick={() => setOpen(false)}
+              />
+              <div ref={sheetRef} className="absolute inset-x-0 bottom-0 flex h-[428px] max-h-[85vh] flex-col rounded-t-3xl bg-background px-2 pb-[env(safe-area-inset-bottom)] shadow-[0_-8px_30px_rgba(0,0,0,0.18)] animate-in slide-in-from-bottom duration-200">
+                <div className="mx-auto mt-3 h-1.5 w-10 shrink-0 rounded-full bg-gray-300" />
+                <h3 className="shrink-0 px-2 pt-3 pb-4 text-center text-[17px] font-bold text-gray-900">
+                  {dialogLabel}
+                </h3>
+                <div className="flex flex-1 items-center justify-center">
+                  {pickerBody}
+                </div>
               </div>
-            </div>
-          </div>
+            </div>,
+            document.body
+          )}
         </>
       )}
     </div>

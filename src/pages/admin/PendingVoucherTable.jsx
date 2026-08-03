@@ -1,5 +1,6 @@
 import { ArrowDownUp, Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { abbrevRegion } from '@/lib/format'
 import { TableShell, FreezeBlurLeft, FreezeBlurRight } from './TableShell'
 import { RoleTag } from './RoleTag'
 import { VoucherCode } from './VoucherCode'
@@ -130,9 +131,9 @@ export function PendingVoucherTable({
                 </div>
               </td>
               <td className="px-4 py-4 text-[#0A1128] font-medium">{user.birthdate}</td>
-              <td className="px-4 py-4 text-[#0A1128] font-medium whitespace-normal max-w-[200px]" title={user.lokasi}>{user.lokasi}</td>
+              <td className="px-4 py-4 text-[#0A1128] font-medium whitespace-normal max-w-[200px]" title={user.lokasi}>{abbrevRegion(user.lokasi)}</td>
               <td className="px-4 py-4 text-[#0A1128] font-medium whitespace-normal max-w-[200px]" title={user.alumniNama}>{user.alumniNama || '-'}</td>
-              <td className="px-4 py-4 text-[#0A1128] font-medium whitespace-normal max-w-[200px]" title={user.alumniDaerah}>{user.alumniDaerah || '-'}</td>
+              <td className="px-4 py-4 text-[#0A1128] font-medium whitespace-normal max-w-[200px]" title={user.alumniDaerah}>{abbrevRegion(user.alumniDaerah) || '-'}</td>
               <td className="px-4 py-4 text-[#0A1128] font-medium">{user.alumniTanggal || '-'}</td>
               <td className="px-4 py-4 text-[#0A1128] font-medium whitespace-normal max-w-[220px]" title={user.school}>{user.school || '-'}</td>
               <td className={cn('px-4 py-4 sticky right-0 z-10 transition-colors relative', selected ? 'bg-blue-50/50' : 'bg-white group-hover:bg-[#F9FAFB]')}>

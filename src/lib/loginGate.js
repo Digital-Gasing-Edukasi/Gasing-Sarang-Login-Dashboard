@@ -83,6 +83,23 @@ export function evaluatePaymentGate(payment) {
 
   const amount = p.amount ?? p.total ?? p.grossAmount ?? null
 
+  // Rekening tujuan resmi dari respons payment (varian 'account'). Nama field
+  // belum final (samakan dgn TransferBankPage `pick`). Hanya sertakan nilai
+  // yang terdefinisi — sisanya di-fallback ke RECEIVER_BANK di LoginStatusModal.
+  // TODO(verify): nama field rekening dari /subscription/payments/latest.
+  const pickStr = (...keys) => {
+    for (const k of keys) {
+      const v = p[k]
+      if (v !== undefined && v !== null && v !== '') return v
+    }
+    return undefined
+  }
+  const bank = {
+    bank: pickStr('bankName', 'bank', 'destinationBank'),
+    accountNumber: pickStr('bankAccountNumber', 'accountNumber', 'vaNumber'),
+    accountName: pickStr('bankAccountName', 'accountName'),
+  }
+
   // Paket terakhir yang dibeli — dipakai varian 'receipt' untuk deep-link ke
   // TransferBankPage (unggah ulang bukti tanpa memilih paket lagi). Bentuk
   // dibuat kompatibel dgn prop `plan` TransferBankPage (id/name/priceTotal/...).
@@ -98,5 +115,5 @@ export function evaluatePaymentGate(payment) {
       }
     : null
 
-  return { type: 'payment_rejected', variant, amount, plan }
+  return { type: 'payment_rejected', variant, amount, plan, bank }
 }

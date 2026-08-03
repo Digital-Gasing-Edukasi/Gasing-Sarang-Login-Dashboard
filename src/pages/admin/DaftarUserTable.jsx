@@ -1,5 +1,6 @@
 import { SearchX } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { abbrevRegion } from '@/lib/format'
 
 // STYLE A — scroll pakai scrollbar BROWSER (document), 2 sumbu:
 //   vertical  → halaman manjang, scrollbar browser kanan
@@ -22,8 +23,8 @@ const SUBSCRIPTION_CLASSES = {
   Expired:     'text-red-500',
 }
 
-const Td = ({ children, className }) => (
-  <td className={cn('px-4 py-4 text-[#0A1128] font-medium', className)}>{children}</td>
+const Td = ({ children, className, ...props }) => (
+  <td className={cn('px-4 py-4 text-[#0A1128] font-medium', className)} {...props}>{children}</td>
 )
 
 export function DaftarUserTable({ users = [], searchQuery = '', stickTop = 0 }) {
@@ -78,7 +79,7 @@ export function DaftarUserTable({ users = [], searchQuery = '', stickTop = 0 }) 
               <Td>{u.role || '-'}</Td>
               <Td>{u.riwayatCount || '-'}</Td>
               <Td>{u.birthdate || '-'}</Td>
-              <Td className="whitespace-normal break-words max-w-[200px] leading-snug align-top">{u.lokasi || '-'}</Td>
+              <Td className="whitespace-normal break-words max-w-[200px] leading-snug align-top" title={u.lokasi}>{abbrevRegion(u.lokasi) || '-'}</Td>
               <Td className="whitespace-normal break-words max-w-[200px] leading-snug align-top">{u.school || '-'}</Td>
               <Td>{u.lastUpdated || '-'}</Td>
             </tr>

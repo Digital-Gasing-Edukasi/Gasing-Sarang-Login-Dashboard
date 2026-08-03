@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { X, Pencil, Trash2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { abbrevRegion } from '@/lib/format'
 import { adminApi } from '@/lib/api'
 import { mapToPeserta } from './mappers'
 import { EditPesertaModal } from './EditPesertaModal'
@@ -60,7 +61,7 @@ export function DaftarPesertaModal({ isOpen, session, onClose }) {
               <span className="bg-blue-600 text-white text-xs font-bold px-2.5 py-0.5 rounded-full">{total} Peserta</span>
             </div>
             <p className="text-sm text-gray-500 mt-0.5">
-              {session.nama}{session.daerah && session.daerah !== '-' ? ` · ${session.daerah}` : ''}{session.tglMulai && session.tglMulai !== '-' ? ` · ${session.tglMulai}` : ''}
+              {session.nama}{session.daerah && session.daerah !== '-' ? ` · ${abbrevRegion(session.daerah)}` : ''}{session.tglMulai && session.tglMulai !== '-' ? ` · ${session.tglMulai}` : ''}
             </p>
           </div>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors">

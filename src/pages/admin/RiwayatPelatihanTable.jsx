@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { ArrowDownUp, Pencil, Download } from 'lucide-react'
+import { abbrevRegion } from '@/lib/format'
 import { TableShell, FreezeBlurRight } from './TableShell'
 
 const ID_MONTHS = {
@@ -108,7 +109,7 @@ export function RiwayatPelatihanTable({
                   )}
                 </div>
               </td>
-              <td className="px-4 py-4 text-[#0A1128] font-medium">{item.daerah}</td>
+              <td className="px-4 py-4 text-[#0A1128] font-medium" title={item.daerah}>{abbrevRegion(item.daerah)}</td>
               <td className="px-4 py-4 text-[#0A1128] font-medium">{item.tglMulai}</td>
               <td className="px-4 py-4">
                 {item.pesertaNama && item.pesertaNama !== '-' ? (

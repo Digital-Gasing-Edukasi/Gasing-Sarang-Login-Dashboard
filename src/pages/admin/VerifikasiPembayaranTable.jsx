@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { ArrowDownUp, SearchX, CheckCircle2, Trash2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { abbrevRegion } from '@/lib/format'
 import { TableShell, FreezeBlurLeft, FreezeBlurRight } from './TableShell'
 import { RoleTag } from './RoleTag'
 import { VoucherCode } from './VoucherCode'
@@ -167,9 +168,9 @@ export function VerifikasiPembayaranTable({
                 ) : '-'}
               </td>
               <td className="px-4 py-4 text-[#0A1128] font-medium">{user.birthdate || '-'}</td>
-              <td className="px-4 py-4 text-[#0A1128] font-medium whitespace-normal break-words max-w-[200px] leading-snug align-top">{user.lokasi || '-'}</td>
+              <td className="px-4 py-4 text-[#0A1128] font-medium whitespace-normal break-words max-w-[200px] leading-snug align-top" title={user.lokasi}>{abbrevRegion(user.lokasi) || '-'}</td>
               <td className="px-4 py-4 text-[#0A1128] font-medium whitespace-normal break-words max-w-[200px] leading-snug align-top">{user.training || '-'}</td>
-              <td className="px-4 py-4 text-[#0A1128] font-medium whitespace-normal break-words max-w-[200px] leading-snug align-top">{user.alumniDaerah || '-'}</td>
+              <td className="px-4 py-4 text-[#0A1128] font-medium whitespace-normal break-words max-w-[200px] leading-snug align-top" title={user.alumniDaerah}>{abbrevRegion(user.alumniDaerah) || '-'}</td>
               <td className="px-4 py-4 text-[#0A1128] font-medium">{user.alumniTanggal || '-'}</td>
               <td className="px-4 py-4 text-[#0A1128] font-medium whitespace-normal break-words max-w-[200px] leading-snug align-top">{user.school || '-'}</td>
               <td className="px-4 py-4 text-[#0A1128] font-medium">{user.submittedDate || '-'}</td>

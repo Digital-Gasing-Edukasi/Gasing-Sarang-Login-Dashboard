@@ -58,7 +58,7 @@ export function LoginStatusModal({ type, meta = {}, onClose, onRenew, onRetry, o
         <p className="text-[15px] text-muted-foreground leading-relaxed lg:mb-8">
           Server sedang mengalami gangguan internal (Error 500). Mohon tunggu sebentar, lalu coba lagi.
         </p>
-        <div className="flex flex-col gap-3 w-full">
+        <div className="flex flex-col gap-3 w-full lg:items-center">
           <ActionButton label="Coba Lagi" variant="primary" onClick={() => (onRetry || onClose)?.()} />
         </div>
       </Shell>
@@ -195,6 +195,14 @@ const RECEIPT_TIPS = [
 function PaymentRejectedModal({ meta = {}, onClose, onRenew, onReupload }) {
   const variant = meta.variant || 'receipt'
 
+  // Rekening dari backend (meta.bank via evaluatePaymentGate) menimpa fallback
+  // RECEIVER_BANK. Hanya nilai terdefinisi yang menimpa (spread membuang
+  // undefined otomatis? tidak — saring dulu).
+  const bankOverride = Object.fromEntries(
+    Object.entries(meta.bank || {}).filter(([, v]) => v != null && v !== '')
+  )
+  const bank = { ...RECEIVER_BANK, ...bankOverride }
+
   const V = {
     receipt: {
       body: 'Bukti pembayaran yang kamu unggah tidak dapat terbaca dengan jelas (buram, gelap, atau terpotong). Silakan unggah kembali foto struk pembayaran yang lebih jelas.',
@@ -244,13 +252,13 @@ function PaymentRejectedModal({ meta = {}, onClose, onRenew, onReupload }) {
         <div className="w-full">
           {/* Kartu rekening: mobile = stacked 2-baris + copy (Figma); desktop = 1-baris (look lama). */}
           <div className="text-left rounded-2xl border border-[#e2e8f0] bg-[#f8fafc] px-3 py-3 shadow-[0px_4px_6px_rgba(0,0,0,0.04)] divide-y divide-gray-100 lg:rounded-xl lg:border-gray-100 lg:bg-gray-50/60 lg:px-4 lg:py-1 lg:shadow-none">
-            <StackedRow label="Bank Tujuan" value={RECEIVER_BANK.bank} />
+            <StackedRow label="Bank Tujuan" value={bank.bank} />
             <StackedRow label="No. Rekening">
-              <span className="text-base font-semibold text-[#0033EC] lg:text-sm lg:font-bold">{RECEIVER_BANK.accountNumber}</span>
+              <span className="text-base font-semibold text-[#0033EC] lg:text-sm lg:font-bold">{bank.accountNumber}</span>
               {/* Tombol salin hanya mobile — desktop tetap seperti sebelumnya. */}
-              <span className="lg:hidden"><CopyButton value={RECEIVER_BANK.accountNumber} /></span>
+              <span className="lg:hidden"><CopyButton value={bank.accountNumber} /></span>
             </StackedRow>
-            <StackedRow label="Atas Nama (a.n)" value={RECEIVER_BANK.accountName} />
+            <StackedRow label="Atas Nama (a.n)" value={bank.accountName} />
           </div>
           <p className="text-xs text-muted-foreground text-center mt-4 leading-relaxed opacity-80 lg:opacity-100">
             <span className="lg:hidden">
@@ -427,7 +435,9 @@ function ActionButton({ label, variant, icon: Icon, onClick }) {
     <button
       onClick={onClick}
       className={cn(
-        'flex-1 flex items-center justify-center gap-2 font-semibold px-6 py-3.5 rounded-full transition-colors whitespace-nowrap',
+        // Desktop: lebar tombol CTA dibatasi — min 173px (kasus 2 tombol),
+        // maks 368px (kasus 1 tombol). Mobile tetap full-width.
+        'flex-1 flex items-center justify-center gap-2 font-semibold px-6 py-3.5 rounded-full transition-colors whitespace-nowrap lg:min-w-[173px] lg:max-w-[368px]',
         variant === 'primary'
           ? 'bg-[#0033EC] text-white hover:bg-[#0029BD]'
           : variant === 'danger'

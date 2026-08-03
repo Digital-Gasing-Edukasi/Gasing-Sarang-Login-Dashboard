@@ -17,7 +17,7 @@ import { StepBar, StepProgress } from "@/components/layout/StepIndicator";
 import { IconInput, TogglePassword } from "@/components/shared/IconInput";
 import { DateField } from "@/components/shared/DateField";
 import { authApi, regionsApi, trainingSessionsApi } from "@/lib/api";
-import { ID_MONTHS as MONTHS, withBase } from "@/lib/format";
+import { ID_MONTHS as MONTHS, withBase, abbrevRegion } from "@/lib/format";
 import { getPasswordRules, isPasswordValid } from "@/lib/password";
 // Dipin ke bad-words 3.x: rilis 4.0.0 (masih `latest` di npm) di-publish tanpa
 // folder `dist/` yang ditunjuk package.json-nya, jadi build gagal me-resolve-nya.
@@ -634,7 +634,7 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
                   <SelectContent>
                     {regencies.map((r) => (
                       <SelectItem key={r.id} value={r.id}>
-                        {r.regionName || r.name}
+                        {abbrevRegion(r.regionName || r.name)}
                       </SelectItem>
                     ))}
                   </SelectContent>

@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { ArrowDownUp, MoreHorizontal, Edit, Trash2, Clock, CheckCircle2, History, SearchX, Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { abbrevRegion } from '@/lib/format'
 import { TableShell, FreezeBlurLeft, FreezeBlurRight } from './TableShell'
 import { RoleTag } from './RoleTag'
 import { VoucherCode } from './VoucherCode'
@@ -302,9 +303,9 @@ export function ManajemenTable({
                   ) : '-'}
                 </td>
                 <td className="px-4 py-4 text-[#0A1128] font-medium align-top">{user.birthdate || '-'}</td>
-                <td className="px-4 py-4 text-[#0A1128] font-medium whitespace-normal break-words max-w-[200px] leading-snug align-top">{user.lokasi || '-'}</td>
+                <td className="px-4 py-4 text-[#0A1128] font-medium whitespace-normal break-words max-w-[200px] leading-snug align-top" title={user.lokasi}>{abbrevRegion(user.lokasi) || '-'}</td>
                 <td className="px-4 py-4 text-[#0A1128] font-medium whitespace-normal break-words max-w-[200px] leading-snug align-top">{user.training || '-'}</td>
-                <td className="px-4 py-4 text-[#0A1128] font-medium whitespace-normal break-words max-w-[200px] leading-snug align-top">{user.alumniDaerah || '-'}</td>
+                <td className="px-4 py-4 text-[#0A1128] font-medium whitespace-normal break-words max-w-[200px] leading-snug align-top" title={user.alumniDaerah}>{abbrevRegion(user.alumniDaerah) || '-'}</td>
                 <td className="px-4 py-4 text-[#0A1128] font-medium align-top">{user.alumniTanggal || '-'}</td>
                 <td className="px-4 py-4 text-[#0A1128] font-medium whitespace-normal break-words max-w-[200px] leading-snug align-top">{user.school || '-'}</td>
                 <td className="px-4 py-4 text-[#0A1128] font-medium align-top">{user.lastUpdated || '-'}</td>

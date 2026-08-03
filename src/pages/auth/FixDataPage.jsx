@@ -16,6 +16,7 @@ import { StepBar } from "@/components/layout/StepIndicator";
 import { IconInput } from "@/components/shared/IconInput";
 import { ErrorAlert } from "@/components/shared/ErrorAlert";
 import { cn } from "@/lib/utils";
+import { abbrevRegion } from "@/lib/format";
 import { authApi, regionsApi, trainingSessionsApi } from "@/lib/api";
 
 const asList = (data) =>
@@ -340,7 +341,7 @@ export function FixDataPage({ fixData, reviseToken, onNavigate }) {
               </SelectTrigger>
               <SelectContent>
                 {regencies.map((r) => (
-                  <SelectItem key={r.id} value={r.id}>{r.regionName || r.name}</SelectItem>
+                  <SelectItem key={r.id} value={r.id}>{abbrevRegion(r.regionName || r.name)}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
