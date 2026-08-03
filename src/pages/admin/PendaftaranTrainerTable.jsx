@@ -90,13 +90,13 @@ export function PendaftaranTrainerTable({
                     item.isActive ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"
                   )}
                 >
-                  {item.isActive ? 'Aktif' : 'Berakhir'}
+                  {expired ? 'Berakhir' : 'Aktif'}
                 </span>
               </td>
               <td className="px-4 py-4 sticky right-0 z-10 transition-colors relative bg-white group-hover:bg-[#F9FAFB]">
                 <FreezeBlurRight />
                 <div className="flex items-center justify-center">
-                  {ended ? (
+                  {expired ? (
                     <RowActionMenu
                       items={ENDED_MENU}
                       user={item}
