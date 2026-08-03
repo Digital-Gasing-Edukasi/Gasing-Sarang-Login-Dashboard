@@ -64,8 +64,8 @@ export function LoginStatusModal({ type, meta = {}, onClose, onRenew, onRetry, o
   if (confirmLogout) {
     return (
       <Shell icon={LogOut} tone="orange">
-        <h2 className="text-2xl font-bold text-foreground mb-3">Yakin Log Out?</h2>
-        <p className="text-[15px] text-muted-foreground leading-relaxed mb-8">
+        <h2 className="text-2xl font-bold text-foreground lg:mb-3">Yakin Log Out?</h2>
+        <p className="text-[15px] text-muted-foreground leading-relaxed lg:mb-8">
           Kamu akan keluar dari akunmu dan perlu login kembali untuk melanjutkan.
         </p>
         <div className="flex items-center gap-4">
@@ -92,6 +92,8 @@ export function LoginStatusModal({ type, meta = {}, onClose, onRenew, onRetry, o
         </p>
       ),
       actions: [{ label: 'Oke', variant: 'primary', kind: 'close' }],
+      // Tinggi sheet mobile sesuai desain Figma (iPhone base). Desktop auto.
+      sheetClass: 'min-h-[471px] lg:min-h-0',
     },
     expired: {
       icon: Clock,
@@ -101,6 +103,7 @@ export function LoginStatusModal({ type, meta = {}, onClose, onRenew, onRetry, o
         { label: 'Log Out', variant: 'outline', icon: LogOut, kind: 'logout' },
         { label: 'Perbarui Langganan', variant: 'primary', kind: 'renew' },
       ],
+      sheetClass: 'min-h-[275px] lg:min-h-0',
     },
   }
 
@@ -114,9 +117,9 @@ export function LoginStatusModal({ type, meta = {}, onClose, onRenew, onRetry, o
   }
 
   return (
-    <Shell tone="orange" icon={Icon}>
-      <h2 className="text-2xl font-bold text-foreground mb-3">{cfg.title}</h2>
-      <div className="text-[15px] text-muted-foreground leading-relaxed mb-8">{cfg.body}</div>
+    <Shell tone="orange" icon={Icon} sheetClass={cfg.sheetClass}>
+      <h2 className="text-2xl font-bold text-foreground lg:mb-3">{cfg.title}</h2>
+      <div className="text-[15px] text-muted-foreground leading-relaxed lg:mb-8">{cfg.body}</div>
       <div className="flex items-center gap-4">
         {cfg.actions.map((a) => (
           <ActionButton key={a.label} {...a} onClick={() => run(a.kind)} />
@@ -133,16 +136,16 @@ function SuspendedModal({ meta, onClose }) {
 
   return (
     <Shell tone="red" icon={ShieldAlert}>
-      <h2 className="text-2xl font-bold text-foreground mb-3">
+      <h2 className="text-2xl font-bold text-foreground lg:mb-3">
         Akun Kamu Ditangguhkan
       </h2>
-      <p className="text-[15px] text-muted-foreground leading-relaxed mb-6">
+      <p className="text-[15px] text-muted-foreground leading-relaxed lg:mb-6">
         Akun kamu ditangguhkan karena {reason.toLowerCase()}. Silakan baca{' '}
         <a href={COMMUNITY_URL} target="_blank" rel="noopener noreferrer" className="font-semibold text-[#0033EC] underline hover:opacity-80">panduan komunitas</a>{' '}
         kami untuk menghindari pelanggaran serupa.
       </p>
 
-      <div className="space-y-2 mb-8 text-left">
+      <div className="space-y-2 text-left lg:mb-8">
         <DetailRow label="Alasan:" value={reason} />
         {dur && <DetailRow label="Durasi tangguhan:" value={dur} />}
         <DetailRow label="Ditangguhkan hingga:" value={untilStr} />
@@ -240,9 +243,9 @@ function PaymentRejectedModal({ meta = {}, onClose, onRenew, onReupload }) {
 
   return (
     <Shell tone="red" icon={AlertCircle}>
-      <h2 className="text-2xl font-bold text-foreground mb-3">Pembayaran Ditolak</h2>
-      <p className="text-[14px] text-muted-foreground leading-relaxed text-center mb-6">{V.body}</p>
-      <div className="w-full mb-8">{V.content}</div>
+      <h2 className="text-2xl font-bold text-foreground lg:mb-3">Pembayaran Ditolak</h2>
+      <p className="text-[14px] text-muted-foreground leading-relaxed text-center lg:mb-6">{V.body}</p>
+      <div className="w-full lg:mb-8">{V.content}</div>
       <div className="flex items-center gap-4 w-full">
         <ActionButton label="Log Out" variant="outline" onClick={() => onClose?.()} />
         <ActionButton label={V.primaryLabel} variant="primary" onClick={() => (V.onPrimary || onRenew)?.()} />
@@ -279,7 +282,7 @@ const TONES = {
 //   'sheet'  (default) → mobile: bottom-sheet (naik dari bawah, rounded-top, ada handle);
 //                        desktop: kartu tengah.
 //   'center'          → kartu tengah di semua ukuran (dipakai modal error).
-function Shell({ tone, icon: Icon, children, variant = 'sheet' }) {
+function Shell({ tone, icon: Icon, children, variant = 'sheet', sheetClass }) {
   const t = TONES[tone] || TONES.orange
   const sheet = variant === 'sheet'
 
@@ -294,19 +297,20 @@ function Shell({ tone, icon: Icon, children, variant = 'sheet' }) {
         className={cn(
           'bg-white shadow-2xl text-center animate-fade-in-up',
           sheet
-            ? 'w-full rounded-t-[28px] px-6 pb-8 pt-5 lg:w-full lg:max-w-[520px] lg:rounded-[24px] lg:px-8 lg:pt-16'
-            : 'w-full max-w-[520px] rounded-[24px] px-8 pt-16 pb-8'
+            ? 'w-full rounded-t-[28px] px-6 pb-8 pt-5 flex flex-col items-center gap-5 lg:block lg:w-full lg:max-w-[520px] lg:rounded-[24px] lg:px-8 lg:pt-16'
+            : 'w-full max-w-[520px] rounded-[24px] px-8 pt-16 pb-8',
+          sheet && sheetClass
         )}
       >
         {/* Drag handle — hanya bottom-sheet mobile */}
-        {sheet && <div className="mx-auto mb-5 h-1.5 w-11 rounded-full bg-gray-200 lg:hidden" />}
+        {sheet && <div className="mx-auto h-1.5 w-11 rounded-full bg-gray-200 lg:hidden" />}
 
-        <div className={cn('mx-auto mb-6 w-[68px] h-[68px] rounded-full border-2 border-dashed flex items-center justify-center', t.ring)}>
+        <div className={cn('mx-auto w-[68px] h-[68px] rounded-full border-2 border-dashed flex items-center justify-center', sheet ? 'lg:mb-6' : 'mb-6', t.ring)}>
           <div className={cn('w-[52px] h-[52px] rounded-full flex items-center justify-center', t.bg)}>
             <Icon size={26} className={t.icon} />
           </div>
         </div>
-        <div className="flex flex-col items-center justify-center w-full">
+        <div className={cn('flex flex-col items-center justify-center w-full', sheet && 'gap-5 lg:gap-0')}>
           {children}
         </div>
       </div>

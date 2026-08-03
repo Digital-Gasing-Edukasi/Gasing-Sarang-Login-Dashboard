@@ -48,6 +48,31 @@ export function ProfileMenu({ user, onSignOut, onContact }) {
 
   const name = user?.name || user?.profile?.namaLengkap || 'HK'
 
+  // Isi menu (dipakai bersama dropdown desktop & bottom-sheet mobile).
+  const items = (
+    <>
+      <button
+        type="button"
+        role="menuitem"
+        onClick={handleContact}
+        className="flex w-full items-center gap-3 px-4 py-3 text-sm font-medium text-[#FFFFFF] hover:bg-white/5 transition-colors"
+      >
+        <Headphones size={18} className="text-[#FFFFFF]" />
+        Hubungi Kami
+      </button>
+      <div className="mx-3 border-t border-white/10" />
+      <button
+        type="button"
+        role="menuitem"
+        onClick={handleLogout}
+        className="flex w-full items-center gap-3 px-4 py-3 text-sm font-medium text-[#ef4444] hover:bg-white/5 transition-colors"
+      >
+        <LogOut size={18} className="text-[#ef4444]" />
+        Logout
+      </button>
+    </>
+  )
+
   return (
     <div ref={ref} className="relative">
       <button
@@ -62,30 +87,32 @@ export function ProfileMenu({ user, onSignOut, onContact }) {
       </button>
 
       {open && (
-        <div
-          role="menu"
-          className="absolute right-0 top-full mt-3 w-[220px] rounded-2xl border border-white/10 bg-[#030B1F] py-1.5 text-left shadow-xl shadow-black/30 animate-fade-in-up z-50"
-        >
-          <button
-            type="button"
-            role="menuitem"
-            onClick={handleContact}
-            className="flex w-full items-center gap-3 px-4 py-3 text-sm font-medium text-[#FFFFFF] hover:bg-white/5 transition-colors"
+        <>
+          {/* Desktop: dropdown kanan-atas */}
+          <div
+            role="menu"
+            className="absolute right-0 top-full mt-3 hidden w-[220px] rounded-2xl border border-white/10 bg-[#030B1F] py-1.5 text-left shadow-xl shadow-black/30 animate-fade-in-up z-50 lg:block"
           >
-            <Headphones size={18} className="text-[#FFFFFF]" />
-            Hubungi Kami
-          </button>
-          <div className="mx-3 border-t border-white/10" />
-          <button
-            type="button"
-            role="menuitem"
-            onClick={handleLogout}
-            className="flex w-full items-center gap-3 px-4 py-3 text-sm font-medium text-[#ef4444] hover:bg-white/5 transition-colors"
-          >
-            <LogOut size={18} className="text-[#ef4444]" />
-            Logout
-          </button>
-        </div>
+            {items}
+          </div>
+
+          {/* Mobile: bottom-sheet tinggi 152 (desain Figma iPhone base) */}
+          <div className="fixed inset-0 z-[100] lg:hidden">
+            <div
+              className="absolute inset-0 bg-black/30 backdrop-blur-sm animate-in fade-in-0"
+              onClick={() => setOpen(false)}
+            />
+            <div
+              role="menu"
+              className="absolute inset-x-0 bottom-0 flex h-[152px] flex-col rounded-t-3xl bg-[#030B1F] pb-[env(safe-area-inset-bottom)] text-left shadow-[0_-8px_30px_rgba(0,0,0,0.3)] animate-in slide-in-from-bottom duration-200"
+            >
+              <div className="mx-auto mt-3 h-1.5 w-10 shrink-0 rounded-full bg-white/20" />
+              <div className="flex flex-1 flex-col justify-center py-1.5">
+                {items}
+              </div>
+            </div>
+          </div>
+        </>
       )}
     </div>
   )

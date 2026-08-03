@@ -204,6 +204,39 @@ export function DateField({
       : daysInMonth(draft.y, draft.m);
   const dayItems = range(1, lastDay).map((d) => ({ value: d, label: String(d) }));
 
+  // Roda pilih (dipakai bersama popover desktop & bottom-sheet mobile).
+  const pickerBody = (
+    <div className="relative flex w-full">
+      {/* Penanda baris tengah: satu pill per kolom */}
+      <div
+        className="pointer-events-none absolute inset-x-0 z-0 flex"
+        style={{ top: PAD, height: ITEM_H }}
+      >
+        <div className="mx-1 flex-1 rounded-full bg-primary/10" />
+        <div className="mx-1 flex-1 rounded-full bg-primary/10" />
+        <div className="mx-1 flex-1 rounded-full bg-primary/10" />
+      </div>
+      <WheelColumn
+        label="Tanggal"
+        items={dayItems}
+        value={Math.min(draft.d, lastDay)}
+        onChange={(d) => emit(draft.y, draft.m, d)}
+      />
+      <WheelColumn
+        label="Bulan"
+        items={monthItems}
+        value={Math.min(draft.m, lastMonth)}
+        onChange={(m) => emit(draft.y, m, draft.d)}
+      />
+      <WheelColumn
+        label="Tahun"
+        items={yearItems}
+        value={draft.y}
+        onChange={(y) => emit(y, draft.m, draft.d)}
+      />
+    </div>
+  );
+
   return (
     <div ref={wrapRef} className="relative">
       <button
@@ -227,41 +260,33 @@ export function DateField({
       </button>
 
       {open && (
-        <div
-          role="dialog"
-          aria-label={dialogLabel}
-          className="absolute left-0 right-0 top-[calc(100%+8px)] z-50 overflow-hidden rounded-2xl border border-input bg-background p-2 shadow-xl animate-in fade-in slide-in-from-top-1"
-        >
-          <div className="relative flex">
-            {/* Penanda baris tengah: satu pill per kolom */}
-            <div
-              className="pointer-events-none absolute inset-x-0 z-0 flex"
-              style={{ top: PAD, height: ITEM_H }}
-            >
-              <div className="mx-1 flex-1 rounded-full bg-primary/10" />
-              <div className="mx-1 flex-1 rounded-full bg-primary/10" />
-              <div className="mx-1 flex-1 rounded-full bg-primary/10" />
-            </div>
-            <WheelColumn
-              label="Tanggal"
-              items={dayItems}
-              value={Math.min(draft.d, lastDay)}
-              onChange={(d) => emit(draft.y, draft.m, d)}
-            />
-            <WheelColumn
-              label="Bulan"
-              items={monthItems}
-              value={Math.min(draft.m, lastMonth)}
-              onChange={(m) => emit(draft.y, m, draft.d)}
-            />
-            <WheelColumn
-              label="Tahun"
-              items={yearItems}
-              value={draft.y}
-              onChange={(y) => emit(y, draft.m, draft.d)}
-            />
+        <>
+          {/* Desktop: popover di bawah field */}
+          <div
+            role="dialog"
+            aria-label={dialogLabel}
+            className="absolute left-0 right-0 top-[calc(100%+8px)] z-50 hidden overflow-hidden rounded-2xl border border-input bg-background p-2 shadow-xl animate-in fade-in slide-in-from-top-1 lg:block"
+          >
+            {pickerBody}
           </div>
-        </div>
+
+          {/* Mobile: bottom-sheet tinggi 428 (desain Figma iPhone base) */}
+          <div className="fixed inset-0 z-[100] lg:hidden">
+            <div
+              className="absolute inset-0 bg-black/10 backdrop-blur-sm animate-in fade-in-0"
+              onClick={() => setOpen(false)}
+            />
+            <div className="absolute inset-x-0 bottom-0 flex h-[428px] max-h-[85vh] flex-col rounded-t-3xl bg-background px-2 pb-[env(safe-area-inset-bottom)] shadow-[0_-8px_30px_rgba(0,0,0,0.18)] animate-in slide-in-from-bottom duration-200">
+              <div className="mx-auto mt-3 h-1.5 w-10 shrink-0 rounded-full bg-gray-300" />
+              <h3 className="shrink-0 px-2 pt-3 pb-4 text-center text-[17px] font-bold text-gray-900">
+                {dialogLabel}
+              </h3>
+              <div className="flex flex-1 items-center justify-center">
+                {pickerBody}
+              </div>
+            </div>
+          </div>
+        </>
       )}
     </div>
   );

@@ -154,7 +154,7 @@ function MobileSheet({ ctx, title, children }) {
         className="absolute inset-0 bg-black/10 backdrop-blur-sm animate-in fade-in-0"
         onClick={() => setOpen(false)}
       />
-      <div className="absolute inset-x-0 bottom-0 flex max-h-[72vh] flex-col rounded-t-3xl bg-white pb-[env(safe-area-inset-bottom)] shadow-[0_-8px_30px_rgba(0,0,0,0.18)] animate-in slide-in-from-bottom duration-200">
+      <div className="absolute inset-x-0 bottom-0 flex h-[372px] max-h-[85vh] flex-col rounded-t-3xl bg-white pb-[env(safe-area-inset-bottom)] shadow-[0_-8px_30px_rgba(0,0,0,0.18)] animate-in slide-in-from-bottom duration-200">
         <div className="mx-auto mt-3 h-1.5 w-10 rounded-full bg-gray-300" />
         <h3 className="px-6 pt-3 pb-4 text-[17px] font-bold text-gray-900">
           {title || placeholder}

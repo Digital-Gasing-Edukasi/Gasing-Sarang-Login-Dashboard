@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, lazy, Suspense } from "react";
 import { Routes, Route, Navigate, useNavigate, useLocation } from "react-router-dom";
-import { tokenStorage, subscriptionApi, profileApi, authApi, regionsApi, webAppApi, discourseApi } from "@/lib/api";
+import { tokenStorage, subscriptionApi, profileApi, authApi, regionsApi, webAppApi } from "@/lib/api";
 import { isSuperAdmin, isOperationalAdmin, isSsoDisabled, hasAllAdminCapabilities, hasCapability } from "@/lib/roles";
 import { decodeFixPayload } from "@/lib/fixLink";
 import { evaluateLoginGate, evaluatePaymentGate } from "@/lib/loginGate";
@@ -404,15 +404,6 @@ export default function App() {
     // Tag USER/DISCOURSE/DISABLED-SSO → jangan lewat SSO, langsung ke dashboard.
     if (isSsoDisabled(user)) {
       webAppApi.redirectWithTokens();
-      return;
-    }
-
-    if (user?.capabilities?.includes("DISCOURSE/GROUP/SYNC")) {
-      try {
-        await discourseApi.ssoLogin();
-      } catch (error) {
-        console.error('Gagal inisiasi SSO:', error);
-      }
       return;
     }
 

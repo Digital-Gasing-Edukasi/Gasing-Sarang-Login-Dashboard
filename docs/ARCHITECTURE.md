@@ -579,7 +579,7 @@ handleConfirmApprove / handleConfirmReject:
 | --------- | ----- | --------- |
 | **Midtrans** | `subscriptionApi.checkout` + `index.html` snap.js + `MidtransTestPage` | Snap Redirect (produksi flow) / Snap Popup `window.snap.pay` (dev tool). Client key di `index.html`; landing `/payment/*`. |
 | **Discourse SSO** | `discourseApi.gateway` / `ssoLogin` | Verifikasi `sso+sig`, redirect handoff. |
-| **Gasing Web App** | `webAppApi.redirectWithTokens()` | Handoff sesi ke `gasing.vercel.app/api/auth/callback?token=&refresh=`. |
+| **Gasing Web App** | `webAppApi.redirectWithTokens()` | Handoff sesi ke `sarang-gasing-komunitas.vercel.app/api/auth/callback?token=&refresh=`. |
 | **File Manager** | `fileManagerApi` | Upload multipart → commit → download URL. |
 
 ---

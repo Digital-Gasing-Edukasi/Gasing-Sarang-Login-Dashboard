@@ -44,8 +44,9 @@ export function AuthFullLayout({ children, illustration = 'robot' }) {
 
       <MobileHero />
 
-      {/* Mobile: kartu putih "popup" naik menutupi hero (rounded-top). Desktop: full-bleed. */}
-      <div className="relative z-10 -mt-6 lg:mt-0 rounded-t-[28px] lg:rounded-none bg-white shadow-[0_-12px_30px_rgba(0,0,0,0.10)] lg:shadow-none flex-1 overflow-hidden flex flex-col">
+      {/* Mobile: kartu putih "popup" naik menutupi hero (rounded-top), TINGGI IKUT
+          KONTEN (flex-none) — hero flex-1 mengisi sisa di atas. Desktop: full-bleed flex-1. */}
+      <div className="relative z-10 -mt-6 lg:mt-0 rounded-t-[28px] lg:rounded-none bg-white shadow-[0_-12px_30px_rgba(0,0,0,0.10)] lg:shadow-none flex-none lg:flex-1 overflow-hidden flex flex-col">
         {/* Dekorasi ilustrasi hanya desktop. forgotPassword: tanpa dekorasi (background ungu saja) */}
         {illustration === 'forgotPassword' ? null : (
           <>
@@ -65,7 +66,8 @@ export function AuthFullLayout({ children, illustration = 'robot' }) {
         </div>
       </div>
 
-      <div className="pb-6 shrink-0">
+      {/* Footer copyright hanya desktop — di mobile kartu sheet nempel dasar layar */}
+      <div className="hidden lg:block pb-6 shrink-0">
         <p className="text-xs text-muted-foreground text-center">©2026 Gasing Academy. All rights reserved..</p>
       </div>
     </div>
