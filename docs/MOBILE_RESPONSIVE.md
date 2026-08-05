@@ -19,6 +19,15 @@
 
 Breakpoint pemisah mobile↔desktop adalah **`lg` (1024px)**, konsisten dengan `LeftPanel` yang memang `hidden lg:flex`.
 
+**Desktop punya 2 resolusi base** (custom screen `fhd` di `tailwind.config.js`):
+
+| Prefix | Base | Lebar form |
+| ------ | ---- | ---------- |
+| `lg:` (≥ 1024px) | 1366×768 | **380px** |
+| `fhd:` (≥ 1728px) | 1920×1080 | **480px** |
+
+Ambang `fhd` sengaja **1728px** (bukan 1920) supaya monitor 1920 yang viewport-nya menyusut oleh scrollbar (~1903px) tetap kena base FHD; layar 1600/1680 tetap base 1366. Lebar form diatur di default `maxWidth` [`RightPanel`](../src/components/layout/RightPanel.jsx) (split-screen) & container [`AuthFullLayout`](../src/components/layout/AuthFullLayout.jsx) (full-screen). Footer: split → hanya panel kanan; full → center full-width (sudah sesuai, tak berubah).
+
 **Prinsip:** hanya **layout & styling** yang bercabang mobile/desktop. **Logika** (state, handler, validasi, panggilan API) tetap tunggal dan dipakai bersama. Untuk halaman yang tema mobile-nya berbeda drastis (mis. gelap vs terang), dipakai **twin block** — dua blok markup (`lg:hidden` dan `hidden lg:block`) yang berbagi state dari komponen yang sama.
 
 ---
