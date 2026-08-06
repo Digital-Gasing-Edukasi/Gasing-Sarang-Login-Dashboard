@@ -97,56 +97,65 @@ export function ForgotPasswordPage({ onNavigate, onEmailSent }) {
 
       {/* ═══════════════════════════ DESKTOP (dark) ═══════════════════════════ */}
       <div className="hidden lg:block">
-        <AuthDarkLayout>
-          <div className="animate-fade-in-up">
-            <h1 className="font-cera-pro text-[48px] font-bold text-white mb-4">
-              Lupa Password?
-            </h1>
-            <p className="text-[15px] text-white/60 leading-relaxed mb-5 max-w-[367px]">
-              Masukkan email kamu yang terdaftar dan kami akan mengirimkan
-              tautan untuk mengatur ulang kata sandi kamu.
-            </p>
-          </div>
+        <AuthDarkLayout maxWidth="max-w-[480px]">
+          {/* Container: gap 48px antar (grup form) · separator · tombol back */}
+          <div className="flex flex-col gap-12 animate-fade-in-up">
+            {/* Grup form: gap 32px antar (title) · field · tombol kirim */}
+            <div className="flex flex-col gap-8">
+              <div className="flex flex-col gap-4 text-white/90">
+                <h1 className="font-cera-pro text-[40px] font-bold leading-[1.3]">
+                  Lupa Password?
+                </h1>
+                <p className="text-[14px] leading-relaxed">
+                  Masukkan email kamu yang terdaftar dan kami akan mengirimkan
+                  tautan untuk mengatur ulang kata sandi kamu.
+                </p>
+              </div>
 
-          <div className="space-y-5 animate-fade-in-up delay-100">
-            <div className="space-y-2">
-              <label className="text-[14px] font-semibold text-white/85">
-                Email
-              </label>
-              <DarkInput
-                icon={Mail}
-                type="email"
-                placeholder="Masukkan email"
-                value={email}
-                error={errors.email}
-                onChange={(e) => {
-                  setEmail(e.target.value);
-                  clearFieldError("email");
-                }}
-                onKeyDown={(e) => e.key === "Enter" && handleSend()}
-              />
-              {errors.email && (
-                <p className="text-xs text-red-300">{errors.email}</p>
-              )}
+              <div className="space-y-2">
+                <label className="text-[14px] font-medium text-white/90">
+                  Email
+                </label>
+                <DarkInput
+                  icon={Mail}
+                  type="email"
+                  placeholder="Masukkan email"
+                  value={email}
+                  error={errors.email}
+                  className="border-white/30"
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    clearFieldError("email");
+                  }}
+                  onKeyDown={(e) => e.key === "Enter" && handleSend()}
+                />
+                {errors.email && (
+                  <p className="text-xs text-red-300">{errors.email}</p>
+                )}
+              </div>
+
+              <DarkPrimaryButton
+                variant="white"
+                onClick={handleSend}
+                disabled={loading || !email}
+              >
+                {loading ? (
+                  <>
+                    <Loader2 size={18} className="animate-spin" /> Mengirim...
+                  </>
+                ) : (
+                  "Kirim Tautan"
+                )}
+              </DarkPrimaryButton>
             </div>
 
-            <DarkPrimaryButton
-              variant="white"
-              onClick={handleSend}
-              disabled={loading || !email}
+            {/* Separator pendek 48px */}
+            <div className="mx-auto h-px w-12 bg-white/40" />
+
+            <DarkGhostButton
+              className="border-white/50"
+              onClick={() => onNavigate("login")}
             >
-              {loading ? (
-                <>
-                  <Loader2 size={18} className="animate-spin" /> Mengirim...
-                </>
-              ) : (
-                "Kirim Tautan"
-              )}
-            </DarkPrimaryButton>
-
-            <DarkDivider />
-
-            <DarkGhostButton onClick={() => onNavigate("login")}>
               <LogIn size={17} /> Kembali Ke Login
             </DarkGhostButton>
           </div>

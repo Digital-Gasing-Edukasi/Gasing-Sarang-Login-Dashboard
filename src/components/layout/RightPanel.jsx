@@ -3,7 +3,7 @@ import { cn } from '@/lib/utils'
 
 // maxWidth default = lebar form 2-base desktop: mobile pakai max-w-md (cap lama,
 // tak berpengaruh di layar sempit), lg → base 1366 (380px), fhd → base 1920 (480px).
-export function RightPanel({ children, mobileHero = null, topBar = null, footer = null, stickyFooter = null, progress = null, maxWidth = 'max-w-md lg:max-w-[380px] fhd:max-w-[480px]', padX = 'px-6', lockDesktop = false }) {
+export function RightPanel({ children, mobileHero = null, topBar = null, footer = null, stickyFooter = null, progress = null, maxWidth = 'max-w-md lg:max-w-[380px] fhd:max-w-[480px]', padX = '1', lockDesktop = false }) {
   // Kartu putih jadi "popup sheet" (rounded-top, naik menutupi hero) HANYA saat
   // ada hero ungu di atasnya. Halaman tanpa hero (signup/perbaikan) tampil polos.
   const sheet = !!mobileHero
@@ -41,7 +41,7 @@ export function RightPanel({ children, mobileHero = null, topBar = null, footer 
   return (
     <div
       className={cn(
-        'flex-1 flex flex-col bg-background',
+        'flex-1 flex flex-col bg-background relative',
         deskShell
           // Desktop app-shell: kunci 1 viewport di mobile & desktop.
           ? 'h-[100dvh] overflow-hidden'

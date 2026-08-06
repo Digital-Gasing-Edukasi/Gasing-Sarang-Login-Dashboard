@@ -14,12 +14,33 @@ export function evaluateLoginGate(profile) {
   //    until  : suspendedUntil ("YYYY-MM-DD HH:mm:ss" / ISO) — lihat SuspendModal.
   //    reason : alasan penangguhan (dropdown REASONS di SuspendModal).
   if (p.suspendedUntil || p.suspended) {
-    const s = typeof p.suspended === 'object' ? p.suspended : {}
-    return {
-      type: 'suspended',
-      until: p.suspendedUntil || s.until || s.suspendedUntil || null,
-      reason: p.suspendReason || p.suspensionReason || s.reason || '',
-    }
+    const s = (p.suspended && typeof p.suspended === 'object') ? p.suspended : {}
+
+    // Tanggal cabut tangguhan. Struktur asli: suspended.lifted_at.{local|utc}.iso
+    // ("YYYY-MM-DD HH:mm:ss"). Fallback ke field lama bila bentuk berbeda.
+    const liftedAt = s.lifted_at || s.liftedAt
+    const until =
+      p.suspendedUntil ||
+      liftedAt?.local?.iso || liftedAt?.local?.raw ||
+      liftedAt?.utc?.iso || liftedAt?.utc?.raw ||
+      (typeof liftedAt === 'string' ? liftedAt : null) ||
+      s.until || s.suspendedUntil || null
+
+    // Alasan (string). Struktur asli: suspended.remarks (string) atau
+    // suspended.reason[] ({code,title,description}) → gabung description/title.
+    const reasonList = Array.isArray(s.reason) ? s.reason : null
+    const fromList = reasonList
+      ? reasonList.map((r) => (typeof r === 'string' ? r : r?.description || r?.title || '')).filter(Boolean).join(', ')
+      : ''
+    const reason = String(
+      p.suspendReason || p.suspensionReason || s.remarks || fromList ||
+      (typeof s.reason === 'string' ? s.reason : '') || ''
+    )
+
+    // Durasi tangguhan (objek {year,month,day,hour,min,sec}) — diformat di modal.
+    const duration = (s.duration && typeof s.duration === 'object') ? s.duration : null
+
+    return { type: 'suspended', until, reason, duration }
   }
 
   // 2. Pending — akun belum di-approve admin (verifiedStatus = waiting).

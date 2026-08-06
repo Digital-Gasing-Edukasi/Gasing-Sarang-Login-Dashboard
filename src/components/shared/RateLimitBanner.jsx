@@ -21,17 +21,19 @@ export function RateLimitBanner({ seconds = 60, onClose, onExpire }) {
   if (left <= 0) return null
 
   return (
-    <div className="animate-fade-in-up mb-6 inline-flex items-center justify-center gap-4 rounded-xl bg-[#EF4444] px-5 py-3 text-white shadow-lg">
-      <p className="min-w-0 text-[15px] leading-tight">
-        Terlalu banyak percobaan login. Silakan coba lagi dalam {fmt(left)}.
-      </p>
-      <button
-        onClick={onClose}
-        aria-label="Tutup"
-        className="shrink-0 text-white/80 transition-colors hover:text-white"
-      >
-        <X size={20} />
-      </button>
+    <div className="pointer-events-none absolute top-[40px] left-0 right-0 z-[100] flex justify-center px-4">
+      <div className="pointer-events-auto flex max-w-full items-center justify-center gap-4 whitespace-nowrap rounded-2xl bg-[#EF4444] px-5 py-3 text-white shadow-[1px_1px_18px_3px_rgba(0,0,0,0.1)] animate-fade-in-up">
+        <p className="text-[16px] font-medium leading-[1.5]">
+          Terlalu banyak percobaan login. Silakan coba lagi dalam {fmt(left)}.
+        </p>
+        <button
+          onClick={onClose}
+          aria-label="Tutup"
+          className="flex size-6 shrink-0 items-center justify-center text-white/90 transition-colors hover:text-white"
+        >
+          <X size={20} />
+        </button>
+      </div>
     </div>
   )
 }

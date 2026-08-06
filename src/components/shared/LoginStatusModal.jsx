@@ -21,18 +21,19 @@ function fmtDateID(value) {
   return `${d.getDate()} ${ID_MONTHS[d.getMonth()]} ${d.getFullYear()}, ${hh}:${mm}`
 }
 
-// Durasi manusiawi dari sekarang → until: "1 Bulan" / "1 Minggu" / "3 Hari" / "6 Jam".
-function durationLabel(value) {
-  if (!value) return ''
-  const d = new Date(typeof value === 'string' ? value.replace(' ', 'T') : value)
-  if (isNaN(d)) return ''
-  const ms = d.getTime() - Date.now()
-  if (ms <= 0) return ''
-  const days = Math.round(ms / 86400e3)
-  if (days >= 28) return `${Math.round(days / 30)} Bulan`
-  if (days >= 7 && days % 7 === 0) return `${days / 7} Minggu`
-  if (days >= 1) return `${days} Hari`
-  return `${Math.max(1, Math.round(ms / 3600e3))} Jam`
+// Durasi tangguhan dari objek suspended.duration ({year,month,day,hour,min,sec}).
+// Gabung unit non-nol jadi label ID: "18 Jam 59 Menit". Maks 2 unit terbesar.
+const DURATION_UNITS = [
+  ['year', 'Tahun'], ['month', 'Bulan'], ['day', 'Hari'],
+  ['hour', 'Jam'], ['min', 'Menit'], ['sec', 'Detik'],
+]
+function durationLabel(duration) {
+  if (!duration || typeof duration !== 'object') return ''
+  const parts = DURATION_UNITS
+    .map(([key, label]) => [Number(duration[key]) || 0, label])
+    .filter(([n]) => n > 0)
+    .map(([n, label]) => `${n} ${label}`)
+  return parts.slice(0, 2).join(' ')
 }
 
 // Modal blocking di atas halaman login.
@@ -136,30 +137,28 @@ export function LoginStatusModal({ type, meta = {}, onClose, onRenew, onRetry, o
 
 function SuspendedModal({ meta, onClose }) {
   const untilStr = fmtDateID(meta.until)
-  const dur = durationLabel(meta.until)
-  const reason = meta.reason || 'Melanggar panduan komunitas'
+  const dur = durationLabel(meta.duration)
+  const reason = String(meta.reason || '') || 'Melanggar panduan komunitas'
 
   return (
     <Shell tone="red" icon={ShieldAlert}>
-      <h2 className="text-2xl font-bold text-foreground lg:mb-3">
+      <h2 className="text-2xl font-bold text-foreground lg:mb-2 lg:text-xl lg:font-semibold">
         Akun Kamu Ditangguhkan
       </h2>
-      <p className="text-[15px] text-muted-foreground leading-relaxed lg:mb-6">
-        {/* Mobile (Figma): kalimat generik. Desktop: pertahankan alasan spesifik lama. */}
-        Akun kamu ditangguhkan karena{' '}
-        <span className="lg:hidden">melanggar panduan komunitas</span>
-        <span className="hidden lg:inline">{reason.toLowerCase()}</span>. Silakan baca{' '}
+      {/* Kalimat generik (desain terbaru): alasan spesifik ada di baris "Alasan:". */}
+      <p className="text-[15px] text-[#424857] leading-relaxed lg:mb-8 lg:text-base">
+        Akun kamu ditangguhkan karena melanggar panduan komunitas. Silakan baca{' '}
         <a href={COMMUNITY_URL} target="_blank" rel="noopener noreferrer" className="font-semibold text-[#0033EC] underline hover:opacity-80">panduan komunitas</a>{' '}
         kami untuk menghindari pelanggaran serupa.
       </p>
 
-      <div className="space-y-2 text-left lg:mb-8">
+      <div className="w-full space-y-2 text-left lg:mb-10">
         <DetailRow label="Alasan:" value={reason} />
         {dur && <DetailRow label="Durasi tangguhan:" value={dur} />}
         <DetailRow label="Ditangguhkan hingga:" value={untilStr} />
       </div>
 
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-4 w-full">
         <ActionButton label="Hubungi Kami" variant="outline" onClick={onClose} />
         <ActionButton label="Saya Mengerti" variant="primary" onClick={onClose} />
       </div>
@@ -375,11 +374,12 @@ function RejectedModal({ meta = {}, onClose, onReregister }) {
   )
 }
 
+// Desain terbaru: kotak abu compact (#f3f4f6), label kecil kiri, nilai kanan.
 function DetailRow({ label, value }) {
   return (
-    <div className="flex items-center justify-between gap-4 bg-gray-50 rounded-xl px-4 py-3">
-      <span className="text-sm font-semibold text-foreground shrink-0">{label}</span>
-      <span className="text-sm text-muted-foreground text-right">{value}</span>
+    <div className="flex items-start justify-between gap-4 bg-[#f3f4f6] rounded-md px-3 py-2">
+      <span className="text-xs font-medium text-[#424857] shrink-0">{label}</span>
+      <span className="text-[13px] font-medium text-foreground text-right">{value}</span>
     </div>
   )
 }

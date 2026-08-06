@@ -109,6 +109,8 @@ export function LoginPage({ onNavigate, onLoginSuccess, isSsoMode = false }) {
         />
       )}
 
+      {noConn && <NoConnectionBanner onClose={() => setNoConn(false)} />}
+
       <div className="hidden lg:flex items-center justify-center mb-9 animate-fade-in-up">
         <Logo variant="split" />
       </div>
@@ -204,7 +206,7 @@ export function LoginPage({ onNavigate, onLoginSuccess, isSsoMode = false }) {
               <Loader2 size={16} className="animate-spin" /> Memproses...
             </>
           ) : (
-            "Login"
+            "Log In"
           )}
         </Button>
       </div>
@@ -228,8 +230,6 @@ export function LoginPage({ onNavigate, onLoginSuccess, isSsoMode = false }) {
           Lanjut Sebagai Tamu
         </button>
       </div>
-
-      {noConn && <NoConnectionBanner onClose={() => setNoConn(false)} />}
 
       {gate && (
         <LoginStatusModal

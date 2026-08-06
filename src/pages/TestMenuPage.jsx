@@ -1,10 +1,9 @@
-// src/pages/TestMenuPage.jsx
-//
-// Halaman menu test sederhana: navigasi cepat ke semua route project.
-// Bukan bagian produk — cuma alat bantu dev/QA. Route: /test-menu.
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { LoginStatusModal } from "@/components/shared/LoginStatusModal";
+import { RateLimitBanner } from "@/components/shared/RateLimitBanner";
+import { NoConnectionBanner } from "@/components/shared/NoConnectionBanner";
+import { SuccessToast } from "@/components/shared/SuccessToast";
 
 // Kelompok route sesuai <Routes> di App.jsx. Beberapa route butuh token/query
 // (ditandai) atau auth (mis. dashboard-admin bisa redirect ke login).
@@ -66,8 +65,6 @@ const GROUPS = [
 ];
 
 // Modal auth = 1 komponen (LoginStatusModal), 8 state visual via type + meta.
-// Semua props-only, tanpa fetch backend. Responsive built-in: bottom-sheet
-// di mobile, kartu tengah di desktop — cek mobile via resize viewport.
 const MODAL_STATES = [
   { key: "pending", label: "Meninjau Akun", type: "pending" },
   { key: "expired", label: "Langganan Berakhir", type: "expired", note: "→ Log Out" },
@@ -98,17 +95,48 @@ const MODAL_STATES = [
   { key: "error", label: "Terjadi Kesalahan", type: "error" },
 ];
 
+const TOAST_STATES = [
+  {
+    key: "no-connection",
+    label: "Toast Tidak Ada Jaringan",
+    type: "no_conn",
+    note: "Auth / Dashboard",
+  },
+  {
+    key: "rate-limit",
+    label: "Toast Rate Limit (429)",
+    type: "rate_limit",
+    note: "Auth Page",
+  },
+  {
+    key: "success",
+    label: "Toast Berhasil / Sukses",
+    type: "success",
+    note: "Dashboard",
+  },
+];
+
 export default function TestMenuPage() {
   const [modal, setModal] = useState(null);
+  const [toast, setToast] = useState(null);
+
   const closeModal = () => setModal(null);
+  const closeToast = () => setToast(null);
+
+  useEffect(() => {
+    if (toast?.type === "success") {
+      const timer = setTimeout(() => setToast(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [toast]);
 
   return (
-    <div className="min-h-screen bg-slate-50 px-4 py-10 font-sans text-slate-900">
+    <div className="min-h-screen bg-slate-50 px-4 py-10 font-sans text-slate-900 relative">
       <div className="mx-auto max-w-3xl">
         <header className="mb-8">
           <h1 className="text-2xl font-bold">Menu Test — Navigasi Route</h1>
           <p className="mt-1 text-sm text-slate-500">
-            Klik untuk buka masing-masing page. Alat bantu dev/QA (route:{" "}
+            Klik untuk buka masing-masing page / modal / toast. Alat bantu dev/QA (route:{" "}
             <code className="rounded bg-slate-200 px-1 py-0.5 text-[12px]">/test-menu</code>).
           </p>
         </header>
@@ -142,6 +170,37 @@ export default function TestMenuPage() {
               </div>
             </section>
           ))}
+
+          <section>
+            <h2 className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-400">
+              Toast & Notification Banner (Auth & Dashboard)
+            </h2>
+            <p className="mb-3 -mt-1 text-[11px] text-slate-400">
+              Klik untuk menguji & preview tampilan Toast secara interaktif.
+            </p>
+            <div className="grid gap-2 sm:grid-cols-2">
+              {TOAST_STATES.map((t) => (
+                <button
+                  key={t.key}
+                  type="button"
+                  onClick={() => setToast(t)}
+                  className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3 text-left text-sm shadow-sm transition-colors hover:border-slate-300 hover:bg-slate-100"
+                >
+                  <span className="min-w-0">
+                    <span className="block truncate font-medium">{t.label}</span>
+                    <span className="block truncate font-mono text-[11px] text-slate-400">
+                      {t.type}
+                    </span>
+                  </span>
+                  {t.note && (
+                    <span className="ml-2 shrink-0 rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-semibold text-rose-700">
+                      {t.note}
+                    </span>
+                  )}
+                </button>
+              ))}
+            </div>
+          </section>
 
           <section>
             <h2 className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-400">
@@ -186,6 +245,23 @@ export default function TestMenuPage() {
           onReupload={closeModal}
         />
       )}
+
+      {toast?.type === "rate_limit" && (
+        <RateLimitBanner
+          seconds={60}
+          onClose={closeToast}
+          onExpire={closeToast}
+        />
+      )}
+
+      {toast?.type === "no_conn" && (
+        <NoConnectionBanner onClose={closeToast} />
+      )}
+
+      {toast?.type === "success" && (
+        <SuccessToast message="Operasi berhasil diperbarui!" />
+      )}
     </div>
   );
 }
+
