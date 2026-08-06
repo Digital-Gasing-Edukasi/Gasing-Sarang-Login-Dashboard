@@ -9,17 +9,17 @@ export function RightPanel({ children, mobileHero = null, maxWidth = 'max-w-md' 
       {mobileHero}
       <div
         className={cn(
-          'flex-1 flex flex-col justify-start lg:justify-center px-6 lg:px-16 pb-8 w-full mx-auto bg-background',
+          'flex-1 flex flex-col justify-start lg:justify-center px-4 lg:px-16 pb-6 w-full mx-auto bg-background',
           maxWidth,
           sheet
-            ? 'relative z-10 -mt-6 lg:mt-0 rounded-t-[28px] lg:rounded-none shadow-[0_-12px_30px_rgba(0,0,0,0.10)] lg:shadow-none pt-9 lg:pt-12'
+            ? 'relative z-10 -mt-6 lg:mt-0 rounded-t-[28px] lg:rounded-none shadow-[0_-12px_30px_rgba(0,0,0,0.10)] lg:shadow-none pt-6 lg:pt-12'
             : 'pt-8 lg:pt-12'
         )}
       >
         {children}
       </div>
       <div className="pb-6">
-        <p className="text-xs text-muted-foreground text-center">©2026 Gasing Academy. All rights reserved..</p>
+        <p className="text-xs text-muted-foreground text-center">©2026 Gasing Academy. All rights reserved.</p>
       </div>
     </div>
   )
