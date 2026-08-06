@@ -121,11 +121,7 @@ export function LoginPage({ onNavigate, onLoginSuccess, isSsoMode = false }) {
         </h1>
       </div>
 
-      {isSsoMode && (
-        <div className="animate-fade-in-up rounded- bg-blue-50 border border-blue-200 px-3.5 py-3 text-sm text-blue-700 text-center">
-          Login untuk melanjutkan ke Komunitas Sarang Gasing.
-        </div>
-      )}
+      {isSsoMode}
 
       <div className="space-y-5 lg:space-y-4 animate-fade-in-up delay-200">
         <div className="space-y-1">
@@ -210,8 +206,6 @@ export function LoginPage({ onNavigate, onLoginSuccess, isSsoMode = false }) {
           )}
         </Button>
       </div>
-
-      <Divider />
 
       <div className="animate-fade-in-up delay-300 text-center mt-6 lg:mt-4">
         <p className="text-sm text-muted-foreground">
