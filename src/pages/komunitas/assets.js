@@ -14,7 +14,7 @@ export { default as headerMateri } from "@/assets/guest/header-banner/Header-Mat
 export { default as headerVirtualBg } from "@/assets/guest/header-banner/Header=Virtual Meet-Up, Background=True, Elements=False, Text=False.png";
 export { default as headerVirtualElements } from "@/assets/guest/header-banner/Header=Virtual Meet-Up, Background=False, Elements=True, Text=False.png";
 export { default as headerGANews } from "@/assets/guest/header-banner/Header-GANews.png";
-export { default as headerEksklusif } from "@/assets/header-eksklusif.png";
+export { default as headerEksklusif } from "@/assets/guest/header-banner/header-eksklusif.png";
 
 // Thumbnail konten
 export { default as thumbFunMath } from "@/assets/guest/thumbnail/Fun Math Trick for Kids.png";

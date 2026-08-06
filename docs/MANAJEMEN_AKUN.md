@@ -8,13 +8,24 @@ Dokumentasi layar **Manajemen Akun** pada Dashboard Admin (`src/pages/AdminDashb
 
 Manajemen Akun adalah layar admin untuk mengelola akun yang **sudah selesai proses verifikasi**. Layar ini terdiri dari **4 tabel utama** (tab), masing‑masing menampilkan akun berdasarkan statusnya, dengan aksi berbeda per tab.
 
-Layar ini **hanya menampung akun yang sudah diputus final**. Akun yang masih dalam proses verifikasi tetap berada di layar **Verifikasi Akun** (bukan Manajemen).
+Layar ini **hanya menampung akun yang sudah diputus final DAN lolos 2 langkah verifikasi**. Akun yang masih dalam proses tetap berada di layar sebelumnya (**Verifikasi Akun** atau **Verifikasi Pembayaran**), bukan Manajemen.
 
 ```
-Verifikasi Akun  ──approve──►  (voucher)  ──konfirmasi──►  Manajemen Akun
-  WAITING(0)                  PENDING_VOUCHER(3)              APPROVED(1)
-  REVISE(2)                                                  REJECTED(-1)
+   LANGKAH 1                 LANGKAH 2
+Verifikasi Akun          Verifikasi Pembayaran            Manajemen Akun
+─────────────────        ─────────────────────            ──────────────
+WAITING(0)  ──approve──► PENDING_VOUCHER(3) ──konfirmasi──► APPROVED(1) + langganan aktif → tab Disetujui
+REVISE(2)                     │                             REJECTED(-1)                    → tab Ditolak
+                              └─ APPROVED tapi belum
+                                 langganan (Not Active)
+                                 → sub-tab "Belum Langganan"
+                                   (tertahan di langkah 2)
 ```
+
+**Aturan 2 langkah:** tab **Disetujui** hanya menampilkan akun `APPROVED` yang **sudah
+berlangganan** (`subscription !== 'Not Active'`). Akun `APPROVED` yang belum pernah
+berlangganan ditahan di sub-tab **Belum Langganan** pada layar **Verifikasi Pembayaran**
+(lihat [`../../documentation/02-Login-Admin-App.md`](../../documentation/02-Login-Admin-App.md) §11.3).
 
 ---
 
@@ -39,6 +50,8 @@ Hanya akun ber‑keputusan **final** yang masuk tabel Manajemen manapun:
 
 `WAITING (0)`, `REVISE (2)`, dan `PENDING_VOUCHER (3)` **disaring keluar** (masih milik alur Verifikasi Akun). Filter diterapkan di `loadUsers()` sebelum `mapToManajemen`.
 
+**Gate langkah-2 (tab Disetujui):** di luar `isManajemenEligible`, `filteredUsers` (AdminDashboardPage) menambah syarat `subscription !== 'Not Active'` khusus tab **Disetujui** — akun `APPROVED` yang belum langganan tidak ditampilkan di sini melainkan di sub-tab **Belum Langganan** (Verifikasi Pembayaran, `BelumLanggananTable`).
+
 ---
 
 ## 3. Empat Tabel (Tab)
@@ -47,7 +60,7 @@ Tab dirender oleh `ManajemenControls` (segmented control, tanpa opsi "Semua"). S
 
 | Tab | Sumber status | Kolom |
 |-----|---------------|-------|
-| **Disetujui** | `APPROVED`, tanpa suspend/deletion | Full |
+| **Disetujui** | `APPROVED`, tanpa suspend/deletion, **`subscription !== 'Not Active'`** (lolos langkah pembayaran) | Full |
 | **Ditolak** | `REJECTED` | Reduced |
 | **Ditangguhkan** | `suspendedUntil`/`suspended` truthy | Full |
 | **Baru Dihapus** | `deletionPending`/`deletionScheduledAt`/`deletedAt` truthy | Reduced |

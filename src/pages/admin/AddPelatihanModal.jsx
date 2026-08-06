@@ -109,26 +109,26 @@ export function AddPelatihanModal({ isOpen, onClose, onSave }) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#030B1F]/30 p-4">
       {/* Toast error format file — mengambang di atas modal */}
       {fileError && (
-        <div className="absolute top-6 left-1/2 -translate-x-1/2 z-[60] bg-red-500 text-white text-sm font-medium px-5 py-3 rounded-full shadow-lg">
+        <div className="absolute top-6 left-1/2 -translate-x-1/2 z-[60] bg-[#030B1F] text-white font-sans text-[16px] font-medium px-5 py-3 rounded-2xl shadow-lg">
           {fileError}
         </div>
       )}
 
       <div className="bg-white rounded-2xl w-full max-w-md shadow-xl max-h-[92vh] overflow-y-auto">
-        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+        <div className="px-8 py-6 border-b border-gray-100 flex items-center justify-between">
           <h2 className="text-lg font-bold text-[#0A1128]">Tambah Pelatihan Baru</h2>
           <button onClick={handleClose} className="text-gray-400 hover:text-gray-600 transition-colors">
             <X size={20} />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6">
-          <div className="space-y-4">
+        <form onSubmit={handleSubmit} className="px-8 pt-6 pb-8">
+          <div className="space-y-6">
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1.5">Nama Pelatihan</label>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Nama Pelatihan</label>
               <input
                 type="text"
                 placeholder="Masukkan nama pelatihan"
@@ -139,8 +139,8 @@ export function AddPelatihanModal({ isOpen, onClose, onSave }) {
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1.5">Daerah</label>
-              <div className="grid grid-cols-2 gap-3">
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Daerah</label>
+              <div className="grid grid-cols-2 gap-2">
                 <Select value={provinceId} onValueChange={handleProvinceChange} disabled={provincesLoading}>
                   <SelectTrigger>
                     <SelectValue placeholder={provincesLoading ? 'Memuat...' : 'Pilih Provinsi'} />
@@ -165,7 +165,7 @@ export function AddPelatihanModal({ isOpen, onClose, onSave }) {
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1.5">Tanggal Mulai &amp; Berakhir</label>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Tanggal Mulai &amp; Berakhir</label>
               <CalendarRangePicker
                 startDate={range.startDate}
                 endDate={range.endDate}
@@ -174,11 +174,11 @@ export function AddPelatihanModal({ isOpen, onClose, onSave }) {
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1.5">Daftar Peserta Guru</label>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Daftar Peserta Guru</label>
               <label
                 onDragOver={(e) => e.preventDefault()}
                 onDrop={(e) => { e.preventDefault(); pickFile(e.dataTransfer.files?.[0]) }}
-                className="flex flex-col items-center justify-center gap-2 border-2 border-dashed border-blue-300 rounded-xl py-6 px-4 text-center cursor-pointer hover:border-blue-500 transition-colors"
+                className="flex flex-col items-center justify-center gap-3 border-2 border-dashed border-blue-300 rounded-xl py-5 px-5 text-center cursor-pointer hover:border-blue-500 transition-colors"
               >
                 <input type="file" accept=".csv" className="sr-only" onChange={(e) => pickFile(e.target.files?.[0])} />
                 {pesertaFile ? <FileText size={24} className="text-blue-600" /> : <UploadCloud size={24} className="text-[#0A1128]" />}
@@ -190,7 +190,7 @@ export function AddPelatihanModal({ isOpen, onClose, onSave }) {
                   )}
                 </span>
               </label>
-              <div className="text-center mt-3">
+              <div className="text-center mt-4">
                 <button type="button" onClick={downloadTemplate} className="text-sm font-semibold text-link underline">
                   Download Template Peserta Guru
                 </button>
@@ -200,10 +200,10 @@ export function AddPelatihanModal({ isOpen, onClose, onSave }) {
             {error && <p className="text-xs text-red-500 font-medium pt-1">{error}</p>}
           </div>
 
-          <div className="mt-8">
+          <div className="mt-10">
             <button
               type="submit"
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 rounded-lg transition-colors"
+              className="w-full bg-[#0033EC] hover:bg-[#0029BD] text-white font-semibold py-2.5 rounded-full transition-colors"
             >
               Tambah Pelatihan Baru
             </button>

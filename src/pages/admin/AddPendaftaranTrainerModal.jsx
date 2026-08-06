@@ -18,8 +18,8 @@ export function AddPendaftaranTrainerModal({ isOpen, onClose, onSave }) {
   const set = (k) => (e) => setFormData({ ...formData, [k]: e.target.value })
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="bg-white rounded-2xl w-full max-w-md shadow-xl overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#030B1F]/30 p-4">
+      <div className="bg-white rounded-2xl w-full max-w-md shadow-xl">
         <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
           <h2 className="text-lg font-bold text-[#0A1128]">Tambah Pendaftaran Pelatihan</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors">
@@ -92,7 +92,7 @@ export function AddPendaftaranTrainerModal({ isOpen, onClose, onSave }) {
           <div className="mt-8">
             <button
               type="submit"
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 rounded-lg transition-colors"
+              className="w-full bg-[#0033EC] hover:bg-[#0029BD] text-white font-semibold py-2.5 rounded-full transition-colors"
             >
               Simpan
             </button>
