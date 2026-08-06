@@ -67,9 +67,8 @@ export function AuthFullLayout({ children, illustration = 'robot' }) {
         </div>
       </div>
 
-      {/* Footer copyright hanya desktop — di mobile kartu sheet nempel dasar layar */}
-      <div className="hidden lg:block pb-6 shrink-0">
-        <p className="text-xs text-muted-foreground text-center">©2026 Gasing Academy. All rights reserved..</p>
+      <div className="pb-6 shrink-0">
+        <p className="text-xs text-muted-foreground text-center">©2026 Gasing Academy. All rights reserved.</p>
       </div>
     </div>
   )

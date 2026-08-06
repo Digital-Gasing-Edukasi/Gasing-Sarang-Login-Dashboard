@@ -86,63 +86,18 @@ export function RightPanel({ children, mobileHero = null, topBar = null, footer 
         ref={scrollRef}
         onScroll={appShell ? measure : undefined}
         className={cn(
-          'flex flex-col justify-start w-full mx-auto bg-background',
-          // Desktop biasa: konten di-tengah vertikal. lockDesktop: top-align
-          // (title jarak tetap dari header), jadi lg:justify-center dilepas.
-          !deskShell && 'lg:justify-center',
-          // Sheet (login): card setinggi konten, hero yang mengisi sisa ruang.
-          // Non-sheet: card flex-1 seperti biasa (footer nempel bawah).
-          sheet ? 'flex-none lg:flex-1' : 'flex-1',
-          // App-shell: konten jadi area scroll di antara header & CTA. Mobile
-          // selalu; desktop hanya saat lockDesktop.
-          appShell &&
-            (deskShell
-              ? 'min-h-0 overflow-y-auto'
-              : 'min-h-0 overflow-y-auto lg:overflow-visible'),
-          padX,
+          'flex-1 flex flex-col justify-start lg:justify-center px-4 lg:px-16 pb-6 w-full mx-auto bg-background',
           maxWidth,
           sheet
             ? 'relative z-10 -mt-6 lg:mt-0 rounded-t-[28px] lg:rounded-none shadow-[0_-12px_30px_rgba(0,0,0,0.10)] lg:shadow-none pt-6 lg:pt-12'
-            : appShell
-            // lockDesktop: jarak title→header = 42px (desktop). pb=0 supaya
-            // jarak body→cta murni ditentukan spacer di dalam konten.
-            ? (deskShell ? 'pt-4 lg:pt-[42px]' : 'pt-4 lg:pt-12')
-            : 'pt-8 lg:pt-12',
-          appShell ? (deskShell ? 'pb-6 lg:pb-0' : 'pb-6 lg:pb-8') : 'pb-8'
+            : 'pt-8 lg:pt-12'
         )}
       >
         {children}
       </div>
-      {/* CTA nempel bawah (khusus mobile). Desktop pakai tombol inline di konten. */}
-      {stickyFooter && (
-        <div
-          className={cn(
-            'relative shrink-0 w-full mx-auto bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 pt-3 pb-6',
-            // Desktop: default sembunyi (pakai tombol inline). lockDesktop: CTA
-            // nempel bawah di desktop juga. pt-0 supaya jarak body→cta murni dari spacer.
-            !deskShell && 'lg:hidden',
-            deskShell && 'lg:pt-0 lg:pb-8',
-            padX,
-            maxWidth
-          )}
-        >
-          {/* Strip blur+fade konten yang lewat di atas footer (mobile). */}
-          <div
-            className={cn(
-              'pointer-events-none absolute inset-x-0 bottom-full h-5 z-10 bg-gradient-to-t from-background to-transparent backdrop-blur-[1.5px] transition-opacity duration-200',
-              edge.atBottom ? 'opacity-0' : 'opacity-100'
-            )}
-          />
-          {stickyFooter}
-        </div>
-      )}
-      {/* Footer (copyright + build date) hanya desktop — mobile disembunyiin.
-          Isi footer di-supply pemanggil (cuma LoginPage yang kirim). */}
-      {footer && (
-        <div className="hidden lg:block pb-6">
-          {footer}
-        </div>
-      )}
+      <div className="pb-6">
+        <p className="text-xs text-muted-foreground text-center">©2026 Gasing Academy. All rights reserved.</p>
+      </div>
     </div>
   )
 }
