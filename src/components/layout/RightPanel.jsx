@@ -94,7 +94,7 @@ export function RightPanel({ children, mobileHero = null, topBar = null, footer 
           maxWidth,
           sheet
             ? "relative z-10 -mt-6 lg:mt-0 rounded-t-[28px] lg:rounded-none shadow-[0_-12px_30px_rgba(0,0,0,0.10)] lg:shadow-none pt-6 lg:pt-12"
-            : "pt-8 lg:pt-12",
+            : "pt-6 lg:pt-12",
         )}
       >
         {children}
