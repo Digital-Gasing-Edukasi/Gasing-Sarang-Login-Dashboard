@@ -1,5 +1,7 @@
 import { useRef, useState, useEffect, useCallback } from 'react'
 import { cn } from '@/lib/utils'
+import { isStaging } from "@/lib/env";
+
 
 // maxWidth default = lebar form 2-base desktop: mobile pakai max-w-md (cap lama,
 // tak berpengaruh di layar sempit), lg → base 1366 (380px), fhd → base 1920 (480px).
@@ -41,32 +43,34 @@ export function RightPanel({ children, mobileHero = null, topBar = null, footer 
   return (
     <div
       className={cn(
-        'flex-1 flex flex-col bg-background relative',
+        "flex-1 flex flex-col bg-background relative",
         deskShell
-          // Desktop app-shell: kunci 1 viewport di mobile & desktop.
-          ? 'h-[100dvh] overflow-hidden'
+          ? // Desktop app-shell: kunci 1 viewport di mobile & desktop.
+            "h-[100dvh] overflow-hidden"
           : sheet || appShell
-          // Mobile: kunci tepat 1 viewport (100dvh). Desktop normal (scroll bila perlu).
-          ? 'h-[100dvh] overflow-hidden lg:h-auto lg:min-h-screen lg:overflow-y-auto'
-          : 'min-h-screen overflow-y-auto'
+            ? // Mobile: kunci tepat 1 viewport (100dvh). Desktop normal (scroll bila perlu).
+              "h-[100dvh] overflow-hidden lg:h-auto lg:min-h-screen lg:overflow-y-auto"
+            : "min-h-screen overflow-y-auto",
       )}
     >
       {mobileHero}
       {topBar && (
         <div
           className={cn(
-            'sticky top-0 z-20 shrink-0 w-full mx-auto bg-background/90 backdrop-blur supports-[backdrop-filter]:bg-background/75',
-            maxWidth
+            "sticky top-0 z-20 shrink-0 w-full mx-auto bg-background/90 backdrop-blur supports-[backdrop-filter]:bg-background/75",
+            maxWidth,
           )}
         >
-          <div className={cn('pt-4 pb-4', padX)}>{topBar}</div>
+          <div className={cn("pt-4 pb-4", padX)}>{topBar}</div>
           {/* Fill bar progress MOBILE (style lama), nempel bawah header. Desktop
               pakai StepProgress tersegmen di dalam topBar, jadi ini lg:hidden. */}
           {progress != null && (
             <div className="lg:hidden h-1.5 w-full overflow-hidden bg-black/[0.06]">
               <div
                 className="h-full rounded-r-full bg-[#0033EC] transition-all duration-500 ease-out"
-                style={{ width: `${Math.min(100, Math.max(0, progress * 100))}%` }}
+                style={{
+                  width: `${Math.min(100, Math.max(0, progress * 100))}%`,
+                }}
               />
             </div>
           )}
@@ -74,9 +78,9 @@ export function RightPanel({ children, mobileHero = null, topBar = null, footer 
           {appShell && (
             <div
               className={cn(
-                'pointer-events-none absolute inset-x-0 top-full h-5 z-10 bg-gradient-to-b from-background to-transparent backdrop-blur-[1.5px] transition-opacity duration-200',
-                !deskShell && 'lg:hidden',
-                edge.atTop ? 'opacity-0' : 'opacity-100'
+                "pointer-events-none absolute inset-x-0 top-full h-5 z-10 bg-gradient-to-b from-background to-transparent backdrop-blur-[1.5px] transition-opacity duration-200",
+                !deskShell && "lg:hidden",
+                edge.atTop ? "opacity-0" : "opacity-100",
               )}
             />
           )}
@@ -86,20 +90,28 @@ export function RightPanel({ children, mobileHero = null, topBar = null, footer 
         ref={scrollRef}
         onScroll={appShell ? measure : undefined}
         className={cn(
-          'flex-1 flex flex-col justify-start lg:justify-center px-4 lg:px-16 pb-6 w-full mx-auto bg-background',
+          "flex-1 flex flex-col justify-start lg:justify-center px-4 lg:px-16 pb-6 w-full mx-auto bg-background",
           maxWidth,
           sheet
-            ? 'relative z-10 -mt-6 lg:mt-0 rounded-t-[28px] lg:rounded-none shadow-[0_-12px_30px_rgba(0,0,0,0.10)] lg:shadow-none pt-6 lg:pt-12'
-            : 'pt-8 lg:pt-12'
+            ? "relative z-10 -mt-6 lg:mt-0 rounded-t-[28px] lg:rounded-none shadow-[0_-12px_30px_rgba(0,0,0,0.10)] lg:shadow-none pt-6 lg:pt-12"
+            : "pt-8 lg:pt-12",
         )}
       >
         {children}
       </div>
       <div className="pb-6">
-        <p className="text-xs text-muted-foreground text-center">©2026 Gasing Academy. All rights reserved.</p>
+        <p className="text-xs text-muted-foreground text-center">
+          ©2026 Gasing Academy. All rights reserved.
+        </p>
+        {isStaging() && (
+          <p className="mt-1 text-[11px] text-muted-foreground/60 text-center select-all">
+            build{" "}
+            {typeof __BUILD_DATE__ !== "undefined" ? __BUILD_DATE__ : "dev"}
+          </p>
+        )}
       </div>
     </div>
-  )
+  );
 }
 
 export function Divider() {
