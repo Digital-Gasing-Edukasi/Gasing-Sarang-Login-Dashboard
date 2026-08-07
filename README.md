@@ -1,9 +1,14 @@
 # GASING CIRCLE — Frontend SPA
 
-> **Versi:** 3.0.0 · **Tanggal:** 15 Juli 2026 · **Stack:** React 18 + Vite + React Router v6 + Tailwind CSS + shadcn/ui
+> **Versi:** 3.1.0 · **Tanggal:** 21 Juli 2026 · **Stack:** React 18 + Vite + React Router v6 + Tailwind CSS + shadcn/ui
 
 > 📚 Cari dokumen lain? Mulai dari **[peta dokumentasi](docs/README.md)** — arsitektur,
 > deployment, skenario tes, modul admin, dan ADR.
+>
+> 🔑 **Base API & user-flow (baca dulu buat paham perilaku akun):**
+> - **[API_ACCESS_MATRIX.md](API_ACCESS_MATRIX.md)** — matrix akses endpoint × 11 kondisi user + capability admin (UAC). Sumber kebenaran dari BE (`feat/account-access-gate`).
+> - **[USER_STATE_FLOW.md](USER_STATE_FLOW.md)** — flow 12 state user (versi developer: field, gate, file:line).
+> - **[USER_FLOW.md](USER_FLOW.md)** — flow yang sama, versi designer (bahasa awam).
 
 ---
 
@@ -72,7 +77,7 @@ Login-Dashboard/
 ├── vite.config.js          ← base '/' + path alias + proxy dev
 ├── deploy/                 ← contoh config Nginx (SPA fallback)
 ├── docs/                   ← dokumentasi modul + ADR (mulai dari docs/README.md)
-└── src/                    ← 79 file .js/.jsx
+└── src/                    ← 94 file .js/.jsx
     ├── main.jsx            ← mount React + <BrowserRouter>
     ├── App.jsx             ← <Routes> + boot sequence (deep-link, restore sesi)
     ├── index.css           ← global styles + CSS variables shadcn
@@ -82,6 +87,9 @@ Login-Dashboard/
     │   ├── roles.js        ← ADMIN_CAPABILITIES, isSuperAdmin, isOperationalAdmin
     │   ├── loginGate.js    ← evaluateLoginGate — blok login: suspended > pending > expired
     │   ├── fixLink.js      ← encode/decode payload revisi data (legacy ?fix=)
+    │   ├── env.js          ← helper environment: isStaging(), isProduction()
+    │   ├── format.js       ← format bersama: formatRp, localizePlanName, fmtTimeAmPm, ID_MONTHS, withBase, downloadCsv
+    │   ├── password.js     ← aturan password bersama: getPasswordRules, isPasswordValid
     │   └── utils.js        ← helper cn()
     ├── hooks/useCountdown.js       ← countdown timer (OTP & resend)
     ├── context/AuthContext.jsx     ← TIDAK DIPAKAI (App.jsx kelola auth sendiri)
@@ -96,7 +104,7 @@ Login-Dashboard/
         │                     ForgotPasswordPage, CheckEmailPage, ResetPasswordPage,
         │                     FixDataPage, SsoCallbackPage, AuthChoicePage
         ├── legal/          ← LegalLayout, TermsPage, PrivacyPage
-        ├── admin/          ← 27 file: tabel, modal, mappers.js, roleOptions.js, tableScroll.js
+        ├── admin/          ← 31 file: tabel, modal, mappers.js, roleOptions.js, tableScroll.js
         ├── AdminDashboardPage.jsx  ← orchestrator dashboard (5 tab, lazy-loaded)
         ├── SubscriptionPage.jsx    ← pilih paket + pilih metode bayar
         ├── TransferBankPage.jsx    ← transfer manual: unggah bukti
@@ -183,6 +191,16 @@ Peta URL ada di [`src/lib/routes.js`](src/lib/routes.js) (`PAGE_PATHS`). File pa
 | `?admin=true`          | **DEV** — buka dashboard admin tanpa sesi (preview UI)        |
 | `?gatetest=suspended\|pending\|expired` | **DEV** — paksa tampil `LoginStatusModal` tanpa backend |
 | `?midtrans-test=true`  | Buka `/midtrans-test`                                          |
+
+### Alur State User (12 kondisi akun)
+
+Alur di atas cuma jalur halaman. Untuk **perilaku akun end-to-end** — dari baru daftar
+sampai suspended/disabled, plus endpoint mana yang OK/ditolak per kondisi — lihat:
+
+- **[USER_STATE_FLOW.md](USER_STATE_FLOW.md)** — 12 flowchart per-state (versi dev: `verifiedStatus`, gate, `file:line`) + 1 flowchart gabungan.
+- **[API_ACCESS_MATRIX.md](API_ACCESS_MATRIX.md)** — kondisi user dipetakan ke akses tiap endpoint (7 access profile) + capability admin.
+
+Gate login sendiri (`suspended > pending > expired`) ada di [`src/lib/loginGate.js`](src/lib/loginGate.js) — lihat §8.7.
 
 ---
 
@@ -283,6 +301,26 @@ server: {
 
 - `/api` — bantuan CORS dev lokal. **Catatan:** `src/lib/api.js` memakai `VITE_API_URL` langsung, jadi proxy ini hanya kepakai kalau `VITE_API_URL` sengaja diarahkan ke path `/api`.
 - `/midtrans-api` — dipakai `MidtransTestPage` untuk memanggil Midtrans Sandbox dari browser tanpa kena CORS.
+
+### Compile-time `define`
+
+Dua variabel di-inject ke bundle via `define` di `vite.config.js`:
+
+| Variabel | Isi | Pemakai |
+| -------- | --- | ------- |
+| `__BUILD_DATE__` | Cap waktu build WIB, contoh `"2026-07-28 14:30"` | `LoginPage.jsx` (staging only) |
+| `__APP_MODE__` | `"staging"` atau `"production"` (dari flag `--mode`) | `lib/env.js` → `isStaging()`, `isProduction()` |
+
+### Komponen staging-only
+
+Beberapa komponen hanya tampil di **staging** dan tersembunyi di **production**:
+
+| Komponen | File | Mekanisme |
+| -------- | ---- | --------- |
+| Menu **Daftar User** di sidebar admin | `AdminSidebar.jsx` | Flag `stagingOnly: true` pada item NAV, difilter `isProduction()` |
+| Teks **tanggal build** di halaman login | `LoginPage.jsx` | `{isStaging() && (...)}` conditional render |
+
+Helper ada di `src/lib/env.js`. Untuk menambah komponen staging-only baru, import `isStaging` dari `@/lib/env` dan bungkus dengan conditional. Lihat [ADR-0005](docs/adr/0005-environment-visibility.md).
 
 ---
 
@@ -406,11 +444,13 @@ Datanya **disimpan di `app-config`** (`appConfigApi.get/set`), bukan tabel sendi
 
 | Komponen     | File              | Kegunaan                                        |
 | ------------ | ----------------- | ----------------------------------------------- |
-| `<Button>`   | `ui/button.jsx`   | Tombol dengan variant (default, outline, ghost) |
-| `<Input>`    | `ui/input.jsx`    | Input field                                     |
+| `<Button>`   | `ui/button.jsx`   | Tombol dengan variant (default, outline, ghost, link); base pill `rounded-full` |
+| `<Input>`    | `ui/input.jsx`    | Input field (pill `rounded-full`)               |
 | `<Label>`    | `ui/label.jsx`    | Label form aksesibel                            |
-| `<Checkbox>` | `ui/checkbox.jsx` | Checkbox "Ingatkan saya"                        |
+| `<Checkbox>` | `ui/checkbox.jsx` | Checkbox "Ingat saya"                           |
 | `<Select>`   | `ui/select.jsx`   | Dropdown daerah pelatihan GASING                |
+
+> **Bentuk kontrol = pill (`rounded-full`).** Semua field/trigger yang diisi user — `Input`, `Select` (trigger), `DateField`, dan `Button` — memakai sudut kapsul membulat penuh di kedua sisi. Diatur di **komponen dasar**, jadi berlaku otomatis di seluruh app (user & admin). Detail, jebakan `cn()`, & cara kembalikan: [docs/PILL_SHAPE_INPUTS.md](docs/PILL_SHAPE_INPUTS.md).
 
 ### 8.4 Komponen Layout (`src/components/layout/`)
 
@@ -421,6 +461,8 @@ Datanya **disimpan di `app-config`** (`appConfigApi.get/set`), bukan tabel sendi
 | `<Divider />`         | Garis pemisah horizontal tipis                          |
 | `<AuthFullLayout />`  | Layout full-width untuk halaman forgot/reset password   |
 | `<StepIndicator />`   | Progress bar 3 langkah Sign Up                          |
+| `<MobileHero />`      | Hero ungu mobile (wallpaper + maskot), `lg:hidden` ([docs/MOBILE_RESPONSIVE.md](docs/MOBILE_RESPONSIVE.md)) |
+| `<Divider />`         | Garis pemisah (di-`export` dari `RightPanel.jsx`)       |
 
 ### 8.5 Komponen Shared (`src/components/shared/`)
 
@@ -434,6 +476,10 @@ Datanya **disimpan di `app-config`** (`appConfigApi.get/set`), bukan tabel sendi
 | `<LoginStatusModal />` | Modal blokir login: suspended / pending / expired (lihat §8.7 `loginGate.js`) |
 | `<MobileReviewNotice />` | Notice khusus tampilan mobile ([docs/MOBILE_RESPONSIVE.md](docs/MOBILE_RESPONSIVE.md)) |
 | `<NoConnectionBanner />` | Banner saat koneksi ke backend putus        |
+| `DarkAuth.jsx`      | Komponen auth tema-gelap mobile: `AuthDarkLayout`, `DarkInput`, `DarkPrimaryButton`, `DarkGhostButton`, `DarkDivider` (semua pill) |
+| `<DateField />`     | Field tanggal lahir dengan roda pilih (tanggal/bulan/tahun) custom, sama di desktop & mobile |
+| `<Logo />`          | Logo GASING (`variant="responsive"`)            |
+| `<PaymentStatusLayout />` | Shell 4 halaman status pembayaran (success/pending/error/dll.) |
 
 ### 8.6 Custom Hook (`src/hooks/`)
 
@@ -458,13 +504,20 @@ Logika non-UI dipusatkan di sini supaya `App.jsx` dan komponen tetap tipis.
 | `roles.js`     | `ADMIN_CAPABILITIES`, `isSuperAdmin()`, `isOperationalAdmin()`          | Aturan "siapa boleh ke mana" pasca-login. Admin operasional = punya **semua** 6 capability dan bukan superadmin |
 | `loginGate.js` | `evaluateLoginGate(profile)`                                           | Tentukan apakah login diblokir. Prioritas: **suspended > pending > expired**. Return `null` kalau lolos |
 | `fixLink.js`   | `FIELD_DEFS`, `FIELD_LABEL`, `encodeFixPayload()`, `decodeFixPayload()`, `buildFixUrl()`, `defaultFieldMessage()` | Payload & URL alur perbaikan data — lihat [docs/FIX_DATA_FLOW.md](docs/FIX_DATA_FLOW.md) |
-| `utils.js`     | `cn()`                                                                 | Merge className Tailwind (clsx + tailwind-merge) |
+| `utils.js`     | `cn()`                                                                 | Gabung className — `clsx` saja (**bukan** tailwind-merge; class `rounded-*` bisa tabrakan, lihat [docs/PILL_SHAPE_INPUTS.md §5](docs/PILL_SHAPE_INPUTS.md)) |
+| `format.js`    | `formatRp`, `fmtRupiah`, `localizePlanName`, `fmtTimeAmPm`, `ID_MONTHS`, `withBase`, `downloadCsv` | Util format bersama — dulu di-copy di banyak file. `downloadCsv` selalu `revokeObjectURL` (cegah leak). `withBase` prepend `BASE_URL` (dipakai redirect di `api.js` & link legal di SignUp). Dipakai `mappers.js`, Subscription, TransferBank, SignUp, AdminDashboard |
+| `password.js`  | `getPasswordRules(pw)`, `isPasswordValid(pw)` | Aturan password (10 char, 1 kapital, 1 angka, 1 spesial) — 1 sumber, dipakai SignUp & ResetPassword. Terpisah dari `format.js` (validasi ≠ format tampilan). Checklist di UI hanya tampil saat field password fokus |
 
 ---
 
 ## 9. API Layer
 
 Semua HTTP call terpusat di `src/lib/api.js`. Base URL diambil dari `VITE_API_URL`.
+
+> 🔑 **Akses per kondisi user + capability admin:** daftar di §9 ini fokus ke *apa* endpoint-nya.
+> Untuk *siapa boleh akses kapan* (11 kondisi akun × endpoint, capability UAC, aturan trial/suspend/delete),
+> lihat **[API_ACCESS_MATRIX.md](API_ACCESS_MATRIX.md)** — sumber kebenaran dari BE.
+> ⚠️ Ada beberapa **beda nama path FE↔BE** (checkout-manual, upload-receipt, access-status) — lihat [§7 Gap FE↔BE](API_ACCESS_MATRIX.md#7-gap-febe).
 
 ### Token Management
 
@@ -562,6 +615,7 @@ Impor peserta pelatihan lewat CSV (dipakai tab Riwayat Pelatihan).
 | POST   | `/subscription/subscribe`           | Subscribe paket (tanpa Midtrans)              |
 | POST   | `/subscription/cancel`              | Batalkan langganan aktif                      |
 | GET    | `/subscription/history`             | Riwayat pembayaran                            |
+| GET    | `/bank-accounts`                    | List rekening tujuan transfer aktif (public). Menggantikan `DEFAULT_BANK` hardcoded |
 
 #### Voucher (`voucherApi`)
 
@@ -604,7 +658,7 @@ Impor peserta pelatihan lewat CSV (dipakai tab Riwayat Pelatihan).
 | GET    | `/admin/users/:id`                | Detail satu pengguna                |
 | PATCH  | `/admin/users/:id`                | Update data pengguna                |
 | PATCH  | `/admin/users/:id/password`       | Set password pengguna               |
-| PATCH  | `/admin/users/:id/verify`         | Verifikasi akun — **2 call terpisah**: `WAITING` → *setujui* → `PENDING_VOUCHER` → *kirim voucher* → `APPROVED`. Call ke-2 kirim **`{ status }` saja** |
+| PATCH  | `/admin/users/:id/verify`         | Verifikasi akun — **2 call terpisah**: `WAITING` → *setujui* (`{ status, discourseGroupId, lastTrainingSessionId }`) → `PENDING_VOUCHER` → *finalize* (`{ status, discourseGroupId }` **tanpa** `lastTrainingSessionId`) → `APPROVED`. Penanda langkah-1 = kehadiran `lastTrainingSessionId` ([detail](USER_STATE_FLOW.md)) |
 | POST   | `/admin/users/:id/revise`         | Minta user memperbaiki data (`{ rejectedReason, fieldsToRevise }`) → backend kirim email |
 | POST   | `/admin/users/:id/reject`         | Tolak akun (`{ rejectedReason }`)   |
 | POST   | `/admin/users/:id/revise/resend`  | Kirim ulang email revisi            |
@@ -640,8 +694,20 @@ Scope: `paymentMethod=manual_transfer` saja. Respons berupa envelope `{ data, me
 | ------ | ------------------------------------------------- | ----------------------- |
 | GET    | `/admin/payments/manual-transfer/list`            | List. `?filter=` : `all` \| `pending` \| `receipt_uploaded` (tab **Menunggu**) \| `paid` \| `rejected` (tab **Ditolak**) |
 | POST   | `/admin/payments/manual-transfer/:id/approve`     | Setujui bukti → langganan aktif. `notes` opsional |
-| POST   | `/admin/payments/manual-transfer/:id/reject`      | Tolak bukti. **`notes` wajib** (alasan) |
+| POST   | `/admin/payments/manual-transfer/:id/reject`      | Tolak bukti. **`reason` wajib** — enum: `insufficient_transfer` \| `fund_not_retrieved` \| `payment_receipt_unclear`. BE pakai `reason` untuk template notifikasi email penolakan. `notes` opsional (catatan tambahan) |
 | GET    | `/admin/payments/manual-transfer/stats`           | Jumlah per status (untuk titik biru sidebar) |
+
+**Bank Master Data** (rekening tujuan transfer)
+
+Master data rekening bank untuk halaman Transfer Bank user. Admin bisa CRUD tanpa deploy ulang FE.
+
+| Method | Path                       | Keterangan                       |
+| ------ | -------------------------- | -------------------------------- |
+| GET    | `/admin/bank-accounts`     | List semua rekening bank (paginasi) |
+| GET    | `/admin/bank-accounts/:id` | Detail satu rekening             |
+| POST   | `/admin/bank-accounts`     | Tambah rekening baru `{ bankName, accountNumber, accountName, isActive }` |
+| PATCH  | `/admin/bank-accounts/:id` | Update data rekening             |
+| DELETE | `/admin/bank-accounts/:id` | Hapus rekening                   |
 
 **Regions**
 
@@ -1012,6 +1078,14 @@ Ubah CSS variables di `src/index.css`:
 ---
 
 ## 17. Changelog
+
+### v3.1.0 — 21 Juli 2026 *(Design System — Pill Controls)*
+
+- ✅ **Kontrol input user jadi pill** (`rounded-full`, bulat penuh kiri-kanan): text input, dropdown (trigger), calendar/`DateField`, tombol CTA. Referensi bentuk tombol CTA. **OTP box** dikecualikan → kotak sudut membulat `12px` (kotak kecil kalau di-pill jadi oval).
+- ✅ Diubah di **komponen dasar** (`ui/input.jsx`, `ui/select.jsx`, `shared/DateField.jsx`, `ui/button.jsx`) + `.otp-input` di `index.css`, jadi konsisten desktop **dan** mobile (1 codebase responsive). Komponen tema-gelap mobile (`DarkAuth`) memang sudah pill sejak awal.
+- ✅ Padding horizontal field dinaikkan `px-3 → px-4` agar teks tidak mepet ke tepi membulat.
+- ℹ️ **Efek disengaja:** karena komponen shared, Admin Dashboard ikut pill. Panel dropdown terbuka & popup roda tanggal **tetap** `rounded-lg/2xl`.
+- 📝 Dokumen baru: [docs/PILL_SHAPE_INPUTS.md](docs/PILL_SHAPE_INPUTS.md) (termasuk catatan `cn()` = `clsx` tanpa tailwind-merge). Index & README §8.3 diselaraskan.
 
 ### v3.0.0 — 15 Juli 2026 *(Migrasi Routing + Pembayaran Manual)*
 

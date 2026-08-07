@@ -8,8 +8,10 @@ import { MobileHero } from '@/components/layout/MobileHero'
 import { IconInput, TogglePassword } from '@/components/shared/IconInput'
 import { LoginStatusModal } from '@/components/shared/LoginStatusModal'
 import { NoConnectionBanner } from '@/components/shared/NoConnectionBanner'
+import { RateLimitBanner } from '@/components/shared/RateLimitBanner'
 import { authApi, profileApi, tokenStorage } from '@/lib/api'
 import { Logo } from '@/components/shared/Logo'
+import { isStaging } from '@/lib/env'
 
 const ERR_INPUT = '!border-red-500 focus-visible:!border-red-500 focus-visible:ring-red-200'
 const EMAIL_RE  = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -33,6 +35,8 @@ export function LoginPage({ onNavigate, onLoginSuccess, isSsoMode = false }) {
   const [gate, setGate]         = useState(null)
   // noConn: banner "Tidak Ada Koneksi" (flow 5).
   const [noConn, setNoConn]     = useState(false)
+  // rateLimit: sisa detik cooldown dari 429 (Retry-After). null = tidak kena limit.
+  const [rateLimit, setRateLimit] = useState(null)
 
   const clearFieldError = (field) =>
     setErrors(prev => ({ ...prev, [field]: '' }))
@@ -40,9 +44,11 @@ export function LoginPage({ onNavigate, onLoginSuccess, isSsoMode = false }) {
   const handleLogin = async () => {
     const next = {}
     if (!email)                 next.email    = 'Pastikan email tidak kosong.'
-    else if (!EMAIL_RE.test(email)) next.email = 'Format email tidak valid.'
+    else if (!EMAIL_RE.test(email)) next.email = "Format email tidak sesuai.";
     if (!password)              next.password = 'Pastikan password tidak kosong.'
     if (Object.keys(next).length) { setErrors(next); return }
+
+    if (rateLimit) return   // masih cooldown 429 — jangan nembak backend lagi
 
     setErrors({}); setNoConn(false); setLoading(true)
     try {
@@ -55,6 +61,10 @@ export function LoginPage({ onNavigate, onLoginSuccess, isSsoMode = false }) {
     } catch (e) {
       if (isNetworkError(e)) {
         setNoConn(true)                    // flow 5 — tidak ada koneksi
+      } else if (e?.status === 429) {
+        // Rate limit backend (ThrottlerException). Banner merah + hitung mundur;
+        // tombol Login ikut terkunci sampai cooldown habis.
+        setRateLimit(e.retryAfter || 60)
       } else if (/suspend|ditangguhkan/i.test(e?.message || '')) {
         // Backend tolak login akun ditangguhkan (mis. "Account is suspended").
         const d = e?.data || {}
@@ -76,31 +86,51 @@ export function LoginPage({ onNavigate, onLoginSuccess, isSsoMode = false }) {
   }
 
   return (
-    <RightPanel mobileHero={<MobileHero />}>
-      <div className="hidden lg:flex items-center justify-center mb-8 animate-fade-in-up">
+    <RightPanel
+      mobileHero={<MobileHero />}
+      footer={
+        // Desktop-only (RightPanel bungkus `hidden lg:block`). Copyright tampil di
+        // semua env; penanda build (di-inject Vite) hanya staging.
+        <div className="text-center">
+          <p className="text-xs text-muted-foreground">©2026 Gasing Academy. All rights reserved.</p>
+          {isStaging() && (
+            <p className="mt-1 text-[11px] text-muted-foreground/60 select-all">
+              build {typeof __BUILD_DATE__ !== "undefined" ? __BUILD_DATE__ : "dev"}
+            </p>
+          )}
+        </div>
+      }
+    >
+      {rateLimit && (
+        <RateLimitBanner
+          seconds={rateLimit}
+          onClose={() => setRateLimit(null)}
+          onExpire={() => setRateLimit(null)}
+        />
+      )}
+
+      {noConn && <NoConnectionBanner onClose={() => setNoConn(false)} />}
+
+      <div className="hidden lg:flex items-center justify-center mb-9 animate-fade-in-up">
         <Logo variant="split" />
       </div>
       <div className="animate-fade-in-up delay-100 text-center lg:text-center">
-        <h1 className="text-2xl font-bold text-foreground mb-8 lg:mt-0 mt-2">
+        <h1 className="text-2xl font-semibold text-foreground mb-6 lg:mt-0 mt-0">
           <span className="lg:hidden">Selamat Datang!</span>
           <span className="hidden lg:inline">Selamat Datang!</span>
         </h1>
       </div>
 
-      {isSsoMode && (
-        <div className="animate-fade-in-up rounded-lg bg-blue-50 border border-blue-200 px-3.5 py-3 text-sm text-blue-700 text-center">
-          Login untuk melanjutkan ke Komunitas Sarang Gasing.
-        </div>
-      )}
+      {isSsoMode}
 
-      <div className="space-y-4 animate-fade-in-up delay-200">
+      <div className="space-y-5 lg:space-y-4 animate-fade-in-up delay-200">
         <div className="space-y-1">
           <Label htmlFor="login-email">Email</Label>
           <IconInput
             id="login-email"
             icon={Mail}
             type="email"
-            placeholder="Masukkan email Anda"
+            placeholder="Masukkan email kamu"
             value={email}
             className={errors.email ? ERR_INPUT : ""}
             onChange={(e) => {
@@ -120,7 +150,7 @@ export function LoginPage({ onNavigate, onLoginSuccess, isSsoMode = false }) {
             id="login-pass"
             icon={Lock}
             type={showPass ? "text" : "password"}
-            placeholder="Masukkan password Anda"
+            placeholder="Masukkan password kamu"
             value={password}
             className={errors.password ? ERR_INPUT : ""}
             onChange={(e) => {
@@ -156,30 +186,28 @@ export function LoginPage({ onNavigate, onLoginSuccess, isSsoMode = false }) {
           </div>
           <button
             onClick={() => onNavigate("forgot-password")}
-            className="text-sm text-[#0033EC] font-medium underline underline-offset-2 transition-colors"
+            className="text-sm text-[#0033EC] font-semibold underline underline-offset-2 transition-colors"
           >
             Lupa Password?
           </button>
         </div>
 
         <Button
-          className="w-full"
+          className="!mt-8 w-full rounded-full"
           onClick={handleLogin}
-          disabled={loading || !email || !password}
+          disabled={loading || !email || !password || !!rateLimit}
         >
           {loading ? (
             <>
               <Loader2 size={16} className="animate-spin" /> Memproses...
             </>
           ) : (
-            "Login"
+            "Log In"
           )}
         </Button>
       </div>
 
-      <Divider />
-
-      <div className="animate-fade-in-up delay-300 text-center">
+      <div className="animate-fade-in-up delay-300 text-center mt-6 lg:mt-4">
         <p className="text-sm text-muted-foreground">
           Belum punya akun?{" "}
           <button
@@ -193,13 +221,11 @@ export function LoginPage({ onNavigate, onLoginSuccess, isSsoMode = false }) {
         {/* Fake login: masuk sebagai tamu → halaman komunitas statis (ADR-0004) */}
         <button
           onClick={() => onNavigate("komunitas")}
-          className="mt-3 text-[14px] font-bold text-[#424857] transition-opacity hover:opacity-70"
+          className="mt-4 text-[14px] font-semibold text-[#424857] transition-opacity hover:opacity-70"
         >
           Lanjut Sebagai Tamu
         </button>
       </div>
-
-      {noConn && <NoConnectionBanner onClose={() => setNoConn(false)} />}
 
       {gate && (
         <LoginStatusModal

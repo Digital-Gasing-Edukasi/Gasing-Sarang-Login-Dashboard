@@ -1,10 +1,10 @@
-[# Perjalanan User Sarang Gasing — Panduan buat Designer
+# Perjalanan User Sarang Gasing — Panduan buat Designer
 
 Dokumen ini nyeritain **12 kondisi user** dari awal daftar sampai masuk komunitas,
 pakai bahasa sehari-hari. Fokusnya: *apa yang user lihat di layar, apa yang dia rasain,
 dan layar/modal apa yang perlu kita desain.*
 
-> Buat versi teknis (field, kode, logika sistem) lihat [USER_STATE_FLOWS.md](USER_STATE_FLOWS.md).
+> Buat versi teknis (field, kode, logika sistem) lihat [USER_STATE_FLOW.md](USER_STATE_FLOW.md).
 
 ---
 
@@ -186,7 +186,7 @@ Dokumen ini nyeritain **12 kondisi user** dari awal daftar sampai masuk komunita
 pakai bahasa sehari-hari. Fokusnya: *apa yang user lihat di layar, apa yang dia rasain,
 dan layar/modal apa yang perlu kita desain.*
 
-> Buat versi teknis (field, kode, logika sistem) lihat [USER_STATE_FLOWS.md](USER_STATE_FLOWS.md).
+> Buat versi teknis (field, kode, logika sistem) lihat [USER_STATE_FLOW.md](USER_STATE_FLOW.md).
 
 ---
 
@@ -354,7 +354,7 @@ Dokumen ini nyeritain **12 kondisi user** dari awal daftar sampai masuk komunita
 pakai bahasa sehari-hari. Fokusnya: *apa yang user lihat di layar, apa yang dia rasain,
 dan layar/modal apa yang perlu kita desain.*
 
-> Buat versi teknis (field, kode, logika sistem) lihat [USER_STATE_FLOWS.md](USER_STATE_FLOWS.md).
+> Buat versi teknis (field, kode, logika sistem) lihat [USER_STATE_FLOW.md](USER_STATE_FLOW.md).
 
 ---
 

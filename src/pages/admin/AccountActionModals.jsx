@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils'
 function ConfirmActionModal({ tone, Icon, title, body, confirmLabel, onConfirm, onCancel }) {
   const danger = tone === 'danger'
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#030B1F]/30 backdrop-blur-sm">
       <div className="bg-white rounded-[24px] p-8 w-full max-w-[400px] shadow-2xl mx-4 flex flex-col items-center text-center">
         <div className={cn(
           'w-16 h-16 rounded-full border border-dashed flex items-center justify-center mb-6',
@@ -28,7 +28,7 @@ function ConfirmActionModal({ tone, Icon, title, body, confirmLabel, onConfirm, 
             onClick={onConfirm}
             className={cn(
               'flex-1 font-semibold px-6 py-3 rounded-full text-white transition-colors',
-              danger ? 'bg-red-500 hover:bg-red-600' : 'bg-blue-600 hover:bg-blue-700'
+              danger ? 'bg-red-500 hover:bg-red-600' : 'bg-[#0033EC] hover:bg-[#0029BD]'
             )}
           >
             {confirmLabel}
@@ -46,8 +46,31 @@ export function HapusAkunModal({ user, onConfirm, onCancel }) {
       tone="danger"
       Icon={Trash2}
       title="Yakin Hapus Akun Ini?"
-      body={<>Akun <span className="font-semibold text-[#0A1128]">{user.name}</span> akan dihapus dan dipindah ke tab Baru Dihapus.</>}
+      body={
+        <>
+          Akun <span className="font-semibold text-[#0A1128]">{user.name}</span>{" "} akan dihapus. Kamu masih dapat memulihkannya sebelum 30 hari.</>
+      }
       confirmLabel="Hapus Akun"
+      onConfirm={onConfirm}
+      onCancel={onCancel}
+    />
+  );
+}
+
+// Hapus PERMANEN dari tab "Baru Dihapus" — hard delete, tidak bisa dipulihkan.
+// Copy sengaja lebih tegas dari HapusAkunModal (soft delete) supaya admin sadar beda.
+export function HapusPermanenModal({ user, onConfirm, onCancel }) {
+  if (!user) return null
+  return (
+    <ConfirmActionModal
+      tone="danger"
+      Icon={Trash2}
+      title="Hapus Akun Permanen?"
+      body={
+        <>
+          Akun <span className="font-semibold text-[#0A1128]">{user.name}</span> akan dihapus permanen. Tindakan ini <span className="font-semibold text-red-500">tidak dapat dibatalkan</span>.</>
+      }
+      confirmLabel="Hapus Permanen"
       onConfirm={onConfirm}
       onCancel={onCancel}
     />

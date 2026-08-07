@@ -163,7 +163,7 @@ export default function GANewsScreen() {
 
       {/* ===== Mobile: list kartu ===== */}
       <div className="lg:hidden relative">
-        <div className="pointer-events-none select-none flex-1 px-4 pb-20">
+        <div style={{ "--blur-start": "200px" }} className="blur-effect-mobile flex-1 px-4 pb-20">
           {gaNews.map((news) => (
             <div key={news.id} className="mb-5 overflow-hidden rounded-xl bg-white shadow-sm">
               <img src={news.image} alt={news.title} className="h-40 w-full object-cover" />
@@ -188,8 +188,6 @@ export default function GANewsScreen() {
           ))}
         </div>
 
-        {/* Progressive Blur Overlay */}
-        <div className="pointer-events-none absolute inset-0 z-10 bg-white/20 backdrop-blur-[5px] [-webkit-mask-image:linear-gradient(to_bottom,transparent_0%,black_60vh)] [mask-image:linear-gradient(to_bottom,transparent_0%,black_60vh)]" />
 
         {/* Overlay CTA gabung */}
         <div className="pointer-events-none fixed inset-x-0 bottom-0 z-40 mx-auto flex h-40 max-w-[480px] items-end justify-center bg-gradient-to-t from-slate-50 via-slate-50/90 to-transparent pb-24">
@@ -206,7 +204,7 @@ export default function GANewsScreen() {
 
       {/* ===== Desktop: reading pane (terkunci → blur, CTA di tengah bawah) ===== */}
       <div className="relative hidden px-2 pb-8 lg:block">
-        <div className="pointer-events-none grid select-none gap-5 blur-[5px] lg:grid-cols-[300px_1fr]">
+        <div className="blur-effect-desktop grid gap-5 lg:grid-cols-[300px_1fr]">
           {/* List kiri */}
           <div className="flex flex-col gap-3">
             {gaNews.map((news, i) => {
