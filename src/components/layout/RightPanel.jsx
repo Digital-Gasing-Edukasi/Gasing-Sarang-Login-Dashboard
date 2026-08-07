@@ -92,7 +92,12 @@ export function RightPanel({ children, mobileHero = null, topBar = null, stickyF
       {/* CTA sticky bawah: selalu kelihatan walau form panjang. Dulu prop ini
           diterima tapi ga pernah dirender → tombol Lanjutkan hilang. */}
       {stickyFooter && (
-        <div className="sticky bottom-0 z-20 w-full mx-auto bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 lg:border-t-0">
+        <div
+          className={cn(
+            "sticky bottom-0 z-20 w-full mx-auto bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 lg:border-t-0",
+            maxWidth,
+          )}
+        >
           {/* Strip blur konten yang lewat di atas footer. Mati saat mentok bawah. */}
           <div
             className={cn(
