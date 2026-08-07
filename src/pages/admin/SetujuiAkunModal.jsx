@@ -27,7 +27,7 @@ function Select({ label, value, onChange, options, placeholder }) {
 }
 
 // Setujui Akun (dari tab Ditolak) — atur role + pelatihan, tampilkan kode voucher.
-// onConfirm({ discourseGroupId, lastTrainingSessionId, voucherCode }).
+// onConfirm({ discourseGroupId, firstTrainingSessionId, voucherCode }).
 export function SetujuiAkunModal({ user, discourseGroups = [], trainingSessions = [], onConfirm, onCancel }) {
   const roleOptions = getRoleOptions(discourseGroups)
   const sessionOptions = trainingSessions
@@ -42,7 +42,7 @@ export function SetujuiAkunModal({ user, discourseGroups = [], trainingSessions 
   useEffect(() => {
     if (!user) return
     setRole(resolveRoleValue(discourseGroups, user.role))
-    setSession(user.raw?.lastTrainingSessionId ? String(user.raw.lastTrainingSessionId) : '')
+    setSession(user.raw?.firstTrainingSessionId ? String(user.raw.firstTrainingSessionId) : '')
   }, [user, discourseGroups])
 
   if (!user) return null
@@ -55,7 +55,7 @@ export function SetujuiAkunModal({ user, discourseGroups = [], trainingSessions 
   }
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#030B1F]/30 backdrop-blur-sm p-4">
       <div className="bg-white rounded-[24px] w-full max-w-[440px] shadow-2xl overflow-hidden">
         <div className="p-7">
           <h3 className="text-xl font-bold text-[#0A1128] mb-1.5">Setujui Akun</h3>
@@ -84,8 +84,8 @@ export function SetujuiAkunModal({ user, discourseGroups = [], trainingSessions 
           </button>
           <button
             disabled={!canSubmit}
-            onClick={() => onConfirm({ discourseGroupId: parseInt(role, 10), lastTrainingSessionId: session, voucherCode: voucher })}
-            className="flex-1 font-semibold px-6 py-3 rounded-full bg-blue-600 text-white hover:bg-blue-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            onClick={() => onConfirm({ discourseGroupId: parseInt(role, 10), firstTrainingSessionId: session, voucherCode: voucher })}
+            className="flex-1 font-semibold px-6 py-3 rounded-full bg-[#0033EC] text-white hover:bg-[#0029BD] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
             Setujui
           </button>

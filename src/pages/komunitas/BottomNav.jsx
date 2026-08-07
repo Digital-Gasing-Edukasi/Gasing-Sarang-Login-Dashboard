@@ -27,6 +27,12 @@ const TABS = [
   { key: "materi", label: "Materi", path: "/komunitas/materi-gasing", normal: materiNormal, selected: materiSelected },
 ];
 
+// Ikon per-key (normal/selected) dipakai bareng bottom-nav mobile & sidebar desktop
+// biar konsisten. Key sidebar (data.js) mirror key TABS.
+const NAV_ICONS = Object.fromEntries(
+  TABS.map((t) => [t.key, { normal: t.normal, selected: t.selected }])
+);
+
 export default function BottomNav() {
   const navigate = useNavigate();
   const { pathname } = useLocation();
@@ -148,9 +154,18 @@ export default function BottomNav() {
                       : "text-slate-600 hover:bg-slate-100")
                   }
                 >
-                  <span className="text-lg leading-none" aria-hidden>
-                    {item.icon}
-                  </span>
+                  {NAV_ICONS[item.key] ? (
+                    <img
+                      src={active ? NAV_ICONS[item.key].selected : NAV_ICONS[item.key].normal}
+                      alt=""
+                      aria-hidden
+                      className="h-8 w-8 shrink-0 object-contain"
+                    />
+                  ) : (
+                    <span className="text-lg leading-none" aria-hidden>
+                      {item.icon}
+                    </span>
+                  )}
                   {!collapsed && (
                     <>
                       <span className="flex-1 text-left">{item.label}</span>

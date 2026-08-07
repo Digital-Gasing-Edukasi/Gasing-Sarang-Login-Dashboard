@@ -16,9 +16,6 @@ function ForumRow({ p }) {
         {p.avatarImg ? (
           <>
             <img src={p.avatarImg} alt="" aria-hidden className="h-10 w-10 rounded-full bg-slate-200 object-cover" />
-            {p.verified && (
-              <BadgeCheck size={15} className="absolute -bottom-0.5 -right-0.5 rounded-full bg-white text-blue-500" />
-            )}
           </>
         ) : (
           // Fallback ke avatar inisial jika tidak ada gambar

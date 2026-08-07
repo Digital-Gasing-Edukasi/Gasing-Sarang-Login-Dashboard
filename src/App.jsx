@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback, lazy, Suspense } from "react";
 import { Routes, Route, Navigate, useNavigate, useLocation } from "react-router-dom";
-import { tokenStorage, subscriptionApi, profileApi, authApi, regionsApi, webAppApi, discourseApi } from "@/lib/api";
-import { isSuperAdmin, isOperationalAdmin, isSsoDisabled, hasCapability } from "@/lib/roles";
+import { tokenStorage, subscriptionApi, profileApi, authApi, regionsApi, webAppApi } from "@/lib/api";
+import { isSuperAdmin, isOperationalAdmin, isSsoDisabled, hasAllAdminCapabilities, hasCapability } from "@/lib/roles";
 import { decodeFixPayload } from "@/lib/fixLink";
-import { evaluateLoginGate } from "@/lib/loginGate";
+import { evaluateLoginGate, evaluatePaymentGate } from "@/lib/loginGate";
 import { pathForPage, isPublicStaticPath, skipSessionRestore } from "@/lib/routes";
 import { LoginStatusModal } from "@/components/shared/LoginStatusModal";
 
@@ -17,8 +17,9 @@ function normalizeRevise(res) {
   const fields = res?.reviseFields || u.reviseFields || u.fieldsToRevise || [];
   const reason = res?.reviseReason || u.reviseReason || "";
 
-  // Tahun/bulan pelatihan diturunkan dari lastTrainingSession.startDate bila ada.
-  const startUnix = u.lastTrainingSession?.startDate?.unix;
+  // Tahun/bulan pelatihan diturunkan dari firstTrainingSession.startDate bila ada
+  // (nama kanonik baru; lastTrainingSession dipertahankan sbg fallback respons lama).
+  const startUnix = (u.firstTrainingSession || u.lastTrainingSession)?.startDate?.unix;
   let firstTrainingYear = "";
   let firstTrainingMonth = "";
   if (startUnix) {
@@ -41,7 +42,7 @@ function normalizeRevise(res) {
     provinceId: u.provinceId || u.region?.parentId || "",
     firstTrainingYear,
     firstTrainingMonth,
-    lastTrainingSessionId: u.lastTrainingSessionId || u.lastTrainingSession?.id || "",
+    lastTrainingSessionId: u.firstTrainingSessionId || u.firstTrainingSession?.id || u.lastTrainingSessionId || u.lastTrainingSession?.id || "",
     schoolName: u.schoolName || "",
     // reviseFields (kosakata FE: tanggalLahir/lokasi/riwayatPelatihan/namaSekolah)
     invalid: Array.isArray(fields) ? fields : [],
@@ -59,6 +60,7 @@ import { SignUpReviewPage } from "@/pages/auth/SignUpReviewPage";
 import { ForgotPasswordPage } from "@/pages/auth/ForgotPasswordPage";
 import { CheckEmailPage } from "@/pages/auth/CheckEmailPage";
 import { ResetPasswordPage } from "@/pages/auth/ResetPasswordPage";
+import { ConfirmEmailChangePage } from "@/pages/auth/ConfirmEmailChangePage";
 import { SsoCallbackPage } from "@/pages/auth/SsoCallbackPage";
 import { AuthChoicePage } from "@/pages/auth/AuthChoicePage";
 import { TermsPage } from "@/pages/legal/TermsPage";
@@ -73,6 +75,7 @@ import PaymentErrorPage from "@/pages/PaymentErrorPage";
 const AdminDashboardPage = lazy(() => import("@/pages/AdminDashboardPage"));
 import MidtransTestPage from "@/pages/MidtransTestPage";
 import KomunitasPage from "@/pages/komunitas/KomunitasPage";
+import TestMenuPage from "@/pages/TestMenuPage";
 
 // Shell dua kolom untuk halaman auth (login/signup/otp/...): panel kiri + konten.
 function SplitLayout({ children }) {
@@ -143,6 +146,7 @@ export default function App() {
   const [fpEmail, setFpEmail] = useState("");
   const [resetToken, setResetToken] = useState("");
   const [resetEmail, setResetEmail] = useState("");
+  const [confirmEmailToken, setConfirmEmailToken] = useState("");
   const [ssoParams, setSsoParams] = useState(null);
   const [fixData, setFixData] = useState(null);
   const [reviseData, setReviseData] = useState(null);
@@ -163,7 +167,7 @@ export default function App() {
   // Shim: halaman-halaman masih memanggil `onNavigate("<page-key>")`.
   // Terjemahkan page key → URL supaya file page tidak perlu diubah.
   const go = useCallback(
-    (key) => navigate(pathForPage(key)),
+    (key, state) => navigate(pathForPage(key), state ? { state } : undefined),
     [navigate],
   );
 
@@ -183,6 +187,8 @@ export default function App() {
 
       // ── DEV: uji modal gate tanpa backend ────────────────────────────────
       // ?gatetest=suspended | pending | expired → paksa tampil LoginStatusModal.
+      // ?gatetest=payment_receipt | payment_amount | payment_account → modal
+      //   "Pembayaran Ditolak" (varian ikut sufiks setelah "payment_").
       const gatetest = params.get("gatetest");
       if (gatetest) {
         const meta =
@@ -190,7 +196,22 @@ export default function App() {
             ? {
                 type: "suspended",
                 until: "2026-08-14 13:05:00",
-                reason: "Melanggar panduan komunitas",
+                reason: "Terlalu agresif dan mengandung SARA",
+              }
+            : gatetest === "rejected"
+            ? {
+                type: "rejected",
+                reasons: [
+                  "Tanggal lahir tidak sesuai",
+                  "Riwayat pelatihan tidak ditemukan",
+                  "Nama sekolah tidak sesuai",
+                ],
+              }
+            : gatetest.startsWith("payment")
+            ? {
+                type: "payment_rejected",
+                variant: gatetest.split("_")[1] || "receipt",
+                amount: 1500000,
               }
             : { type: gatetest };
         setGate(meta);
@@ -275,6 +296,20 @@ export default function App() {
         return;
       }
 
+      // ── Link konfirmasi ubah email dari email: …/confirm-email-change?token=… ──
+      // Path backend beda per-env: STAGING `/register/confirm-email-change`,
+      // PRODUCTION `/confirm-email-change`. Cocokkan KEDUA bentuk (endsWith) supaya
+      // link jalan lintas-env. Harus diproses SEBELUM branch `token` generik di bawah
+      // (yang melempar ke reset-password). Token disimpan lalu dibuang dari URL;
+      // `clearUrlParams()` default mempertahankan pathname aktif (env-aware). Page
+      // yang menembak POST /profile/confirm-email saat mount.
+      if (pathname.toLowerCase().endsWith("/confirm-email-change")) {
+        setConfirmEmailToken(params.get("token") || "");
+        clearUrlParams();
+        setSessionChecked(true);
+        return;
+      }
+
       // ── Link reset password dari email: /login/reset-password?token=... ────
       // (path lama /register/reset-password di-redirect oleh <Routes> di bawah)
       const token = params.get("token");
@@ -330,10 +365,37 @@ export default function App() {
   //   - Superadmin         → /login/choice
   //   - User biasa         → /login/choice bila langganan aktif, else /login/subscription
   const handleLoginSuccess = async (user) => {
-    // Guard status akun sebelum masuk: suspended / pending / expired → modal,
-    // jangan set currentUser / jangan routing ke halaman app.
+    // Payment terakhir masih 'pending' → user dianggap boleh masuk walau
+    // langganan belum aktif/expired (nunggu pembayaran diproses).
+    // Dihitung sekali, dipakai di gate 'expired' + routing langganan di bawah.
+    let paymentPending = false;
+    let paymentRejected = null;
+    try {
+      const latest = await subscriptionApi.getLatestPayment();
+      const p = latest?.payment || latest?.data || latest || {};
+      paymentPending = p.status === "pending";
+      // Payment terakhir ditolak admin (failed/rejected) → gate "Pembayaran Ditolak".
+      paymentRejected = evaluatePaymentGate(p);
+    } catch {
+      // Gagal / belum pernah bayar → anggap tidak ada pending / tolakan.
+    }
+
+    // Guard status akun sebelum masuk. Prioritas:
+    //   suspended / pending akun → selalu menang (blokir mutlak).
+    //   payment ditolak          → menang atas 'expired' (arahkan perbaiki bayar).
+    //   expired                  → di-bypass bila ada payment pending.
     const blocked = evaluateLoginGate(user);
-    if (blocked) {
+    if (blocked && blocked.type !== "expired") {
+      setGate({ ...blocked, profile: user });
+      navigate("/login", { replace: true });
+      return;
+    }
+    if (paymentRejected) {
+      setGate({ ...paymentRejected, profile: user });
+      navigate("/login", { replace: true });
+      return;
+    }
+    if (blocked && blocked.type === "expired" && !paymentPending) {
       setGate({ ...blocked, profile: user });
       navigate("/login", { replace: true });
       return;
@@ -343,7 +405,7 @@ export default function App() {
 
     // Punya DISABLED-SSO DAN GROUP/SYNC → langsung ke Dashboard Admin
     // (jangan lewat SSO, jangan ke web app). Cek ini duluan sebelum cabang lain.
-    if (isSsoDisabled(user) && hasCapability(user, "DISCOURSE/GROUP/SYNC")) {
+    if (isSsoDisabled(user) || hasAllAdminCapabilities(user)) {
       navigate("/dashboard-admin", { replace: true });
       return;
     }
@@ -354,16 +416,8 @@ export default function App() {
       return;
     }
 
-    if (user?.capabilities?.includes("DISCOURSE/GROUP/SYNC")) {
-      try {
-        await discourseApi.ssoLogin();
-      } catch (error) {
-        console.error('Gagal inisiasi SSO:', error);
-      }
-      return;
-    }
-
     if (isOperationalAdmin(user)) {
+
       navigate("/dashboard-admin", { replace: true });
       return;
     }
@@ -379,14 +433,16 @@ export default function App() {
       const isActive =
         sub?.hasActiveSubscription === true ||
         sub?.subscription?.status === "active";
-      if (isActive) {
+      // Pembayaran masih pending → tetap dilolosin ke web app.
+      if (isActive || paymentPending) {
         webAppApi.redirectWithTokens();
       } else {
         navigate("/login/subscription", { replace: true });
       }
     } catch {
-      // Gagal cek langganan → arahkan ke halaman langganan (fail-safe).
-      navigate("/login/subscription", { replace: true });
+      // Gagal cek langganan → lolos bila ada payment pending, else halaman langganan.
+      if (paymentPending) webAppApi.redirectWithTokens();
+      else navigate("/login/subscription", { replace: true });
     }
   };
 
@@ -464,6 +520,20 @@ export default function App() {
             />
           }
         />
+        {/* Konfirmasi ubah email — dua path: STAGING `/register/…`, PRODUCTION `/…`.
+            Keduanya didaftarkan supaya link email jalan tanpa peduli env build. */}
+        <Route
+          path="/register/confirm-email-change"
+          element={
+            <ConfirmEmailChangePage token={confirmEmailToken} onNavigate={go} />
+          }
+        />
+        <Route
+          path="/confirm-email-change"
+          element={
+            <ConfirmEmailChangePage token={confirmEmailToken} onNavigate={go} />
+          }
+        />
         <Route
           path="/login/choice"
           element={requireAuth(
@@ -532,6 +602,7 @@ export default function App() {
                 onNavigate={go}
                 otpToken={otpToken}
                 email={regEmail}
+                onOtpToken={handleOtpToken}
               />
             </SplitLayout>
           }
@@ -591,11 +662,6 @@ export default function App() {
             </Suspense>,
           )}
         />
-        {/* Path lama. */}
-        <Route
-          path="/admin-dashboard"
-          element={<Navigate to="/dashboard-admin" replace />}
-        />
 
         {/* ── Pembayaran (landing Snap Redirect Midtrans) ─────────────────── */}
         <Route
@@ -613,6 +679,47 @@ export default function App() {
         <Route path="/payment/error" element={<PaymentErrorPage />} />
 
         <Route path="/midtrans-test" element={<MidtransTestPage />} />
+
+        {/* Menu test navigasi (dev/QA) — HANYA di dev lokal (import.meta.env.DEV).
+            Di build staging & production gate ini false → route test-menu tidak
+            terdaftar, navigasi ke /test-menu jatuh ke catch-all → /login.
+            Pakai data dummy TANPA auth, route terpisah dari flow asli. */}
+        {import.meta.env.DEV && (
+          <>
+            <Route path="/test-menu" element={<TestMenuPage />} />
+            <Route
+              path="/test-menu/subscription"
+              element={
+                <SubscriptionPage
+                  user={{ name: "Test User" }}
+                  onSignOut={() => navigate("/test-menu")}
+                  onPaymentSuccess={() => navigate("/payment/success")}
+                  onPaymentPending={() => navigate("/test-menu")}
+                  onCheckoutManual={() => navigate("/test-menu/transfer")}
+                />
+              }
+            />
+            <Route
+              path="/test-menu/transfer"
+              element={
+                <TransferBankPage
+                  user={{ name: "Test User" }}
+                  plan={{
+                    id: "test",
+                    name: "Tahunan",
+                    billingCycle: "annual",
+                    months: 12,
+                    priceTotal: 396000,
+                    priceMonthly: 33000,
+                  }}
+                  payment={null}
+                  onSignOut={() => navigate("/test-menu")}
+                  onBack={() => navigate("/test-menu/subscription")}
+                />
+              }
+            />
+          </>
+        )}
 
         {/* ── Komunitas statis (guest / fake login) — publik, tanpa auth ──── */}
         {/* Lihat ADR-0004. Route catch-all /komunitas/* biar subpath ikut ke page. */}
@@ -636,12 +743,37 @@ export default function App() {
             setGate(null);
             navigate("/login", { replace: true });
           }}
-          // "Perbarui Langganan" (expired) → lanjut ke halaman langganan.
+          // "Perbarui Langganan" (expired) / "Ulang Pembayaran" (payment ditolak
+          // varian amount/account) → pilih paket di halaman langganan.
           onRenew={() => {
             const p = gate.profile;
             setGate(null);
             setCurrentUser(p);
             navigate("/login/subscription", { replace: true });
+          }}
+          // "Upload Bukti Pembayaran" (payment ditolak varian receipt) → langsung
+          // ke TransferBankPage dgn paket terakhir (skip pilih paket). Tanpa paket
+          // terkenal → fallback ke halaman langganan.
+          onReupload={() => {
+            const p = gate.profile;
+            const plan = gate.plan;
+            setGate(null);
+            setCurrentUser(p);
+            if (plan?.id) {
+              setCheckoutPlan(plan);
+              setManualPayment(null);
+              navigate("/login/subscription/transfer", { replace: true });
+            } else {
+              navigate("/login/subscription", { replace: true });
+            }
+          }}
+          // "Daftar Ulang" (akun ditolak / rejected) → bersihkan sesi lalu mulai
+          // pendaftaran dari awal.
+          onReregister={() => {
+            tokenStorage.clear();
+            setCurrentUser(null);
+            setGate(null);
+            navigate("/register", { replace: true });
           }}
         />
       )}

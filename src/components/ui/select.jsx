@@ -30,7 +30,7 @@ function useIsMobile() {
 }
 
 const TRIGGER_CLS = cn(
-  "flex h-11 w-full items-center justify-between rounded-lg border border-input bg-background px-3 py-2 text-sm",
+  "flex h-11 w-full items-center justify-between rounded-full border border-input bg-background px-4 py-2 text-sm text-left",
   "placeholder:text-muted-foreground",
   "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-0 focus:border-primary",
   "hover:border-gray-300",
@@ -143,28 +143,61 @@ SelectScrollDownButton.displayName = SelectPrimitive.ScrollDownButton.displayNam
 // Bottom-sheet mobile.
 function MobileSheet({ ctx, title, children }) {
   const { open, setOpen, placeholder } = ctx
+  const listRef = React.useRef(null)
+  // Tinggi sheet menyesuaikan jumlah konten (mis. hanya 3 tahun → pendek),
+  // TAPI maksimal setinggi 6 item — sisanya di-scroll. Fade mask atas/bawah
+  // hanya saat list benar-benar bisa di-scroll, supaya list pendek tidak
+  // ke-crop separuh item pertama/terakhir.
+  const VISIBLE_MAX = 6
+  const [scrollable, setScrollable] = React.useState(false)
+  const [maxH, setMaxH] = React.useState(null)
+  React.useLayoutEffect(() => {
+    if (!open) return
+    const el = listRef.current
+    if (!el) return
+    const items = el.children
+    if (items.length > VISIBLE_MAX) {
+      // 6 item + 5 jarak (space-y-1 = 4px) + padding vertikal list (py-3 = 12px×2).
+      const itemH = items[0].getBoundingClientRect().height
+      setMaxH(Math.round(VISIBLE_MAX * itemH + (VISIBLE_MAX - 1) * 4 + 24))
+      setScrollable(true)
+    } else {
+      setMaxH(null)
+      setScrollable(el.scrollHeight > el.clientHeight + 1)
+    }
+  }, [open, children])
+
   if (!open) {
     // Item tetap mounted (tersembunyi) supaya label ter-register buat trigger.
     return <div className="hidden" aria-hidden="true">{children}</div>
   }
   return createPortal(
     <div className="fixed inset-0 z-[100] lg:hidden">
+      {/* Scrim: efek blur ke konten belakang (bukan overlay hitam). */}
       <div
-        className="absolute inset-0 bg-black/40 animate-in fade-in-0"
+        className="absolute inset-0 bg-black/10 backdrop-blur-sm animate-in fade-in-0"
         onClick={() => setOpen(false)}
       />
-      <div className="absolute inset-x-0 bottom-0 flex max-h-[72vh] flex-col rounded-t-3xl bg-white pb-[env(safe-area-inset-bottom)] shadow-[0_-8px_30px_rgba(0,0,0,0.18)] animate-in slide-in-from-bottom duration-200">
-        <div className="mx-auto mt-3 h-1.5 w-10 rounded-full bg-gray-300" />
-        <h3 className="px-6 pt-3 pb-2 text-[17px] font-bold text-gray-900">
+      <div className="absolute inset-x-0 bottom-0 flex max-h-[85vh] flex-col rounded-t-3xl bg-white pb-[env(safe-area-inset-bottom)] shadow-[0_-8px_30px_rgba(0,0,0,0.18)] animate-in slide-in-from-bottom duration-200">
+        <div className="mx-auto mt-3 h-1.5 w-10 shrink-0 rounded-full bg-gray-300" />
+        <h3 className="shrink-0 px-6 pt-3 pb-4 text-[17px] font-bold text-gray-900">
           {title || placeholder}
         </h3>
+        {/* Divider bawah header (jarak 16px dari teks judul). */}
+        <div className="h-px w-full shrink-0 bg-gray-200" />
         <div
-          className="flex-1 space-y-1 overflow-y-auto px-4 py-3"
+          ref={listRef}
+          className="min-h-0 flex-1 space-y-1 overflow-y-auto px-4 py-3"
           style={{
-            WebkitMaskImage:
-              "linear-gradient(to bottom, transparent, #000 12%, #000 88%, transparent)",
-            maskImage:
-              "linear-gradient(to bottom, transparent, #000 12%, #000 88%, transparent)",
+            ...(maxH ? { maxHeight: maxH } : null),
+            ...(scrollable
+              ? {
+                  WebkitMaskImage:
+                    "linear-gradient(to bottom, transparent, #000 12%, #000 88%, transparent)",
+                  maskImage:
+                    "linear-gradient(to bottom, transparent, #000 12%, #000 88%, transparent)",
+                }
+              : null),
           }}
         >
           {children}

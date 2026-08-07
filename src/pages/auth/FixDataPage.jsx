@@ -12,9 +12,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { RightPanel } from "@/components/layout/RightPanel";
+import { StepBar } from "@/components/layout/StepIndicator";
 import { IconInput } from "@/components/shared/IconInput";
 import { ErrorAlert } from "@/components/shared/ErrorAlert";
 import { cn } from "@/lib/utils";
+import { abbrevRegion } from "@/lib/format";
 import { authApi, regionsApi, trainingSessionsApi } from "@/lib/api";
 
 const asList = (data) =>
@@ -216,7 +218,6 @@ export function FixDataPage({ fixData, reviseToken, onNavigate }) {
       <>
         {/* MOBILE — layar gelap "Akunmu Sedang Ditinjau Kembali" */}
         <MobileReviewNotice
-          icon={UserSearch}
           title="Akunmu Sedang Ditinjau Kembali"
           onButton={() => onNavigate("login")}
         >
@@ -262,10 +263,30 @@ export function FixDataPage({ fixData, reviseToken, onNavigate }) {
     );
   }
 
+  // CTA dipakai di footer sticky (mobile) & inline (desktop).
+  const cta = (
+    <Button
+      className="w-full rounded-full"
+      onClick={handleSubmit}
+      disabled={loading || !birthdate || !regionId || !lastTrainingSessionId || !schoolName}
+    >
+      {loading ? (
+        <><Loader2 size={16} className="animate-spin" /> Mengirim...</>
+      ) : (
+        "Kirim Perbaikan Data"
+      )}
+    </Button>
+  );
+
   return (
-    <RightPanel>
-      {/* Header dengan tombol tutup (X) — muncul di mobile & desktop */}
-      <div className="animate-fade-in-up delay-100 relative mb-2">
+    <RightPanel stickyFooter={cta}>
+      {/* MOBILE: header nempel atas (judul + X), tanpa deskripsi (sesuai reference). */}
+      <div className="lg:hidden sticky top-0 z-20 -mx-6 -mt-4 mb-4 bg-background/95 px-6 pt-4 pb-4 backdrop-blur">
+        <StepBar title="Perbaikan Data" onClose={() => onNavigate("login")} />
+      </div>
+
+      {/* DESKTOP: header inline (judul + X + deskripsi) — tak berubah. */}
+      <div className="hidden lg:block animate-fade-in-up delay-100 relative mb-2">
         <button
           onClick={() => onNavigate("login")}
           className="absolute right-0 top-0 text-muted-foreground hover:text-foreground transition-colors"
@@ -320,7 +341,7 @@ export function FixDataPage({ fixData, reviseToken, onNavigate }) {
               </SelectTrigger>
               <SelectContent>
                 {regencies.map((r) => (
-                  <SelectItem key={r.id} value={r.id}>{r.regionName || r.name}</SelectItem>
+                  <SelectItem key={r.id} value={r.id}>{abbrevRegion(r.regionName || r.name)}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -382,17 +403,8 @@ export function FixDataPage({ fixData, reviseToken, onNavigate }) {
           <FieldError message={fieldErrors.namaSekolah} />
         </div>
 
-        <Button
-          className="w-full rounded-full"
-          onClick={handleSubmit}
-          disabled={loading || !birthdate || !regionId || !lastTrainingSessionId || !schoolName}
-        >
-          {loading ? (
-            <><Loader2 size={16} className="animate-spin" /> Mengirim...</>
-          ) : (
-            "Kirim Perbaikan Data"
-          )}
-        </Button>
+        {/* DESKTOP: tombol inline. MOBILE: dipindah ke footer sticky. */}
+        <div className="hidden lg:block">{cta}</div>
       </div>
     </RightPanel>
   );

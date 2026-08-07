@@ -2,8 +2,10 @@ import { useState, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { ArrowDownUp, MoreHorizontal, Edit, Trash2, Clock, CheckCircle2, History, SearchX, Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { getTableScrollProps } from './tableScroll'
+import { abbrevRegion } from '@/lib/format'
+import { TableShell, FreezeBlurLeft, FreezeBlurRight } from './TableShell'
 import { RoleTag } from './RoleTag'
+import { VoucherCode } from './VoucherCode'
 
 // Menu aksi per tab. `type` dipetakan ke handler di AdminDashboardPage.
 const MENU_BY_TAB = {
@@ -21,7 +23,8 @@ const MENU_BY_TAB = {
     { type: 'hapus-akun',      label: 'Hapus Akun',      Icon: Trash2,       danger: true },
   ],
   'Baru Dihapus': [
-    { type: 'pulihkan-akun',   label: 'Pulihkan Akun',   Icon: History,      danger: false },
+    { type: 'pulihkan-akun',        label: 'Pulihkan Akun', Icon: History, danger: false },
+    { type: 'hapus-akun-permanen',  label: 'Hapus Akun',    Icon: Trash2,  danger: true  },
   ],
 }
 
@@ -29,12 +32,14 @@ const MENU_W = 208
 
 // Menu aksi baris. Di-portal ke body + posisi fixed supaya tidak terpotong
 // container scroll tabel (overflow-auto). Buka ke atas bila mepet bawah viewport.
-function RowActionMenu({ tab, user, onAction }) {
+// `items` bisa dioper langsung (mis. dari tabel lain seperti Verifikasi Pembayaran);
+// kalau kosong, jatuh ke MENU_BY_TAB sesuai `tab`.
+export function RowActionMenu({ tab, items: itemsProp, user, onAction }) {
   const [open, setOpen] = useState(false)
   const [pos, setPos] = useState({ top: 0, left: 0 })
   const btnRef = useRef(null)
   const menuRef = useRef(null)
-  const items = MENU_BY_TAB[tab] || MENU_BY_TAB['Disetujui']
+  const items = itemsProp || MENU_BY_TAB[tab] || MENU_BY_TAB['Disetujui']
 
   useEffect(() => {
     if (!open) return
@@ -99,14 +104,17 @@ function RowActionMenu({ tab, user, onAction }) {
   )
 }
 
-function SortableHeader({ label, sortKey, sortConfig, onSort }) {
+function SortableHeader({ label, sublabel, sortKey, sortConfig, onSort }) {
   return (
-    <div
-      className="flex items-center gap-2 cursor-pointer hover:text-white transition-colors select-none whitespace-nowrap"
-      onClick={() => onSort(sortKey)}
-    >
-      {label}
-      <ArrowDownUp size={14} className={sortConfig?.key === sortKey ? 'text-white' : 'text-white/50'} />
+    <div className="select-none whitespace-nowrap">
+      {sublabel && <div className="text-[11px] font-normal text-white/40 mb-0.5">{sublabel}</div>}
+      <div
+        className="flex items-center gap-2 cursor-pointer hover:text-white transition-colors"
+        onClick={() => onSort(sortKey)}
+      >
+        {label}
+        <ArrowDownUp size={14} className={sortConfig?.key === sortKey ? 'text-white' : 'text-white/50'} />
+      </div>
     </div>
   )
 }
@@ -143,17 +151,17 @@ const SUBSCRIPTION_CLASSES = {
 }
 
 export function ManajemenTable({
-  users, sortConfig, onSort, searchQuery, activeFilter, onActionClick,
+  users, sortConfig, onSort, searchQuery, activeFilter, onActionClick, onRiwayatClick,
   selectedIds = [], onToggleSelect, onToggleSelectAll, allSelected = false,
 }) {
   const isReducedView = activeFilter === 'Rejected' || activeFilter === 'Deleted' || activeFilter === 'Ditolak' || activeFilter === 'Baru Dihapus'
 
   return (
-    <div {...getTableScrollProps()}>
+    <TableShell>
       <table className="w-full text-left text-sm whitespace-nowrap">
         <thead className="bg-[#0A1128] text-white sticky top-0 z-20">
           <tr>
-            <th className="px-4 py-4 w-12 text-center sticky left-0 z-30 bg-[#0A1128]">
+            <th className="px-4 py-4 w-12 text-center sticky left-0 z-30 bg-[#0A1128] align-bottom">
               <button
                 onClick={onToggleSelectAll}
                 className={cn(
@@ -164,59 +172,63 @@ export function ManajemenTable({
                 {allSelected && <Check size={11} className="text-white" strokeWidth={3} />}
               </button>
             </th>
-            <th className="px-4 py-4 font-medium sticky left-[48px] z-30 bg-[#0A1128] shadow-[4px_0_10px_-4px_rgba(0,0,0,0.3)]">
+            <th className="px-4 py-4 font-medium align-bottom sticky left-[48px] z-30 bg-[#0A1128] relative">
               <SortableHeader label="Nama Pengguna" sortKey="name" sortConfig={sortConfig} onSort={onSort} />
+              <FreezeBlurLeft />
             </th>
-            <th className="px-4 py-4 font-medium">
+            <th className="px-4 py-4 font-medium align-bottom">
               <SortableHeader label="Email" sortKey="email" sortConfig={sortConfig} onSort={onSort} />
             </th>
-            <th className="px-4 py-4 font-medium">
+            <th className="px-4 py-4 font-medium align-bottom">
               <SortableHeader label="Status Member" sortKey="accountStatus" sortConfig={sortConfig} onSort={onSort} />
             </th>
             
             {!isReducedView && (
               <>
-                <th className="px-4 py-4 font-medium">
+                <th className="px-4 py-4 font-medium align-bottom">
                   <SortableHeader label="Langganan" sortKey="subscription" sortConfig={sortConfig} onSort={onSort} />
                 </th>
-                <th className="px-4 py-4 font-medium">
+                <th className="px-4 py-4 font-medium align-bottom">
                   <SortableHeader label="Jenis Paket" sortKey="plan" sortConfig={sortConfig} onSort={onSort} />
                 </th>
-                <th className="px-4 py-4 font-medium">
+                <th className="px-4 py-4 font-medium align-bottom">
                   <SortableHeader label="Tgl. Berakhir" sortKey="endDate" sortConfig={sortConfig} onSort={onSort} />
                 </th>
-                <th className="px-4 py-4 font-medium">Kode Voucher</th>
-                <th className="px-4 py-4 font-medium">
+                <th className="px-4 py-4 font-medium align-bottom">Kode Voucher</th>
+                <th className="px-4 py-4 font-medium align-bottom">
                   <SortableHeader label="Role" sortKey="role" sortConfig={sortConfig} onSort={onSort} />
                 </th>
               </>
             )}
 
-            <th className="px-4 py-4 font-medium">
+            <th className="px-4 py-4 font-medium align-bottom">
               <SortableHeader label="Riwayat Pelatihan" sortKey="riwayatPelatihan" sortConfig={sortConfig} onSort={onSort} />
             </th>
-            <th className="px-4 py-4 font-medium">
+            <th className="px-4 py-4 font-medium align-bottom">
               <SortableHeader label="Tgl. Lahir" sortKey="birthdate" sortConfig={sortConfig} onSort={onSort} />
             </th>
-            <th className="px-4 py-4 font-medium">
+            <th className="px-4 py-4 font-medium align-bottom">
               <SortableHeader label="Lokasi" sortKey="lokasi" sortConfig={sortConfig} onSort={onSort} />
             </th>
-            <th className="px-4 py-4 font-medium">
-              <SortableHeader label="Alumni Pelatihan Nama" sortKey="training" sortConfig={sortConfig} onSort={onSort} />
+            <th className="px-4 py-4 font-medium align-bottom w-[200px]">
+              <SortableHeader label="Nama" sublabel="Alumni Pelatihan" sortKey="training" sortConfig={sortConfig} onSort={onSort} />
             </th>
-            <th className="px-4 py-4 font-medium">
-              <SortableHeader label="Alumni Pelatihan Daerah" sortKey="alumniDaerah" sortConfig={sortConfig} onSort={onSort} />
+            <th className="px-4 py-4 font-medium align-bottom w-[200px]">
+              <SortableHeader label="Daerah" sublabel="Alumni Pelatihan" sortKey="alumniDaerah" sortConfig={sortConfig} onSort={onSort} />
             </th>
-            <th className="px-4 py-4 font-medium">
-              <SortableHeader label="Alumni Pelatihan Tanggal Mulai" sortKey="alumniTanggal" sortConfig={sortConfig} onSort={onSort} />
+            <th className="px-4 py-4 font-medium align-bottom w-[200px]">
+              <SortableHeader label="Tanggal Mulai" sublabel="Alumni Pelatihan" sortKey="alumniTanggal" sortConfig={sortConfig} onSort={onSort} />
             </th>
-            <th className="px-4 py-4 font-medium">
+            <th className="px-4 py-4 font-medium align-bottom">
               <SortableHeader label="Asal Sekolah" sortKey="school" sortConfig={sortConfig} onSort={onSort} />
             </th>
-            <th className="px-4 py-4 font-medium">
+            <th className="px-4 py-4 font-medium align-bottom">
               <SortableHeader label="Last Updated" sortKey="lastUpdated" sortConfig={sortConfig} onSort={onSort} />
             </th>
-            <th className="px-4 py-4 font-medium text-center sticky right-0 z-30 bg-[#0A1128] shadow-[-4px_0_10px_-4px_rgba(0,0,0,0.3)]">Action</th>
+            <th className="px-4 py-4 font-medium align-bottom text-center sticky right-0 z-30 bg-[#0A1128] relative">
+              Action
+              <FreezeBlurRight />
+            </th>
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-100">
@@ -224,7 +236,7 @@ export function ManajemenTable({
             const selected = selectedIds.includes(user.id)
             return (
               <tr key={user.id} className={cn('group transition-colors', selected ? 'bg-[#F4F6FB]' : 'hover:bg-[#F9FAFB]')}>
-                <td className={cn('px-4 py-4 text-center sticky left-0 z-10 transition-colors', selected ? 'bg-[#F4F6FB]' : 'bg-white group-hover:bg-[#F9FAFB]')}>
+                <td className={cn('px-4 py-4 align-top text-center sticky left-0 z-10 transition-colors', selected ? 'bg-[#F4F6FB]' : 'bg-white group-hover:bg-[#F9FAFB]')}>
                   <button
                     onClick={() => onToggleSelect && onToggleSelect(user.id)}
                     className={cn(
@@ -235,7 +247,7 @@ export function ManajemenTable({
                     {selected && <Check size={11} className="text-white" strokeWidth={3} />}
                   </button>
                 </td>
-                <td className={cn('px-4 py-4 sticky left-[48px] z-10 transition-colors shadow-[4px_0_10px_-4px_rgba(0,0,0,0.05)]', selected ? 'bg-[#F4F6FB]' : 'bg-white group-hover:bg-[#F9FAFB]')}>
+                <td className={cn('px-4 py-4 align-top sticky left-[48px] z-10 transition-colors relative', selected ? 'bg-[#F4F6FB]' : 'bg-white group-hover:bg-[#F9FAFB]')}>
                   <div className="font-bold text-[#0A1128] flex items-center">
                     {user.name}
                     {user.isNew && (
@@ -243,9 +255,10 @@ export function ManajemenTable({
                     )}
                   </div>
                   <div className="text-xs text-gray-400 mt-0.5">{user.username}</div>
+                  <FreezeBlurLeft />
                 </td>
-                <td className="px-4 py-4 text-[#0A1128] font-medium">{user.email}</td>
-                <td className="px-4 py-4">
+                <td className="px-4 py-4 text-[#0A1128] font-medium align-top">{user.email}</td>
+                <td className="px-4 py-4 align-top">
                   <span className={cn('inline-flex items-center px-3 py-1 rounded-full text-xs font-bold', STATUS_CLASSES[user.accountStatus] || '')}>
                     {STATUS_LABELS[user.accountStatus] || user.accountStatus}
                   </span>
@@ -253,23 +266,17 @@ export function ManajemenTable({
 
                 {!isReducedView && (
                   <>
-                    <td className="px-4 py-4">
+                    <td className="px-4 py-4 align-top">
                       <span className={cn('font-bold', SUBSCRIPTION_CLASSES[user.subscription] || '')}>
                         {user.subscription || 'Tidak Aktif'}
                       </span>
                     </td>
-                    <td className="px-4 py-4 text-[#0A1128] font-medium">{user.plan || '-'}</td>
-                    <td className="px-4 py-4 text-[#0A1128] font-medium">{user.endDate || '-'}</td>
-                    <td className="px-4 py-4">
-                      {user.voucher ? (
-                        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs border border-blue-100 bg-blue-50 text-blue-600 font-bold">
-                          {user.voucher}
-                        </div>
-                      ) : (
-                        <span className="text-gray-400">-</span>
-                      )}
+                    <td className="px-4 py-4 text-[#0A1128] font-medium align-top">{user.plan || '-'}</td>
+                    <td className="px-4 py-4 text-[#0A1128] font-medium align-top">{user.endDate || '-'}</td>
+                    <td className="px-4 py-4 align-top">
+                      <VoucherCode code={user.voucher} />
                     </td>
-                    <td className="px-4 py-4">
+                    <td className="px-4 py-4 align-top">
                       {user.role ? (
                         <div className="flex items-center gap-2 cursor-pointer group" onClick={() => onActionClick && onActionClick('ubah-role', user)}>
                           <RoleTag role={user.role} />
@@ -282,23 +289,29 @@ export function ManajemenTable({
                   </>
                 )}
 
-                <td className="px-4 py-4 text-[#0A1128] font-medium">
+                <td className="px-4 py-4 text-[#0A1128] font-medium align-top">
                   {user.riwayatCount ? (
                     <div className="flex items-center gap-2">
                       <span>{user.riwayatCount}</span>
-                      <span className="text-link cursor-pointer underline text-xs">Lihat Detail</span>
+                      <span
+                        onClick={() => onRiwayatClick && onRiwayatClick(user)}
+                        className="text-link cursor-pointer underline text-xs hover:text-blue-700"
+                      >
+                        Lihat Detail
+                      </span>
                     </div>
                   ) : '-'}
                 </td>
-                <td className="px-4 py-4 text-[#0A1128] font-medium">{user.birthdate || '-'}</td>
-                <td className="px-4 py-4 text-[#0A1128] font-medium whitespace-normal break-words max-w-[200px] leading-snug align-top">{user.lokasi || '-'}</td>
+                <td className="px-4 py-4 text-[#0A1128] font-medium align-top">{user.birthdate || '-'}</td>
+                <td className="px-4 py-4 text-[#0A1128] font-medium whitespace-normal break-words max-w-[200px] leading-snug align-top" title={user.lokasi}>{abbrevRegion(user.lokasi) || '-'}</td>
                 <td className="px-4 py-4 text-[#0A1128] font-medium whitespace-normal break-words max-w-[200px] leading-snug align-top">{user.training || '-'}</td>
-                <td className="px-4 py-4 text-[#0A1128] font-medium whitespace-normal break-words max-w-[200px] leading-snug align-top">{user.alumniDaerah || '-'}</td>
-                <td className="px-4 py-4 text-[#0A1128] font-medium">{user.alumniTanggal || '-'}</td>
+                <td className="px-4 py-4 text-[#0A1128] font-medium whitespace-normal break-words max-w-[200px] leading-snug align-top" title={user.alumniDaerah}>{abbrevRegion(user.alumniDaerah) || '-'}</td>
+                <td className="px-4 py-4 text-[#0A1128] font-medium align-top">{user.alumniTanggal || '-'}</td>
                 <td className="px-4 py-4 text-[#0A1128] font-medium whitespace-normal break-words max-w-[200px] leading-snug align-top">{user.school || '-'}</td>
-                <td className="px-4 py-4 text-[#0A1128] font-medium">{user.lastUpdated || '-'}</td>
-                <td className={cn('px-4 py-4 text-center sticky right-0 z-10 transition-colors shadow-[-4px_0_10px_-4px_rgba(0,0,0,0.05)]', selected ? 'bg-[#F4F6FB]' : 'bg-white group-hover:bg-[#F9FAFB]')}>
+                <td className="px-4 py-4 text-[#0A1128] font-medium align-top">{user.lastUpdated || '-'}</td>
+                <td className={cn('px-4 py-4 align-top text-center sticky right-0 z-10 transition-colors relative', selected ? 'bg-[#F4F6FB]' : 'bg-white group-hover:bg-[#F9FAFB]')}>
                   <RowActionMenu tab={activeFilter} user={user} onAction={onActionClick} />
+                  <FreezeBlurRight />
                 </td>
               </tr>
             )
@@ -321,6 +334,6 @@ export function ManajemenTable({
           )}
         </tbody>
       </table>
-    </div>
+    </TableShell>
   )
 }

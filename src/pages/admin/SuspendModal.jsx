@@ -110,7 +110,7 @@ export function SuspendModal({ user, onConfirm, onCancel }) {
   const valid = !!until && !!reason
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#030B1F]/30 backdrop-blur-sm p-4">
       <div className="bg-white rounded-[24px] w-full max-w-[480px] shadow-2xl max-h-[90vh] overflow-y-auto">
         <div className="p-7">
           <h3 className="text-xl font-bold text-[#0A1128] mb-4">Tangguhkan Akun</h3>

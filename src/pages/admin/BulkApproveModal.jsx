@@ -39,7 +39,7 @@ export function BulkApproveModal({ candidates = [], discourseGroups = [], traini
     candidates.forEach((c) => {
       init[c.id] = {
         role: resolveRoleValue(discourseGroups, c.role),
-        session: c.raw?.lastTrainingSessionId ? String(c.raw.lastTrainingSessionId) : '',
+        session: c.raw?.firstTrainingSessionId ? String(c.raw.firstTrainingSessionId) : '',
       }
     })
     setRows(init)
@@ -56,12 +56,12 @@ export function BulkApproveModal({ candidates = [], discourseGroups = [], traini
         id: c.id,
         name: c.name,
         discourseGroupId: parseInt(rows[c.id].role, 10),
-        lastTrainingSessionId: rows[c.id].session,
+        firstTrainingSessionId: rows[c.id].session,
       }))
     )
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#030B1F]/30 backdrop-blur-sm">
       <div className="bg-white rounded-[24px] w-full max-w-[860px] shadow-2xl mx-4 max-h-[90vh] overflow-hidden flex flex-col">
         <div className="p-8 pb-4">
           <h3 className="text-2xl font-bold text-[#0A1128] mb-1.5">Setujui Akun ini?</h3>
@@ -108,7 +108,7 @@ export function BulkApproveModal({ candidates = [], discourseGroups = [], traini
           <button
             disabled={!allFilled}
             onClick={handleSubmit}
-            className="flex-1 font-semibold px-6 py-3.5 rounded-full bg-blue-600 text-white hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex-1 font-semibold px-6 py-3.5 rounded-full bg-[#0033EC] text-white hover:bg-[#0029BD] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Setujui {candidates.length} Akun
           </button>

@@ -61,8 +61,11 @@ export function DarkInput({ icon: Icon, iconRight, error, className, ...props })
 
 export function DarkTogglePassword({ show, onToggle }) {
   return (
+    // onMouseDown preventDefault: klik ikon mata tidak mencuri fokus dari input,
+    // supaya checklist password yang bergantung fokus tidak kedip hilang.
     <button
       type="button"
+      onMouseDown={(e) => e.preventDefault()}
       onClick={onToggle}
       className="absolute right-4 z-10 text-white/40 hover:text-white/70 transition-colors"
     >

@@ -29,6 +29,19 @@ flowchart LR
 
 **Gate login** (`loginGate.js`) prioritas: `suspended > pending > expired`.
 
+**Alur verifikasi admin — 2 langkah** (baru masuk Manajemen Akun setelah lolos keduanya):
+
+```
+LANGKAH 1: Verifikasi Akun          LANGKAH 2: Verifikasi Pembayaran         Manajemen Akun
+  ├ Pending (WAITING/REVISE)          ├ Belum Langganan (APPROVED, blm sub)     (lolos 2 langkah:
+  └ Pending Voucher (PENDING_VOUCHER) ├ Menunggu Verifikasi *                    data + langganan)
+                                      └ Pembayaran Ditolak *
+                                        * sementara, khusus pembayaran manual
+```
+
+Akun `APPROVED` yang belum langganan (`subscription='Not Active'`) **ditahan** di sub-tab
+**Belum Langganan** dan belum muncul di Manajemen Akun tab Disetujui.
+
 ---
 
 ## 1. Baru daftar, email belum dikonfirmasi
@@ -84,6 +97,12 @@ flowchart TD
 
 **File**: `App.jsx:388-404`, `loginGate.js:36-40` (belum pernah sub → lolos).
 
+**Sisi admin**: akun ini (data sudah `APPROVED` tapi `subscription='Not Active'`) muncul di
+menu **Verifikasi Pembayaran → sub-tab "Belum Langganan"** (`BelumLanggananTable`), sebagai
+langkah-2 verifikasi. **Belum** masuk Manajemen Akun tab Disetujui — baru masuk setelah user
+berlangganan (lolos langkah-2). Lihat state 12 (alur 2-langkah) & `AdminDashboardPage.jsx`
+(`belumLangganan` filter).
+
 ---
 
 ## 4. Checkout manual, belum upload bukti bayar (trial 24 jam aktif)
@@ -112,13 +131,15 @@ Payment masih `pending`, bukti sudah masuk (`receipt_uploaded`). User tetap bole
 flowchart TD
   A[Upload bukti transfer] --> B[Payment status pending<br/>receipt_uploaded]
   B --> C[User: 'Pending Verifikasi Pembayaran'<br/>paymentPending ✅ tetap masuk Komonitas]
-  B --> D[Admin: menu Verifikasi Pembayaran<br/>GET /admin/payments/manual-transfer<br/>filter=receipt_uploaded]
+  B --> D[Admin: Verifikasi Pembayaran<br/>sub-tab 'Menunggu Verifikasi' *<br/>GET /admin/payments/manual-transfer<br/>filter=receipt_uploaded]
   D --> E{Keputusan admin}
   E -- approve --> F[state 7: subscription aktif]
   E -- reject --> G[state 6: pembayaran ditolak]
 ```
 
 **File**: `mappers.js:348-355` (mapToPembayaran), `VerifikasiPembayaran`, memory verifikasi-pembayaran.
+> \* Sub-tab **"Menunggu Verifikasi"** bersifat **sementara**, khusus alur **pembayaran manual**
+> (transfer bank). Pembayaran otomatis (Midtrans) ga lewat sini — status langsung dari subscription.
 
 ---
 
@@ -142,6 +163,8 @@ flowchart TD
 
 **File**: `mappers.js:352-355` (isRejected), `mappers.js:246` (deletionPending → Baru Dihapus).
 `REVISE(2)` & `REJECTED(-1)` dua-duanya masuk tab admin **"Ditolak"** (`mappers.js:251`).
+> Sisi admin: payment rejected muncul di **Verifikasi Pembayaran → sub-tab "Pembayaran Ditolak"**
+> — juga **sementara/khusus pembayaran manual** (sama seperti "Menunggu Verifikasi").
 
 ---
 
