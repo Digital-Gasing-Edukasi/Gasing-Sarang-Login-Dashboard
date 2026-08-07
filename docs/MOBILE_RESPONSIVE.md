@@ -185,6 +185,27 @@ Catatan:
   - Signup → "Terima Kasih Telah Mendaftar!" (ikon `CheckCircle2` hijau)
   - Desktop tetap versi terang existing (twin block `hidden lg:block`).
 
+## 6d. Scroll layout auth (JEBAKAN 100vh — WAJIB BACA)
+
+Form auth yang panjang (signup) **HARUS pakai document scroll**, bukan container scroll. Bug ini sudah kambuh 2×; jangan diulang.
+
+**Gejala kalau salah** (mobile signup): abis ketik 1 input tidak bisa scroll · header (`StepBar`) tidak ikut fixed di atas · tombol CTA "Lanjutkan" hilang di bawah fold.
+
+**Biang:**
+1. `SplitLayout` ([`App.jsx`](../src/App.jsx)) pakai `h-screen overflow-hidden` → di mobile `100vh` = tinggi besar (abaikan address bar) → container lebih tinggi dari area kelihatan, isi ke-clip.
+2. `RightPanel` mengunci `h-[100dvh] overflow-hidden` + area scroll dalam. Nested overflow + 100vh = jebakan klasik: `sticky` nempel ke container yang ke-clip → tidak fixed.
+3. Varian lama pernah **lupa render `stickyFooter`** → CTA tidak pernah tampil sama sekali.
+
+**Aturan (benar):**
+- `SplitLayout` = `flex min-h-screen` (JANGAN `h-screen`/`overflow-hidden`). Biar **dokumen** yang scroll natural — tahan keyboard & address bar mobile.
+- `RightPanel` outer = `min-h-screen` (JANGAN `h-[100dvh]`/`overflow-hidden`, JANGAN `overflow-y-auto` di area konten).
+- Header: `topBar` `sticky top-0` → nempel VIEWPORT = header beneran fixed.
+- CTA: `stickyFooter` **harus dirender** dan `sticky bottom-0` → selalu kelihatan walau form panjang.
+- Edge-blur (strip fade bawah-header & atas-CTA) baca **`window.scrollY` + `document.documentElement.scrollHeight`** (bukan `el.scrollTop`), karena yang scroll adalah dokumen. `atTop` matiin blur header, `atBottom` matiin blur CTA.
+- `LeftPanel` desktop `sticky top-0 h-screen` sendiri → tetap diam saat dokumen scroll.
+
+**Jangan** patok tinggi viewport (`h-screen`/`h-[100dvh]`) di container luar yang membungkus form panjang.
+
 ## 7. Utang teknis / catatan
 
 - Aset `fade_bottom.png`, `glow.png`, `thumbs_up.png` belum terpakai.

@@ -80,7 +80,7 @@ import TestMenuPage from "@/pages/TestMenuPage";
 // Shell dua kolom untuk halaman auth (login/signup/otp/...): panel kiri + konten.
 function SplitLayout({ children }) {
   return (
-    <div className="flex h-screen overflow-hidden">
+    <div className="flex min-h-screen">
       <LeftPanel />
       {children}
     </div>

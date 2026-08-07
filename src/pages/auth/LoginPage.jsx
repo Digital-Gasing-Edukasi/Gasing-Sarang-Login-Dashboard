@@ -11,7 +11,6 @@ import { NoConnectionBanner } from '@/components/shared/NoConnectionBanner'
 import { RateLimitBanner } from '@/components/shared/RateLimitBanner'
 import { authApi, profileApi, tokenStorage } from '@/lib/api'
 import { Logo } from '@/components/shared/Logo'
-import { isStaging } from '@/lib/env'
 
 const ERR_INPUT = '!border-red-500 focus-visible:!border-red-500 focus-visible:ring-red-200'
 const EMAIL_RE  = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -88,18 +87,6 @@ export function LoginPage({ onNavigate, onLoginSuccess, isSsoMode = false }) {
   return (
     <RightPanel
       mobileHero={<MobileHero />}
-      footer={
-        // Desktop-only (RightPanel bungkus `hidden lg:block`). Copyright tampil di
-        // semua env; penanda build (di-inject Vite) hanya staging.
-        <div className="text-center">
-          <p className="text-xs text-muted-foreground">©2026 Gasing Academy. All rights reserved.</p>
-          {isStaging() && (
-            <p className="mt-1 text-[11px] text-muted-foreground/60 select-all">
-              build {typeof __BUILD_DATE__ !== "undefined" ? __BUILD_DATE__ : "dev"}
-            </p>
-          )}
-        </div>
-      }
     >
       {rateLimit && (
         <RateLimitBanner
