@@ -2,9 +2,9 @@ import { useState, useRef, useEffect } from 'react'
 import { Loader2, AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { RightPanel } from '@/components/layout/RightPanel'
-import { discourseApi } from '@/lib/api'
+// import { discourseApi } from '@/lib/api'  // dipakai oleh alur SSO login lama (dinonaktifkan di bawah)
 
-export function SsoCallbackPage({ sso, sig, onNavigate }) {
+export function SsoCallbackPage({ sso, sig, onNavigate, onSignOut }) {
   const [error, setError] = useState('')
   const calledRef = useRef(false)
 
@@ -12,17 +12,26 @@ export function SsoCallbackPage({ sso, sig, onNavigate }) {
     if (calledRef.current) return
     calledRef.current = true
 
-    discourseApi.gateway(sso, sig)
-      .then(data => {
-        const redirectUrl = data.redirectUrl || data.redirect_url || data.url || data.ssoUrl
-        if (redirectUrl) {
-          window.location.href = redirectUrl
-        } else {
-          setError('Respons SSO tidak valid dari server.')
-        }
-      })
-      .catch(e => setError(e.message || 'Gagal verifikasi SSO'))
-  }, [sso, sig])
+    // ── DINONAKTIFKAN: verifikasi SSO login + pantul balik ke Discourse ──────
+    // Sebelumnya callback dari Discourse (sso+sig) diverifikasi ke backend lalu
+    // browser dipantulkan kembali ke Discourse. Sekarang redirect dari Discourse
+    // dipakai sebagai TRIGGER SIGN OUT (single logout): sesi lokal dibersihkan
+    // dan user dikembalikan ke halaman login.
+    //
+    // discourseApi.gateway(sso, sig)
+    //   .then(data => {
+    //     const redirectUrl = data.redirectUrl || data.redirect_url || data.url || data.ssoUrl
+    //     if (redirectUrl) {
+    //       window.location.href = redirectUrl
+    //     } else {
+    //       setError('Respons SSO tidak valid dari server.')
+    //     }
+    //   })
+    //   .catch(e => setError(e.message || 'Gagal verifikasi SSO'))
+
+    // Redirect dari Discourse → picu sign out sesi lokal.
+    onSignOut?.()
+  }, [sso, sig, onSignOut])
 
   return (
     <RightPanel>
@@ -41,8 +50,8 @@ export function SsoCallbackPage({ sso, sig, onNavigate }) {
         ) : (
           <>
             <Loader2 size={48} className="animate-spin text-primary mb-4" />
-            <h1 className="text-2xl font-bold text-foreground">Memverifikasi Akun...</h1>
-            <p className="text-sm text-muted-foreground">Mohon tunggu sebentar, kami sedang menghubungkan akun Anda.</p>
+            <h1 className="text-2xl font-bold text-foreground">Keluar dari Akun...</h1>
+            <p className="text-sm text-muted-foreground">Mohon tunggu sebentar, kami sedang mengakhiri sesi Anda.</p>
           </>
         )}
       </div>

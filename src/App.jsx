@@ -550,6 +550,7 @@ export default function App() {
                 sso={ssoParams?.sso}
                 sig={ssoParams?.sig}
                 onNavigate={go}
+                onSignOut={handleSignOut}
               />
             </SplitLayout>
           }
