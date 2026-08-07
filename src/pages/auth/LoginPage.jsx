@@ -115,7 +115,7 @@ export function LoginPage({ onNavigate, onLoginSuccess, isSsoMode = false }) {
         <Logo variant="split" />
       </div>
       <div className="animate-fade-in-up delay-100 text-center lg:text-center">
-        <h1 className="text-2xl font-semibold text-foreground mb-4 lg:mt-0 mt-0">
+        <h1 className="text-2xl font-semibold text-foreground mb-6 lg:mt-0 mt-0">
           <span className="lg:hidden">Selamat Datang!</span>
           <span className="hidden lg:inline">Selamat Datang!</span>
         </h1>
@@ -170,7 +170,7 @@ export function LoginPage({ onNavigate, onLoginSuccess, isSsoMode = false }) {
           )}
         </div>
 
-        <div className="flex items-center justify-between !mb-3">
+        <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Checkbox
               id="remember"

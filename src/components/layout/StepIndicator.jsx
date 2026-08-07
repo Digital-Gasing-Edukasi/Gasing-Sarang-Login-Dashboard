@@ -28,7 +28,7 @@ export function StepBar({ title, onBack, onClose }) {
         <button
           onClick={onClose}
           aria-label="Tutup"
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground mr-4"
         >
           <X size={20} />
         </button>

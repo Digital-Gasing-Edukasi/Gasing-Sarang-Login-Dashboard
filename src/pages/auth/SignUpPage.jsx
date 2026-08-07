@@ -379,8 +379,8 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
                 {errors.general}
               </p>
             )}
-            <div className="space-y-4 lg:space-y-2">
-              <Label className="text-[13px] font-semibold">Nama Lengkap</Label>
+            <div className="space-y-2 lg:space-y-2">
+              <Label className="text-[13px] font-medium lg:font-semibold">Nama Lengkap</Label>
               <Input
                 type="text"
                 placeholder="Cth: Budi Susanto"
@@ -396,8 +396,8 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
               )}
             </div>
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 lg:gap-5">
-              <div className="space-y-4 lg:space-y-2">
-                <Label className="text-[13px] font-semibold">Username</Label>
+              <div className="space-y-2 lg:space-y-2">
+                <Label className="text-[13px] font-medium lg:font-semibold">Username</Label>
                 <Input
                   type="text"
                   placeholder="Min. 5 karakter"
@@ -409,11 +409,11 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
                   }}
                 />
                 {errors.username && (
-                  <p className="text-xs text-red-500">{errors.username}</p>
+                  <p className="text-xs text-red-500 !mt-1">{errors.username}</p>
                 )}
               </div>
-              <div className="space-y-4 lg:space-y-2">
-                <Label className="text-[13px] font-semibold">Email</Label>
+              <div className="space-y-2 lg:space-y-2">
+                <Label className="text-[13px] font-medium lg:font-semibold">Email</Label>
                 <Input
                   type="email"
                   placeholder="aku@gmail.com"
@@ -429,8 +429,8 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
                 )}
               </div>
             </div>
-            <div className="space-y-4 lg:space-y-2">
-              <Label className="text-[13px] font-semibold">Password</Label>
+            <div className="space-y-2 lg:space-y-2">
+              <Label className="text-[13px] font-medium lg:font-semibold">Password</Label>
               <IconInput
                 type={showPass ? "text" : "password"}
                 placeholder="Password unikmu"
@@ -453,11 +453,11 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
                 <p className="text-xs text-red-500">{errors.password}</p>
               )}
               {showPasswordRules && (
-                <div className="space-y-1.5 pt-1 animate-in fade-in slide-in-from-top-1">
-                  <p className="text-[13px] font-medium text-foreground">
+                <div className="space-y-3 pt-1 animate-in fade-in slide-in-from-top-1">
+                  <p className="text-[13px] font-regular lg:font-medium text-foreground">
                     Password kamu harus memiliki:
                   </p>
-                  <ul className="space-y-1.5 lg:space-y-2">
+                  <ul className="space-y-3 lg:space-y-2">
                     {passwordRules.map((rule) => (
                       <li
                         key={rule.label}
@@ -479,13 +479,13 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
                 </div>
               )}
             </div>
-            <div className="space-y-4 lg:space-y-2">
-              <Label className="text-[13px] font-semibold">
+            <div className="space-y-2 lg:space-y-2">
+              <Label className="text-[13px] font-medium lg:font-semibold">
                 Konfirmasi Password
               </Label>
               <IconInput
                 type={showConfirm ? "text" : "password"}
-                placeholder="Konfirmasi passwordmu"
+                placeholder="Konfirmasi password"
                 value={confirm}
                 disabled={!password}
                 className={errors.confirm ? ERR_INPUT : "bg-muted/40"}
@@ -501,11 +501,11 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
                 }
               />
               {errors.confirm ? (
-                <p className="text-xs text-red-500">{errors.confirm}</p>
+                <p className="text-xs text-red-500 !mt-1">{errors.confirm}</p>
               ) : confirm && confirm !== password ? (
-                <p className="text-xs text-red-500">Password tidak cocok.</p>
+                <p className="text-xs text-red-500 !mt-1">Password tidak cocok.</p>
               ) : confirm && confirm === password ? (
-                <p className="flex items-center gap-1 text-xs text-green-600">
+                <p className="flex items-center gap-1 text-xs text-green-600 !mt-1">
                   <Check size={12} strokeWidth={3} /> Password cocok.
                 </p>
               ) : null}
