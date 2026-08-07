@@ -245,7 +245,7 @@ export default function MidtransTestPage() {
           <button
             onClick={handleGenerateAndPay}
             disabled={!allReady || generating}
-            className="w-full bg-[#0033EC] hover:bg-[#0029BD] disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold text-sm py-3 rounded-xl transition-colors flex items-center justify-center gap-2"
+            className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold text-sm py-3 rounded-xl transition-colors flex items-center justify-center gap-2"
           >
             {generating ? (
               <>

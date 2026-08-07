@@ -104,7 +104,7 @@ export function PerbaruiRiwayatModal({ isOpen, session, onClose, onSave, onDelet
   }
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#030B1F]/30 p-4">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4">
       {fileError && (
         <div className="absolute top-6 left-1/2 -translate-x-1/2 z-[120] bg-red-500 text-white text-sm font-medium px-5 py-3 rounded-full shadow-lg">
           {fileError}
@@ -184,13 +184,13 @@ export function PerbaruiRiwayatModal({ isOpen, session, onClose, onSave, onDelet
             <button
               type="button"
               onClick={() => setConfirmDelete(true)}
-              className="flex-1 border border-red-200 text-red-500 hover:bg-red-50 font-semibold py-2.5 rounded-full transition-colors"
+              className="flex-1 border border-red-200 text-red-500 hover:bg-red-50 font-semibold py-2.5 rounded-lg transition-colors"
             >
               Hapus Riwayat
             </button>
             <button
               type="submit"
-              className="flex-1 bg-[#0033EC] hover:bg-[#0029BD] text-white font-semibold py-2.5 rounded-full transition-colors"
+              className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 rounded-lg transition-colors"
             >
               Simpan
             </button>
@@ -200,7 +200,7 @@ export function PerbaruiRiwayatModal({ isOpen, session, onClose, onSave, onDelet
 
       {/* Konfirmasi hapus session — ketik DELETE */}
       {confirmDelete && (
-        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-[#030B1F]/30 p-4">
+        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/40 p-4">
           <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-xl text-center">
             <div className="w-14 h-14 rounded-full bg-red-50 flex items-center justify-center mx-auto mb-4">
               <Trash2 className="text-red-500" size={24} />
@@ -217,13 +217,13 @@ export function PerbaruiRiwayatModal({ isOpen, session, onClose, onSave, onDelet
               className="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm mb-5 focus:outline-none focus:border-red-400 focus:ring-1 focus:ring-red-400"
             />
             <div className="flex gap-3">
-              <button onClick={() => { setConfirmDelete(false); setDeleteText('') }} className="flex-1 border border-gray-200 text-[#0A1128] font-semibold py-2.5 rounded-full hover:bg-gray-50 transition-colors">
+              <button onClick={() => { setConfirmDelete(false); setDeleteText('') }} className="flex-1 border border-gray-200 text-[#0A1128] font-semibold py-2.5 rounded-lg hover:bg-gray-50 transition-colors">
                 Batalkan
               </button>
               <button
                 disabled={deleteText !== 'DELETE'}
                 onClick={() => { onDelete(session); onClose() }}
-                className="flex-1 bg-red-500 hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-2.5 rounded-full transition-colors"
+                className="flex-1 bg-red-500 hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-2.5 rounded-lg transition-colors"
               >
                 Hapus
               </button>

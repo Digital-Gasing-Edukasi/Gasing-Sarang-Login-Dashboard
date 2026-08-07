@@ -2,12 +2,10 @@
 import { useState, useEffect } from "react";
 import { Loader2, AlertCircle, Users, Video, BookOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { subscriptionApi, tokenStorage } from "@/lib/api";
-import { formatRp, localizePlanName } from "@/lib/format";
+import { subscriptionApi } from "@/lib/api";
 
 import bgDark from "@/assets/dark-mode/Background.png";
 import { Logo } from "@/components/shared/Logo";
-import { ProfileMenu } from "@/components/shared/ProfileMenu";
 // Ambil angka positif pertama dari beberapa kemungkinan field (nama field
 // diskon backend belum final — coba beberapa alias umum).
 function pickNumber(...vals) {
@@ -20,27 +18,11 @@ function pickNumber(...vals) {
 
 // Transform API package response → UI plan format
 function transformPlan(pkg) {
-  // Deteksi paket tahunan tahan-banting: sebagian backend mengirim durationUnit
-  // yang tak konsisten (mis. "years"/"annual") atau tak mengirimnya sama sekali,
-  // sehingga andalan pada durationUnit saja bikin paket tahunan salah dianggap
-  // bulanan. Karena itu deteksi juga dari NAMA paket (Yearly/Annual/Tahunan).
-  const unit = String(pkg.durationUnit || "").toLowerCase();
-  const rawName = String(pkg.name || "").toLowerCase();
   const isAnnual =
-    /year|annual/.test(unit) ||
-    /year|annual|tahun/.test(rawName) ||
-    (/month/.test(unit) && (pkg.duration || 0) >= 12);
-  let months = isAnnual
-    ? /year/.test(unit)
-      ? (pkg.duration || 1) * 12
-      : /month/.test(unit)
-      ? pkg.duration || 12
-      : 12
-    : 1;
-  // Paket tahunan minimal 12 bulan. Sebagian backend mengirim duration/unit
-  // tak konsisten (mis. duration=1) sehingga harga per-bulan meleset jauh
-  // (Rp396.000/bln, bukan Rp33.000/bln) dan diskon gagal dihitung.
-  if (isAnnual && months < 12) months = 12;
+    pkg.durationUnit === "year" ||
+    (pkg.durationUnit === "month" && pkg.duration >= 12);
+  const months =
+    pkg.durationUnit === "year" ? pkg.duration * 12 : pkg.duration || 1;
 
   // Field diskon/harga-coret bila backend menyediakannya (fallback: dihitung
   // di withComparison dengan membandingkan paket tahunan vs bulanan).
@@ -54,7 +36,7 @@ function transformPlan(pkg) {
   if (isAnnual) {
     return {
       id: pkg.id,
-      name: localizePlanName(pkg.name),
+      name: pkg.name,
       billingCycle: "annual",
       priceMonthly: Math.round(pkg.price / months),
       priceTotal: pkg.price,
@@ -62,12 +44,12 @@ function transformPlan(pkg) {
       discount: explicitDiscount,
       label: explicitDiscount ? `Kamu Hemat ${explicitDiscount}%` : null,
       recommended: true,
-      planLabel: localizePlanName(pkg.name),
+      planLabel: pkg.name,
     };
   }
   return {
     id: pkg.id,
-    name: localizePlanName(pkg.name),
+    name: pkg.name,
     billingCycle: "monthly",
     priceMonthly: pkg.price,
     priceTotal: null,
@@ -75,7 +57,7 @@ function transformPlan(pkg) {
     discount: explicitDiscount,
     label: null,
     recommended: false,
-    planLabel: localizePlanName(pkg.name),
+    planLabel: pkg.name,
   };
 }
 
@@ -101,8 +83,7 @@ function withComparison(plans) {
     const originalPrice = p.originalPrice ?? monthly.priceMonthly;
     let discount = p.discount;
     if (!discount && originalPrice > p.priceMonthly) {
-      // Bulatkan ke atas: hemat 17,3% ditampilkan "18%" sesuai desain.
-      discount = Math.ceil((1 - p.priceMonthly / originalPrice) * 100);
+      discount = Math.round((1 - p.priceMonthly / originalPrice) * 100);
     }
     return {
       ...p,
@@ -168,17 +149,34 @@ const BENEFITS = [
   },
 ];
 
+// Format harga ke Rupiah
+function formatRp(n) {
+  return new Intl.NumberFormat("id-ID").format(n);
+}
+
+// ─── AVATAR ──────────────────────────────────────────────────────────────────
+function Avatar({ name = "" }) {
+  const initials = name
+    .split(" ")
+    .map((w) => w[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+  return (
+    <div className="w-9 h-9 rounded-full bg-[#fce4e4] text-red-500 flex items-center justify-center text-sm font-semibold">
+      {initials || "U"}
+    </div>
+  );
+}
+
 // ─── PLAN CARD (desktop, tema gelap) ─────────────────────────────────────────
 function PlanCard({ plan, selected, onSelect }) {
-  const featured = plan.billingCycle === "annual";
   return (
     <div
       onClick={() => onSelect(plan.id)}
       className={cn(
         "relative rounded-[24px] border p-7 cursor-pointer transition-all duration-300",
-        featured
-          ? "border-[#8b7bff]/70 bg-gradient-to-b from-[#5b3fae]/45 to-[#241a5c]/30 shadow-[0_0_45px_rgba(124,58,237,0.28)]"
-          : selected
+        selected
           ? "border-[#8b7bff]/70 bg-white/[0.07] shadow-[0_0_45px_rgba(124,58,237,0.28)]"
           : "border-white/10 bg-white/[0.04] hover:border-white/20"
       )}
@@ -243,15 +241,12 @@ function PlanCard({ plan, selected, onSelect }) {
 
 // ─── MOBILE PLAN CARD (tema gelap, sesuai reference mobile) ───────────────────
 function MobilePlanCard({ plan, selected, onSelect }) {
-  const featured = plan.billingCycle === "annual";
   return (
     <div
       onClick={() => onSelect(plan.id)}
       className={cn(
         "relative rounded-[22px] border p-5 cursor-pointer transition-all duration-300",
-        featured
-          ? "border-[#8b7bff] bg-gradient-to-b from-[#5b3fae]/45 to-[#241a5c]/30 shadow-[0_0_30px_rgba(124,58,237,0.25)]"
-          : selected
+        selected
           ? "border-[#8b7bff] bg-white/[0.06] shadow-[0_0_30px_rgba(124,58,237,0.25)]"
           : "border-white/10 bg-white/[0.03]"
       )}
@@ -336,18 +331,13 @@ export default function SubscriptionPage({ user, onSignOut, onPaymentSuccess, on
     setError("");
     setLoading(true);
     try {
-      // Amankan token untuk round-trip pembayaran: pindah ke localStorage supaya
-      // selamat walau nanti Midtrans lempar keluar origin & balik di halaman baru
-      // (sessionStorage rapuh). Handoff ke web app baru butuh token ini.
-      tokenStorage.promoteToPersistent();
-
       // ── Transfer manual (Midtrans belum siap) ──────────────────────────────
-      // Cuma pindah ke halaman Transfer Bank; payment BELUM dibuat di sini.
-      // checkout-manual baru dipanggil saat user menekan "Konfirmasi Pembayaran"
-      // di TransferBankPage, supaya user yang batal di tengah jalan tidak
-      // meninggalkan payment pending yang tidak pernah dibayar.
+      // Buat payment pending manual_transfer, lalu arahkan ke halaman Transfer
+      // Bank untuk unggah bukti. Verifikasi dilakukan admin di dashboard.
       const plan = plans.find((p) => p.id === selectedPlan) || null;
-      onCheckoutManual?.(plan, null);
+      const res = await subscriptionApi.checkoutManual(selectedPlan);
+      const payment = res?.data || res || null;
+      onCheckoutManual?.(plan, payment);
     } catch (e) {
       setError(e.message || "Gagal memproses pembayaran, coba lagi");
     } finally {
@@ -362,36 +352,34 @@ export default function SubscriptionPage({ user, onSignOut, onPaymentSuccess, on
         className="lg:hidden relative min-h-screen flex flex-col text-white"
         style={{
           background:
-            "radial-gradient(ellipse at 50% 0%, #4c1d95 0%, #2e1065 40%, #1a0b3d 75%, #120833 100%)",
+            'radial-gradient(ellipse at 50% 0%, #4c1d95 0%, #2e1065 40%, #1a0b3d 75%, #120833 100%)',
         }}
       >
         <div className="flex items-center justify-between px-4 pt-4 pb-2 shrink-0">
           <Logo variant="mobile" />
-          <ProfileMenu user={user} onSignOut={onSignOut} />
+          <div className="flex items-center gap-2">
+            <span className="text-[13px] text-white/70">Profile</span>
+            <Avatar name={user?.name || user?.profile?.namaLengkap || 'HK'} />
+          </div>
         </div>
 
         <div className="flex-1 px-6 pt-4 pb-6 overflow-y-auto">
           <h1 className="text-[27px] font-bold leading-tight mb-6">
             Ada apa di Sarang Gasing?
           </h1>
-          <ul className="space-y-6 mb-8">
+          <ul className="space-y-4 mb-8">
             {BENEFITS.map((b, i) => {
               const Icon = b.icon;
               return (
                 <li key={i} className="flex items-start gap-4">
-                  <Icon
-                    className="w-6 h-6 text-[#22d3ee] shrink-0 mt-0.5"
-                    strokeWidth={2}
-                  />
-                  <p className="text-white/70 text-base leading-relaxed">
-                    {b.text}
-                  </p>
+                  <Icon className="w-6 h-6 text-[#22d3ee] shrink-0 mt-0.5" strokeWidth={2} />
+                  <p className="text-white/70 text-base leading-relaxed">{b.text}</p>
                 </li>
               );
             })}
           </ul>
 
-          <div className="space-y-3">
+          <div className="space-y-5">
             {loadingPlans ? (
               <div className="flex justify-center py-10 text-white/40">
                 <Loader2 size={26} className="animate-spin" />
@@ -416,23 +404,16 @@ export default function SubscriptionPage({ user, onSignOut, onPaymentSuccess, on
           )}
         </div>
 
-        <div className="sticky bottom-0 px-6 pb-6 pt-3 bg-gradient-to-t from-[#120833] via-[#120833]/95 to-transparent shrink-0">
+        <div className="sticky bottom-0 px-6 pb-7 pt-3 bg-gradient-to-t from-[#120833] via-[#120833]/95 to-transparent shrink-0">
           <button
             onClick={handleCheckout}
             disabled={loading}
-            className={cn(
-              "w-full py-4 rounded-full font-bold text-[15px] transition-all duration-200",
-              "bg-gradient-to-r from-[#FFFFFF] to-[#FFFFFF] text-black hover:opacity-90 active:scale-[0.98]",
-              "disabled:opacity-60 disabled:cursor-not-allowed",
-              "flex items-center justify-center gap-2",
-            )}
+            className="w-full py-4 rounded-2xl font-bold text-[15px] bg-white text-[#1a0b3d] hover:bg-white/90 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-all"
           >
             {loading ? (
-              <>
-                <Loader2 size={18} className="animate-spin" /> Memproses...
-              </>
+              <><Loader2 size={18} className="animate-spin" /> Memproses...</>
             ) : (
-              "Mulai Berlangganan"
+              'Mulai Berlangganan'
             )}
           </button>
         </div>
@@ -448,11 +429,17 @@ export default function SubscriptionPage({ user, onSignOut, onPaymentSuccess, on
           className="pointer-events-none absolute inset-0 h-full w-full select-none object-cover"
         />
 
-        {/* ── NAVBAR ── (z-20 > content z-10 supaya dropdown ProfileMenu tampil
-            & bisa diklik; kalau sama-sama z-10, content nutupin popup) */}
-        <nav className="relative z-20 flex items-center justify-between px-6 pt-6 pb-5 shrink-0">
+        {/* ── NAVBAR ── */}
+        <nav className="relative z-10 flex items-center justify-between px-6 pt-6 pb-5 shrink-0">
           <Logo variant="full" />
-          <ProfileMenu user={user} onSignOut={onSignOut} />
+          <button
+            onClick={onSignOut}
+            title="Log Out"
+            className="flex h-10 w-10 items-center justify-center rounded-full bg-[#ef4444] text-white text-sm font-semibold transition-transform hover:scale-105"
+          >
+            {(user?.name || user?.profile?.namaLengkap || "HK")
+              .split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase()}
+          </button>
         </nav>
 
         {/* ── CONTENT ── */}
@@ -468,13 +455,8 @@ export default function SubscriptionPage({ user, onSignOut, onPaymentSuccess, on
                   const Icon = b.icon;
                   return (
                     <li key={i} className="flex items-start gap-4">
-                      <Icon
-                        className="w-6 h-6 text-[#22d3ee] shrink-0 mt-0.5"
-                        strokeWidth={2}
-                      />
-                      <p className="text-white/70 text-base leading-relaxed">
-                        {b.text}
-                      </p>
+                      <Icon className="w-6 h-6 text-[#22d3ee] shrink-0 mt-0.5" strokeWidth={2} />
+                      <p className="text-white/70 text-base leading-relaxed">{b.text}</p>
                     </li>
                   );
                 })}
@@ -519,13 +501,12 @@ export default function SubscriptionPage({ user, onSignOut, onPaymentSuccess, on
                     "w-full py-4 rounded-full font-bold text-[#1a0b3d] text-base transition-all duration-200",
                     "bg-white hover:bg-white/90 active:scale-[0.98]",
                     "disabled:opacity-60 disabled:cursor-not-allowed",
-                    "flex items-center justify-center gap-2 shadow-sm",
+                    "flex items-center justify-center gap-2 shadow-sm"
                   )}
                 >
                   {loading ? (
                     <>
-                      <Loader2 size={18} className="animate-spin" />{" "}
-                      Memproses...
+                      <Loader2 size={18} className="animate-spin" /> Memproses...
                     </>
                   ) : (
                     "Mulai Berlangganan"

@@ -25,7 +25,7 @@ export function EditPesertaModal({ peserta, onSave, onCancel }) {
   }
 
   return (
-    <div className="fixed inset-0 z-[110] flex items-center justify-center bg-[#030B1F]/30 p-4">
+    <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/50 p-4">
       <div className="bg-white rounded-2xl w-full max-w-sm shadow-xl">
         <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
           <h2 className="text-lg font-bold text-[#0A1128]">Edit Peserta</h2>
@@ -59,7 +59,7 @@ export function EditPesertaModal({ peserta, onSave, onCancel }) {
           <button
             type="submit"
             disabled={saving}
-            className="w-full bg-[#0033EC] hover:bg-[#0029BD] disabled:opacity-60 text-white font-semibold py-2.5 rounded-full transition-colors"
+            className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-semibold py-2.5 rounded-lg transition-colors"
           >
             {saving ? 'Menyimpan...' : 'Simpan'}
           </button>

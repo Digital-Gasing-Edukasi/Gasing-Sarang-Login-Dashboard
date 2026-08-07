@@ -6,13 +6,13 @@ import { cn } from '@/lib/utils'
 function SearchInput({ value, onChange, placeholder = 'Cari user...' }) {
   return (
     <div className="relative">
-      <Search size={16} className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400" />
+      <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
       <input
         type="text"
         placeholder={placeholder}
         value={value}
         onChange={e => onChange(e.target.value)}
-        className="w-full pl-11 pr-10 py-2.5 bg-white border border-gray-200 rounded-full text-sm outline-none focus:border-[#0033EC] focus:ring-1 focus:ring-[#0033EC] transition-all"
+        className="w-full pl-10 pr-10 py-2.5 bg-white border border-gray-200 rounded-full text-sm outline-none focus:border-[#D946EF] focus:ring-1 focus:ring-[#D946EF] transition-all"
       />
       {value && (
         <button onClick={() => onChange('')} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
@@ -44,7 +44,7 @@ function ExpandableSearch({ value, onChange, placeholder = 'Cari user...' }) {
 
   return (
     <div className="relative w-[280px] animate-in fade-in slide-in-from-right-2 duration-200">
-      <Search size={16} className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400" />
+      <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
       <input
         ref={inputRef}
         type="text"
@@ -52,7 +52,7 @@ function ExpandableSearch({ value, onChange, placeholder = 'Cari user...' }) {
         value={value}
         onChange={e => onChange(e.target.value)}
         onBlur={() => { if (!value) setOpen(false) }}
-        className="w-full pl-11 pr-10 py-2.5 bg-white border border-gray-200 rounded-full text-sm outline-none focus:border-[#0033EC] focus:ring-1 focus:ring-[#0033EC] transition-all"
+        className="w-full pl-10 pr-10 py-2.5 bg-white border border-gray-200 rounded-full text-sm outline-none focus:border-[#D946EF] focus:ring-1 focus:ring-[#D946EF] transition-all"
       />
       <button
         onMouseDown={e => e.preventDefault()}
@@ -86,7 +86,7 @@ function SubTabSwitcher({ subTab, onSubTabChange, pendingCount = 0, voucherCount
             )}
           >
             {t.label}
-            <span className="inline-flex items-center justify-center min-w-[24px] h-6 px-1.5 rounded-full bg-blue-600 text-white text-xs font-bold leading-none tabular-nums">
+            <span className="inline-flex items-center justify-center min-w-[24px] h-6 px-1.5 rounded-full bg-blue-600 text-white text-xs font-bold">
               {fmt(t.count)}
             </span>
           </button>
@@ -179,14 +179,12 @@ export function VerifikasiControls({
   )
 }
 
-// Switcher sub-menu Verifikasi Pembayaran: Belum Langganan, Menunggu Verifikasi &
-// Pembayaran Ditolak.
-function PembayaranSubTabSwitcher({ subTab, onSubTabChange, belumLanggananCount = 0, menungguCount = 0, ditolakCount = 0 }) {
+// Switcher sub-menu Verifikasi Pembayaran: Menunggu Verifikasi & Pembayaran Ditolak.
+function PembayaranSubTabSwitcher({ subTab, onSubTabChange, menungguCount = 0, ditolakCount = 0 }) {
   const fmt = (n) => (n > 99 ? '99+' : String(n))
   const tabs = [
-    { id: 'belum-langganan', label: 'Belum Langganan',    count: belumLanggananCount },
-    { id: 'menunggu',        label: 'Menunggu Verifikasi', count: menungguCount },
-    { id: 'ditolak',         label: 'Pembayaran Ditolak',  count: ditolakCount },
+    { id: 'menunggu', label: 'Menunggu Verifikasi', count: menungguCount },
+    { id: 'ditolak',  label: 'Pembayaran Ditolak',  count: ditolakCount },
   ]
   return (
     <div className="flex items-center gap-1 bg-gray-50/70 border border-gray-100 p-1.5 rounded-full">
@@ -202,7 +200,7 @@ function PembayaranSubTabSwitcher({ subTab, onSubTabChange, belumLanggananCount 
             )}
           >
             {t.label}
-            <span className="inline-flex items-center justify-center min-w-[24px] h-6 px-1.5 rounded-full bg-blue-600 text-white text-xs font-bold leading-none tabular-nums">
+            <span className="inline-flex items-center justify-center min-w-[24px] h-6 px-1.5 rounded-full bg-blue-600 text-white text-xs font-bold">
               {fmt(t.count)}
             </span>
           </button>
@@ -214,14 +212,13 @@ function PembayaranSubTabSwitcher({ subTab, onSubTabChange, belumLanggananCount 
 
 export function VerifikasiPembayaranControls({
   searchQuery, onSearchChange, onExport,
-  subTab = 'menunggu', onSubTabChange, belumLanggananCount = 0, menungguCount = 0, ditolakCount = 0,
+  subTab = 'menunggu', onSubTabChange, menungguCount = 0, ditolakCount = 0,
 }) {
   return (
     <div className="flex items-center justify-between mb-6">
       <PembayaranSubTabSwitcher
         subTab={subTab}
         onSubTabChange={onSubTabChange}
-        belumLanggananCount={belumLanggananCount}
         menungguCount={menungguCount}
         ditolakCount={ditolakCount}
       />
@@ -284,100 +281,56 @@ function FilterSection({ title, children }) {
   )
 }
 
-// Drawer filter kanan (Langganan / Jenis Paket / Role).
-// Centang = draft lokal, belum mengubah tabel. Baru commit ke parent saat "Terapkan".
-// "Reset All" mengosongkan semua filter (draft + yang sedang aktif di tabel).
+// Drawer filter kanan (Langganan / Jenis Paket / Role). Terapkan langsung saat toggle.
 function FilterDrawer({
   open, onClose,
   selectedSubscriptions, onSubscriptionsChange,
   selectedPlans, onPlansChange,
   selectedRoles, onRolesChange,
 }) {
-  const [draftSubs, setDraftSubs] = useState(selectedSubscriptions)
-  const [draftPlans, setDraftPlans] = useState(selectedPlans)
-  const [draftRoles, setDraftRoles] = useState(selectedRoles)
-
-  // Tiap kali drawer dibuka, draft disinkronkan ulang dari filter yang sedang aktif
-  // supaya perubahan yang tidak jadi diterapkan (tutup tanpa "Terapkan") ikut dibuang.
-  useEffect(() => {
-    if (!open) return
-    setDraftSubs(selectedSubscriptions)
-    setDraftPlans(selectedPlans)
-    setDraftRoles(selectedRoles)
-  }, [open]) // eslint-disable-line react-hooks/exhaustive-deps
-
   const toggle = (list, value, setList) =>
     setList(list.includes(value) ? list.filter(x => x !== value) : [...list, value])
-
-  const handleReset = () => {
-    setDraftSubs([]); setDraftPlans([]); setDraftRoles([])
-    onSubscriptionsChange([]); onPlansChange([]); onRolesChange([])
-  }
-
-  const handleApply = () => {
-    onSubscriptionsChange(draftSubs)
-    onPlansChange(draftPlans)
-    onRolesChange(draftRoles)
-    onClose()
-  }
 
   return (
     <div className={cn('fixed inset-0 z-[90]', open ? '' : 'pointer-events-none')}>
       <div
-        className={cn('absolute inset-0 bg-[#030B1F]/30 transition-opacity duration-300', open ? 'opacity-100' : 'opacity-0')}
+        className={cn('absolute inset-0 bg-black/30 transition-opacity duration-300', open ? 'opacity-100' : 'opacity-0')}
         onClick={onClose}
       />
       <aside className={cn(
-        'absolute top-0 right-0 h-full w-[340px] max-w-[85vw] bg-white shadow-2xl flex flex-col transition-transform duration-300',
+        'absolute top-0 right-0 h-full w-[340px] max-w-[85vw] bg-white shadow-2xl p-6 overflow-y-auto transition-transform duration-300',
         open ? 'translate-x-0' : 'translate-x-full'
       )}>
-        <div className="flex items-center justify-between px-6 pt-6 pb-4">
+        <div className="flex items-center justify-between mb-6">
           <h3 className="text-lg font-bold text-[#0A1128]">Filters</h3>
           <button onClick={onClose} className="text-gray-400 hover:text-[#0A1128] transition-colors">
             <X size={20} />
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-6">
-          <FilterSection title="Langganan">
-            {LANGGANAN_OPTIONS.map(o => (
-              <CheckRow key={o.value} label={o.label}
-                checked={draftSubs.includes(o.value)}
-                onToggle={() => toggle(draftSubs, o.value, setDraftSubs)} />
-            ))}
-          </FilterSection>
+        <FilterSection title="Langganan">
+          {LANGGANAN_OPTIONS.map(o => (
+            <CheckRow key={o.value} label={o.label}
+              checked={selectedSubscriptions.includes(o.value)}
+              onToggle={() => toggle(selectedSubscriptions, o.value, onSubscriptionsChange)} />
+          ))}
+        </FilterSection>
 
-          <FilterSection title="Jenis Paket">
-            {PLAN_OPTIONS.map(o => (
-              <CheckRow key={o.value} label={o.label}
-                checked={draftPlans.includes(o.value)}
-                onToggle={() => toggle(draftPlans, o.value, setDraftPlans)} />
-            ))}
-          </FilterSection>
+        <FilterSection title="Jenis Paket">
+          {PLAN_OPTIONS.map(o => (
+            <CheckRow key={o.value} label={o.label}
+              checked={selectedPlans.includes(o.value)}
+              onToggle={() => toggle(selectedPlans, o.value, onPlansChange)} />
+          ))}
+        </FilterSection>
 
-          <FilterSection title="Role">
-            {ROLE_OPTIONS.map(o => (
-              <CheckRow key={o.value} label={o.label} Icon={o.Icon} color={o.color}
-                checked={draftRoles.includes(o.value)}
-                onToggle={() => toggle(draftRoles, o.value, setDraftRoles)} />
-            ))}
-          </FilterSection>
-        </div>
-
-        <div className="flex items-center gap-3 px-6 py-5 border-t border-gray-100">
-          <button
-            onClick={handleReset}
-            className="flex-1 py-3 rounded-full border border-gray-300 text-sm font-semibold text-[#0A1128] hover:bg-gray-50 transition-colors"
-          >
-            Reset All
-          </button>
-          <button
-            onClick={handleApply}
-            className="flex-1 py-3 rounded-full bg-[#0033EC] text-sm font-semibold text-white hover:bg-[#0029BD] transition-colors"
-          >
-            Terapkan
-          </button>
-        </div>
+        <FilterSection title="Role">
+          {ROLE_OPTIONS.map(o => (
+            <CheckRow key={o.value} label={o.label} Icon={o.Icon} color={o.color}
+              checked={selectedRoles.includes(o.value)}
+              onToggle={() => toggle(selectedRoles, o.value, onRolesChange)} />
+          ))}
+        </FilterSection>
       </aside>
     </div>
   )
@@ -409,8 +362,6 @@ export function ManajemenControls({
 }) {
   const [isFilterOpen, setIsFilterOpen] = useState(false)
   const activeCount = selectedRoles.length + selectedSubscriptions.length + selectedPlans.length
-  // Tab reduced-view (Ditolak / Baru Dihapus) tak punya kolom Langganan/Paket/Role → filter disembunyikan.
-  const showFilter = activeFilter !== 'Ditolak' && activeFilter !== 'Baru Dihapus'
 
   // Mode bulk: aktif saat ada baris terpilih. Ganti toolbar dengan action-bar per tab.
   if (selectedCount > 0) {
@@ -474,40 +425,23 @@ export function ManajemenControls({
 
       {/* Right controls */}
       <div className="flex items-center gap-3">
-        <div className="w-[300px]">
-          <SearchInput value={searchQuery} onChange={onSearchChange} />
-        </div>
+        <ExpandableSearch value={searchQuery} onChange={onSearchChange} />
 
-        {/* Filter button (buka drawer). Saat ada filter aktif berubah jadi pill:
-            [ikon filter | jumlah] + tombol X untuk hapus semua filter. */}
-        {showFilter && (
-          activeCount > 0 ? (
-            <div className="flex items-center gap-1 shrink-0">
-              <button
-                onClick={() => setIsFilterOpen(true)}
-                className="h-[42px] px-4 rounded-l-full border border-blue-600 text-blue-600 bg-blue-50 flex items-center gap-2.5 transition-colors hover:bg-blue-100 shadow-sm"
-              >
-                <Filter size={18} strokeWidth={2} />
-                <span className="min-w-[22px] h-[22px] px-1.5 rounded-full bg-blue-600 text-white text-[11px] font-bold flex items-center justify-center">
-                  {activeCount}
-                </span>
-              </button>
-              <button
-                onClick={() => { onSubscriptionsChange([]); onPlansChange([]); onRolesChange([]) }}
-                className="w-[42px] h-[42px] rounded-r-full border border-blue-600 bg-white text-[#0A1128] hover:bg-gray-50 flex items-center justify-center transition-colors shadow-sm"
-              >
-                <X size={18} strokeWidth={2} />
-              </button>
-            </div>
-          ) : (
-            <button
-              onClick={() => setIsFilterOpen(true)}
-              className="w-[42px] h-[42px] rounded-full border border-gray-200 text-[#0A1128] hover:bg-gray-50 flex items-center justify-center transition-colors shrink-0 shadow-sm"
-            >
-              <Filter size={18} strokeWidth={2} />
-            </button>
-          )
-        )}
+        {/* Filter button (buka drawer). Badge saat ada filter aktif. */}
+        <button
+          onClick={() => setIsFilterOpen(true)}
+          className={cn(
+            'relative w-[42px] h-[42px] rounded-full border flex items-center justify-center transition-colors shrink-0 shadow-sm',
+            activeCount > 0 ? 'border-blue-600 text-blue-600 bg-blue-50' : 'border-gray-200 text-[#0A1128] hover:bg-gray-50'
+          )}
+        >
+          <Filter size={18} strokeWidth={2} />
+          {activeCount > 0 && (
+            <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-blue-600 text-white text-[10px] font-bold flex items-center justify-center">
+              {activeCount}
+            </span>
+          )}
+        </button>
 
         <button onClick={onExport} className="flex items-center gap-2 bg-[#0A1128] hover:bg-[#0A1128]/90 text-white px-5 py-2.5 rounded-full text-sm font-medium transition-colors shadow-sm">
           <Download size={16} /> Export List
@@ -515,7 +449,7 @@ export function ManajemenControls({
       </div>
 
       <FilterDrawer
-        open={isFilterOpen && showFilter}
+        open={isFilterOpen}
         onClose={() => setIsFilterOpen(false)}
         selectedSubscriptions={selectedSubscriptions} onSubscriptionsChange={onSubscriptionsChange}
         selectedPlans={selectedPlans} onPlansChange={onPlansChange}
@@ -557,7 +491,7 @@ export function PendaftaranTrainerControls({
       <div className="flex items-center gap-4">
         <button
           onClick={onAdd}
-          className="flex items-center gap-2 bg-[#0033EC] hover:bg-[#0029BD] text-white px-5 py-2.5 rounded-full text-sm font-medium transition-colors shadow-sm"
+          className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-full text-sm font-medium transition-colors shadow-sm"
         >
           <span className="text-lg leading-none">+</span> Pendaftaran Pelatihan
         </button>
@@ -604,7 +538,7 @@ export function RiwayatPelatihanControls({
       <div className="flex items-center gap-4">
         <button
           onClick={onAdd}
-          className="flex items-center gap-2 border border-gray-200 text-[#0A1128] hover:bg-gray-50 px-6 py-2.5 rounded-full text-sm font-medium transition-colors shadow-sm"
+          className="flex items-center gap-2 border border-gray-200 text-[#0A1128] hover:bg-gray-50 px-5 py-2.5 rounded-full text-sm font-medium transition-colors shadow-sm"
         >
           <span className="text-lg leading-none">+</span> Tambah Pelatihan Baru
         </button>

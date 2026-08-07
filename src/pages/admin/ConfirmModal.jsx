@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { Check, ChevronDown, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { FIELD_DEFS } from '@/lib/fixLink'
@@ -46,58 +46,40 @@ export function RejectModal({ candidate, onConfirm, onCancel }) {
   }
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#030B1F]/30 backdrop-blur-sm">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm">
       <div className="bg-white rounded-[24px] w-full max-w-[560px] shadow-2xl mx-4 max-h-[90vh] overflow-hidden flex flex-col">
         <div className="p-8 pb-5 overflow-y-auto">
           <h3 className="text-2xl font-bold text-red-500 mb-1.5">Tolak Akun</h3>
           <p className="text-gray-500 text-sm mb-5">
-            Pilih alasan penolakan akun{" "}
-            <span className="font-bold text-[#0A1128]">{candidate.name}</span>
+            Pilih alasan penolakan akun <span className="font-bold text-[#0A1128]">{candidate.name}</span>
           </p>
 
           <hr className="border-gray-100 mb-4" />
-          
-          <p className="text-gray-500 text-sm mb-2">
-            Data tidak sesuai:
-          </p>
+
           {/* Checklist 1-kolom */}
           <div className="grid grid-cols-1 gap-y-1">
             {FIELD_DEFS.map((f) => {
-              const on = !!checked[f.key];
+              const on = !!checked[f.key]
               return (
-                <label
-                  key={f.key}
-                  className="flex items-center gap-3 py-2 cursor-pointer select-none"
-                >
+                <label key={f.key} className="flex items-center gap-3 py-2 cursor-pointer select-none">
                   <span
                     className={cn(
-                      "w-6 h-6 rounded-md flex items-center justify-center border transition-colors shrink-0",
-                      on
-                        ? "bg-blue-600 border-blue-600"
-                        : "bg-white border-gray-300",
+                      'w-6 h-6 rounded-md flex items-center justify-center border transition-colors shrink-0',
+                      on ? 'bg-blue-600 border-blue-600' : 'bg-white border-gray-300'
                     )}
                   >
-                    {on && (
-                      <Check size={15} className="text-white" strokeWidth={3} />
-                    )}
+                    {on && <Check size={15} className="text-white" strokeWidth={3} />}
                   </span>
-                  <input
-                    type="checkbox"
-                    checked={on}
-                    onChange={() => toggle(f.key)}
-                    className="sr-only"
-                  />
+                  <input type="checkbox" checked={on} onChange={() => toggle(f.key)} className="sr-only" />
                   <span className="text-[15px] text-[#0A1128]">{f.label}</span>
                 </label>
-              );
+              )
             })}
           </div>
 
           {checked.lainnya && (
             <div className="mt-3 animate-fade-in">
-              <label className="block text-sm text-gray-500 mb-1.5">
-                Catatan Tambahan
-              </label>
+              <label className="block text-sm text-gray-500 mb-1.5">Catatan Tambahan</label>
               <textarea
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
@@ -126,58 +108,28 @@ export function RejectModal({ candidate, onConfirm, onCancel }) {
         </div>
       </div>
     </div>
-  );
+  )
 }
 
-// Dropdown kecil reusable (Pelatihan) — custom panel (bukan <select> native)
-// supaya lebar list persis mengikuti lebar trigger, sama seperti RoleSelect.
-function Dropdown({ value, onChange, options = [], placeholder }) {
-  const [open, setOpen] = useState(false)
-  const ref = useRef(null)
-  const current = options.find((o) => String(o.value) === String(value))
-
-  useEffect(() => {
-    const onDoc = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false) }
-    document.addEventListener('mousedown', onDoc)
-    return () => document.removeEventListener('mousedown', onDoc)
-  }, [])
-
+// Dropdown kecil reusable (Pelatihan) dengan tampilan konsisten.
+function Dropdown({ value, onChange, options, placeholder }) {
   return (
-    <div className="relative" ref={ref}>
-      <button
-        type="button"
-        onClick={() => setOpen((o) => !o)}
+    <div className="relative">
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
         className={cn(
-          'flex items-center justify-between gap-3 w-full bg-white px-4 py-2.5 rounded-xl border text-sm font-medium text-left transition-colors',
-          open ? 'border-blue-500 ring-2 ring-blue-500/15' : 'border-gray-200 hover:border-gray-300',
-          current ? 'text-[#0A1128]' : 'text-gray-400'
+          'w-full appearance-none bg-white border rounded-xl py-2.5 pl-4 pr-9 text-sm font-medium outline-none transition-colors',
+          'border-gray-200 hover:border-gray-300 focus:border-blue-500',
+          value ? 'text-[#0A1128]' : 'text-gray-400'
         )}
       >
-        <span className="truncate">{current ? current.label : placeholder}</span>
-        <ChevronDown size={16} className={cn('shrink-0 transition-transform text-gray-400', open && 'rotate-180')} />
-      </button>
-
-      {open && (
-        <div className="absolute left-0 right-0 top-full mt-2 bg-white border border-gray-100 rounded-xl shadow-lg py-1.5 z-30 max-h-60 overflow-auto">
-          {options.length === 0 && <div className="px-4 py-2 text-sm text-gray-400">Tidak ada pelatihan</div>}
-          {options.map((o) => {
-            const selected = String(o.value) === String(value)
-            return (
-              <button
-                key={o.value}
-                type="button"
-                onClick={() => { onChange(String(o.value)); setOpen(false) }}
-                className={cn(
-                  'w-full text-left px-4 py-2.5 text-sm font-medium text-[#0A1128] transition-colors hover:bg-blue-50 active:bg-blue-100',
-                  selected && 'bg-blue-50'
-                )}
-              >
-                {o.label}
-              </button>
-            )
-          })}
-        </div>
-      )}
+        <option value="" disabled>{placeholder}</option>
+        {options.map((o) => (
+          <option key={o.value} value={o.value} className="text-[#0A1128]">{o.label}</option>
+        ))}
+      </select>
+      <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
     </div>
   )
 }
@@ -195,7 +147,7 @@ export function ApproveModal({ candidate, discourseGroups = [], trainingSessions
   useEffect(() => {
     if (!candidate) return
     setRole(resolveRoleValue(discourseGroups, candidate.role))
-    setSession(candidate.raw?.firstTrainingSessionId ? String(candidate.raw.firstTrainingSessionId) : '')
+    setSession(candidate.raw?.lastTrainingSessionId ? String(candidate.raw.lastTrainingSessionId) : '')
   }, [candidate, discourseGroups])
 
   if (!candidate) return null
@@ -204,7 +156,7 @@ export function ApproveModal({ candidate, discourseGroups = [], trainingSessions
   const canSubmit = !!role && !!session
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#030B1F]/30 backdrop-blur-sm p-4">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
       <div className="bg-white rounded-[24px] w-full max-w-[480px] shadow-2xl p-7">
         <div className="flex items-start justify-between mb-7">
           <h3 className="text-xl font-bold text-[#0A1128]">Setujui Akun Ini?</h3>
@@ -231,10 +183,10 @@ export function ApproveModal({ candidate, discourseGroups = [], trainingSessions
 
         <button
           disabled={!canSubmit}
-          onClick={() => onConfirm({ discourseGroupId: parseInt(role, 10), firstTrainingSessionId: session })}
+          onClick={() => onConfirm({ discourseGroupId: parseInt(role, 10), lastTrainingSessionId: session })}
           className={cn(
             'w-full mt-8 font-semibold px-6 py-3.5 rounded-full text-white transition-colors',
-            canSubmit ? 'bg-[#0033EC] hover:bg-[#0029BD]' : 'bg-blue-300 cursor-not-allowed'
+            canSubmit ? 'bg-blue-600 hover:bg-blue-700' : 'bg-blue-300 cursor-not-allowed'
           )}
         >
           Konfirmasi

@@ -4,12 +4,11 @@ import { AuthDarkLayout, DarkInput, DarkTogglePassword, DarkPrimaryButton } from
 import { SuccessToast }              from '@/components/shared/SuccessToast'
 import { cn }      from '@/lib/utils'
 import { authApi } from '@/lib/api'
-import { getPasswordRules, isPasswordValid } from '@/lib/password'
 import { Logo } from '@/components/shared/Logo'
 
 
 // Input password bertema gelap khusus layar mobile.
-function DarkPwdInput({ value, onChange, placeholder, show, onToggle, error, onFocus, onBlur }) {
+function DarkPwdInput({ value, onChange, placeholder, show, onToggle, error }) {
   return (
     <div className="relative">
       <Lock size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40" />
@@ -17,17 +16,14 @@ function DarkPwdInput({ value, onChange, placeholder, show, onToggle, error, onF
         type={show ? 'text' : 'password'}
         value={value}
         onChange={onChange}
-        onFocus={onFocus}
-        onBlur={onBlur}
         placeholder={placeholder}
         className={cn(
-          'w-full rounded-full bg-white/[0.06] border pl-12 pr-12 py-3.5 text-[15px] text-white placeholder:text-white/30 outline-none transition-colors focus:border-[#a78bfa]/70 focus:bg-white/[0.09]',
+          'w-full rounded-2xl bg-white/[0.06] border pl-12 pr-12 py-3.5 text-[15px] text-white placeholder:text-white/30 outline-none transition-colors focus:border-[#a78bfa]/70 focus:bg-white/[0.09]',
           error ? 'border-red-400/70' : 'border-white/12'
         )}
       />
       <button
         type="button"
-        onMouseDown={(e) => e.preventDefault()}
         onClick={onToggle}
         className="absolute right-4 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/70 transition-colors"
       >
@@ -45,7 +41,6 @@ export function ResetPasswordPage({ token, email, onNavigate }) {
   const [loading, setLoading]         = useState(false)
   const [errors, setErrors]           = useState({})
   const [success, setSuccess]         = useState(false)
-  const [passwordFocused, setPasswordFocused] = useState(false)
 
   const clearFieldError = (field) =>
     setErrors(prev => ({ ...prev, [field]: '' }))
@@ -58,8 +53,13 @@ export function ResetPasswordPage({ token, email, onNavigate }) {
     return () => clearTimeout(t)
   }, [success, redirectSecs])
 
-  const passwordRules = getPasswordRules(password)
-  const allRulesOk = isPasswordValid(password)
+  const passwordRules = [
+    { label: 'Minimal 10 karakter', ok: password.length >= 10 },
+    { label: 'Minimal 1 huruf kapital', ok: /[A-Z]/.test(password) },
+    { label: 'Minimal 1 angka', ok: /\d/.test(password) },
+    { label: 'Minimal 1 karakter spesial', ok: /[^A-Za-z0-9]/.test(password) },
+  ]
+  const allRulesOk = passwordRules.every(r => r.ok)
 
   const handleReset = async () => {
     const next = {}
@@ -82,7 +82,7 @@ export function ResetPasswordPage({ token, email, onNavigate }) {
 
   return (
     <>
-      {success && <SuccessToast message="Berhasil mengubah password. Silahkan login kembali" />}
+      {success && <SuccessToast message="Berhasil ubah password baru" />}
 
       {/* ═══════════════ MOBILE (tema gelap, sesuai reference) ═══════════════ */}
       <div
@@ -97,9 +97,28 @@ export function ResetPasswordPage({ token, email, onNavigate }) {
           <Logo variant="mobile" />
         </div>
 
-        {/* Sukses = toast di atas (form tetap tampil), sesuai reference state-3. */}
-        <div className="flex-1 flex flex-col animate-fade-in-up">
-            <h1 className="font-cera-pro text-[28px] font-bold mb-6">Ubah Password</h1>
+        {success ? (
+          <div className="flex-1 flex flex-col items-center justify-center text-center animate-fade-in-up">
+            <div className="w-20 h-20 rounded-full bg-[#22c55e] flex items-center justify-center mb-7 shadow-[0_0_40px_rgba(34,197,94,0.4)]">
+              <Check size={40} strokeWidth={3} className="text-white" />
+            </div>
+            <h1 className="text-[26px] font-bold mb-3">Berhasil mengubah password!</h1>
+            <p className="text-white/55 text-[14px] leading-relaxed max-w-xs mb-8">
+              Password kamu berhasil diperbarui. Silakan login dengan password baru.
+            </p>
+            <button
+              onClick={() => onNavigate('login')}
+              className="px-10 py-3.5 rounded-full bg-white text-[#1a0b3d] font-bold text-[15px] hover:bg-white/90 active:scale-[0.98] transition-all"
+            >
+              Kembali Ke Login
+            </button>
+            <p className="text-[13px] text-white/40 mt-6">
+              Mengalihkan dalam <span className="font-semibold text-white/70">{redirectSecs}</span> detik...
+            </p>
+          </div>
+        ) : (
+          <div className="flex-1 flex flex-col animate-fade-in-up">
+            <h1 className="text-[28px] font-bold mb-6">Ubah Password</h1>
 
             <div className="space-y-4">
               {errors.general && (
@@ -114,16 +133,13 @@ export function ResetPasswordPage({ token, email, onNavigate }) {
                   show={showPass}
                   onToggle={() => setShowPass(v => !v)}
                   error={errors.password}
-                  onFocus={() => setPasswordFocused(true)}
-                  onBlur={() => setPasswordFocused(false)}
                   onChange={e => { setPassword(e.target.value); clearFieldError('password') }}
                 />
                 {errors.password && <p className="text-xs text-red-300">{errors.password}</p>}
               </div>
 
-              {/* Ketentuan password — hanya saat field password fokus (blur begitu
-                  pindah ke konfirmasi → checklist ikut hilang). */}
-              {passwordFocused && (
+              {/* Ketentuan password — muncul hanya saat mulai ngetik */}
+              {password.length > 0 && (
                 <ul className="space-y-2 py-1">
                   {passwordRules.map(rule => (
                     <li
@@ -161,7 +177,7 @@ export function ResetPasswordPage({ token, email, onNavigate }) {
 
               <button
                 onClick={handleReset}
-                disabled={loading || success || !password || !confirm}
+                disabled={loading || !password || !confirm}
                 className="w-full py-4 rounded-2xl font-bold text-[15px] bg-white text-[#1a0b3d] hover:bg-white/90 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-all"
               >
                 {loading ? <><Loader2 size={18} className="animate-spin" /> Memproses...</> : 'Ubah Password'}
@@ -175,6 +191,7 @@ export function ResetPasswordPage({ token, email, onNavigate }) {
               </button>
             </div>
           </div>
+        )}
       </div>
 
       {/* ═══════════════════════════ DESKTOP (dark) ═══════════════════════════ */}
@@ -214,13 +231,11 @@ export function ResetPasswordPage({ token, email, onNavigate }) {
                   <label className="text-[14px] font-semibold text-white/85">Password Baru</label>
                   <DarkInput icon={Lock} type={showPass ? 'text' : 'password'}
                     placeholder="Masukkan password baru" value={password} error={errors.password}
-                    onFocus={() => setPasswordFocused(true)}
-                    onBlur={() => setPasswordFocused(false)}
                     onChange={e => { setPassword(e.target.value); clearFieldError('password') }}
                     iconRight={<DarkTogglePassword show={showPass} onToggle={() => setShowPass(v => !v)} />} />
                   {errors.password && <p className="text-xs text-red-300">{errors.password}</p>}
 
-                  {passwordFocused && (
+                  {password.length > 0 && (
                     <ul className="space-y-2 pt-2">
                       {passwordRules.map(rule => (
                         <li

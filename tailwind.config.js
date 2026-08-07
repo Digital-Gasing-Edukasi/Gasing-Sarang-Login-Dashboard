@@ -2,15 +2,6 @@ export default {
   content: ["./index.html", "./src/**/*.{js,jsx}"],
   theme: {
     extend: {
-      // Base desktop KEDUA. Desktop punya 2 resolusi patokan:
-      //   • lg  (1024px+) → base 1366×768  (form 380px)
-      //   • fhd (1728px+) → base 1920×1080 (form 480px)
-      // Ambang 1728px (bukan 1920) supaya monitor 1920 yang viewport-nya
-      // menyusut oleh scrollbar (~1903px) tetap kena base FHD. Layar 1600/1680
-      // sengaja tetap di base 1366. Nilai ini satu-satunya knob kalau mau geser.
-      screens: {
-        fhd: '1728px',
-      },
       fontFamily: {
         sans: ['"Poppins"', 'sans-serif'],
         display: ['"Poppins"', 'sans-serif'],

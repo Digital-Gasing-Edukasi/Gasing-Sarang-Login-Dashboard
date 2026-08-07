@@ -1,7 +1,6 @@
-import { ExternalLink, Trash2 } from 'lucide-react'
+import { ExternalLink, Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { TableShell, FreezeBlurRight } from './TableShell'
-import { RowActionMenu } from './ManajemenTable'
+import { getTableScrollProps } from './tableScroll'
 
 function isPastDeadline(v) {
   if (!v) return false
@@ -20,16 +19,12 @@ function fmtBatasWaktu(v) {
   })
 }
 
-// Menu aksi untuk baris berstatus "Berakhir" (isActive=false).
-const ENDED_MENU = [
-  { type: 'hapus-pelatihan', label: 'Hapus Pelatihan', Icon: Trash2, danger: true },
-]
-
 export function PendaftaranTrainerTable({
   data,
   onToggleStatus,
-  onDelete,
   searchQuery,
+  selectedIds = [],
+  onToggleSelect,
 }) {
   const filteredData = data.filter(item => {
     if (!searchQuery) return true
@@ -37,25 +32,39 @@ export function PendaftaranTrainerTable({
   })
 
   return (
-    <TableShell>
+    <div {...getTableScrollProps()}>
     <table className="w-full text-left text-sm whitespace-nowrap">
       <thead className="bg-[#0A1128] text-white sticky top-0 z-20">
         <tr>
-          <th className="px-4 py-4 font-medium align-bottom">Nama Pelatihan</th>
-          <th className="px-4 py-4 font-medium align-bottom">Link</th>
-          <th className="px-4 py-4 font-medium align-bottom">Periode</th>
-          <th className="px-4 py-4 font-medium align-bottom">Batas Waktu</th>
-          <th className="px-4 py-4 font-medium align-bottom">Status</th>
-          <th className="px-4 py-4 font-medium text-center sticky right-0 z-30 bg-[#0A1128] relative">Tampilkan di Home?<FreezeBlurRight /></th>
+          <th className="px-4 py-4 w-12 text-center sticky left-0 z-30 bg-[#0A1128]">
+            <div className="w-4 h-4 rounded border border-white/30 mx-auto" />
+          </th>
+          <th className="px-4 py-4 font-medium rounded-tl-lg">Nama Pelatihan</th>
+          <th className="px-4 py-4 font-medium">Link</th>
+          <th className="px-4 py-4 font-medium">Periode</th>
+          <th className="px-4 py-4 font-medium">Batas Waktu</th>
+          <th className="px-4 py-4 font-medium">Status</th>
+          <th className="px-4 py-4 font-medium text-center rounded-tr-lg sticky right-0 z-30 bg-[#0A1128] shadow-[-4px_0_10px_-4px_rgba(0,0,0,0.3)]">Tampilkan di Home?</th>
         </tr>
       </thead>
       <tbody className="divide-y divide-gray-100">
         {filteredData.length > 0 ? (
           filteredData.map(item => {
+            const selected = selectedIds.includes(item.id);
             const expired = isPastDeadline(item.batasWaktu);
-            const ended = !item.isActive;
             return (
-            <tr key={item.id} className="group transition-colors hover:bg-[#F9FAFB]">
+            <tr key={item.id} className={cn('group transition-colors', selected ? 'bg-[#F4F6FB]' : 'hover:bg-[#F9FAFB]')}>
+              <td className={cn('px-4 py-4 text-center sticky left-0 z-10 transition-colors', selected ? 'bg-[#F4F6FB]' : 'bg-white group-hover:bg-[#F9FAFB]')}>
+                <button
+                  onClick={() => onToggleSelect(item.id)}
+                  className={cn(
+                    'w-4 h-4 rounded border flex items-center justify-center mx-auto transition-colors',
+                    selected ? 'bg-blue-600 border-blue-600' : 'border-gray-300 bg-gray-50 hover:border-gray-400'
+                  )}
+                >
+                  {selected && <Check size={11} className="text-white" strokeWidth={3} />}
+                </button>
+              </td>
               <td className="px-4 py-4">
                 <div className="flex items-center gap-2">
                   <span className="font-bold text-[#0A1128]">{item.nama}</span>
@@ -90,37 +99,28 @@ export function PendaftaranTrainerTable({
                     item.isActive ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"
                   )}
                 >
-                  {expired ? 'Berakhir' : 'Aktif'}
+                  {item.isActive ? 'Aktif' : 'Berakhir'}
                 </span>
               </td>
-              <td className="px-4 py-4 sticky right-0 z-10 transition-colors relative bg-white group-hover:bg-[#F9FAFB]">
-                <FreezeBlurRight />
+              <td className={cn('px-4 py-4 sticky right-0 z-10 transition-colors shadow-[-4px_0_10px_-4px_rgba(0,0,0,0.05)]', selected ? 'bg-[#F4F6FB]' : 'bg-white group-hover:bg-[#F9FAFB]')}>
                 <div className="flex items-center justify-center">
-                  {expired ? (
-                    <RowActionMenu
-                      items={ENDED_MENU}
-                      user={item}
-                      onAction={(type, row) => { if (type === 'hapus-pelatihan') onDelete && onDelete(row) }}
-                    />
-                  ) : (
-                    <button
-                      onClick={() => onToggleStatus(item.id)}
-                      disabled={expired}
-                      title={expired ? 'Batas waktu pendaftaran sudah lewat' : undefined}
+                  <button
+                    onClick={() => onToggleStatus(item.id)}
+                    disabled={expired}
+                    title={expired ? 'Batas waktu pendaftaran sudah lewat' : undefined}
+                    className={cn(
+                      "relative inline-flex h-6 w-11 items-center rounded-full transition-colors",
+                      item.isActive ? "bg-green-500" : "bg-gray-300",
+                      expired && "cursor-not-allowed opacity-50"
+                    )}
+                  >
+                    <span
                       className={cn(
-                        "relative inline-flex h-6 w-11 items-center rounded-full transition-colors",
-                        item.isActive ? "bg-green-500" : "bg-gray-300",
-                        expired && "cursor-not-allowed opacity-50"
+                        "inline-block h-4 w-4 transform rounded-full bg-white transition-transform",
+                        item.isActive ? "translate-x-6" : "translate-x-1"
                       )}
-                    >
-                      <span
-                        className={cn(
-                          "inline-block h-4 w-4 transform rounded-full bg-white transition-transform",
-                          item.isActive ? "translate-x-6" : "translate-x-1"
-                        )}
-                      />
-                    </button>
-                  )}
+                    />
+                  </button>
                 </div>
               </td>
             </tr>
@@ -135,6 +135,6 @@ export function PendaftaranTrainerTable({
         )}
       </tbody>
     </table>
-    </TableShell>
+    </div>
   )
 }

@@ -1,20 +1,48 @@
-import heroImage from '@/assets/Mobile/placeholder.svg'
+import heroBg from '@/assets/Mobile/hero_bg.png'
+import stars from '@/assets/Mobile/stars.png'
+import blobs from '@/assets/Mobile/blobs.png'
+import heroMascot from '@/assets/Mobile/hero_mascot.png'
 
-// Hero ungu di ATAS layar auth khusus mobile (lg:hidden).
+// Hero ungu yang tampil di ATAS layar auth khusus mobile (lg:hidden).
 // Desktop pakai LeftPanel/AuthFullLayout — komponen ini tak dirender (lg:hidden).
-// Satu gambar full-bleed (placeholder.png 390x844) sudah memuat judul + maskot.
-// Hero flex-1: mengisi sisa ruang di atas kartu agar layar pas 100dvh tanpa
-// scroll (390x844). object-top jaga judul+maskot tetap kelihatan saat terpotong.
-// Kartu putih (RightPanel -mt-6) menutupi bagian fade bawah gambar.
-export function MobileHero() {
+// Aset: wallpaper hero_bg + bintang stars + blob blobs + maskot hero_mascot.
+export function MobileHero({ title }) {
   return (
-    <div className="lg:hidden relative w-full flex-1 min-h-0 overflow-hidden">
+    <div className="lg:hidden relative w-full shrink-0 overflow-hidden px-7 pt-11 pb-6">
+      {/* wallpaper ungu */}
+      <img src={heroBg} alt="" className="absolute inset-0 h-full w-full object-cover" />
+      {/* taburan bintang */}
       <img
-        src={heroImage}
-        alt="Ayo, bergabung bersama Sarang Gasing"
-        draggable="false"
-        className="pointer-events-none absolute inset-0 h-full w-full select-none object-cover object-top"
+        src={stars}
+        alt=""
+        className="pointer-events-none absolute inset-x-0 top-0 w-full select-none object-cover opacity-90"
       />
+
+      {/* judul */}
+      <h1 className="relative z-10 text-[26px] font-bold leading-tight text-white">
+        {title ?? (
+          <>
+            Ayo, bergabung
+            <br />
+            bersama <span className="text-[#FACC15]">Sarang Gasing</span>
+          </>
+        )}
+      </h1>
+
+      {/* blob + maskot menempel di dasar hero */}
+      <div className="relative z-10 mt-5 h-[150px]">
+        <img
+          src={blobs}
+          alt=""
+          className="pointer-events-none absolute inset-x-0 bottom-0 w-full select-none object-contain"
+        />
+        <img
+          src={heroMascot}
+          alt=""
+          draggable="false"
+          className="pointer-events-none absolute bottom-0 left-1/2 w-[80%] max-w-[300px] -translate-x-1/2 select-none object-contain"
+        />
+      </div>
     </div>
   )
 }

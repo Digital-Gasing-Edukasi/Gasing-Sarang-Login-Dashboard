@@ -14,14 +14,11 @@
  * menambah/menghapus hak akses dashboard, ubah daftar ini saja.
  */
 export const ADMIN_CAPABILITIES = [
-  "USER/LIST",
-  "USER/MGMT",
-  "USER/VERIFY",
-  "PACKAGE/MGMT",
-  "VOUCHER/MGMT",
-  "VOUCHER/MGMT",
-  "TRAINING_HISTORY/MGMT",
   "USER/DISCOURSE/CHANGE_GROUP",
+  "PACKAGE/MGMT",
+  "USER/VERIFY",
+  "USER/LIST",
+  "VOUCHER/MGMT",
   "USER/DISCOURSE/MANAGE_EXTRA_GROUPS",
 ];
 
@@ -54,7 +51,7 @@ export function isSuperAdmin(user) {
  * Cek apakah `user` punya SEMUA capability di `ADMIN_CAPABILITIES`.
  * `capabilities` bisa berupa array (["USER/LIST", ...]) atau object ({ "USER/LIST": true }).
  */
-export function hasAllAdminCapabilities(user) {
+function hasAllAdminCapabilities(user) {
   const caps = user?.capabilities;
   if (!caps) return false;
 

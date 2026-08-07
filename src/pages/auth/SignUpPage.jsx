@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
-import { useLocation } from "react-router-dom";
-import { LogIn, Loader2, Check } from "lucide-react";
+import { LogIn, Calendar, Loader2, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,12 +12,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { RightPanel } from "@/components/layout/RightPanel";
-import { StepBar, StepProgress } from "@/components/layout/StepIndicator";
+import { StepBar } from "@/components/layout/StepIndicator";
 import { IconInput, TogglePassword } from "@/components/shared/IconInput";
-import { DateField } from "@/components/shared/DateField";
 import { authApi, regionsApi, trainingSessionsApi } from "@/lib/api";
-import { ID_MONTHS as MONTHS, withBase, abbrevRegion } from "@/lib/format";
-import { getPasswordRules, isPasswordValid } from "@/lib/password";
 // Dipin ke bad-words 3.x: rilis 4.0.0 (masih `latest` di npm) di-publish tanpa
 // folder `dist/` yang ditunjuk package.json-nya, jadi build gagal me-resolve-nya.
 // v3 mengekspor Filter sebagai default, bukan named export.
@@ -32,11 +28,7 @@ const indonesianBadWords = [
   "ngentot", "ngewe", "memek", "kontol", "peler", "jembut", "bawok", "sange", "bokep", "porno", "bugil", "cipok",
   "lonte", "pelacur", "perek", "sundal", "kimpek", "jablay", "banci",
   "tai", "berak", "telek", "sampah", "jahanam",
-  // Slur etnis/penghinaan (bukan sekadar penyebutan identitas) tetap diblokir.
-  // Kata identitas/agama netral (cina/islam/kristen/yahudi/budha/hindu/komunis/pki)
-  // SENGAJA tidak dimasukkan: memblokirnya menolak nama & nama sekolah yang sah
-  // (mis. "Sekolah Kristen ...", "SD Islam ..."). Filter SARA jangan nabrak identitas.
-  "kafir", "cokin", "tiko"
+  "kafir", "cina", "cokin", "tiko", "kristen", "islam", "yahudi", "budha", "hindu", "komunis", "pki"
 ];
 filter.addWords(...indonesianBadWords);
 
@@ -54,6 +46,11 @@ const sessionDate = (s) => {
   return d && !isNaN(d) ? d : null;
 };
 
+const MONTHS = [
+  "Januari", "Februari", "Maret", "April", "Mei", "Juni",
+  "Juli", "Agustus", "September", "Oktober", "November", "Desember",
+];
+
 // "Kapan" = tahun + bulan pelatihan
 const sessionYear = (s) => {
   const d = sessionDate(s);
@@ -66,10 +63,7 @@ const sessionMonth = (s) => {
 };
 
 export function SignUpPage({ onNavigate, onOtpToken }) {
-  // Back dari step OTP mengirim { step: 2 } supaya user balik ke Data Pribadi,
-  // bukan reset ke step 1 (SignUpPage di-mount ulang tiap masuk /register).
-  const location = useLocation();
-  const [step, setStep] = useState(location.state?.step ?? 1);
+  const [step, setStep] = useState(1);
   const [name, setName] = useState("");
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
@@ -149,8 +143,13 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
     .filter((s) => sessionYear(s) === kapanYear)
     .sort((a, b) => String(a.name).localeCompare(String(b.name)));
 
-  const passwordRules = getPasswordRules(password);
-  const allRulesOk = isPasswordValid(password);
+  const passwordRules = [
+    { label: "Minimal 10 karakter", ok: password.length >= 10 },
+    { label: "Minimal 1 huruf kapital", ok: /[A-Z]/.test(password) },
+    { label: "Minimal 1 angka", ok: /\d/.test(password) },
+    { label: "Minimal 1 karakter spesial", ok: /[^A-Za-z0-9]/.test(password) },
+  ];
+  const allRulesOk = passwordRules.every((r) => r.ok);
 
   // Semua field step 1 valid (belum termasuk checkbox persetujuan).
   const step1FieldsValid =
@@ -177,9 +176,7 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
     kapanMonth &&
     lastTrainingSessionId &&
     schoolName;
-  // Checklist password hanya tampil saat field password sedang fokus (bukan lagi
-  // setelah blur walau ada isi). onBlur ikon mata dijaga preventDefault → tak kedip.
-  const showPasswordRules = passwordFocused;
+  const showPasswordRules = passwordFocused || password.length > 0;
 
   const handleNextToData = () => {
     const next = {};
@@ -188,8 +185,8 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
       next.name = "Nama mengandung kata yang tidak pantas atau unsur SARA.";
 
     if (!username) next.username = "Username wajib diisi.";
-    else if (username.length < 5)
-      next.username = "Username minimal 5 karakter.";
+    else if (username.length < 3)
+      next.username = "Username minimal 3 karakter.";
     else if (!/^[a-z][a-z0-9_]*$/.test(username))
       next.username =
         "Username harus diawali huruf kecil dan hanya berisi huruf kecil, angka, dan underscore.";
@@ -197,7 +194,7 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
       next.username = "Username mengandung kata yang tidak pantas atau unsur SARA.";
 
     if (!email) next.email = "Email wajib diisi.";
-    else if (!EMAIL_RE.test(email)) next.email = "Format email tidak sesuai.";
+    else if (!EMAIL_RE.test(email)) next.email = "Format email tidak valid.";
 
     if (!password) next.password = "Password wajib diisi.";
     else if (!allRulesOk)
@@ -273,114 +270,30 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
     }
   };
 
-  // Satu definisi CTA per-step; dipakai di footer sticky (mobile + desktop app-shell).
-  const cta =
-    step === 1 ? (
-      <Button
-        className="w-full rounded-full"
-        onClick={handleNextToData}
-        disabled={!step1Complete}
-      >
-        Lanjutkan
-      </Button>
-    ) : (
-      <Button
-        className="w-full rounded-full"
-        onClick={handleRegister}
-        disabled={loading || !step2Complete}
-      >
-        {loading ? (
-          <>
-            <Loader2 size={16} className="animate-spin" /> Mendaftarkan...
-          </>
-        ) : (
-          "Lanjutkan"
-        )}
-      </Button>
-    );
-
-  // Link "Log In" (step 1 saja). Desktop app-shell menaruhnya di footer sticky
-  // (di bawah CTA, sesuai desain). Mobile tetap pakai versi di dalam konten.
-  const loginLink = (
-    <p className="text-sm text-center text-muted-foreground">
-      Sudah punya akun?{" "}
-      <button
-        onClick={() => onNavigate("login")}
-        className="font-bold text-[#0033EC] underline underline-offset-2 hover:text-[#0033EC]/80 transition-colors"
-      >
-        Log In
-      </button>
-    </p>
-  );
-
-  // Isi footer sticky: CTA + link Log In (step 1). Step 2 tetap render link tapi
-  // `invisible` (tinggi tetap dipesan) supaya tinggi container CTA identik antar-step.
-  const footerNode = (
-    <div className="space-y-4">
-      {cta}
-      <div
-        className={`hidden lg:block ${step !== 1 ? "invisible" : ""}`}
-        aria-hidden={step !== 1}
-      >
-        {loginLink}
-      </div>
-    </div>
-  );
-
-  // Spacer fleksibel desktop app-shell (flex item area scroll). Ngisi ruang kosong:
-  // step padat → nyusut ke min, step pendek (OTP) → mekar sampai max 148.
-  // gapTop = title→body (min 20), gapBottom = body→cta (min 40). Mobile: disembunyiin.
-  const gapTop = (
-    <div aria-hidden className="hidden lg:block flex-1 min-h-[20px] max-h-[148px]" />
-  );
-  // Jarak body→CTA FIXED 40px di step 1 & 2 supaya IDENTIK. Karena footer nempel
-  // bawah, gapBottom fixed bikin button selalu 40px di bawah body. Slack diserap
-  // gapTop; link "Log In" di footer step 1 pun nyolong dari gapTop, bukan sini —
-  // jadi jarak ke button "Lanjutkan" gak kehitung link tsb.
-  const gapBottom = (
-    <div aria-hidden className="hidden lg:block h-10 shrink-0" />
-  );
-
   return (
-    <RightPanel
-      stickyFooter={footerNode}
-      lockDesktop
-      progress={step === 1 ? 1 / 3 : 2 / 3}
-      topBar={
-        <>
-          {/* MOBILE: header lama (back + judul + close) + fill bar dari RightPanel. */}
-          <div className="lg:hidden">
-            <StepBar
-              title={step === 1 ? "Data Akun" : "Data Pribadi"}
-              onBack={step === 2 ? () => setStep(1) : undefined}
-              onClose={() => onNavigate("login")}
-            />
-          </div>
-          {/* DESKTOP: progress tersegmen + counter + back bulat. */}
-          <div className="hidden lg:block">
-            <StepProgress
-              current={step}
-              total={3}
-              onBack={step === 2 ? () => setStep(1) : () => onNavigate("login")}
-            />
-          </div>
-        </>
-      }
-    >
+    <RightPanel maxWidth="max-w-[452px]">
+      <StepBar
+        current={step === 1 ? 1 : 2}
+        total={3}
+        onBack={step === 2 ? () => setStep(1) : undefined}
+      />
+
       {step === 1 ? (
         <>
-          <h1 className="hidden lg:block text-center text-2xl font-bold text-foreground animate-fade-in-up">
-            Data Akun
-          </h1>
-          {gapTop}
-          <div className="space-y-6 animate-fade-in-up delay-200 lg:shrink-0">
+          <div className="animate-fade-in-up delay-100 text-center">
+            <h1 className="text-[22px] font-bold text-foreground mb-1.5">
+              Data Akun
+            </h1>
+          </div>
+
+          <div className="space-y-4 animate-fade-in-up delay-200">
             {errors.general && (
               <p className="text-sm text-red-500 text-center">
                 {errors.general}
               </p>
             )}
-            <div className="space-y-2 lg:space-y-2">
-              <Label className="text-[13px] font-medium lg:font-semibold">Nama Lengkap</Label>
+            <div className="space-y-1.5">
+              <Label className="text-[13px] font-semibold">Nama Lengkap</Label>
               <Input
                 type="text"
                 placeholder="Cth: Budi Susanto"
@@ -395,9 +308,9 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
                 <p className="text-xs text-red-500">{errors.name}</p>
               )}
             </div>
-            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 lg:gap-5">
-              <div className="space-y-2 lg:space-y-2">
-                <Label className="text-[13px] font-medium lg:font-semibold">Username</Label>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-[13px] font-semibold">Username</Label>
                 <Input
                   type="text"
                   placeholder="Min. 5 karakter"
@@ -409,11 +322,11 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
                   }}
                 />
                 {errors.username && (
-                  <p className="text-xs text-red-500 !mt-1">{errors.username}</p>
+                  <p className="text-xs text-red-500">{errors.username}</p>
                 )}
               </div>
-              <div className="space-y-2 lg:space-y-2">
-                <Label className="text-[13px] font-medium lg:font-semibold">Email</Label>
+              <div className="space-y-1.5">
+                <Label className="text-[13px] font-semibold">Email</Label>
                 <Input
                   type="email"
                   placeholder="aku@gmail.com"
@@ -429,8 +342,8 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
                 )}
               </div>
             </div>
-            <div className="space-y-2 lg:space-y-2">
-              <Label className="text-[13px] font-medium lg:font-semibold">Password</Label>
+            <div className="space-y-1.5">
+              <Label className="text-[13px] font-semibold">Password</Label>
               <IconInput
                 type={showPass ? "text" : "password"}
                 placeholder="Password unikmu"
@@ -453,11 +366,11 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
                 <p className="text-xs text-red-500">{errors.password}</p>
               )}
               {showPasswordRules && (
-                <div className="space-y-3 pt-1 animate-in fade-in slide-in-from-top-1">
-                  <p className="text-[13px] font-regular lg:font-medium text-foreground">
+                <div className="space-y-1.5 pt-1 animate-in fade-in slide-in-from-top-1">
+                  <p className="text-[13px] font-medium text-foreground">
                     Password kamu harus memiliki:
                   </p>
-                  <ul className="space-y-3 lg:space-y-2">
+                  <ul className="space-y-1.5">
                     {passwordRules.map((rule) => (
                       <li
                         key={rule.label}
@@ -479,15 +392,14 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
                 </div>
               )}
             </div>
-            <div className="space-y-2 lg:space-y-2">
-              <Label className="text-[13px] font-medium lg:font-semibold">
+            <div className="space-y-1.5">
+              <Label className="text-[13px] font-semibold">
                 Konfirmasi Password
               </Label>
               <IconInput
                 type={showConfirm ? "text" : "password"}
-                placeholder="Konfirmasi password"
+                placeholder="Konfirmasi passwordmu"
                 value={confirm}
-                disabled={!password}
                 className={errors.confirm ? ERR_INPUT : "bg-muted/40"}
                 onChange={(e) => {
                   setConfirm(e.target.value);
@@ -501,16 +413,16 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
                 }
               />
               {errors.confirm ? (
-                <p className="text-xs text-red-500 !mt-1">{errors.confirm}</p>
+                <p className="text-xs text-red-500">{errors.confirm}</p>
               ) : confirm && confirm !== password ? (
-                <p className="text-xs text-red-500 !mt-1">Password tidak cocok.</p>
+                <p className="text-xs text-red-500">Password tidak cocok.</p>
               ) : confirm && confirm === password ? (
-                <p className="flex items-center gap-1 text-xs text-green-600 !mt-1">
+                <p className="flex items-center gap-1 text-xs text-green-600">
                   <Check size={12} strokeWidth={3} /> Password cocok.
                 </p>
               ) : null}
             </div>
-            <div className="space-y-1.5 lg:space-y-2">
+            <div className="space-y-1.5">
               <div className="flex items-start gap-2.5">
                 <Checkbox
                   id="agree"
@@ -525,12 +437,14 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
                 <Label
                   htmlFor="agree"
                   className={`text-[13px] font-normal leading-snug text-muted-foreground ${
-                    step1FieldsValid ? "cursor-pointer" : "cursor-not-allowed"
+                    step1FieldsValid
+                      ? "cursor-pointer"
+                      : "cursor-not-allowed opacity-70"
                   }`}
                 >
                   Dengan mendaftar akun, saya menyetujui{" "}
                   <a
-                    href={withBase("/register/id/TOS")}
+                    href={`${import.meta.env.BASE_URL === "/" ? "" : import.meta.env.BASE_URL}/register/id/TOS`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="underline font-medium text-[#0033EC] hover:text-[#0033EC]/80"
@@ -539,7 +453,7 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
                   </a>{" "}
                   &amp;{" "}
                   <a
-                    href={withBase("/register/id/privacy")}
+                    href={`${import.meta.env.BASE_URL === "/" ? "" : import.meta.env.BASE_URL}/register/id/privacy`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="underline font-medium text-[#0033EC] hover:text-[#0033EC]/80"
@@ -553,32 +467,46 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
                 <p className="text-xs text-red-500">{errors.agree}</p>
               )}
             </div>
+            <Button
+              className="w-full"
+              onClick={handleNextToData}
+              disabled={!step1Complete}
+            >
+              Lanjutkan
+            </Button>
           </div>
-          {gapBottom}
 
-          {/* CTA & Log In pindah ke footer sticky (mobile + desktop app-shell).
-              Link ini versi MOBILE saja; desktop menaruhnya di footer. */}
-          <div className="lg:hidden mt-6 animate-fade-in-up delay-300">
-            {loginLink}
+          <div className="animate-fade-in-up delay-300">
+            <p className="text-sm text-center text-muted-foreground">
+              Sudah punya akun?{" "}
+              <button
+                onClick={() => onNavigate("login")}
+                className="font-bold text-[#0033EC] underline underline-offset-2 hover:text-[#0033EC]/80 transition-colors"
+              >
+                Log In
+              </button>
+            </p>
           </div>
         </>
       ) : (
         <>
-          <h1 className="hidden lg:block text-center text-2xl font-bold text-foreground animate-fade-in-up">
-            Data Pribadi
-          </h1>
-          {gapTop}
-          {/* Desktop dirapetin (lg:space-y-4, 16px) supaya step 2 fit tanpa scroll
-              di viewport 1366x768 dengan rules jarak yang ada. Mobile tetap 16px. */}
-          <div className="space-y-4 animate-fade-in-up delay-200 lg:shrink-0">
+          <div className="animate-fade-in-up delay-100 text-center">
+            <h1 className="text-[22px] font-bold text-foreground mb-1.5">
+              Data Pribadi
+            </h1>
+          </div>
+
+          <div className="space-y-4 animate-fade-in-up delay-200">
             {errors.general && (
               <p className="text-sm text-red-500 text-center">
                 {errors.general}
               </p>
             )}
-            <div className="space-y-1.5 lg:space-y-2">
+            <div className="space-y-1.5">
               <Label className="text-[13px] font-semibold">Tanggal Lahir</Label>
-              <DateField
+              <IconInput
+                icon={Calendar}
+                type="date"
                 value={birthdate}
                 className={errors.birthdate ? ERR_INPUT : ""}
                 onChange={(e) => {
@@ -591,11 +519,11 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
               )}
             </div>
 
-            <div className="space-y-1.5 lg:space-y-2">
+            <div className="space-y-1.5">
               <Label className="text-[13px] font-semibold">
                 Lokasi kamu saat ini
               </Label>
-              <div className="grid grid-cols-2 gap-3 lg:gap-5">
+              <div className="grid grid-cols-2 gap-3">
                 <Select
                   value={provinceId}
                   onValueChange={handleProvinceChange}
@@ -634,7 +562,7 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
                   <SelectContent>
                     {regencies.map((r) => (
                       <SelectItem key={r.id} value={r.id}>
-                        {abbrevRegion(r.regionName || r.name)}
+                        {r.regionName || r.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -645,11 +573,11 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
               )}
             </div>
 
-            <div className="space-y-1.5 lg:space-y-2">
+            <div className="space-y-1.5">
               <Label className="text-[13px] font-semibold">
                 Kapan kamu mendapat pelatihan Gasing pertama?
               </Label>
-              <div className="grid grid-cols-2 gap-3 lg:gap-5">
+              <div className="grid grid-cols-2 gap-3">
                 <Select
                   value={kapanYear}
                   onValueChange={handleYearChange}
@@ -687,7 +615,7 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
               </div>
             </div>
 
-            <div className="space-y-1.5 lg:space-y-2">
+            <div className="space-y-1.5">
               <Label className="text-[13px] font-semibold">
                 Dimana kamu mendapat pelatihan Gasing pertama?
               </Label>
@@ -715,7 +643,7 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
               )}
             </div>
 
-            <div className="space-y-1.5 lg:space-y-2">
+            <div className="space-y-1.5">
               <Label className="text-[13px] font-semibold">
                 Sekolah asal kamu saat pelatihan Gasing pertama?
               </Label>
@@ -732,8 +660,32 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
                 <p className="text-xs text-red-500">{errors.schoolName}</p>
               )}
             </div>
+            <Button
+              className="w-full"
+              onClick={handleRegister}
+              disabled={loading || !step2Complete}
+            >
+              {loading ? (
+                <>
+                  <Loader2 size={16} className="animate-spin" /> Mendaftarkan...
+                </>
+              ) : (
+                "Lanjutkan"
+              )}
+            </Button>
           </div>
-          {gapBottom}
+
+          <div className="animate-fade-in-up delay-300">
+            <p className="text-sm text-center text-muted-foreground">
+              Sudah punya akun?{" "}
+              <button
+                onClick={() => onNavigate("login")}
+                className="font-bold text-[#0033EC] underline underline-offset-2 hover:text-[#0033EC]/80 transition-colors"
+              >
+                Log In
+              </button>
+            </p>
+          </div>
         </>
       )}
     </RightPanel>

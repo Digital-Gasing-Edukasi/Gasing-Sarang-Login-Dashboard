@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
 import { X, Pencil, Trash2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { abbrevRegion } from '@/lib/format'
 import { adminApi } from '@/lib/api'
 import { mapToPeserta } from './mappers'
 import { EditPesertaModal } from './EditPesertaModal'
@@ -52,7 +51,7 @@ export function DaftarPesertaModal({ isOpen, session, onClose }) {
   }
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#030B1F]/30 p-4">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4">
       <div className="bg-white rounded-2xl w-full max-w-2xl shadow-xl flex flex-col max-h-[90vh]">
         <div className="px-6 py-4 border-b border-gray-100 flex items-start justify-between shrink-0">
           <div>
@@ -61,7 +60,7 @@ export function DaftarPesertaModal({ isOpen, session, onClose }) {
               <span className="bg-blue-600 text-white text-xs font-bold px-2.5 py-0.5 rounded-full">{total} Peserta</span>
             </div>
             <p className="text-sm text-gray-500 mt-0.5">
-              {session.nama}{session.daerah && session.daerah !== '-' ? ` · ${abbrevRegion(session.daerah)}` : ''}{session.tglMulai && session.tglMulai !== '-' ? ` · ${session.tglMulai}` : ''}
+              {session.nama}{session.daerah && session.daerah !== '-' ? ` · ${session.daerah}` : ''}{session.tglMulai && session.tglMulai !== '-' ? ` · ${session.tglMulai}` : ''}
             </p>
           </div>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors">

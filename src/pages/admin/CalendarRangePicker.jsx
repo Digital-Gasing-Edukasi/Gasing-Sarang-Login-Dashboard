@@ -1,5 +1,4 @@
-import { useState, useRef, useEffect, useLayoutEffect } from 'react'
-import { createPortal } from 'react-dom'
+import { useState, useRef, useEffect } from 'react'
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -92,51 +91,13 @@ function MonthView({ year, month, showPrev, showNext, onPrev, onNext, startDate,
 export function CalendarRangePicker({ startDate, endDate, onChange, placeholder = 'Pilih rentang tanggal' }) {
   const [open, setOpen] = useState(false)
   const [viewDate, setViewDate] = useState(() => startDate || new Date())
-  const triggerRef = useRef(null)
-  const popupRef = useRef(null)
-  // Posisi popup fixed (dihitung dari rect trigger). Popup di-portal ke document.body
-  // supaya TIDAK ke-clip oleh modal ber-overflow (mis. AddPelatihanModal overflow-y-auto).
-  const [pos, setPos] = useState({ top: 0, left: 0 })
+  const ref = useRef(null)
 
-  // Klik luar: popup ada di portal (di luar triggerRef), jadi cek dua-duanya.
   useEffect(() => {
-    const onDoc = (e) => {
-      if (triggerRef.current?.contains(e.target)) return
-      if (popupRef.current?.contains(e.target)) return
-      setOpen(false)
-    }
+    const onDoc = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false) }
     document.addEventListener('mousedown', onDoc)
     return () => document.removeEventListener('mousedown', onDoc)
   }, [])
-
-  // Hitung posisi saat buka + ikut resize/scroll (capture: nangkep scroll di dalam modal).
-  useLayoutEffect(() => {
-    if (!open) return
-    const place = () => {
-      const t = triggerRef.current?.getBoundingClientRect()
-      if (!t) return
-      const p = popupRef.current?.getBoundingClientRect()
-      const pw = p?.width || 520
-      const ph = p?.height || 340
-      const margin = 8
-      let left = t.left
-      if (left + pw > window.innerWidth - margin) left = window.innerWidth - pw - margin
-      if (left < margin) left = margin
-      let top = t.bottom + margin
-      if (top + ph > window.innerHeight - margin) {
-        const above = t.top - ph - margin
-        if (above >= margin) top = above
-      }
-      setPos({ top, left })
-    }
-    place()
-    window.addEventListener('resize', place)
-    window.addEventListener('scroll', place, true)
-    return () => {
-      window.removeEventListener('resize', place)
-      window.removeEventListener('scroll', place, true)
-    }
-  }, [open])
 
   const handleDayClick = (d) => {
     // No start yet, or a full range already picked → begin a fresh range.
@@ -159,9 +120,8 @@ export function CalendarRangePicker({ startDate, endDate, onChange, placeholder 
   const shift = (delta) => setViewDate(new Date(y, m + delta, 1))
 
   return (
-    <div className="relative">
+    <div className="relative" ref={ref}>
       <button
-        ref={triggerRef}
         type="button"
         onClick={() => setOpen((o) => !o)}
         className="flex w-full items-center gap-2 px-4 py-2 border border-gray-200 rounded-lg text-sm text-left focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
@@ -170,12 +130,8 @@ export function CalendarRangePicker({ startDate, endDate, onChange, placeholder 
         <span className={cn(label ? 'text-[#0A1128]' : 'text-gray-400')}>{label || placeholder}</span>
       </button>
 
-      {open && createPortal(
-        <div
-          ref={popupRef}
-          style={{ position: 'fixed', top: pos.top, left: pos.left }}
-          className="z-[200] flex gap-6 bg-white rounded-xl border border-gray-100 shadow-[0_8px_30px_rgb(0,0,0,0.12)] p-4"
-        >
+      {open && (
+        <div className="absolute left-0 top-full z-50 mt-2 flex gap-6 bg-white rounded-xl border border-gray-100 shadow-[0_8px_30px_rgb(0,0,0,0.12)] p-4">
           <MonthView
             year={y}
             month={m}
@@ -198,8 +154,7 @@ export function CalendarRangePicker({ startDate, endDate, onChange, placeholder 
             endDate={endDate}
             onDayClick={handleDayClick}
           />
-        </div>,
-        document.body
+        </div>
       )}
     </div>
   )

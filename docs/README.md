@@ -4,7 +4,7 @@ Pintu masuk semua dokumentasi. Halaman ini **ga nyalin isi** dokumen lain — cu
 harus baca yang mana. Detail selalu ada di dokumen tujuan.
 
 **Apa ini:** SPA React 18 + Vite + **React Router v6** untuk autentikasi, langganan/pembayaran, dan
-dashboard admin GASING CIRCLE. Backend NestJS terpisah. 94 file `.js`/`.jsx` di `src/`.
+dashboard admin GASING CIRCLE. Backend NestJS terpisah. 79 file `.js`/`.jsx` di `src/`.
 
 ---
 
@@ -19,14 +19,10 @@ dashboard admin GASING CIRCLE. Backend NestJS terpisah. 94 file `.js`/`.jsx` di 
 | Mau nulis / jalanin tes | [`docs/TEST_SCENARIOS.md`](TEST_SCENARIOS.md) | ~65 skenario, per-fitur |
 | Kerja di dashboard admin | [`docs/MANAJEMEN_AKUN.md`](MANAJEMEN_AKUN.md) | Modul manajemen akun + gap data |
 | Kerja di verifikasi bukti transfer | [`docs/VERIFIKASI_PEMBAYARAN.md`](VERIFIKASI_PEMBAYARAN.md) | Sub-menu ke-2 admin, approve/reject manual transfer |
-| Mau balikin pembayaran ke Midtrans | [`docs/PEMBAYARAN_MANUAL.md`](PEMBAYARAN_MANUAL.md) | Fitur manual = SEMENTARA. Checklist revert + gate login |
 | Bikin tabel admin baru | [`docs/ADMIN_TABLE_LIMITS.md`](ADMIN_TABLE_LIMITS.md), [`docs/ADMIN_TABLE_SCROLL.md`](ADMIN_TABLE_SCROLL.md) | Limit, bulk action, aturan scroll |
 | Kerja di alur revisi akun | [`docs/FIX_DATA_FLOW.md`](FIX_DATA_FLOW.md) + [ADR-0003](adr/0003-revise-token-flow.md) | Token JWT one-time dari email |
 | Kerja di flow reset password | [`docs/RESET_PASSWORD_ROUTING.md`](RESET_PASSWORD_ROUTING.md) | Route `/login/reset-password` + kompat link email lama |
-| Kerja di flow konfirmasi ubah email | [`docs/CONFIRM_EMAIL_CHANGE.md`](CONFIRM_EMAIL_CHANGE.md) + [ADR-0006](adr/0006-confirm-email-change-flow.md) | Route `confirm-email-change?token=` (staging `/register/…`, prod `/…`), noAuth, fire-on-mount |
 | Kerja di tampilan mobile | [`docs/MOBILE_RESPONSIVE.md`](MOBILE_RESPONSIVE.md) | 1 codebase, breakpoint `lg:` |
-| Ubah bentuk field/tombol (radius) | [`docs/PILL_SHAPE_INPUTS.md`](PILL_SHAPE_INPUTS.md) | Input, dropdown, calendar, CTA = pill (`rounded-full`) |
-| Value dropdown ke-indent saat dipilih | [`docs/DROPDOWN_TEXT_ALIGN.md`](DROPDOWN_TEXT_ALIGN.md) | `text-left` di `TRIGGER_CLS` — fix warisan `text-align: center` |
 | Kerja di halaman legal (TOS/Privacy) | [`docs/LEGAL_PAGES.md`](LEGAL_PAGES.md) | Route `/register/id/TOS` & `/id/privacy`, tab baru dari signup |
 | Kerja di halaman tamu (guest Komunitas) | [`docs/GUEST_KOMUNITAS.md`](GUEST_KOMUNITAS.md) + [ADR-0004](adr/0004-guest-static-komunitas.md) | Route `/komunitas/*` publik, statis, "Lanjut Sebagai Tamu" |
 | Mau tau kenapa desainnya begitu | [`docs/adr/`](adr/) | Keputusan + trade-off |
@@ -49,24 +45,16 @@ docs/
   TEST_SCENARIOS.md ....... Skenario tes per-fitur, prioritas eksekusi
   MANAJEMEN_AKUN.md ....... Modul Manajemen Akun + kolom yang nunggu backend
   VERIFIKASI_PEMBAYARAN.md  Modul Verifikasi Pembayaran (bukti transfer manual)
-  PEMBAYARAN_MANUAL.md .... Manual transfer = SEMENTARA; checklist balikin ke Midtrans
   ADMIN_TABLE_LIMITS.md ... Limit baris & bulk action tabel admin
   ADMIN_TABLE_SCROLL.md ... `getTableScrollProps` — aturan scroll tabel
   FIX_DATA_FLOW.md ........ Alur perbaikan data / revise
   RESET_PASSWORD_ROUTING.md Routing reset password + kompat link email lama
-  CONFIRM_EMAIL_CHANGE.md . Routing konfirmasi ubah email (link email, noAuth token)
   MOBILE_RESPONSIVE.md .... Strategi responsive auth & payment
   LEGAL_PAGES.md .......... Halaman TOS & Privacy — routing, file, cara ubah isi
-  GUEST_KOMUNITAS.md ...... Halaman tamu Komunitas (route /komunitas/* publik, statis)
-  PILL_SHAPE_INPUTS.md .... Field/dropdown/calendar/CTA bentuk pill (rounded-full)
-  DROPDOWN_TEXT_ALIGN.md .. Fix value dropdown ke-indent saat dipilih (text-left)
   adr/
     0001-fix-data-flow.md ................ Superseded by ADR-0003
     0002-refactor-junior-maintainability.md  Accepted
     0003-revise-token-flow.md ............ Accepted
-    0004-guest-static-komunitas.md ....... Accepted (route /komunitas/* publik, statis)
-    0005-environment-visibility.md ....... Accepted
-    0006-confirm-email-change-flow.md .... Accepted (konfirmasi ubah email, noAuth token)
 ```
 
 ---
@@ -81,16 +69,14 @@ docs/
 | `lib/roles.js` | `isSuperAdmin`, `isOperationalAdmin`, `ADMIN_CAPABILITIES` | ARCHITECTURE §6.3 |
 | `lib/loginGate.js` | `evaluateLoginGate` — blok login: suspended > pending > expired | TEST_SCENARIOS §2 |
 | `lib/fixLink.js` | Encode/decode payload perbaikan data (legacy `?fix=`) | FIX_DATA_FLOW |
-| `lib/utils.js` | `cn()` — gabung className (`clsx` saja, **bukan** tailwind-merge) | [PILL_SHAPE_INPUTS.md §5](PILL_SHAPE_INPUTS.md) |
-| `lib/format.js` | Format bersama: `formatRp`/`fmtRupiah`, `localizePlanName`, `fmtTimeAmPm`, `ID_MONTHS`, `withBase`, `downloadCsv` | — |
-| `lib/password.js` | Aturan password bersama: `getPasswordRules(pw)`, `isPasswordValid(pw)` — dipakai SignUp & ResetPassword | — |
-| `pages/auth/` | 11 halaman: login, signup, OTP, forgot/reset, revise, SSO, choice, confirm-email-change | README §8.1 |
+| `lib/utils.js` | `cn()` — merge className Tailwind | — |
+| `pages/auth/` | 10 halaman: login, signup, OTP, forgot/reset, revise, SSO, choice | README §8.1 |
 | `pages/legal/` | TermsPage, PrivacyPage, LegalLayout | LEGAL_PAGES |
-| `pages/admin/` | 31 file: tabel, modal, mapper, helper scroll | README §8.2 |
-| `pages/` (root) | AdminDashboardPage (shell admin), Subscription, TransferBank, 4 halaman status Payment, MidtransTest | ARCHITECTURE §7.5–7.6 |
+| `pages/admin/` | 27 file: tabel, modal, mapper, helper scroll | README §8.2 |
+| `pages/` (root) | Subscription, TransferBank, 4 halaman status Payment, MidtransTest | ARCHITECTURE §7.5–7.6 |
 | `components/ui/` | shadcn/ui: button, input, label, checkbox, select | README §8.3 |
 | `components/layout/` | LeftPanel, RightPanel, AuthFullLayout, StepIndicator | README §8.4 |
-| `components/shared/` | IconInput, OtpInput, ErrorAlert, SuccessToast, LoginStatusModal, MobileReviewNotice, NoConnectionBanner, DarkAuth, DateField, Logo, PaymentStatusLayout | README §8.5 |
+| `components/shared/` | IconInput, OtpInput, ErrorAlert, SuccessToast, LoginStatusModal, MobileReviewNotice, NoConnectionBanner | README §8.5 |
 | `hooks/useCountdown.js` | Timer OTP & resend | README §8.6 |
 
 ---
@@ -156,7 +142,6 @@ Baca [`.env.example`](../.env.example) sebelum ngisi environment.
 | Kode mati di `AccountActionModals.jsx` | `pages/admin/` | `SetujuiAkunModal` & `TangguhkanAkunModal` diekspor tapi ga dipakai — versi aktif ada di `SetujuiAkunModal.jsx` & `SuspendModal.jsx` |
 | `authApi.submitCorrection` deprecated | `lib/api.js` | Diganti `getRevise`/`submitRevise`, hapus setelah migrasi kelar — ADR-0003 |
 | `bad-words` dipin di v3 | `package.json` | Jangan upgrade ke 4.x — tarball tanpa `dist/`, build mati |
-| Filter SARA tanpa term identitas | `SignUpPage.jsx` | Daftar kata sengaja tak memuat identitas/agama netral (cina/islam/kristen/dst) — tolak nama & sekolah sah. Cuma slur asli. Jangan tambah balik |
 | `VITE_DISCOURSE_URL` tidak dibaca kode | README, DEPLOYMENT_GUIDE | Disebut di dokumen tapi ga ada di `src/` — redirect datang dari `redirectUrl` response backend |
 | Belum ada test runner | — | `TEST_SCENARIOS.md` masih manual, belum ada Vitest/RTL |
 | Isi halaman legal masih placeholder | `pages/legal/TermsPage.jsx`, `PrivacyPage.jsx` | Lorem ipsum — ganti teks legal final sebelum produksi, [LEGAL_PAGES.md](LEGAL_PAGES.md) |

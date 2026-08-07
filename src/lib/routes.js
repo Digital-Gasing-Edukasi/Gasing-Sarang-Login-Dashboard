@@ -7,15 +7,6 @@
 // Catatan deploy: app di-build dengan `base: '/'` (lihat vite.config.js) sehingga
 // semua path di sini adalah path absolut dari root domain.
 
-import { isProduction } from "./env";
-
-// Konfirmasi ubah email: link email backend memakai prefix `/register/` di STAGING,
-// tapi TANPA prefix di PRODUCTION. Path kanonik ikut env; boot sequence App.jsx tetap
-// cocokkan kedua bentuk (endsWith "/confirm-email-change") supaya aman lintas-env.
-const CONFIRM_EMAIL_CHANGE_PATH = isProduction()
-  ? "/confirm-email-change"
-  : "/register/confirm-email-change";
-
 export const PAGE_PATHS = {
   login: "/login",
   "forgot-password": "/login/forgot-password",
@@ -25,7 +16,6 @@ export const PAGE_PATHS = {
   "transfer-bank": "/login/subscription/transfer",
   "auth-choice": "/login/choice",
   "sso-callback": "/login/sso-callback",
-  "confirm-email-change": CONFIRM_EMAIL_CHANGE_PATH,
 
   signup: "/register",
   "signup-otp": "/register/otp",

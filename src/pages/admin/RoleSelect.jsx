@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { Check, ChevronDown } from 'lucide-react'
+import { ChevronDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { ROLE_META } from './roleOptions'
 
@@ -55,8 +55,7 @@ export function RoleSelect({ value, onChange, options = [], placeholder = 'Pilih
                 style={meta ? { color: meta.color } : undefined}
               >
                 {meta && <meta.Icon size={16} />}
-                <span className="flex-1 text-left">{o.label}</span>
-                {selected && <Check size={16} strokeWidth={3} className="shrink-0" />}
+                {o.label}
               </button>
             )
           })}

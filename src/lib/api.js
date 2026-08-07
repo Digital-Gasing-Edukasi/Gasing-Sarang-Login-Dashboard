@@ -1,33 +1,14 @@
 // src/lib/api.js
-import { withBase } from "./format";
-
 const BASE_URL = import.meta.env.VITE_API_URL;
 
 // ─── Token helpers ────────────────────────────────────────────────────────────
 export const tokenStorage = {
   getAccess:  () => localStorage.getItem("accessToken") || sessionStorage.getItem("accessToken"),
   getRefresh: () => localStorage.getItem("refreshToken") || sessionStorage.getItem("refreshToken"),
-  // true bila token disimpan persistent (localStorage) — dipakai refresh & handoff
-  // supaya token baru ditulis ke storage yang sama, tidak bikin salinan basi.
-  isPersistent: () => !!localStorage.getItem("accessToken"),
   setTokens:  (a, r, persistent = false) => {
     const storage = persistent ? localStorage : sessionStorage;
-    const other   = persistent ? sessionStorage : localStorage;
     storage.setItem("accessToken", a);
     if (r) storage.setItem("refreshToken", r);
-    // getAccess baca localStorage DULU. Kalau nulis ke sessionStorage tapi masih
-    // ada salinan lama di localStorage → yang kebaca token basi. Buang salinan
-    // di storage satunya biar cuma ada satu sumber kebenaran.
-    other.removeItem("accessToken");
-    other.removeItem("refreshToken");
-  },
-  // Pindahkan token sesi → localStorage supaya selamat dari round-trip redirect
-  // pembayaran (mis. Midtrans lempar keluar origin lalu balik di tab/halaman baru,
-  // sessionStorage bisa hilang). Dipanggil saat MASUK alur bayar.
-  promoteToPersistent: () => {
-    const a = tokenStorage.getAccess();
-    const r = tokenStorage.getRefresh();
-    if (a) tokenStorage.setTokens(a, r, true);
   },
   clear: () => {
     localStorage.removeItem("accessToken");
@@ -149,7 +130,7 @@ async function request(endpoint, options = {}) {
       return data;
     } else {
       tokenStorage.clear();
-      window.location.href = withBase("/login");
+      window.location.href = (import.meta.env.BASE_URL === '/' ? '' : import.meta.env.BASE_URL) + "/login";
       return;
     }
   }
@@ -187,12 +168,6 @@ async function handleResponse(res) {
     const err = new Error(Array.isArray(message) ? message.join(", ") : message);
     err.status = res.status; // dipakai UI untuk bedakan 5xx (server error) vs 4xx.
     err.data = data;         // payload mentah (mis. suspendedUntil/reason saat akun ditangguhkan).
-    // 429 (ThrottlerException): sisa waktu tunggu dari header Retry-After (detik)
-    // supaya UI bisa hitung mundur, bukan cuma bilang "coba lagi nanti".
-    if (res.status === 429) {
-      const ra = parseInt(res.headers.get("Retry-After") || "", 10);
-      err.retryAfter = Number.isFinite(ra) && ra > 0 ? ra : 60;
-    }
     throw err;
   }
   return data;
@@ -207,8 +182,7 @@ async function tryRefreshToken() {
     });
     if (!res.ok) return false;
     const data = await res.json();
-    // Pertahankan lokasi storage semula (jangan turunkan localStorage → session).
-    tokenStorage.setTokens(data.accessToken, data.refreshToken || null, tokenStorage.isPersistent());
+    tokenStorage.setTokens(data.accessToken, data.refreshToken || null);
     return true;
   } catch {
     return false;
@@ -232,13 +206,6 @@ export const authApi = {
 
   confirmEmail: (token, otp) =>
     request("/auth/confirm-email", { method: "POST", body: { token, otp }, noAuth: true }),
-
-  // Kirim ulang OTP pakai token dari response register/resend TERAKHIR. Server
-  // mencabut token lama & balik { token, email } baru — pemanggil WAJIB simpan
-  // token baru ini untuk confirmEmail/resend berikutnya. Token yang sudah dicabut
-  // ditolak; token kedaluwarsa tetap diterima. noAuth: jalur pre-auth.
-  resendOtp: (token) =>
-    request("/auth/resend-otp", { method: "POST", body: { token }, noAuth: true }),
 
   login: (email, password) =>
     request("/auth/login", { method: "POST", body: { email, password }, noAuth: true }),
@@ -295,11 +262,8 @@ export const profileApi = {
   updatePicture: (fileId) =>
     request("/profile/picture", { method: "PATCH", body: { fileId } }),
 
-  // Konfirmasi ubah email dari link email: {baseurl}/confirm-email-change?token=…
-  // noAuth — auth cuma lewat `token` di body (link bisa dibuka di browser tanpa
-  // sesi login), konsisten dgn jalur link-email lain (authApi.getRevise/resetPassword).
   confirmEmailChange: (token) =>
-    request("/profile/confirm-email", { method: "POST", body: { token }, noAuth: true }),
+    request("/profile/confirm-email", { method: "POST", body: { token } }),
 };
 
 // ─── REGIONS (Province → Regency hierarchy) ─────────────────────────────────────
@@ -448,12 +412,6 @@ export const subscriptionApi = {
 
   paymentHistory: (page = 1, limit = 20) =>
     request(`/subscription/history?page=${page}&limit=${limit}`),
-
-  // Rekening tujuan transfer manual aktif. Dipakai TransferBankPage untuk
-  // menampilkan info bank dinamis (menggantikan DEFAULT_BANK hardcoded).
-  getBankAccounts: () =>
-    dedupeFetch(`${BASE_URL}/bank-accounts`, { headers: { Accept: "application/json" } })
-      .then((r) => r.json()),
 };
 
 // ─── VOUCHERS ─────────────────────────────────────────────────────────────────
@@ -495,33 +453,20 @@ export const discourseApi = {
 // ─── EXTERNAL WEB APP (non-Discourse) ──────────────────────────────────────────
 // Hands the current session over to the Gasing web app by forwarding the tokens
 // on the callback URL. Contract: `token` = access token, `refresh` = refresh token.
-const WEB_APP_CALLBACK_URL =
-  import.meta.env.VITE_WEB_APP_CALLBACK_URL ||
-  "https://sarang-gasing-komunitas.vercel.app/api/auth/callback";
+const WEB_APP_CALLBACK_URL = import.meta.env.VITE_WEB_APP_CALLBACK_URL || "https://gasing.vercel.app/api/auth/callback";
 
 export const webAppApi = {
-  async redirectWithTokens() {
-    // Access token bisa sudah basi (mis. lama di halaman bayar / balik dari
-    // Midtrans). Refresh DULU sebelum handoff, biar web app terima token valid
-    // dan tidak langsung menendang user balik ke login.
-    if (tokenStorage.getRefresh()) {
-      try { await tryRefreshToken(); } catch { /* pakai token lama seadanya */ }
-    }
-
+  redirectWithTokens() {
     const access  = tokenStorage.getAccess();
     const refresh = tokenStorage.getRefresh();
 
-    // Token tidak lengkap → jangan kirim param kosong ke web app (pasti ditolak
-    // lalu bounce ke login). Langsung arahkan ke login lokal.
     if (!access || !refresh) {
-      console.warn("[webAppApi] redirectWithTokens: token tidak lengkap, balik ke login", { access: !!access, refresh: !!refresh });
-      window.location.href = withBase("/login");
-      return;
+      console.warn("[webAppApi] redirectWithTokens: token tidak lengkap", { access: !!access, refresh: !!refresh });
     }
 
     const params = new URLSearchParams();
-    params.append("token", access);
-    params.append("refresh", refresh);
+    if (access)  params.append("token", access);
+    if (refresh) params.append("refresh", refresh);
     window.location.href = `${WEB_APP_CALLBACK_URL}?${params.toString()}`;
   },
 };
@@ -563,29 +508,13 @@ export const adminApi = {
 
   getUser: (userId) => request(`/admin/users/${userId}`),
 
-  // Riwayat pelatihan 1 user (modal "Lihat Detail" di Manajemen Akun).
-  // GET /admin/users/training-history/{userId}?page&limit → { data, meta }.
-  listUserTrainingHistories: (userId, params = {}) => {
-    const q = buildQuery({ page: 1, limit: 20, ...params });
-    return request(`/admin/users/training-history/${userId}${q ? "?" + q : ""}`);
-  },
-
-  // Peserta 1 session. Pakai filter[firstTrainingSessionId] — sama dgn field yang
-  // dipakai tabel Manajemen/Verifikasi Akun ("Alumni Pelatihan" dari
-  // firstTrainingSession, di-set saat approve akun). filter[trainingSessionId]
-  // lama memfilter tabel training-history yang sering kosong (record dibuat manual),
-  // jadi peserta tidak muncul walau akunnya ada di Manajemen.
+  // Peserta 1 session — pakai filter existing lastTrainingSessionId.
+  // CATATAN: hanya user yang session TERAKHIR-nya = sessionId (bukan seluruh
+  // riwayat). Sementara sampai backend sediakan endpoint participants khusus.
   getSessionParticipants: (sessionId, params = {}) => {
-    const q = buildQuery({ page: 1, limit: 20, "filter[firstTrainingSessionId]": sessionId, ...params });
+    const q = buildQuery({ page: 1, limit: 20, "filter[lastTrainingSessionId]": sessionId, ...params });
     return request(`/admin/users${q ? "?" + q : ""}`);
   },
-
-  // Set/ganti sesi pelatihan pertama user (null = hapus). Butuh USER/MGMT.
-  updateFirstTrainingSession: (userId, firstTrainingSessionId) =>
-    request(`/admin/users/${userId}/first-training-session`, {
-      method: "PATCH",
-      body: { firstTrainingSessionId },
-    }),
 
   updateUser: (userId, data) =>
     request(`/admin/users/${userId}`, { method: "PATCH", body: data }),
@@ -596,20 +525,8 @@ export const adminApi = {
       body: { newPassword },
     }),
 
-  // discourseGroupId dinormalisasi ke integer — BE menolak bentuk string. Field
-  // dibuang kalau kosong supaya payload langkah-2 tidak mengirim null.
-  verifyUser: (userId, data) => {
-    const body = { ...data };
-    if ("discourseGroupId" in body) {
-      const n = Number(body.discourseGroupId);
-      if (Number.isFinite(n) && body.discourseGroupId !== null && body.discourseGroupId !== "") {
-        body.discourseGroupId = n;
-      } else {
-        delete body.discourseGroupId;
-      }
-    }
-    return request(`/admin/users/${userId}/verify`, { method: "PATCH", body });
-  },
+  verifyUser: (userId, data) =>
+    request(`/admin/users/${userId}/verify`, { method: "PATCH", body: data }),
 
   // Minta user memperbaiki data (status → REVISE). Backend generate token JWT +
   // kirim email berisi link revise. `fieldsToRevise` = array key field yang salah.
@@ -631,12 +548,10 @@ export const adminApi = {
   resendReviseEmail: (userId) =>
     request(`/admin/users/${userId}/resend-revise-email`, { method: "POST" }),
 
-  // discourseGroupId dari dropdown selalu string (value di-String-kan buat compare).
-  // Backend wajib number, jadi coerce di sini. Number("") → NaN, guard dulu.
   updateDiscourseGroup: (userId, discourseGroupId) =>
     request(`/admin/users/${userId}/discourse-group`, {
       method: "PATCH",
-      body: { discourseGroupId: Number(discourseGroupId) },
+      body: { discourseGroupId },
     }),
 
   // ── Hapus / Pulihkan akun (soft delete via deletion-request) ──
@@ -647,19 +562,12 @@ export const adminApi = {
   cancelUserDeletion: (userId) =>
     request(`/admin/users/${userId}/deletion-request`, { method: "DELETE" }),
 
-  // Hapus akun PERMANEN (hard delete) dari tab "Baru Dihapus" — beda dari
-  // deletion-request (soft delete). TODO(be): endpoint BELUM dikonfirmasi, user
-  // akan input. Path/method di bawah cuma tebakan — GANTI saat endpoint asli ada.
-  deleteUserPermanent: (userId) =>
-    request(`/admin/users/${userId}`, { method: "DELETE" }),
-
   // ── Tangguhkan / Pulihkan akun (suspend) ──
-  // suspendedUntil: "YYYY-MM-DD HH:mm:ss". reason wajib (BE menolak tanpa itu:
-  // "Invalid input: expected string, received undefined"). Akun masuk tab "Ditangguhkan".
-  suspendUser: (userId, { suspendedUntil, reason }) =>
+  // suspendedUntil: "YYYY-MM-DD HH:mm:ss". Akun masuk tab "Ditangguhkan".
+  suspendUser: (userId, suspendedUntil) =>
     request(`/admin/users/${userId}/suspend`, {
       method: "POST",
-      body: { suspendedUntil, reason },
+      body: { suspendedUntil },
     }),
   // Pulihkan akun dari "Ditangguhkan" → cabut penangguhan.
   unsuspendUser: (userId) =>
@@ -708,41 +616,16 @@ export const adminApi = {
       body: { notes },
     }),
 
-  // Tolak bukti transfer. `reason` WAJIB — enum value dari TOLAK_REASONS
-  // (insufficient_transfer | fund_not_retrieved | payment_receipt_unclear).
-  // BE memakai `reason` untuk menentukan template notifikasi email penolakan.
-  // `notes` opsional — catatan tambahan teks bebas.
-  rejectManualPayment: (paymentId, reason, notes) =>
+  // Tolak bukti transfer. `notes` WAJIB (alasan penolakan, teks bebas).
+  rejectManualPayment: (paymentId, notes) =>
     request(`/admin/payments/manual-transfer/${paymentId}/reject`, {
       method: "POST",
-      body: { reason, notes },
+      body: { notes },
     }),
 
   // Statistik manual transfer (jumlah pending/receipt_uploaded/paid/rejected).
   getManualPaymentStats: () =>
     request(`/admin/payments/manual-transfer/stats`),
-
-  // ── Bank Master Data ──
-  // Master data rekening tujuan transfer. Admin mengelola daftar bank account
-  // yang ditampilkan di halaman Transfer Bank user. Saat ini hardcoded di FE
-  // (DEFAULT_BANK di TransferBankPage) — endpoint ini supaya bisa dikelola
-  // dari dashboard tanpa deploy ulang.
-  listBankAccounts: (params = {}) => {
-    const q = buildQuery({ page: 1, limit: 20, ...params });
-    return request(`/admin/bank-accounts${q ? "?" + q : ""}`);
-  },
-
-  getBankAccount: (id) => request(`/admin/bank-accounts/${id}`),
-
-  createBankAccount: (data) =>
-    request("/admin/bank-accounts", { method: "POST", body: data }),
-
-  updateBankAccount: (id, data) =>
-    request(`/admin/bank-accounts/${id}`, { method: "PATCH", body: data }),
-
-  deleteBankAccount: (id) =>
-    request(`/admin/bank-accounts/${id}`, { method: "DELETE" }),
-
 
   // ── Regions ──
   createRegion: (data) =>

@@ -1,17 +1,7 @@
-import { useState, useEffect } from 'react'
-import { ArrowDownUp, SearchX, CheckCircle2, Trash2 } from 'lucide-react'
+import { ArrowDownUp, SearchX } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { abbrevRegion } from '@/lib/format'
-import { TableShell, FreezeBlurLeft, FreezeBlurRight } from './TableShell'
+import { getTableScrollProps } from './tableScroll'
 import { RoleTag } from './RoleTag'
-import { VoucherCode } from './VoucherCode'
-import { RowActionMenu } from './ManajemenTable'
-
-// Menu aksi baris tab "Pembayaran Ditolak". type dipetakan ke handler di AdminDashboardPage.
-const PEMBAYARAN_DITOLAK_MENU = [
-  { type: 'setujui-pembayaran', label: 'Setujui Pembayaran', Icon: CheckCircle2, danger: false },
-  { type: 'hapus-akun',         label: 'Hapus Akun',         Icon: Trash2,       danger: true  },
-]
 
 // Header sortable, dengan opsi sublabel (grup "Alumni Pelatihan").
 function SortableHeader({ label, sublabel, sortKey, sortConfig, onSort }) {
@@ -34,51 +24,23 @@ const STATUS_CLASSES = {
   'Pembayaran Ditolak':            'bg-orange-50 text-orange-500',
 }
 
-const DAY_MS = 24 * 60 * 60 * 1000
-
-// Reminded Time = countdown 24 jam sejak user submit request (createdMs).
-// nowMs - createdMs >= 24 jam  → '00:00:00' (timer habis).
-// selain itu → sisa waktu (24 jam - berlalu) format HH:MM:SS.
-function fmtReminded(createdMs, nowMs) {
-  if (!createdMs) return '-'
-  const remaining = DAY_MS - (nowMs - createdMs)
-  if (remaining <= 0) return '00:00:00'
-  const totalSec = Math.floor(remaining / 1000)
-  const h = Math.floor(totalSec / 3600)
-  const m = Math.floor((totalSec % 3600) / 60)
-  const s = totalSec % 60
-  const pad = n => String(n).padStart(2, '0')
-  return `${pad(h)}:${pad(m)}:${pad(s)}`
-}
-
 // Tabel Verifikasi Pembayaran. Tanpa bulk-select (keputusan: single-action).
-// subTab: 'menunggu' → Action = tombol Konfirmasi; 'ditolak' → Action = menu "..."
-// (Setujui Pembayaran / Hapus Akun). Kedua sub-tab punya kolom Action sticky-kanan.
+// subTab: 'menunggu' → kolom Action tampil (tombol Konfirmasi); 'ditolak' → tanpa Action.
 export function VerifikasiPembayaranTable({
-  users, sortConfig, onSort, searchQuery, subTab = 'menunggu', onConfirm, onRiwayatClick, onRowAction,
+  users, sortConfig, onSort, searchQuery, subTab = 'menunggu', onConfirm,
 }) {
-  const colSpan = 17
-
-  // Countdown Reminded Time hidup: re-render tiap detik. Cukup 1 interval global
-  // (bukan per-baris). Hanya jalan di tab 'menunggu' — tab lain gak butuh countdown.
-  const [nowMs, setNowMs] = useState(() => Date.now())
-  useEffect(() => {
-    if (subTab !== 'menunggu') return
-    const id = setInterval(() => setNowMs(Date.now()), 1000)
-    return () => clearInterval(id)
-  }, [subTab])
+  const showAction = subTab === 'menunggu'
+  const colSpan = showAction ? 16 : 15
 
   return (
-    <TableShell>
+    <div {...getTableScrollProps()}>
       <table className="w-full text-left text-sm whitespace-nowrap">
         <thead className="bg-[#0A1128] text-white sticky top-0 z-20">
           <tr>
-            <th className="px-4 py-4 font-medium sticky left-0 z-30 bg-[#0A1128] align-bottom relative">
+            <th className="px-4 py-4 font-medium sticky left-0 z-30 bg-[#0A1128] shadow-[4px_0_10px_-4px_rgba(0,0,0,0.3)] align-bottom">
               <SortableHeader label="Nama Pengguna" sortKey="name" sortConfig={sortConfig} onSort={onSort} />
-              <FreezeBlurLeft />
             </th>
             <th className="px-4 py-4 font-medium align-bottom">Email</th>
-            <th className="px-4 py-4 font-medium align-bottom">Deadline</th>
             <th className="px-4 py-4 font-medium align-bottom">Status Member</th>
             <th className="px-4 py-4 font-medium align-bottom">
               <SortableHeader label="Jenis Paket" sortKey="plan" sortConfig={sortConfig} onSort={onSort} />
@@ -112,15 +74,17 @@ export function VerifikasiPembayaranTable({
               <SortableHeader label="Asal Sekolah" sortKey="school" sortConfig={sortConfig} onSort={onSort} />
             </th>
             <th className="px-4 py-4 font-medium align-bottom">
-              <SortableHeader label="Submitted Date" sortKey="submittedDate" sortConfig={sortConfig} onSort={onSort} />
+              <SortableHeader label="Last Updated" sortKey="lastUpdated" sortConfig={sortConfig} onSort={onSort} />
             </th>
-            <th className="px-4 py-4 font-medium text-center sticky right-0 z-30 bg-[#0A1128] align-bottom relative">Action<FreezeBlurRight /></th>
+            {showAction && (
+              <th className="px-4 py-4 font-medium text-center sticky right-0 z-30 bg-[#0A1128] shadow-[-4px_0_10px_-4px_rgba(0,0,0,0.3)] align-bottom">Action</th>
+            )}
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-100">
           {users.length > 0 ? users.map(user => (
             <tr key={user.id} className="group transition-colors hover:bg-[#F9FAFB]">
-              <td className="px-4 py-4 sticky left-0 z-10 bg-white group-hover:bg-[#F9FAFB] transition-colors relative">
+              <td className="px-4 py-4 sticky left-0 z-10 bg-white group-hover:bg-[#F9FAFB] transition-colors shadow-[4px_0_10px_-4px_rgba(0,0,0,0.05)]">
                 <div className="flex items-center gap-2">
                   <span className="font-bold text-[#0A1128]">{user.name}</span>
                   {user.isNew && (
@@ -128,17 +92,8 @@ export function VerifikasiPembayaranTable({
                   )}
                 </div>
                 <div className="text-xs text-gray-400 mt-0.5">{user.username}</div>
-                <FreezeBlurLeft />
               </td>
               <td className="px-4 py-4 text-[#0A1128] font-medium">{user.email}</td>
-              <td className="px-4 py-4 font-medium tabular-nums">
-                {subTab === 'menunggu'
-                  ? (() => {
-                      const t = fmtReminded(user.createdMs, nowMs)
-                      return <span className={t === '-' ? 'text-gray-400' : 'text-red-500'}>{t}</span>
-                    })()
-                  : <span className="text-gray-400">-</span>}
-              </td>
               <td className="px-4 py-4">
                 <span className={cn('inline-flex items-center px-3 py-1 rounded-full text-xs font-bold', STATUS_CLASSES[user.statusMember] || 'bg-orange-50 text-orange-500')}>
                   {user.statusMember}
@@ -147,7 +102,11 @@ export function VerifikasiPembayaranTable({
               <td className="px-4 py-4 text-[#0A1128] font-medium">{user.plan || '-'}</td>
               <td className="px-4 py-4 text-[#0A1128] font-medium">{user.endDate || '-'}</td>
               <td className="px-4 py-4">
-                <VoucherCode code={user.voucher} />
+                {user.voucher ? (
+                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs border border-blue-100 bg-blue-50 text-blue-600 font-bold">
+                    {user.voucher}
+                  </div>
+                ) : <span className="text-gray-400">-</span>}
               </td>
               <td className="px-4 py-4">
                 {user.role ? (
@@ -158,35 +117,27 @@ export function VerifikasiPembayaranTable({
                 {user.riwayatCount ? (
                   <div className="flex items-center gap-2">
                     <span>{user.riwayatCount}</span>
-                    <span
-                      onClick={() => onRiwayatClick && onRiwayatClick(user)}
-                      className="text-link cursor-pointer underline text-xs hover:text-blue-700"
-                    >
-                      Lihat Detail
-                    </span>
+                    <span className="text-link cursor-pointer underline text-xs">Lihat Detail</span>
                   </div>
                 ) : '-'}
               </td>
               <td className="px-4 py-4 text-[#0A1128] font-medium">{user.birthdate || '-'}</td>
-              <td className="px-4 py-4 text-[#0A1128] font-medium whitespace-normal break-words max-w-[200px] leading-snug align-top" title={user.lokasi}>{abbrevRegion(user.lokasi) || '-'}</td>
+              <td className="px-4 py-4 text-[#0A1128] font-medium whitespace-normal break-words max-w-[200px] leading-snug align-top">{user.lokasi || '-'}</td>
               <td className="px-4 py-4 text-[#0A1128] font-medium whitespace-normal break-words max-w-[200px] leading-snug align-top">{user.training || '-'}</td>
-              <td className="px-4 py-4 text-[#0A1128] font-medium whitespace-normal break-words max-w-[200px] leading-snug align-top" title={user.alumniDaerah}>{abbrevRegion(user.alumniDaerah) || '-'}</td>
+              <td className="px-4 py-4 text-[#0A1128] font-medium whitespace-normal break-words max-w-[200px] leading-snug align-top">{user.alumniDaerah || '-'}</td>
               <td className="px-4 py-4 text-[#0A1128] font-medium">{user.alumniTanggal || '-'}</td>
               <td className="px-4 py-4 text-[#0A1128] font-medium whitespace-normal break-words max-w-[200px] leading-snug align-top">{user.school || '-'}</td>
-              <td className="px-4 py-4 text-[#0A1128] font-medium">{user.submittedDate || '-'}</td>
-              <td className="px-4 py-4 text-center sticky right-0 z-10 bg-white group-hover:bg-[#F9FAFB] transition-colors relative">
-                <FreezeBlurRight />
-                {subTab === 'menunggu' ? (
+              <td className="px-4 py-4 text-[#0A1128] font-medium">{user.lastUpdated || '-'}</td>
+              {showAction && (
+                <td className="px-4 py-4 text-center sticky right-0 z-10 bg-white group-hover:bg-[#F9FAFB] transition-colors shadow-[-4px_0_10px_-4px_rgba(0,0,0,0.05)]">
                   <button
                     onClick={() => onConfirm && onConfirm(user)}
-                    className="px-5 py-2 rounded-full bg-[#0033EC] hover:bg-[#0029BD] text-white text-sm font-semibold transition-colors"
+                    className="px-5 py-2 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold transition-colors"
                   >
                     Konfirmasi
                   </button>
-                ) : (
-                  <RowActionMenu items={PEMBAYARAN_DITOLAK_MENU} user={user} onAction={onRowAction} />
-                )}
-              </td>
+                </td>
+              )}
             </tr>
           )) : (
             <tr>
@@ -207,6 +158,6 @@ export function VerifikasiPembayaranTable({
           )}
         </tbody>
       </table>
-    </TableShell>
+    </div>
   )
 }

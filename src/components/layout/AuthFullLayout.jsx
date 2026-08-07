@@ -1,3 +1,4 @@
+import illustrationForgotImg from '@/assets/illustrasi_forgotPassword.png'
 import { Logo } from '@/components/shared/Logo'
 import { MobileHero } from '@/components/layout/MobileHero'
 
@@ -44,11 +45,19 @@ export function AuthFullLayout({ children, illustration = 'robot' }) {
 
       <MobileHero />
 
-      {/* Mobile: kartu putih "popup" naik menutupi hero (rounded-top), TINGGI IKUT
-          KONTEN (flex-none) — hero flex-1 mengisi sisa di atas. Desktop: full-bleed flex-1. */}
-      <div className="relative z-10 -mt-6 lg:mt-0 rounded-t-[28px] lg:rounded-none bg-white shadow-[0_-12px_30px_rgba(0,0,0,0.10)] lg:shadow-none flex-none lg:flex-1 overflow-hidden flex flex-col">
-        {/* Dekorasi ilustrasi hanya desktop. forgotPassword: tanpa dekorasi (background ungu saja) */}
-        {illustration === 'forgotPassword' ? null : (
+      {/* Mobile: kartu putih "popup" naik menutupi hero (rounded-top). Desktop: full-bleed. */}
+      <div className="relative z-10 -mt-6 lg:mt-0 rounded-t-[28px] lg:rounded-none bg-white shadow-[0_-12px_30px_rgba(0,0,0,0.10)] lg:shadow-none flex-1 overflow-hidden flex flex-col">
+        {/* Dekorasi ilustrasi hanya desktop */}
+        {illustration === 'forgotPassword' ? (
+          <>
+            <div className="hidden lg:block absolute bottom-0 left-0 w-64 sm:w-80 lg:w-96 translate-y-8 pointer-events-none select-none">
+              <img src={illustrationForgotImg} alt="" draggable="false" className="w-full h-full" />
+            </div>
+            <div className="hidden lg:block absolute bottom-0 right-0 w-64 sm:w-80 lg:w-96 translate-y-8 pointer-events-none select-none">
+              <img src={illustrationForgotImg} alt="" draggable="false" className="w-full h-full" style={{ transform: 'scaleX(-1)' }} />
+            </div>
+          </>
+        ) : (
           <>
             <div className="hidden lg:block absolute bottom-0 left-0 w-44 sm:w-56 lg:w-64 pointer-events-none select-none">
               <EnvelopeCluster />
@@ -60,15 +69,14 @@ export function AuthFullLayout({ children, illustration = 'robot' }) {
         )}
 
         <div className="flex-1 flex items-start lg:items-center justify-center px-6 pt-9 pb-8 lg:py-12">
-          {/* Form full-screen ikut 2-base desktop: lg → 380px (1366), fhd → 480px (1920). */}
-          <div className="w-full max-w-[420px] lg:max-w-[380px] fhd:max-w-[480px] relative z-10">
+          <div className="w-full max-w-[420px] relative z-10">
             {children}
           </div>
         </div>
       </div>
 
       <div className="pb-6 shrink-0">
-        <p className="text-xs text-muted-foreground text-center">©2026 Gasing Academy. All rights reserved.</p>
+        <p className="text-xs text-muted-foreground text-center">©2026 Gasing Academy. All rights reserved..</p>
       </div>
     </div>
   )

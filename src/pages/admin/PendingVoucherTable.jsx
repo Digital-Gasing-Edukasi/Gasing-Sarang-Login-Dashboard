@@ -1,9 +1,7 @@
 import { ArrowDownUp, Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { abbrevRegion } from '@/lib/format'
-import { TableShell, FreezeBlurLeft, FreezeBlurRight } from './TableShell'
+import { getTableScrollProps } from './tableScroll'
 import { RoleTag } from './RoleTag'
-import { VoucherCode } from './VoucherCode'
 
 // Header sortable, dengan opsi sublabel (grup "Alumni Pelatihan").
 function SortableHeader({ label, sublabel, sortKey, sortConfig, onSort }) {
@@ -28,7 +26,7 @@ export function PendingVoucherTable({
   selectedIds = [], onToggleSelect, onToggleSelectAll, allSelected = false,
 }) {
   return (
-    <TableShell>
+    <div {...getTableScrollProps()}>
     <table className="w-full text-left text-sm whitespace-nowrap">
       <thead className="bg-[#0A1128] text-white sticky top-0 z-20">
         <tr>
@@ -43,9 +41,8 @@ export function PendingVoucherTable({
               {allSelected && <Check size={11} className="text-white" strokeWidth={3} />}
             </button>
           </th>
-          <th className="px-4 py-4 font-medium sticky left-[48px] z-30 bg-[#0A1128] align-bottom relative">
+          <th className="px-4 py-4 font-medium sticky left-[48px] z-30 bg-[#0A1128] shadow-[4px_0_10px_-4px_rgba(0,0,0,0.3)] align-bottom">
             <SortableHeader label="Nama Pengguna" sortKey="name" sortConfig={sortConfig} onSort={onSort} />
-            <FreezeBlurLeft />
           </th>
           <th className="px-4 py-4 font-medium align-bottom">Email</th>
           <th className="px-4 py-4 font-medium align-bottom">Status Member</th>
@@ -76,7 +73,7 @@ export function PendingVoucherTable({
           <th className="px-4 py-4 font-medium align-bottom">
             <SortableHeader label="Asal Sekolah" sortKey="school" sortConfig={sortConfig} onSort={onSort} />
           </th>
-          <th className="px-4 py-4 font-medium text-center align-bottom sticky right-0 z-30 bg-[#0A1128] relative">Action<FreezeBlurRight /></th>
+          <th className="px-4 py-4 font-medium text-center align-bottom sticky right-0 z-30 bg-[#0A1128] shadow-[-4px_0_10px_-4px_rgba(0,0,0,0.3)]">Action</th>
         </tr>
       </thead>
       <tbody className="divide-y divide-gray-100">
@@ -95,7 +92,7 @@ export function PendingVoucherTable({
                   {selected && <Check size={11} className="text-white" strokeWidth={3} />}
                 </button>
               </td>
-              <td className={cn('px-4 py-4 sticky left-[48px] z-10 transition-colors relative', selected ? 'bg-blue-50/50' : 'bg-white group-hover:bg-[#F9FAFB]')}>
+              <td className={cn('px-4 py-4 sticky left-[48px] z-10 transition-colors shadow-[4px_0_10px_-4px_rgba(0,0,0,0.05)]', selected ? 'bg-blue-50/50' : 'bg-white group-hover:bg-[#F9FAFB]')}>
                 <div className="flex items-center gap-2">
                   <span className="font-bold text-[#0A1128]">{user.name}</span>
                   {user.isNew && (
@@ -103,7 +100,6 @@ export function PendingVoucherTable({
                   )}
                 </div>
                 <div className="text-xs text-gray-400 mt-0.5">{user.username}</div>
-                <FreezeBlurLeft />
               </td>
               <td className="px-4 py-4 text-[#0A1128] font-medium">{user.email}</td>
               <td className="px-4 py-4">
@@ -112,7 +108,9 @@ export function PendingVoucherTable({
                 </span>
               </td>
               <td className="px-4 py-4">
-                <VoucherCode code={user.voucherCode} />
+                <span className="inline-flex items-center px-3 py-1 rounded-full border border-gray-200 font-mono text-xs font-semibold text-[#0A1128]">
+                  {user.voucherCode || '-'}
+                </span>
               </td>
               <td className="px-4 py-4">
                 {user.role ? (
@@ -131,17 +129,16 @@ export function PendingVoucherTable({
                 </div>
               </td>
               <td className="px-4 py-4 text-[#0A1128] font-medium">{user.birthdate}</td>
-              <td className="px-4 py-4 text-[#0A1128] font-medium whitespace-normal max-w-[200px]" title={user.lokasi}>{abbrevRegion(user.lokasi)}</td>
+              <td className="px-4 py-4 text-[#0A1128] font-medium whitespace-normal max-w-[200px]" title={user.lokasi}>{user.lokasi}</td>
               <td className="px-4 py-4 text-[#0A1128] font-medium whitespace-normal max-w-[200px]" title={user.alumniNama}>{user.alumniNama || '-'}</td>
-              <td className="px-4 py-4 text-[#0A1128] font-medium whitespace-normal max-w-[200px]" title={user.alumniDaerah}>{abbrevRegion(user.alumniDaerah) || '-'}</td>
+              <td className="px-4 py-4 text-[#0A1128] font-medium whitespace-normal max-w-[200px]" title={user.alumniDaerah}>{user.alumniDaerah || '-'}</td>
               <td className="px-4 py-4 text-[#0A1128] font-medium">{user.alumniTanggal || '-'}</td>
               <td className="px-4 py-4 text-[#0A1128] font-medium whitespace-normal max-w-[220px]" title={user.school}>{user.school || '-'}</td>
-              <td className={cn('px-4 py-4 sticky right-0 z-10 transition-colors relative', selected ? 'bg-blue-50/50' : 'bg-white group-hover:bg-[#F9FAFB]')}>
-                <FreezeBlurRight />
+              <td className={cn('px-4 py-4 sticky right-0 z-10 transition-colors shadow-[-4px_0_10px_-4px_rgba(0,0,0,0.05)]', selected ? 'bg-blue-50/50' : 'bg-white group-hover:bg-[#F9FAFB]')}>
                 <div className="flex items-center justify-center">
                   <button
                     onClick={() => onConfirm(user)}
-                    className="px-5 py-2 rounded-full bg-[#0033EC] hover:bg-[#0029BD] text-white text-sm font-medium transition-colors"
+                    className="px-5 py-2 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium transition-colors"
                   >
                     Konfirmasi
                   </button>
@@ -160,6 +157,6 @@ export function PendingVoucherTable({
         )}
       </tbody>
     </table>
-    </TableShell>
+    </div>
   )
 }
