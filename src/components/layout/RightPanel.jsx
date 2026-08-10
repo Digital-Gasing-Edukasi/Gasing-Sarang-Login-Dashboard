@@ -105,7 +105,7 @@ export function RightPanel({ children, mobileHero = null, topBar = null, stickyF
               edge.atBottom ? "opacity-0" : "opacity-100",
             )}
           />
-          <div className="py-4 px-4 lg:px-16">{stickyFooter}</div>
+          <div className="py-4 pb-6 px-4 lg:px-16">{stickyFooter}</div>
         </div>
       )}
       {/* Copyright + build = SATU sumber global di sini. Jangan render copyright

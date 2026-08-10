@@ -12,7 +12,7 @@ export function StepBar({ title, onBack, onClose }) {
         <button
           onClick={onBack}
           aria-label="Kembali"
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full ml-4 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
         >
           <ArrowLeft size={20} />
         </button>

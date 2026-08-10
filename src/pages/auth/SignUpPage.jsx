@@ -570,14 +570,14 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
           {gapTop}
           {/* Desktop dirapetin (lg:space-y-4, 16px) supaya step 2 fit tanpa scroll
               di viewport 1366x768 dengan rules jarak yang ada. Mobile tetap 16px. */}
-          <div className="space-y-4 animate-fade-in-up delay-200 lg:shrink-0">
+          <div className="space-y-6 animate-fade-in-up delay-200 lg:shrink-0">
             {errors.general && (
               <p className="text-sm text-red-500 text-center">
                 {errors.general}
               </p>
             )}
-            <div className="space-y-1.5 lg:space-y-2">
-              <Label className="text-[13px] font-semibold">Tanggal Lahir</Label>
+            <div className="space-y-2 lg:space-y-2">
+              <Label className="text-[13px] font-regular lg:font-semibold">Tanggal Lahir</Label>
               <DateField
                 value={birthdate}
                 className={errors.birthdate ? ERR_INPUT : ""}
@@ -591,8 +591,8 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
               )}
             </div>
 
-            <div className="space-y-1.5 lg:space-y-2">
-              <Label className="text-[13px] font-semibold">
+            <div className="space-y-2 lg:space-y-2">
+              <Label className="text-[13px] font-regular lg:font-semibold">
                 Lokasi kamu saat ini
               </Label>
               <div className="grid grid-cols-2 gap-3 lg:gap-5">
@@ -645,8 +645,8 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
               )}
             </div>
 
-            <div className="space-y-1.5 lg:space-y-2">
-              <Label className="text-[13px] font-semibold">
+            <div className="space-y-2 lg:space-y-2">
+              <Label className="text-[13px] font-regular lg:font-semibold leading-normal">
                 Kapan kamu mendapat pelatihan Gasing pertama?
               </Label>
               <div className="grid grid-cols-2 gap-3 lg:gap-5">
@@ -687,8 +687,8 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
               </div>
             </div>
 
-            <div className="space-y-1.5 lg:space-y-2">
-              <Label className="text-[13px] font-semibold">
+            <div className="space-y-2 lg:space-y-2">
+              <Label className="text-[13px] font-regular lg:font-semibold leading-normal">
                 Dimana kamu mendapat pelatihan Gasing pertama?
               </Label>
               <Select
@@ -715,8 +715,8 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
               )}
             </div>
 
-            <div className="space-y-1.5 lg:space-y-2">
-              <Label className="text-[13px] font-semibold">
+            <div className="space-y-2 lg:space-y-2">
+              <Label className="text-[13px] font-regular lg:font-semibold leading-normal">
                 Sekolah asal kamu saat pelatihan Gasing pertama?
               </Label>
               <Input
