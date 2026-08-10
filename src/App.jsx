@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, lazy, Suspense } from "react";
 import { Routes, Route, Navigate, useNavigate, useLocation } from "react-router-dom";
 import { tokenStorage, subscriptionApi, profileApi, authApi, regionsApi, webAppApi } from "@/lib/api";
-import { isSuperAdmin, isOperationalAdmin, isSsoDisabled, hasAllAdminCapabilities, hasCapability } from "@/lib/roles";
+import { canAccessDiscourse, isSsoDisabled, isSuperAdmin } from "@/lib/roles";
 import { decodeFixPayload } from "@/lib/fixLink";
 import { evaluateLoginGate, evaluatePaymentGate } from "@/lib/loginGate";
 import { pathForPage, isPublicStaticPath, skipSessionRestore } from "@/lib/routes";
@@ -403,27 +403,30 @@ export default function App() {
 
     setCurrentUser(user);
 
-    // Punya DISABLED-SSO DAN GROUP/SYNC → langsung ke Dashboard Admin
-    // (jangan lewat SSO, jangan ke web app). Cek ini duluan sebelum cabang lain.
-    if (isSsoDisabled(user) || hasAllAdminCapabilities(user)) {
-      navigate("/dashboard-admin", { replace: true });
-      return;
-    }
+    // ── DEBUG sementara: cek bentuk respons /profile/me & deteksi peran. HAPUS nanti.
+    console.log("[login-debug] profile keys:", Object.keys(user || {}));
+    console.log("[login-debug] superadmin:", user?.superadmin, "| superAdmin:", user?.superAdmin);
+    console.log("[login-debug] capabilities:", user?.capabilities);
+    console.log(
+      "[login-debug] isSuperAdmin:", isSuperAdmin(user),
+      "| isSsoDisabled:", isSsoDisabled(user),
+      "| canAccessDiscourse:", canAccessDiscourse(user),
+    );
+    // ─────────────────────────────────────────────────────────────────────────
 
-    // Tag USER/DISCOURSE/DISABLED-SSO → jangan lewat SSO, langsung ke dashboard.
+    // HANYA yang punya capability USER/DISCOURSE/DISABLED-SSO yang boleh masuk
+    // Dashboard Admin. Selain itu (all-caps admin / operational tanpa tag ini)
+    // TIDAK lagi diarahkan ke dashboard.
     if (isSsoDisabled(user)) {
-      webAppApi.redirectWithTokens();
-      return;
-    }
-
-    if (isOperationalAdmin(user)) {
-
       navigate("/dashboard-admin", { replace: true });
       return;
     }
 
-    if (isSuperAdmin(user)) {
-      webAppApi.redirectWithTokens();
+    // Superadmin / pemilik USER/DISCOURSE/MANAGE_EXTRA_GROUPS → panel pilih tujuan.
+    // JANGAN auto redirect. Superadmin dapat 3 tombol (Dashboard + Moderator/Discourse
+    // + Web App); MANAGE_EXTRA_GROUPS dapat 2 (Moderator/Discourse + Web App).
+    if (isSuperAdmin(user) || canAccessDiscourse(user)) {
+      navigate("/login/choice", { replace: true });
       return;
     }
 
@@ -538,7 +541,7 @@ export default function App() {
           path="/login/choice"
           element={requireAuth(
             <SplitLayout>
-              <AuthChoicePage onNavigate={go} onSignOut={handleSignOut} />
+              <AuthChoicePage user={currentUser} onNavigate={go} onSignOut={handleSignOut} />
             </SplitLayout>,
           )}
         />
@@ -550,7 +553,6 @@ export default function App() {
                 sso={ssoParams?.sso}
                 sig={ssoParams?.sig}
                 onNavigate={go}
-                onSignOut={handleSignOut}
               />
             </SplitLayout>
           }

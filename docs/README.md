@@ -78,7 +78,7 @@ docs/
 | `App.jsx` | `<Routes>` React Router + boot sequence (deep-link, restore sesi) | ARCHITECTURE §3 |
 | `lib/routes.js` | `PAGE_PATHS`, `pathForPage`, `isPublicStaticPath`, `skipSessionRestore` | README §4, ARCHITECTURE §3 |
 | `lib/api.js` | Semua HTTP call, 15 grup API, auto-refresh token | README §9, ARCHITECTURE §5 |
-| `lib/roles.js` | `isSuperAdmin`, `isOperationalAdmin`, `ADMIN_CAPABILITIES` | ARCHITECTURE §6.3 |
+| `lib/roles.js` | `isSsoDisabled`, `canAccessDiscourse`, `ADMIN_CAPABILITIES` | ARCHITECTURE §6.3 |
 | `lib/loginGate.js` | `evaluateLoginGate` — blok login: suspended > pending > expired | TEST_SCENARIOS §2 |
 | `lib/fixLink.js` | Encode/decode payload perbaikan data (legacy `?fix=`) | FIX_DATA_FLOW |
 | `lib/utils.js` | `cn()` — gabung className (`clsx` saja, **bukan** tailwind-merge) | [PILL_SHAPE_INPUTS.md §5](PILL_SHAPE_INPUTS.md) |

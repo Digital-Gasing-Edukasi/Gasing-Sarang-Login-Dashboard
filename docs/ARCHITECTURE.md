@@ -306,23 +306,28 @@ Logout ─► tokenStorage.clear() (local + session)
 Logika penentuan tujuan setelah login berhasil (juga dipakai saat boot bila token masih valid):
 
 ```
-isSuperAdmin = user.superadmin === true || user.superAdmin === true
-hasCapabilities = user.capabilities mengandung SEMUA dari ADMIN_CAPABILITIES:
-    USER/DISCOURSE/CHANGE_GROUP, PACKAGE/MGMT, USER/VERIFY,
-    USER/LIST, VOUCHER/MGMT, USER/DISCOURSE/MANAGE_EXTRA_GROUPS
+isSsoDisabled      = user.capabilities mengandung USER/DISCOURSE/DISABLED-SSO
+canAccessDiscourse = user.capabilities mengandung USER/DISCOURSE/MANAGE_EXTRA_GROUPS
+isSuperAdmin       = user.superadmin === true || user.superAdmin === true
 
-if  (!isSuperAdmin && hasCapabilities) → admin-dashboard   (admin operasional)
-elif (isSuperAdmin)                    → auth-choice        (super admin)
+if  (isSsoDisabled)                          → admin-dashboard  (HANYA pemilik DISABLED-SSO)
+elif (isSuperAdmin || canAccessDiscourse)    → auth-choice       (panel pilih tujuan)
 else:
      subscriptionApi.getStatus()
-       hasActiveSubscription || subscription.status === 'active'
-         ? auth-choice        (user dengan langganan aktif)
-         : subscription       (user perlu berlangganan)
+       hasActiveSubscription || subscription.status === 'active' || paymentPending
+         ? redirectWithTokens  (Web App)
+         : subscription        (user perlu berlangganan)
 ```
 
-> Aturan ini sengaja: **hanya non-superadmin yang punya capabilities lengkap** yang masuk dashboard admin operasional; superadmin diarahkan ke halaman pilihan (`auth-choice`).
+> Aturan sengaja dipersempit:
+> - **Dashboard Admin** hanya untuk pemilik capability `USER/DISCOURSE/DISABLED-SSO`. `hasAllAdminCapabilities` **tidak lagi** jadi jalan masuk dashboard.
+> - **`auth-choice` (`AuthChoicePage`)** dibuka untuk **superadmin** ATAU pemilik `USER/DISCOURSE/MANAGE_EXTRA_GROUPS`. Tidak auto-redirect: user memilih tujuan sendiri.
+>   - **Superadmin** → 3 tombol: **Dashboard** (`admin-dashboard`) + **Moderator (Discourse)** (`discourseApi.ssoLogin`) + **Gasing Web App** (`redirectWithTokens`).
+>   - **MANAGE_EXTRA_GROUPS** (non-superadmin) → 2 tombol: **Moderator (Discourse)** + **Gasing Web App**.
+> - Selain keduanya = user biasa → langsung Web App (via `redirectWithTokens`) atau halaman langganan.
+> - ⚠ **Urutan cabang:** `isSsoDisabled` dicek DULUAN. Jadi superadmin yang JUGA punya tag `DISABLED-SSO` akan ke `admin-dashboard`, bukan `auth-choice`.
 
-> **Implementasi:** sejak [ADR-0002](docs/adr/0002-refactor-junior-maintainability.md), aturan peran (`ADMIN_CAPABILITIES`, `isSuperAdmin`, `isOperationalAdmin`) dipindah ke modul murni [`src/lib/roles.js`](src/lib/roles.js). `handleLoginSuccess` di `App.jsx` tinggal memanggilnya. Ubah daftar capability cukup di `roles.js`.
+> **Implementasi:** sejak [ADR-0002](docs/adr/0002-refactor-junior-maintainability.md), aturan peran dipindah ke modul murni [`src/lib/roles.js`](src/lib/roles.js) (`isSsoDisabled`, `canAccessDiscourse`, `isSuperAdmin`, `ADMIN_CAPABILITIES`). `handleLoginSuccess` di `App.jsx` tinggal memanggilnya. `AuthChoicePage` menerima prop `user` untuk menentukan tampil-tidaknya tombol Dashboard (`isSuperAdmin(user)`). Ubah daftar capability cukup di `roles.js`.
 
 ---
 

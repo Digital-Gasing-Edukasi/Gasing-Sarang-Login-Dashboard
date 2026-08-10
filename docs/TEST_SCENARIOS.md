@@ -39,18 +39,19 @@ Prioritas: **suspended > pending > expired**. Modal: `LoginStatusModal`.
 
 ## 3. Role Routing (`roles.js`) ✅
 
-`ADMIN_CAPABILITIES` = 6 cap wajib. Cek `isSuperAdmin`, `isOperationalAdmin`.
+Routing pakai `isSsoDisabled` (tag `DISABLED-SSO`) + `canAccessDiscourse` (tag `MANAGE_EXTRA_GROUPS`). `isSuperAdmin`/`hasAllAdminCapabilities` **tidak lagi** jadi jalan masuk dashboard.
 
 | ID | Skenario | Data user | Expected |
 |----|----------|-----------|----------|
-| ROLE-01 | Superadmin | `superadmin=true` | Ke `auth-choice`, BUKAN dashboard |
-| ROLE-02 | Superadmin ejaan camel | `superAdmin=true` | Tetep kedeteksi superadmin |
-| ROLE-03 | Admin operasional | punya SEMUA 6 cap, non-super | Ke `admin-dashboard` |
-| ROLE-04 | Cap kurang 1 | 5 dari 6 cap | BUKAN admin operasional |
+| ROLE-01 | Punya DISABLED-SSO | cap `USER/DISCOURSE/DISABLED-SSO` | Ke `admin-dashboard` |
+| ROLE-02 | Punya MANAGE_EXTRA_GROUPS | cap `USER/DISCOURSE/MANAGE_EXTRA_GROUPS`, tanpa DISABLED-SSO | Ke `auth-choice`, **2 tombol** (Moderator/Discourse + Web App), TANPA tombol Dashboard |
+| ROLE-03 | Superadmin (tanpa DISABLED-SSO) | `superadmin=true` | Ke `auth-choice`, **3 tombol** (Dashboard + Moderator/Discourse + Web App) |
+| ROLE-03b | Superadmin + DISABLED-SSO | `superadmin=true` & cap DISABLED-SSO | Ke `admin-dashboard` (cabang isSsoDisabled menang duluan) |
+| ROLE-04 | All-caps admin tanpa 2 tag | punya semua ADMIN_CAPABILITIES kecuali DISABLED-SSO, non-super | BUKAN dashboard → choice bila MANAGE_EXTRA_GROUPS, else user biasa |
 | ROLE-05 | Cap format array | `capabilities: [...]` | Kebaca bener |
 | ROLE-06 | Cap format object | `capabilities: {cap:true}` | Kebaca bener (`cap in caps`) |
-| ROLE-07 | Cap null | ga ada capabilities | `hasAllAdminCapabilities` = false |
-| ROLE-08 | User biasa | non-super, no cap | Ke subscription/auth-choice sesuai langganan |
+| ROLE-07 | Cap null | ga ada capabilities | Semua cek cap = false → user biasa |
+| ROLE-08 | User biasa | no cap terkait | Ke subscription/Web App sesuai langganan |
 
 ## 4. Sign Up + Password Rules (`SignUpPage.jsx`) ✅
 
