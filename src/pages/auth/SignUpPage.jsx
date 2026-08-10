@@ -369,7 +369,7 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
     >
       {step === 1 ? (
         <>
-          <h1 className="hidden lg:block text-center text-2xl font-bold text-foreground animate-fade-in-up">
+          <h1 className="hidden lg:block text-center text-2xl font-bold lg:font-semibold text-foreground animate-fade-in-up">
             Data Akun
           </h1>
           {gapTop}
@@ -380,7 +380,7 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
               </p>
             )}
             <div className="space-y-2 lg:space-y-2">
-              <Label className="text-[13px] font-medium lg:font-semibold">Nama Lengkap</Label>
+              <Label className="text-[13px] font-medium">Nama Lengkap</Label>
               <Input
                 type="text"
                 placeholder="Cth: Budi Susanto"
@@ -397,7 +397,7 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
             </div>
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 lg:gap-5">
               <div className="space-y-2 lg:space-y-2">
-                <Label className="text-[13px] font-medium lg:font-semibold">Username</Label>
+                <Label className="text-[13px] font-medium">Username</Label>
                 <Input
                   type="text"
                   placeholder="Min. 5 karakter"
@@ -413,7 +413,7 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
                 )}
               </div>
               <div className="space-y-2 lg:space-y-2">
-                <Label className="text-[13px] font-medium lg:font-semibold">Email</Label>
+                <Label className="text-[13px] font-medium">Email</Label>
                 <Input
                   type="email"
                   placeholder="aku@gmail.com"
@@ -430,7 +430,7 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
               </div>
             </div>
             <div className="space-y-2 lg:space-y-2">
-              <Label className="text-[13px] font-medium lg:font-semibold">Password</Label>
+              <Label className="text-[13px] font-medium">Password</Label>
               <IconInput
                 type={showPass ? "text" : "password"}
                 placeholder="Password unikmu"
@@ -480,7 +480,7 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
               )}
             </div>
             <div className="space-y-2 lg:space-y-2">
-              <Label className="text-[13px] font-medium lg:font-semibold">
+              <Label className="text-[13px] font-medium">
                 Konfirmasi Password
               </Label>
               <IconInput
@@ -488,7 +488,7 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
                 placeholder="Konfirmasi password"
                 value={confirm}
                 disabled={!password}
-                className={errors.confirm ? ERR_INPUT : "bg-muted/40"}
+                className={errors.confirm ? ERR_INPUT : "disabled:bg-muted/40 "}
                 onChange={(e) => {
                   setConfirm(e.target.value);
                   clearFieldError("confirm");
@@ -524,7 +524,7 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
                 />
                 <Label
                   htmlFor="agree"
-                  className={`text-[13px] font-normal leading-snug text-muted-foreground ${
+                  className={`text-[12px] font-medium leading-snug text-muted-foreground ${
                     step1FieldsValid ? "cursor-pointer" : "cursor-not-allowed"
                   }`}
                 >
@@ -564,7 +564,7 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
         </>
       ) : (
         <>
-          <h1 className="hidden lg:block text-center text-2xl font-bold text-foreground animate-fade-in-up">
+          <h1 className="hidden lg:block text-center text-2xl font-bold lg:font-semibold text-foreground animate-fade-in-up">
             Data Pribadi
           </h1>
           {gapTop}
@@ -577,7 +577,7 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
               </p>
             )}
             <div className="space-y-2 lg:space-y-2">
-              <Label className="text-[13px] font-regular lg:font-semibold">Tanggal Lahir</Label>
+              <Label className="text-[13px] font-medium">Tanggal Lahir</Label>
               <DateField
                 value={birthdate}
                 className={errors.birthdate ? ERR_INPUT : ""}
@@ -592,7 +592,7 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
             </div>
 
             <div className="space-y-2 lg:space-y-2">
-              <Label className="text-[13px] font-regular lg:font-semibold">
+              <Label className="text-[13px] font-medium">
                 Lokasi kamu saat ini
               </Label>
               <div className="grid grid-cols-2 gap-3 lg:gap-5">
@@ -646,7 +646,7 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
             </div>
 
             <div className="space-y-2 lg:space-y-2">
-              <Label className="text-[13px] font-regular lg:font-semibold leading-normal">
+              <Label className="text-[13px] font-medium leading-normal">
                 Kapan kamu mendapat pelatihan Gasing pertama?
               </Label>
               <div className="grid grid-cols-2 gap-3 lg:gap-5">
@@ -688,7 +688,7 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
             </div>
 
             <div className="space-y-2 lg:space-y-2">
-              <Label className="text-[13px] font-regular lg:font-semibold leading-normal">
+              <Label className="text-[13px] font-medium leading-normal">
                 Dimana kamu mendapat pelatihan Gasing pertama?
               </Label>
               <Select
@@ -716,7 +716,7 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
             </div>
 
             <div className="space-y-2 lg:space-y-2">
-              <Label className="text-[13px] font-regular lg:font-semibold leading-normal">
+              <Label className="text-[13px] font-medium leading-normal">
                 Sekolah asal kamu saat pelatihan Gasing pertama?
               </Label>
               <Input

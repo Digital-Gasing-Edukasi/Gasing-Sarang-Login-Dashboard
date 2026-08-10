@@ -10,7 +10,7 @@ export function IconInput({ icon: Icon, iconRight, className, ...props }) {
           <Icon size={16} />
         </span>
       )}
-      <Input className={cn(Icon && 'pl-16', iconRight && 'pr-11', className)} {...props} />
+      <Input className={cn(Icon && 'pl-11', iconRight && 'pr-11', className)} {...props} />
       {iconRight}
     </div>
   )

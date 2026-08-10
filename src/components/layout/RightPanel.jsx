@@ -80,7 +80,7 @@ export function RightPanel({ children, mobileHero = null, topBar = null, stickyF
       )}
       <div
         className={cn(
-          "flex-1 flex flex-col justify-start lg:justify-center px-4 lg:px-16 pb-6 w-full mx-auto bg-background",
+          "flex-1 flex flex-col justify-start lg:justify-center px-4 lg:px-4 pb-6 w-full mx-auto bg-background",
           maxWidth,
           sheet
             ? "relative z-10 -mt-6 lg:mt-0 rounded-t-[28px] lg:rounded-none shadow-[0_-12px_30px_rgba(0,0,0,0.10)] lg:shadow-none pt-6 lg:pt-12"
@@ -105,7 +105,7 @@ export function RightPanel({ children, mobileHero = null, topBar = null, stickyF
               edge.atBottom ? "opacity-0" : "opacity-100",
             )}
           />
-          <div className="py-4 pb-6 px-4 lg:px-16">{stickyFooter}</div>
+          <div className="py-4 pb-6 px-4 lg:px-4">{stickyFooter}</div>
         </div>
       )}
       {/* Copyright + build = SATU sumber global di sini. Jangan render copyright

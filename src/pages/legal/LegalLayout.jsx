@@ -14,7 +14,7 @@ export function LegalLayout({ title, updatedAt, children, onNavigate }) {
     <div className="flex h-screen overflow-hidden">
       <LeftPanel />
       <div className="flex-1 flex flex-col min-h-screen bg-background overflow-y-auto">
-        <div className="flex-1 w-full max-w-2xl mx-auto px-6 lg:px-16 pt-10 lg:pt-16 pb-8">
+        <div className="flex-1 w-full max-w-2xl mx-auto px-6 lg:px-4 pt-10 lg:pt-16 pb-8">
           <button
             onClick={handleBack}
             className="flex items-center gap-1.5 text-sm font-bold text-foreground hover:text-foreground/80 transition-colors mb-8"

@@ -72,7 +72,7 @@
   outline: none;
   transition: border-color 0.2s, box-shadow 0.2s;
   font-family: 'Poppins', sans-serif;
-  background: white; color: hsl(var(--foreground));
+  background: white; color: hsl(var(--primary));
 }
 .otp-input:focus {
   border-color: hsl(var(--primary));
@@ -80,7 +80,7 @@
 }
 .otp-input.filled {
   border-color: hsl(var(--primary));
-  background: hsl(var(--secondary));
+  background: hsl(var(--white));
 }
 .otp-input.error {
   border-color: #ef4444;
