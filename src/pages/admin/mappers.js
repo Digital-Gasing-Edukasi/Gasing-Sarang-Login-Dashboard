@@ -190,9 +190,14 @@ function deriveAlumni(u, { regionFallback } = {}) {
   const alumniDaerah = lts.region?.full_name || lts.name ||
     (regionFallback && regionFallback !== '-' ? regionFallback : '-')
   const alumniTanggal = ltsStartMs ? fmtDate(ltsStartMs) : '-'
-  const riwayatCount =
+  // Count dari tabel trainingHistories (bisa 0 walau firstTrainingSession ada, karena
+  // sesi yang di-assign admin BUKAN record trainingHistory). JANGAN pakai `??` mentah:
+  // `0 ?? x` = 0, jadi count nol menelan fallback & kolom tampil '-'. Ambil count API,
+  // lalu Math.max dengan hasRiwayat (sesi pertama = minimal 1) supaya kolom tidak kosong.
+  const apiCount =
     u.trainingHistoriesCount ?? u.trainingHistoryCount ?? u._count?.trainingHistories ??
-    (Array.isArray(u.trainingHistories) ? u.trainingHistories.length : (hasRiwayat ? 1 : 0))
+    (Array.isArray(u.trainingHistories) ? u.trainingHistories.length : 0)
+  const riwayatCount = Math.max(Number(apiCount) || 0, hasRiwayat ? 1 : 0)
   return { lts, ltsStartMs, hasRiwayat, alumniNama, alumniDaerah, alumniTanggal, riwayatCount }
 }
 

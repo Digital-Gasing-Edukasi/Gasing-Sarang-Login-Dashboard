@@ -9,6 +9,7 @@ import { IconInput, TogglePassword } from '@/components/shared/IconInput'
 import { LoginStatusModal } from '@/components/shared/LoginStatusModal'
 import { NoConnectionBanner } from '@/components/shared/NoConnectionBanner'
 import { RateLimitBanner } from '@/components/shared/RateLimitBanner'
+import { LoginFailedToast } from '@/components/shared/LoginFailedToast'
 import { authApi, profileApi, tokenStorage } from '@/lib/api'
 import { Logo } from '@/components/shared/Logo'
 
@@ -36,6 +37,8 @@ export function LoginPage({ onNavigate, onLoginSuccess, isSsoMode = false }) {
   const [noConn, setNoConn]     = useState(false)
   // rateLimit: sisa detik cooldown dari 429 (Retry-After). null = tidak kena limit.
   const [rateLimit, setRateLimit] = useState(null)
+  // loginFailed: toast merah "Login gagal" untuk 401 Invalid credentials (Figma 9047).
+  const [loginFailed, setLoginFailed] = useState(false)
 
   const clearFieldError = (field) =>
     setErrors(prev => ({ ...prev, [field]: '' }))
@@ -49,7 +52,7 @@ export function LoginPage({ onNavigate, onLoginSuccess, isSsoMode = false }) {
 
     if (rateLimit) return   // masih cooldown 429 — jangan nembak backend lagi
 
-    setErrors({}); setNoConn(false); setLoading(true)
+    setErrors({}); setNoConn(false); setLoginFailed(false); setLoading(true)
     try {
       const data = await authApi.login(email, password)
       tokenStorage.setTokens(data.accessToken, data.refreshToken, remember)
@@ -75,9 +78,10 @@ export function LoginPage({ onNavigate, onLoginSuccess, isSsoMode = false }) {
       } else if (e?.status >= 500) {
         setGate({ type: 'error' })         // flow 4 — server bermasalah
       } else {
-        setErrors({
-          password: "Password salah. Coba lagi atau pilih “Lupa Password?”",
-        }); // salah kredensial / validasi
+        // 401 Invalid credentials (desain Figma 9047): toast merah "Login gagal" di
+        // pojok atas tengah — bukan inline error. Tidak membocorkan field mana yang
+        // salah (email/password) demi keamanan.
+        setLoginFailed(true)
       }
     } finally {
       setLoading(false)
@@ -97,6 +101,8 @@ export function LoginPage({ onNavigate, onLoginSuccess, isSsoMode = false }) {
       )}
 
       {noConn && <NoConnectionBanner onClose={() => setNoConn(false)} />}
+
+      {loginFailed && <LoginFailedToast onClose={() => setLoginFailed(false)} />}
 
       <div className="hidden lg:flex items-center justify-center mb-9 animate-fade-in-up">
         <Logo variant="split" />
@@ -123,6 +129,7 @@ export function LoginPage({ onNavigate, onLoginSuccess, isSsoMode = false }) {
             onChange={(e) => {
               setEmail(e.target.value);
               clearFieldError("email");
+              setLoginFailed(false);
             }}
             onKeyDown={(e) => e.key === "Enter" && handleLogin()}
           />
@@ -143,6 +150,7 @@ export function LoginPage({ onNavigate, onLoginSuccess, isSsoMode = false }) {
             onChange={(e) => {
               setPassword(e.target.value);
               clearFieldError("password");
+              setLoginFailed(false);
             }}
             onKeyDown={(e) => e.key === "Enter" && handleLogin()}
             iconRight={

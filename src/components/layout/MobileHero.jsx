@@ -1,4 +1,4 @@
-import heroImage from '@/assets/Mobile/placeholder.svg'
+import heroImage from '@/assets/Mobile/placeholder.png'
 
 // Hero ungu di ATAS layar auth khusus mobile (lg:hidden).
 // Desktop pakai LeftPanel/AuthFullLayout — komponen ini tak dirender (lg:hidden).

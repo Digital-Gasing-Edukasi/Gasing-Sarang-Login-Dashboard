@@ -856,7 +856,11 @@ export default function AdminDashboardPage({ user, onSignOut }) {
     if (!approveCandidate) return
     const target = approveCandidate
     setApproveCandidate(null)
-    const vUser = { ...target, verifiedStatus: VERIFIED_STATUS.PENDING_VOUCHER, status: 'Pending Voucher', discourseGroupId, firstTrainingSessionId, role: roleNameFromId(discourseGroupId) || target.role, voucherCode: genVoucherCode() }
+    // firstTrainingSession baru ke-set → BE bikin 1 record histori. Baris optimistic
+    // masih bawa riwayatCount lama (0 dari tahap WAITING); bump ke min 1 + isi Alumni Nama
+    // dari sesi terpilih supaya kolom "Riwayat Pelatihan" langsung akurat sebelum reload.
+    const pickedSession = trainingSessions.find(s => String(s.id) === String(firstTrainingSessionId))
+    const vUser = { ...target, verifiedStatus: VERIFIED_STATUS.PENDING_VOUCHER, status: 'Pending Voucher', discourseGroupId, firstTrainingSessionId, role: roleNameFromId(discourseGroupId) || target.role, voucherCode: genVoucherCode(), hasRiwayat: true, riwayatCount: Math.max(target.riwayatCount || 0, 1), alumniNama: pickedSession?.name || target.alumniNama }
     setUsers(prev => prev.filter(u => u.id !== target.id))
     setPendingVoucherUsers(prev => [vUser, ...prev])
     setToast({
@@ -867,6 +871,8 @@ export default function AdminDashboardPage({ user, onSignOut }) {
       },
     })
     scheduleAction(
+      // BE sudah auto-membuat record training-history saat verify menyetel
+      // firstTrainingSession (POST manual → 409 "already exists"), jadi cukup verify saja.
       () => adminApi.verifyUser(target.id, { status: 'approved', discourseGroupId, firstTrainingSessionId }),
       () => {
         setPendingVoucherUsers(prev => prev.filter(u => u.id !== target.id))
@@ -922,7 +928,8 @@ export default function AdminDashboardPage({ user, onSignOut }) {
     const removed = users.filter(u => ids.includes(u.id))
     const vUsers = rows.map(r => {
       const base = removed.find(u => u.id === r.id) || {}
-      return { ...base, verifiedStatus: VERIFIED_STATUS.PENDING_VOUCHER, status: 'Pending Voucher', discourseGroupId: r.discourseGroupId, firstTrainingSessionId: r.firstTrainingSessionId, role: roleNameFromId(r.discourseGroupId) || base.role, voucherCode: genVoucherCode() }
+      const pickedSession = trainingSessions.find(s => String(s.id) === String(r.firstTrainingSessionId))
+      return { ...base, verifiedStatus: VERIFIED_STATUS.PENDING_VOUCHER, status: 'Pending Voucher', discourseGroupId: r.discourseGroupId, firstTrainingSessionId: r.firstTrainingSessionId, role: roleNameFromId(r.discourseGroupId) || base.role, voucherCode: genVoucherCode(), hasRiwayat: true, riwayatCount: Math.max(base.riwayatCount || 0, 1), alumniNama: pickedSession?.name || base.alumniNama }
     })
     setUsers(prev => prev.filter(u => !ids.includes(u.id)))
     setPendingVoucherUsers(prev => [...vUsers, ...prev])
@@ -935,6 +942,8 @@ export default function AdminDashboardPage({ user, onSignOut }) {
       },
     })
     scheduleAction(
+      // BE auto-membuat record training-history saat verify menyetel firstTrainingSession,
+      // jadi cukup verify saja (POST manual → 409 "already exists").
       () => Promise.all(rows.map(r => adminApi.verifyUser(r.id, { status: 'approved', discourseGroupId: r.discourseGroupId, firstTrainingSessionId: r.firstTrainingSessionId }))),
       () => {
         setPendingVoucherUsers(prev => prev.filter(u => !ids.includes(u.id)))
