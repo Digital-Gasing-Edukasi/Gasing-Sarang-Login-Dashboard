@@ -65,14 +65,14 @@
 .delay-400 { animation-delay: 0.4s; opacity: 0; }
 
 .otp-input {
-  width: 48px; height: 56px;
+  width: 48px; height: 48px;
   text-align: center; font-size: 1.25rem; font-weight: 600;
   border: 1.5px solid hsl(var(--border));
   border-radius: 12px;
   outline: none;
   transition: border-color 0.2s, box-shadow 0.2s;
   font-family: 'Poppins', sans-serif;
-  background: white; color: hsl(var(--foreground));
+  background: white; color: hsl(var(--primary));
 }
 .otp-input:focus {
   border-color: hsl(var(--primary));
@@ -80,7 +80,7 @@
 }
 .otp-input.filled {
   border-color: hsl(var(--primary));
-  background: hsl(var(--secondary));
+  background: hsl(var(--white));
 }
 .otp-input.error {
   border-color: #ef4444;
