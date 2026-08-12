@@ -41,29 +41,29 @@ export function ForgotPasswordPage({ onNavigate, onEmailSent }) {
       <div className="lg:hidden">
         <AuthFullLayout illustration="forgotPassword">
           <div className="animate-fade-in-up">
-            <div className="relative flex items-center justify-center mb-5">
+            <div className="relative flex items-center justify-center mb-[26px]">
               <button
                 onClick={() => onNavigate("login")}
                 aria-label="Kembali ke login"
-                className="absolute left-0 text-foreground hover:text-muted-foreground transition-colors"
+                className="absolute left-0 text-zinc-700 hover:text-muted-foreground transition-colors"
               >
-                <ChevronLeft size={22} />
+                <ChevronLeft size={32} />
               </button>
-              <h1 className="font-cera-pro text-xl font-bold text-foreground">
+              <h1 className="font-poppins text-xl font-semibold text-foreground">
                 Lupa Password?
               </h1>
             </div>
-            <p className="text-sm text-muted-foreground mb-7">
+            <p className="text-sm text-muted-foreground mb-6">
               Masukkan email kamu yang terdaftar. Kami akan mengirimkan tautan
               untuk mengubah password kamu.
             </p>
           </div>
 
-          <div className="space-y-5 animate-fade-in-up delay-100">
-            <div className="space-y-1.5">
+          <div className="space-y-8 animate-fade-in-up delay-100">
+            <div className="space-y-1">
               <Label>Email</Label>
               <IconInput
-                icon={Mail}
+                icon={Mail} 
                 type="email"
                 placeholder="Masukkan email kamu"
                 value={email}
@@ -99,7 +99,7 @@ export function ForgotPasswordPage({ onNavigate, onEmailSent }) {
       <div className="hidden lg:block">
         <AuthDarkLayout maxWidth="max-w-[480px]">
           {/* Container: gap 48px antar (grup form) · separator · tombol back */}
-          <div className="flex flex-col gap-12 animate-fade-in-up">
+          <div className="flex flex-col gap-10 animate-fade-in-up">
             {/* Grup form: gap 32px antar (title) · field · tombol kirim */}
             <div className="flex flex-col gap-8">
               <div className="flex flex-col gap-4 text-white/90">

@@ -75,20 +75,20 @@ export function CheckEmailPage({ email, onNavigate }) {
       <div className="hidden lg:block">
         <AuthDarkLayout>
           <div className="text-center animate-fade-in-up">
-            <div className="w-20 h-20 rounded-full border-2 border-dashed border-[#4ADE80]/50 bg-[#22c55e]/10 flex items-center justify-center mx-auto mb-7">
+            <div className="w-20 h-20 rounded-full border-2 border-dashed border-[#4ADE80]/50 bg-[#22c55e]/10 flex items-center justify-center mx-auto mb-6">
               <Mail size={32} className="text-[#4ADE80]" />
             </div>
             <h1 className="font-cera-pro text-[48px] font-bold text-white mb-4">Cek Email Kamu</h1>
-            <p className="text-[15px] text-white/60">
+            <p className="text-[14px] text-white">
               Kami telah mengirimkan tautan pemulihan ke email
             </p>
-            <p className="text-[15px] font-bold text-white mt-1 mb-2">{email}</p>
-            <p className="text-[15px] text-white/60 mb-9">
+            <p className="text-[14px] font-bold text-white mt-1 mb-2">{email}.</p>
+            <p className="text-[14px] text-white mb-10">
               Jika kamu belum menerima email tersebut, periksa folder spam.
             </p>
           </div>
 
-          <div className="space-y-3 animate-fade-in-up delay-100">
+          <div className="space-y-10 animate-fade-in-up delay-100">
             {error && <p className="text-sm text-red-300 text-center">{error}</p>}
             <button
               onClick={handleResend}
@@ -102,7 +102,7 @@ export function CheckEmailPage({ email, onNavigate }) {
             >
               {loading
                 ? <span className="flex items-center justify-center gap-2"><Loader2 size={16} className="animate-spin" /> Mengirim...</span>
-                : <>Kirim Ulang Link{!canResend && <span className="text-[#facc15]"> ({seconds})</span>}</>
+                : <>Kirim Ulang Link{!canResend && <span className="text-[#FF004D]"> ({seconds})</span>}</>
               }
             </button>
 

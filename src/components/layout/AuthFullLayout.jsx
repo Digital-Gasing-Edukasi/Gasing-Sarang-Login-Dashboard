@@ -59,7 +59,7 @@ export function AuthFullLayout({ children, illustration = 'robot' }) {
           </>
         )}
 
-        <div className="flex-1 flex items-start lg:items-center justify-center px-6 pt-9 pb-8 lg:py-12">
+        <div className="flex-1 flex items-start lg:items-center justify-center px-4 pt-6 pb-10 lg:py-12">
           {/* Form full-screen ikut 2-base desktop: lg → 380px (1366), fhd → 480px (1920). */}
           <div className="w-full max-w-[420px] lg:max-w-[380px] fhd:max-w-[480px] relative z-10">
             {children}

@@ -1,6 +1,6 @@
 import { Eye, EyeOff } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import bgImg from '@/assets/dark-mode/Background.png'
+import bgImg from '@/assets/dark-mode/Background-Desktop.png'
 import { Logo } from '@/components/shared/Logo'
 
 // Layout auth full-bleed tema gelap (desktop). Wallpaper = Background.png,
