@@ -189,6 +189,7 @@ export default function App() {
       // ?gatetest=suspended | pending | expired → paksa tampil LoginStatusModal.
       // ?gatetest=payment_receipt | payment_amount | payment_account → modal
       //   "Pembayaran Ditolak" (varian ikut sufiks setelah "payment_").
+      // ?gatetest=payment_review → modal "Pembayaran Sedang Kami Tinjau".
       const gatetest = params.get("gatetest");
       if (gatetest) {
         const meta =
@@ -207,7 +208,7 @@ export default function App() {
                   "Nama sekolah tidak sesuai",
                 ],
               }
-            : gatetest.startsWith("payment")
+            : gatetest.startsWith("payment") && gatetest !== "payment_review"
             ? {
                 type: "payment_rejected",
                 variant: gatetest.split("_")[1] || "receipt",
@@ -436,16 +437,27 @@ export default function App() {
       const isActive =
         sub?.hasActiveSubscription === true ||
         sub?.subscription?.status === "active";
-      // Pembayaran masih pending → tetap dilolosin ke web app.
-      if (isActive || paymentPending) {
+      // HANYA langganan aktif yang boleh handoff ke web app. Payment 'pending'
+      // (sudah bayar, MENUNGGU verifikasi admin) TIDAK aktif → jangan dilempar:
+      // web app pasti menolak lalu bounce ke /login → loop layar putih.
+      // Tahan di modal "Pembayaran Sedang Kami Tinjau" sampai admin verifikasi.
+      if (isActive) {
         webAppApi.redirectWithTokens();
+      } else if (paymentPending) {
+        setGate({ type: "payment_review", profile: user });
+        navigate("/login", { replace: true });
       } else {
         navigate("/login/subscription", { replace: true });
       }
     } catch {
-      // Gagal cek langganan → lolos bila ada payment pending, else halaman langganan.
-      if (paymentPending) webAppApi.redirectWithTokens();
-      else navigate("/login/subscription", { replace: true });
+      // Gagal cek langganan → payment pending tetap tampil modal tinjau (bukan
+      // web app), else halaman langganan.
+      if (paymentPending) {
+        setGate({ type: "payment_review", profile: user });
+        navigate("/login", { replace: true });
+      } else {
+        navigate("/login/subscription", { replace: true });
+      }
     }
   };
 
