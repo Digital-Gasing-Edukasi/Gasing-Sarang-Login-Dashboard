@@ -4,6 +4,7 @@ import { LogOut, ArrowRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { subscriptionApi, discourseApi, webAppApi } from '@/lib/api'
 import bgDark from '@/assets/dark-mode/Background.png'
+import bgDesktop from '@/assets/dark-mode/Background-Desktop.png'
 import { Logo } from '@/components/shared/Logo'
 
 function Avatar({ name = '' }) {
@@ -45,14 +46,34 @@ export default function PaymentSuccessPage({ user, onSignOut, activePlanName }) 
 
   return (
     <div className="min-h-screen relative overflow-hidden font-sans z-0">
+      {/* Background decorations */}
+      <div className="absolute inset-0 -z-10 pointer-events-none overflow-hidden bg-[#0D0B2E]">
+        {/* Mobile background */}
+        <div
+          className="lg:hidden absolute inset-0 w-full h-full"
+          style={{
+            backgroundImage: `url(${bgDark})`,
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+          }}
+        />
+        {/* Desktop background */}
+        <img
+          src={bgDesktop}
+          alt=""
+          aria-hidden="true"
+          className="hidden lg:block absolute inset-0 h-full w-full select-none object-cover"
+        />
+      </div>
+
       {/* ═══════════════ MOBILE (tema gelap, sesuai reference) ═══════════════ */}
-      <div
-        className="lg:hidden relative min-h-screen flex flex-col items-center justify-center text-center text-white px-8 animate-fade-in-up"
-        style={{
-          background:
-            'radial-gradient(ellipse at 50% 35%, #4c1d95 0%, #2e1065 45%, #150a35 100%)',
-        }}
-      >
+      <div className="lg:hidden relative min-h-screen flex flex-col items-center justify-center text-center text-white px-8 animate-fade-in-up">
+          {/* Ceklis hijau */}
+          <div className="w-20 h-20 rounded-full bg-[#22c55e] flex items-center justify-center mb-8 shadow-[0_0_40px_rgba(34,197,94,0.4)]">
+            <svg className="w-10 h-10 text-[#210965]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+            </svg>
+          </div>
         <h1 className="text-[30px] font-bold leading-tight mb-10">
           Pembayaran Kamu{' '}
           <span className="text-[#4ADE80]">Berhasil!</span>
@@ -72,14 +93,7 @@ export default function PaymentSuccessPage({ user, onSignOut, activePlanName }) 
       </div>
 
       {/* ═══════════════════════════ DESKTOP (dark) ═══════════════════════════ */}
-      <div className="hidden lg:flex relative min-h-screen flex-col bg-[#0D0B2E] text-white">
-        {/* wallpaper bokeh */}
-        <img
-          src={bgDark}
-          alt=""
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-0 h-full w-full select-none object-cover"
-        />
+      <div className="hidden lg:flex relative min-h-screen flex-col text-white">
 
         {/* ── NAVBAR ── */}
         <nav className="relative z-10 flex items-center justify-between px-6 pt-6 pb-5 shrink-0">
@@ -100,7 +114,7 @@ export default function PaymentSuccessPage({ user, onSignOut, activePlanName }) 
         <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-8 pb-24 animate-fade-in-up">
           {/* Ceklis hijau */}
           <div className="w-20 h-20 rounded-full bg-[#22c55e] flex items-center justify-center mb-8 shadow-[0_0_40px_rgba(34,197,94,0.4)]">
-            <svg className="w-10 h-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+            <svg className="w-10 h-10 text-[#210965]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
             </svg>
           </div>
