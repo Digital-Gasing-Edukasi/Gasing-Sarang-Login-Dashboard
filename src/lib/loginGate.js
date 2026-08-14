@@ -78,6 +78,30 @@ export function evaluateLoginGate(profile) {
   return null
 }
 
+// Akses web app sementara pasca pembayaran manual: user boleh masuk web app
+// selama 24 JAM sejak pembayaran dibuat, walau admin belum verifikasi. Lewat
+// 24 jam tanpa verifikasi → akses dicabut (modal "Pembayaran Sedang Kami Tinjau").
+//
+// Return true HANYA bila payment 'pending' DAN umur < 24 jam. Dipakai di
+// App.handleLoginSuccess untuk memutuskan handoff web app vs modal tinjau.
+//
+// TODO(verify): nama field waktu bayar dari /subscription/payments/latest
+//   (createdAt | created_at | paidAt | paid_at). Tanpa timestamp valid → return
+//   false (aman: tahan di modal, JANGAN handoff ke web app — bisa memicu loop
+//   layar putih bila web app menolak lalu bounce ke /login).
+const GRACE_MS = 24 * 60 * 60 * 1000;
+export function isPaymentGraceActive(payment) {
+  const p = payment?.payment || payment?.data || payment || {}
+  if (String(p.status || '').toLowerCase() !== 'pending') return false
+
+  const raw = p.createdAt || p.created_at || p.paidAt || p.paid_at || null
+  if (!raw) return false
+  const t = new Date(typeof raw === 'string' ? raw.replace(' ', 'T') : raw).getTime()
+  if (Number.isNaN(t)) return false
+
+  return Date.now() - t < GRACE_MS
+}
+
 // Evaluasi payment terakhir (GET /subscription/payments/latest) untuk gate
 // "Pembayaran Ditolak". Return null bila payment TIDAK ditolak.
 //
