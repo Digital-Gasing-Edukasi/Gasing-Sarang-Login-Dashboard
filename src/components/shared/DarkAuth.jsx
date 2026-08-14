@@ -49,7 +49,7 @@ export function DarkInput({ icon: Icon, iconRight, error, className, ...props })
           'w-full rounded-full bg-white/[0.06] border py-3.5 text-[15px] text-white placeholder:text-white/35 outline-none transition-colors focus:border-[#a78bfa]/70 focus:bg-white/[0.09]',
           Icon ? 'pl-12' : 'pl-5',
           iconRight ? 'pr-12' : 'pr-5',
-          error ? 'border-red-400/70' : 'border-white/15',
+          error ? 'border-[#FFB43C]' : 'border-white/15',
           className
         )}
         {...props}

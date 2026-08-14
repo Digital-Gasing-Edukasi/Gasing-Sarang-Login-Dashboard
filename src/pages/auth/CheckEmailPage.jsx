@@ -37,7 +37,7 @@ export function CheckEmailPage({ email, onNavigate }) {
       <div className="lg:hidden">
         <AuthFullLayout illustration="envelope">
           <div className="text-center animate-fade-in-up">
-            <h1 className="font-cera-pro text-2xl font-bold text-foreground mb-3">Cek Email Kamu</h1>
+            <h1 className="font-poppins text-2xl font-semibold text-foreground mb-6">Cek Email Kamu</h1>
             <p className="text-sm text-muted-foreground leading-relaxed mb-8">
               Kami telah mengirimkan tautan pemulihan ke email{" "}
               <span className="font-bold text-foreground">{email}</span>. Jika kamu belum
@@ -45,27 +45,27 @@ export function CheckEmailPage({ email, onNavigate }) {
             </p>
           </div>
 
-          <div className="space-y-4 animate-fade-in-up delay-100">
+          <div className="space-y-6 animate-fade-in-up delay-100">
             <ErrorAlert message={error} />
             <button
               onClick={handleResend}
               disabled={!canResend || loading}
               className={cn(
-                'w-full rounded-full py-3.5 text-[15px] font-bold text-white transition-colors',
+                'w-full rounded-full py-3.5 text-[15px] border font-semibold text-white transition-colors',
                 canResend && !loading
                   ? 'bg-[#0033EC] hover:bg-[#0033EC]/90 cursor-pointer'
-                  : 'bg-[#0033EC]/50 cursor-not-allowed'
+                  : 'border-1 border-[#525359]/30 text-[#030b1f]/30 cursor-not-allowed'
               )}
             >
               {loading
                 ? <span className="flex items-center justify-center gap-2"><Loader2 size={16} className="animate-spin" /> Mengirim...</span>
-                : <>Kirim Ulang Tautan{!canResend && <span> ({seconds})</span>}</>
+                : <>Kirim Ulang Tautan{!canResend && <span className="text-[#FF004D]/30"> ({seconds})</span>}</>
               }
             </button>
 
             <button onClick={() => onNavigate('login')}
-              className="flex items-center justify-center gap-1.5 text-[15px] font-bold text-[#0033EC] hover:opacity-80 transition-opacity mx-auto pt-1">
-              <LogIn size={16} /> Kembali ke Login
+              className="flex items-center justify-center gap-1.5 text-[14px] font-semibold text-[#0033EC] hover:opacity-80 transition-opacity mx-auto pt-1">
+              <LogIn size={20} /> Kembali ke Login
             </button>
           </div>
         </AuthFullLayout>
@@ -79,12 +79,10 @@ export function CheckEmailPage({ email, onNavigate }) {
               <Mail size={32} className="text-[#4ADE80]" />
             </div>
             <h1 className="font-cera-pro text-[48px] font-bold text-white mb-4">Cek Email Kamu</h1>
-            <p className="text-[14px] text-white">
-              Kami telah mengirimkan tautan pemulihan ke email
-            </p>
-            <p className="text-[14px] font-bold text-white mt-1 mb-2">{email}.</p>
-            <p className="text-[14px] text-white mb-10">
-              Jika kamu belum menerima email tersebut, periksa folder spam.
+              <p className="text-[14px] text-white mb-10">
+              Kami telah mengirimkan tautan pemulihan ke email{" "}
+              <span className="text-[14px] font-bold text-white mt-1 mb-2">{email}</span>. Jika kamu belum
+              menerima email tersebut, periksa folder spam.
             </p>
           </div>
 
@@ -94,15 +92,15 @@ export function CheckEmailPage({ email, onNavigate }) {
               onClick={handleResend}
               disabled={!canResend || loading}
               className={cn(
-                'w-full rounded-full py-3.5 text-[15px] font-bold border border-white/25 transition-colors',
+                'w-full rounded-full py-3.5 text-[15px] text-[#030B1F] font-semibold border border-white/0 bg-white transition-colors',
                 canResend && !loading
-                  ? 'text-white hover:bg-white/[0.06] cursor-pointer'
-                  : 'text-white/40 cursor-not-allowed'
+                  ? 'text-030B1F hover:bg-white cursor-pointer'
+                  : 'text-030B1F/40 bg-white/30 cursor-not-allowed'
               )}
             >
               {loading
                 ? <span className="flex items-center justify-center gap-2"><Loader2 size={16} className="animate-spin" /> Mengirim...</span>
-                : <>Kirim Ulang Link{!canResend && <span className="text-[#FF004D]"> ({seconds})</span>}</>
+                : <>Kirim Ulang Link{!canResend && <span className="text-[#FF004D]/30"> ({seconds})</span>}</>
               }
             </button>
 
