@@ -6,6 +6,7 @@ import { subscriptionApi, tokenStorage } from "@/lib/api";
 import { formatRp, localizePlanName } from "@/lib/format";
 
 import bgDark from "@/assets/dark-mode/Background.png";
+import bgDesktop from "@/assets/dark-mode/Background-Desktop.png";
 import { Logo } from "@/components/shared/Logo";
 import { ProfileMenu } from "@/components/shared/ProfileMenu";
 // Ambil angka positif pertama dari beberapa kemungkinan field (nama field
@@ -177,15 +178,15 @@ function PlanCard({ plan, selected, onSelect }) {
       className={cn(
         "relative rounded-[24px] border p-7 cursor-pointer transition-all duration-300",
         featured
-          ? "border-[#8b7bff]/70 bg-gradient-to-b from-[#5b3fae]/45 to-[#241a5c]/30 shadow-[0_0_45px_rgba(124,58,237,0.28)]"
+          ? "border-white/50 bg-gradient-to-b from-[#382274] to-[#180840] shadow-[0_0_45px_rgba(124,58,237,0.28)]"
           : selected
-          ? "border-[#8b7bff]/70 bg-white/[0.07] shadow-[0_0_45px_rgba(124,58,237,0.28)]"
-          : "border-white/10 bg-white/[0.04] hover:border-white/20"
+          ? "border-[#8b7bff]/70 bg-gradient-to-b from-[#382274] to-[#180840] shadow-[0_0_45px_rgba(124,58,237,0.28)]"
+          : "border-[#D1D3DA]/30 bg-gradient-to-b from-[#382274] to-[#180840] hover:border-white/20"
       )}
     >
       {/* Badge hemat mengambang di atas kartu */}
       {plan.label && (
-        <span className="absolute -top-3.5 right-6 bg-gradient-to-r from-[#4b7bff] to-[#22d3ee] text-white text-[13px] font-semibold px-4 py-1.5 rounded-full whitespace-nowrap shadow-sm">
+        <span className="absolute -top-3.5 right-6 bg-gradient-to-r from-[#3A67FF] to-[#00F6FF] text-white text-[13px] font-medium px-4 py-1.5 rounded-full whitespace-nowrap shadow-sm">
           {plan.label}
         </span>
       )}
@@ -220,13 +221,13 @@ function PlanCard({ plan, selected, onSelect }) {
         {/* Checkbox */}
         <div
           className={cn(
-            "w-7 h-7 rounded-md flex items-center justify-center border-2 transition-all shrink-0 ml-4",
-            selected ? "bg-white border-white" : "border-white/25 bg-transparent"
+            "w-8 h-8 rounded-md flex items-center justify-center border-2 transition-all shrink-0 ml-4",
+            selected ? "bg-white border-white" : "border-[#BBB6C7] bg-transparent"
           )}
         >
           {selected && (
             <svg
-              className="w-4 h-4 text-blue-600"
+              className="w-4 h-4 text-[#180841]"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -250,20 +251,20 @@ function MobilePlanCard({ plan, selected, onSelect }) {
       className={cn(
         "relative rounded-[22px] border p-5 cursor-pointer transition-all duration-300",
         featured
-          ? "border-[#8b7bff] bg-gradient-to-b from-[#5b3fae]/45 to-[#241a5c]/30 shadow-[0_0_30px_rgba(124,58,237,0.25)]"
+          ? "border-white/50 bg-gradient-to-b from-[#382274] to-[#180840] shadow-[0_0_30px_rgba(124,58,237,0.25)]"
           : selected
-          ? "border-[#8b7bff] bg-white/[0.06] shadow-[0_0_30px_rgba(124,58,237,0.25)]"
-          : "border-white/10 bg-white/[0.03]"
+          ? "border-[#8b7bff]/70 bg-gradient-to-b from-[#382274] to-[#180840] shadow-[0_0_30px_rgba(124,58,237,0.25)]"
+          : "border-[#D1D3DA]/30 bg-gradient-to-b from-[#382274] to-[#180840]"
       )}
     >
       {plan.label && (
-        <span className="absolute -top-3 right-4 bg-gradient-to-r from-[#4b7bff] to-[#48b2ff] text-white text-[11px] font-semibold px-3 py-1 rounded-full whitespace-nowrap shadow-sm">
+        <span className="absolute -top-3 right-4 bg-gradient-to-r from-[#3A67FF] to-[#00F6FF] text-white text-[11px] font-medium px-3 py-1 rounded-full whitespace-nowrap shadow-sm">
           {plan.label}
         </span>
       )}
       <div className="flex items-center justify-between">
         <div className="min-w-0">
-          <p className="text-white/60 text-[13px] font-semibold mb-1.5">{plan.name}</p>
+          <p className="text-white/70 text-[14px] font-semibold mb-1">{plan.name}</p>
           <div className="flex items-baseline gap-1.5 flex-wrap">
             <span className="text-[26px] font-bold text-white leading-none">
               Rp{formatRp(plan.priceMonthly)}
@@ -276,7 +277,7 @@ function MobilePlanCard({ plan, selected, onSelect }) {
             )}
           </div>
           {plan.priceTotal && (
-            <p className="text-[11px] font-medium text-white/40 mt-1.5">
+            <p className="text-[11px] font-medium text-white/40 mt-1">
               Tagihan per-tahun Rp{formatRp(plan.priceTotal)}
             </p>
           )}
@@ -284,11 +285,11 @@ function MobilePlanCard({ plan, selected, onSelect }) {
         <div
           className={cn(
             "w-6 h-6 rounded-md flex items-center justify-center border-2 transition-all shrink-0 ml-3",
-            selected ? "bg-[#6366f1] border-[#6366f1]" : "border-white/25 bg-transparent"
+            selected ? "bg-white border-white" : "border-[#BBB6C7] bg-transparent"
           )}
         >
           {selected && (
-            <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3.5}>
+            <svg className="w-3.5 h-3.5 text-[#180841]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
             </svg>
           )}
@@ -359,19 +360,20 @@ export default function SubscriptionPage({ user, onSignOut, onPaymentSuccess, on
     <div className="min-h-screen relative overflow-hidden font-sans z-0">
       {/* ═══════════════ MOBILE (tema gelap, sesuai reference) ═══════════════ */}
       <div
-        className="lg:hidden relative min-h-screen flex flex-col text-white"
+        className="lg:hidden relative min-h-screen flex flex-col text-white bg-[#0D0B2E]"
         style={{
-          background:
-            "radial-gradient(ellipse at 50% 0%, #4c1d95 0%, #2e1065 40%, #1a0b3d 75%, #120833 100%)",
+          backgroundImage: `url(${bgDark})`,
+          backgroundSize: "cover",
+          backgroundPosition: "center",
         }}
       >
-        <div className="flex items-center justify-between px-4 pt-4 pb-2 shrink-0">
+        <div className="flex items-center justify-between px-4 pt-4 pb-4 shrink-0">
           <Logo variant="mobile" />
           <ProfileMenu user={user} onSignOut={onSignOut} />
         </div>
 
-        <div className="flex-1 px-6 pt-4 pb-6 overflow-y-auto">
-          <h1 className="text-[27px] font-bold leading-tight mb-6">
+        <div className="flex-1 px-4 pt-4 pb-4 overflow-y-auto">
+          <h1 className="text-[32px] font-bold leading-tight mb-6 font-cera-pro">
             Ada apa di Sarang Gasing?
           </h1>
           <ul className="space-y-6 mb-8">
@@ -380,10 +382,10 @@ export default function SubscriptionPage({ user, onSignOut, onPaymentSuccess, on
               return (
                 <li key={i} className="flex items-start gap-4">
                   <Icon
-                    className="w-6 h-6 text-[#22d3ee] shrink-0 mt-0.5"
+                    className="w-6 h-6 text-[#ffffff] shrink-0 mt-0.5"
                     strokeWidth={2}
                   />
-                  <p className="text-white/70 text-base leading-relaxed">
+                  <p className="text-white  text-base leading-snug">
                     {b.text}
                   </p>
                 </li>
@@ -442,7 +444,7 @@ export default function SubscriptionPage({ user, onSignOut, onPaymentSuccess, on
       <div className="hidden lg:flex relative min-h-screen flex-col bg-[#0D0B2E] text-white">
         {/* wallpaper bokeh */}
         <img
-          src={bgDark}
+          src={bgDesktop}
           alt=""
           aria-hidden="true"
           className="pointer-events-none absolute inset-0 h-full w-full select-none object-cover"
@@ -460,7 +462,7 @@ export default function SubscriptionPage({ user, onSignOut, onPaymentSuccess, on
           <div className="w-full max-w-[1150px] mx-auto px-8 grid lg:grid-cols-2 gap-16 xl:gap-24 items-center">
             {/* Kiri — copywriting */}
             <div className="animate-fade-in-up">
-              <h1 className="text-[46px] xl:text-[54px] font-extrabold text-white leading-[1.08] mb-10">
+              <h1 className="text-[48px] font-cera-pro xl:text-[48px] font-bold text-white leading-[1.08] mb-10">
                 Ada apa di Sarang Gasing?
               </h1>
               <ul className="space-y-6">
@@ -469,10 +471,10 @@ export default function SubscriptionPage({ user, onSignOut, onPaymentSuccess, on
                   return (
                     <li key={i} className="flex items-start gap-4">
                       <Icon
-                        className="w-6 h-6 text-[#22d3ee] shrink-0 mt-0.5"
+                        className="w-6 h-6 text-[#ffffff] shrink-0 mt-0.5"
                         strokeWidth={2}
                       />
-                      <p className="text-white/70 text-base leading-relaxed">
+                      <p className="text-white text-base leading-relaxed">
                         {b.text}
                       </p>
                     </li>

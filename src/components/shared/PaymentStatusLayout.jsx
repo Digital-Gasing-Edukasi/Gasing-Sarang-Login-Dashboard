@@ -2,6 +2,7 @@
 // Sama gaya dengan TransferBankPage & PaymentSuccessPage: wallpaper bokeh,
 // navbar "Sarang Gasing", konten di tengah, footer.
 import bgDark from '@/assets/dark-mode/Background.png'
+import bgDesktop from '@/assets/dark-mode/Background-Desktop.png'
 
 const ADMIN_EMAIL = import.meta.env.VITE_CONTACT_ADMIN || 'admin@gasingacademy.org'
 export const WA_URL = `mailto:${ADMIN_EMAIL}`
@@ -9,11 +10,21 @@ export const WA_URL = `mailto:${ADMIN_EMAIL}`
 export function PaymentStatusLayout({ children }) {
   return (
     <div className="relative min-h-screen overflow-hidden bg-[#0D0B2E] font-sans text-white flex flex-col">
+      {/* Mobile background */}
+      <div
+        className="lg:hidden absolute inset-0 w-full h-full pointer-events-none select-none"
+        style={{
+          backgroundImage: `url(${bgDark})`,
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+        }}
+      />
+      {/* Desktop background */}
       <img
-        src={bgDark}
+        src={bgDesktop}
         alt=""
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 h-full w-full select-none object-cover"
+        className="hidden lg:block pointer-events-none absolute inset-0 h-full w-full select-none object-cover"
       />
 
       <nav className="relative z-10 flex items-center px-6 py-5 lg:px-8 shrink-0">

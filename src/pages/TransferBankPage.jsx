@@ -13,7 +13,7 @@ import { useState, useRef } from "react";
 import {
   Copy,
   Check,
-  UploadCloud,
+  Upload,
   Loader2,
   AlertCircle,
   FileText,
@@ -30,6 +30,9 @@ import { Logo } from "@/components/shared/Logo";
 import { ProfileMenu } from "@/components/shared/ProfileMenu";
 import { DateField, DATE_MAX } from "@/components/shared/DateField";
 import { formatRp, localizePlanName } from "@/lib/format";
+
+import bgDark from "@/assets/dark-mode/Background.png";
+import bgDesktop from "@/assets/dark-mode/Background-Desktop.png";
 
 // Rekening tujuan. Default statis (backend belum mengembalikan detail rekening);
 // bila payment membawa field rekening, nilai itu dipakai lebih dulu.
@@ -62,11 +65,23 @@ function pick(obj, ...keys) {
 // ─── BACKGROUND ───────────────────────────────────────────────────────────────
 function Decorations() {
   return (
-    <div className="absolute inset-0 -z-10 pointer-events-none overflow-hidden">
-      <div className="absolute inset-0 bg-[#0b0a1f]" />
-      <div className="absolute -top-1/4 -left-1/4 w-[70vw] h-[70vw] rounded-full bg-[#6d28d9]/30 blur-[120px]" />
-      <div className="absolute top-1/3 right-0 w-[55vw] h-[55vw] rounded-full bg-[#7c3aed]/25 blur-[130px]" />
-      <div className="absolute bottom-0 left-1/4 w-[50vw] h-[50vw] rounded-full bg-[#4338ca]/25 blur-[120px]" />
+    <div className="absolute inset-0 -z-10 pointer-events-none overflow-hidden bg-[#0D0B2E]">
+      {/* Mobile background */}
+      <div
+        className="lg:hidden absolute inset-0 w-full h-full"
+        style={{
+          backgroundImage: `url(${bgDark})`,
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+        }}
+      />
+      {/* Desktop background */}
+      <img
+        src={bgDesktop}
+        alt=""
+        aria-hidden="true"
+        className="hidden lg:block absolute inset-0 h-full w-full select-none object-cover"
+      />
     </div>
   );
 }
@@ -195,7 +210,7 @@ export default function TransferBankPage({
   };
 
   const inputCls =
-    "w-full rounded-2xl bg-white/[0.04] border border-white/10 px-5 py-4 text-[15px] text-white placeholder:text-white/30 outline-none transition-colors focus:border-[#22d3ee]/60 focus:bg-white/[0.06]";
+    "w-full rounded-full bg-white/[0.04] border border-white/20 px-5 lg:px-4 py-4 text-[15px] text-white placeholder:text-white/30 outline-none transition-colors focus:border-[#22d3ee]/60 focus:bg-white/[0.06]";
 
   // Satu definisi CTA; dipakai di footer sticky (mobile) & inline (desktop).
   const cta = (
@@ -314,7 +329,7 @@ export default function TransferBankPage({
           </p>
         </div>
       ) : (
-        <div className="relative z-10 max-w-[1180px] mx-auto px-4 lg:px-10 pt-4 pb-6 lg:pb-24 grid lg:grid-cols-2 gap-4 lg:gap-14 items-start animate-fade-in-up">
+        <div className="relative z-10 max-w-[1180px] mx-auto px-4 lg:px-10 pt-4 pb-6 lg:pb-24 grid lg:grid-cols-2 lg:gap-14 items-start animate-fade-in-up">
           {/* ── KIRI ── */}
           <div className="min-w-0">
             {onBack && (
@@ -329,12 +344,12 @@ export default function TransferBankPage({
             <h1 className="text-[28px] font-bold leading-[140%] mb-1 lg:mb-2">
               Transfer Pembayaran
             </h1>
-            <p className="text-white/50 text-[15px] mb-4 lg:mb-8">
+            <p className="text-white/50 text-[15px] mb-5 lg:mb-4">
               Mohon transfer ke rekening bank berikut:
             </p>
 
             {/* Kartu rekening */}
-            <div className="relative rounded-3xl border border-[#7c3aed]/60 bg-gradient-to-br from-[#7c3aed]/25 to-[#4338ca]/10 p-5 lg:p-7 mb-4 lg:mb-6 shadow-[0_0_40px_rgba(124,58,237,0.15)]">
+            <div className="relative rounded-3xl border border-[#3A67FF] bg-[#ffffff]/10 p-5 lg:p-5 mb-4 lg:mb-6 shadow-[0_0_40px_rgba(124,58,237,0.15)]">
               <div className="flex items-center gap-4 mb-4 lg:mb-6">
                 <div className="h-8 w-15 bg-white rounded-md flex items-center justify-center overflow-hidden p-1">
                   <img
@@ -345,29 +360,29 @@ export default function TransferBankPage({
                 </div>
                 <span className="text-lg font-bold">Bank Mandiri</span>
               </div>
-              <p className="text-white/50 text-sm mb-2">No. Rekening</p>
+              <p className="text-white/50 text-xs mb-0.5">No. Rekening</p>
               <div className="flex items-center justify-between gap-3">
-                <span className="min-w-0 break-all text-2xl lg:text-[30px] font-bold tracking-wide">
+                <span className="min-w-0 break-all text-xl font-bold tracking-wide">
                   {bank.accountNumber}
                 </span>
                 <button
                   onClick={handleCopy}
-                  className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-white/25 text-sm font-medium hover:bg-white/10 transition-colors shrink-0"
+                  className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-white/25 text-xs font-semibold hover:bg-white/10 transition-colors shrink-0"
                 >
                   {copied ? <Check size={15} /> : <Copy size={15} />}
                   {copied ? "Tersalin" : "Salin"}
                 </button>
               </div>
-              <p className="text-white/50 text-sm mt-4 lg:mt-5 mb-1">Atas Nama</p>
-              <p className="text-lg font-semibold">{bank.accountName}</p>
+              <p className="text-white/50 text-xs mt-4 lg:mt-5 mb-0.5">Atas Nama</p>
+              <p className="text-sm font-semibold">{bank.accountName}</p>
             </div>
 
             {/* Cara Pembayaran — collapsible di mobile, selalu tampil di desktop */}
-            <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-5 lg:p-7 mb-4 lg:mb-6">
+            <div className="rounded-3xl border border-white/20 bg-white/[0.05] p-5 lg:p-5 mb-4 lg:mb-6">
               <button
                 type="button"
                 onClick={() => setCaraOpen((o) => !o)}
-                className="flex w-full items-center justify-between font-semibold lg:cursor-default"
+                className="flex w-full items-center justify-between text-xs font-semibold lg:cursor-default"
               >
                 <span>Cara Pembayaran:</span>
                 <ChevronDown
@@ -388,7 +403,7 @@ export default function TransferBankPage({
                 ].map((step, i) => (
                   <li
                     key={i}
-                    className="flex gap-3 text-[14px] text-white/70 leading-relaxed"
+                    className="flex gap-3 text-[12px] text-white/70 leading-relaxed"
                   >
                     <span className="text-[#22d3ee] font-semibold shrink-0">
                       {i + 1}.
@@ -401,19 +416,19 @@ export default function TransferBankPage({
           </div>
 
           {/* ── KANAN ── */}
-          <div className="min-w-0 space-y-4 lg:space-y-6">
+          <div className="min-w-0 space-y-4 lg:space-y-5 lg:pt-6">
             {/* Ringkasan */}
-            <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-5 lg:p-7">
-              <p className="text-xl font-bold mb-5">Ringkasan Pesanan</p>
+            <div className="rounded-3xl border border-white/20 bg-white/[0.03] p-5 lg:p-6">
+              <p className="text-base font-semibold mb-4">Ringkasan Pesanan</p>
               <SummaryRow label={packageLabel} value={`Rp${formatRp(total)}`} />
               <SummaryRow
                 label="Durasi Subkripsi"
                 value={`${durationMonths} Bulan`}
               />
-              <div className="border-t border-white/10 my-4" />
+              <div className="border-t border-white/20 my-4" />
               <div className="flex items-center justify-between">
-                <span className="text-lg font-bold">Total Bayar</span>
-                <span className="text-2xl font-bold text-[#1DF5FF]">
+                <span className="text-base font-bold">Total Bayar</span>
+                <span className="text-lg font-bold text-[#1DF5FF]">
                   Rp{formatRp(total)}
                 </span>
               </div>
@@ -421,7 +436,7 @@ export default function TransferBankPage({
 
             {/* Nama Pengirim */}
             <div>
-              <label className="block text-[15px] font-semibold mb-2">
+              <label className="block text-[15px] font-medium text-white/70 lg:!mt-8 mb-2">
                 Nama Pengirim
               </label>
               <input
@@ -433,9 +448,9 @@ export default function TransferBankPage({
             </div>
 
             {/* Bank Asal + Tanggal */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-[15px] font-semibold mb-2">
+                <label className="block text-[15px] font-medium text-white/70 mb-2">
                   Bank Asal
                 </label>
                 <input
@@ -446,7 +461,7 @@ export default function TransferBankPage({
                 />
               </div>
               <div>
-                <label className="block text-[15px] font-semibold mb-2">
+                <label className="block text-[15px] font-medium text-white/70 mb-2">
                   Tanggal Transfer
                 </label>
                 <DateField
@@ -459,13 +474,14 @@ export default function TransferBankPage({
                     d: new Date().getDate(),
                   }}
                   dialogLabel="Pilih tanggal transfer"
+                  className="!h-[54px] !rounded-full !bg-white/[0.04] !border-white/20 !px-4 !text-[15px] !text-white hover:!border-white/20 transition-colors [&.border-primary]:!border-[#22d3ee]/60 [&.ring-2]:!ring-0"
                 />
               </div>
             </div>
 
             {/* Bukti transfer: dropzone saat kosong, baris ringkas saat sudah ada */}
             {file ? (
-              <div className="flex items-center gap-3 rounded-2xl bg-white/[0.04] border border-white/10 px-4 py-3">
+              <div className="flex items-center gap-3 rounded-2xl bg-white/[0.04] border border-white/20 px-4 py-3">
                 <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center shrink-0">
                   <FileText size={20} className="text-[#22d3ee]" />
                 </div>
@@ -503,15 +519,17 @@ export default function TransferBankPage({
                   e.preventDefault();
                   handleFile(e.dataTransfer.files?.[0]);
                 }}
-                className="rounded-3xl border-2 border-dashed border-white/15 bg-white/[0.03] px-6 py-10 flex flex-col items-center text-center cursor-pointer hover:border-[#22d3ee]/50 hover:bg-white/[0.05] transition-colors"
+                className="rounded-3xl border-2 border-dashed border-white/15 bg-white/[0.03] p-5 flex flex-row items-center gap-4 cursor-pointer hover:border-[#22d3ee]/50 hover:bg-white/[0.05] transition-colors"
               >
-                <div className="w-14 h-14 rounded-full bg-white/5 flex items-center justify-center mb-4">
-                  <UploadCloud size={24} className="text-white/50" />
+                <div className="w-14 h-14 rounded-full bg-white/5 flex items-center justify-center shrink-0">
+                  <Upload size={24} className="text-white/50" />
                 </div>
-                <p className="font-semibold">Unggah Bukti Transfer</p>
-                <p className="text-white/40 text-[13px] mt-1">
-                  {`JPG, PNG, atau PDF (maks. ${MAX_FILE_MB}MB)`}
-                </p>
+                <div className="text-left">
+                  <p className="font-semibold text-white">Unggah Bukti Transfer</p>
+                  <p className="text-white/40 text-[13px] mt-0.5">
+                    {`JPG, PNG, atau PDF (maks. ${MAX_FILE_MB}MB)`}
+                  </p>
+                </div>
                 <input
                   ref={fileInputRef}
                   type="file"

@@ -254,16 +254,16 @@ export function DateField({
         aria-haspopup="dialog"
         aria-expanded={open}
         className={cn(
-          "flex h-11 w-full items-center gap-2 rounded-full border border-input bg-background px-5 text-sm",
+          "flex h-11 w-full items-center gap-2 rounded-full border border-input bg-white/5 px-5 text-sm",
           "transition-all duration-200 hover:border-gray-300",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
           open && "border-primary ring-2 ring-ring",
           className
         )}
       >
-        <Calendar size={16} className="shrink-0 text-foreground" />
-        <span className={value ? "text-muted-foreground" : "text-muted-foreground"}>
-          {value ? formatDateID(value) : "dd/mm/yyyy"}
+        <Calendar size={16} className="shrink-0 opacity-70" />
+        <span className={cn(value ? "text-current" : "opacity-40")}>
+          {value ? formatDateID(value) : "Pilih Tanggal"}
         </span>
       </button>
 
