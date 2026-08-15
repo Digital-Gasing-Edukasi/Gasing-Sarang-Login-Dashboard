@@ -299,9 +299,9 @@ function parseManajemenStatus(u) {
   if (hasDeletion || u.deletionPending || u.deletionScheduledAt || u.deletedAt) return 'Baru Dihapus'
   if (u.suspendedUntil || u.suspended) return 'Ditangguhkan'
   const vs = u.verifiedStatus
-  // REJECTED(-1) = tolak final; REVISE(2) = diminta perbaiki data. Keduanya hasil
-  // aksi "Tolak Akun" admin, jadi keduanya muncul di tab Ditolak.
-  if (vs === -1 || vs === 'rejected' || vs === 2 || vs === 'revise') return 'Ditolak'
+  // REJECTED(-1) = tolak final; REVISE(2) = tolak pembayaran.
+  // Hanya status -1 yang masuk ke tab Ditolak.
+  if (vs === -1 || vs === 'rejected') return 'Ditolak'
   return 'Disetujui'
 }
 

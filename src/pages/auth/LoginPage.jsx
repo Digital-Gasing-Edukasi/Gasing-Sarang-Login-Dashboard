@@ -67,6 +67,21 @@ export function LoginPage({ onNavigate, onLoginSuccess, isSsoMode = false }) {
         // Rate limit backend (ThrottlerException). Banner merah + hitung mundur;
         // tombol Login ikut terkunci sampai cooldown habis.
         setRateLimit(e.retryAfter || 60)
+      } else if (e?.status === 403 && /rejected|ditolak/i.test(e?.message || '')) {
+        // Backend tolak login akun ditolak (mis. "Your account verification was rejected: ...").
+        const msg = e?.message || ''
+        const match = msg.match(/rejected:\s*(.+)$/i)
+        let reasons = undefined
+        if (match) {
+          const rawReason = match[1].trim()
+          if (rawReason && rawReason !== 'null') {
+            reasons = rawReason.split(',').map(r => r.trim()).filter(Boolean)
+          }
+        }
+        setGate({
+          type: 'rejected',
+          reasons: reasons,
+        })
       } else if (/suspend|ditangguhkan/i.test(e?.message || '')) {
         // Backend tolak login akun ditangguhkan (mis. "Account is suspended").
         const d = e?.data || {}

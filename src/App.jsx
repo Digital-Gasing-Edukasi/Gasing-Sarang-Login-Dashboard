@@ -788,14 +788,6 @@ export default function App() {
               navigate("/login/subscription", { replace: true });
             }
           }}
-          // "Daftar Ulang" (akun ditolak / rejected) → bersihkan sesi lalu mulai
-          // pendaftaran dari awal.
-          onReregister={() => {
-            tokenStorage.clear();
-            setCurrentUser(null);
-            setGate(null);
-            navigate("/register", { replace: true });
-          }}
         />
       )}
     </>

@@ -361,7 +361,7 @@ const DEFAULT_REJECT_REASONS = [
   'Nama sekolah tidak sesuai',
 ]
 
-function RejectedModal({ meta = {}, onClose, onReregister }) {
+function RejectedModal({ meta = {}, onClose }) {
   const reasons = Array.isArray(meta.reasons) && meta.reasons.length ? meta.reasons : DEFAULT_REJECT_REASONS
 
   return (
@@ -388,16 +388,19 @@ function RejectedModal({ meta = {}, onClose, onReregister }) {
         </ul>
       </div>
 
-      <p className="text-xs text-muted-foreground text-center leading-relaxed opacity-80 lg:mb-6">
+      <p className="text-xs text-muted-foreground text-center leading-relaxed opacity-80 lg:mb-4">
         Jika kamu merasa ini adalah kesalahan, silakan{' '}
         <a href={WA_URL} target="_blank" rel="noopener noreferrer" className="font-semibold text-[#0033EC] underline hover:opacity-80">Hubungi Kami</a>{' '}
         untuk bantuan lebih lanjut.
       </p>
 
-      {/* Mobile (Figma): tumpuk vertikal. Desktop: baris berdampingan. */}
-      <div className="flex flex-col gap-3 w-full lg:flex-row-reverse lg:items-center lg:gap-4">
-        <ActionButton label="Daftar Ulang" variant="primary" onClick={() => (onReregister || onClose)?.()} />
-        <ActionButton label="Log Out" variant="outline" onClick={() => onClose?.()} />
+      <p className="text-sm font-semibold text-red-500 text-center leading-relaxed lg:mb-6">
+        * Cek email anda untuk daftar ulang.
+      </p>
+
+      {/* Action button: Log Out primary */}
+      <div className="w-full px-2 lg:px-0">
+        <ActionButton label="Log Out" variant="primary" onClick={() => onClose?.()} block />
       </div>
     </Shell>
   )

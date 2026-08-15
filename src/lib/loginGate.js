@@ -45,8 +45,9 @@ export function evaluateLoginGate(profile) {
 
   // 2. Pending — akun belum di-approve admin (verifiedStatus = waiting).
   //    Revise (2) & rejected (-1) punya alur email sendiri → tidak digate di sini.
-  const vs = p.verifiedStatus
-  const approved = vs === 1 || vs === 'approved'
+  const vsRaw = p.verifiedStatus
+  const vs = typeof vsRaw === 'string' ? vsRaw.toLowerCase() : vsRaw
+  const approved = vs === 1 || vs === 'approved' || vs === 'verified'
   const revise   = vs === 2 || vs === 'revise'
   const rejected = vs === -1 || vs === 'rejected'
 

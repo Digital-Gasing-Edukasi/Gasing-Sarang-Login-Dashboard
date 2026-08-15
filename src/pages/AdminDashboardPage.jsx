@@ -1082,8 +1082,14 @@ export default function AdminDashboardPage({ user, onSignOut }) {
       ? { ...u, accountStatus: 'Disetujui', role: roleName || u.role, voucher: voucherCode || u.voucher }
       : u))
     setToast({ message: <>Akun {target.name} telah disetujui</>, statusUndo: { id: target.id, prevStatus } })
+    
+    const isUnreject = prevStatus === 'Ditolak'
+    const payload = isUnreject 
+      ? { status: 'unreject' } 
+      : { status: 'approved', discourseGroupId, firstTrainingSessionId }
+    
     scheduleAction(
-      () => adminApi.verifyUser(target.id, { status: 'approved', discourseGroupId, firstTrainingSessionId }),
+      () => adminApi.verifyUser(target.id, payload),
       () => { setManagementUsers(prev => prev.map(u => u.id === target.id ? { ...u, accountStatus: prevStatus } : u)); setApiError('Gagal menyetujui akun.') }
     )
   }
