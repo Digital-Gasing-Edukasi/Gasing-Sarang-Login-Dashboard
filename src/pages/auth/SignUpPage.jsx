@@ -303,13 +303,14 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
   // (di bawah CTA, sesuai desain). Mobile tetap pakai versi di dalam konten.
   const loginLink = (
     <p className="text-sm text-center text-muted-foreground">
-      Sudah punya akun?{" "}
+       
+      {/* Sudah punya akun?{" "}
       <button
         onClick={() => onNavigate("login")}
         className="font-bold text-[#0033EC] underline underline-offset-2 hover:text-[#0033EC]/80 transition-colors"
       >
         Log In
-      </button>
+      </button> */}
     </p>
   );
 

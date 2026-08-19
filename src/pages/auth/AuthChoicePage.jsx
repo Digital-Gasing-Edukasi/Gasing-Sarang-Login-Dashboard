@@ -1,9 +1,17 @@
 import { RightPanel } from '@/components/layout/RightPanel'
 import { Button } from '@/components/ui/button'
 import { tokenStorage, discourseApi, authApi, webAppApi } from '@/lib/api'
-import { ArrowRight, LogIn, LogOut } from 'lucide-react'
+import { isSuperAdmin } from '@/lib/roles'
+import { ArrowRight, LayoutDashboard, LogIn, LogOut } from 'lucide-react'
 
-export function AuthChoicePage({ onNavigate, onSignOut }) {
+export function AuthChoicePage({ user, onNavigate, onSignOut }) {
+  // Superadmin dapat tombol tambahan ke Dashboard Admin.
+  const showDashboard = isSuperAdmin(user)
+
+  const handleGoDashboard = () => {
+    onNavigate('admin-dashboard')
+  }
+
   const handleRedirectDefault = () => {
     webAppApi.redirectWithTokens()
   }
@@ -45,22 +53,37 @@ export function AuthChoicePage({ onNavigate, onSignOut }) {
         </p>
 
         <div className="space-y-4 w-full">
-          <Button 
-            onClick={handleRedirectDefault} 
+          {showDashboard && (
+            <Button
+              onClick={handleGoDashboard}
+              className="w-full flex items-center justify-between"
+              size="lg"
+            >
+              <span className="flex items-center gap-2">
+                <LayoutDashboard size={18} />
+                Dashboard
+              </span>
+              <ArrowRight size={18} />
+            </Button>
+          )}
+
+          <Button
+            onClick={handleRedirectSso}
+            variant={showDashboard ? 'outline' : 'default'}
+            className="w-full flex items-center justify-between"
+            size="lg"
+          >
+            <span>Moderator (Discourse)</span>
+            <ArrowRight size={18} />
+          </Button>
+
+          <Button
+            onClick={handleRedirectDefault}
+            variant="outline"
             className="w-full flex items-center justify-between"
             size="lg"
           >
             <span>Gasing Web App</span>
-            <ArrowRight size={18} />
-          </Button>
-
-          <Button 
-            onClick={handleRedirectSso} 
-            variant="outline" 
-            className="w-full flex items-center justify-between"
-            size="lg"
-          >
-            <span>Komunitas (SSO)</span>
             <ArrowRight size={18} />
           </Button>
 

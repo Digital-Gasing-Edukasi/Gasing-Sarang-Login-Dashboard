@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { Headphones, LogOut } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -19,12 +20,15 @@ function initials(name = '') {
 export function ProfileMenu({ user, onSignOut, onContact }) {
   const [open, setOpen] = useState(false)
   const ref = useRef(null)
+  const sheetRef = useRef(null) // bottom-sheet mobile di-portal ke body → di luar ref
 
   // Tutup saat klik di luar / tekan Escape.
   useEffect(() => {
     if (!open) return
     const onDown = (e) => {
-      if (ref.current && !ref.current.contains(e.target)) setOpen(false)
+      const inTrigger = ref.current && ref.current.contains(e.target)
+      const inSheet = sheetRef.current && sheetRef.current.contains(e.target)
+      if (!inTrigger && !inSheet) setOpen(false)
     }
     const onKey = (e) => e.key === 'Escape' && setOpen(false)
     document.addEventListener('mousedown', onDown)
@@ -96,22 +100,27 @@ export function ProfileMenu({ user, onSignOut, onContact }) {
             {items}
           </div>
 
-          {/* Mobile: bottom-sheet tinggi 152 (desain Figma iPhone base) */}
-          <div className="fixed inset-0 z-[100] lg:hidden">
-            <div
-              className="absolute inset-0 bg-black/30 backdrop-blur-sm animate-in fade-in-0"
-              onClick={() => setOpen(false)}
-            />
-            <div
-              role="menu"
-              className="absolute inset-x-0 bottom-0 flex h-[152px] flex-col rounded-t-3xl bg-[#030B1F] pb-[env(safe-area-inset-bottom)] text-left shadow-[0_-8px_30px_rgba(0,0,0,0.3)] animate-in slide-in-from-bottom duration-200"
-            >
-              <div className="mx-auto mt-3 h-1.5 w-10 shrink-0 rounded-full bg-white/20" />
-              <div className="flex flex-1 flex-col justify-center py-1.5">
-                {items}
+          {/* Mobile: bottom-sheet tinggi 152 (desain Figma iPhone base).
+              Di-portal ke <body> supaya lepas dari stacking-context ancestor
+              (mis. footer CTA z-20 di TransferBankPage) yang bikin sheet ketutupan. */}
+          {createPortal(
+            <div ref={sheetRef} className="fixed inset-0 z-[100] lg:hidden">
+              <div
+                className="absolute inset-0 bg-black/30 backdrop-blur-sm animate-in fade-in-0"
+                onClick={() => setOpen(false)}
+              />
+              <div
+                role="menu"
+                className="absolute inset-x-0 bottom-0 flex h-[152px] flex-col rounded-t-3xl bg-[#030B1F] pb-[env(safe-area-inset-bottom)] text-left shadow-[0_-8px_30px_rgba(0,0,0,0.3)] animate-in slide-in-from-bottom duration-200"
+              >
+                <div className="mx-auto mt-3 h-1.5 w-10 shrink-0 rounded-full bg-white/20" />
+                <div className="flex flex-1 flex-col justify-center py-1.5">
+                  {items}
+                </div>
               </div>
-            </div>
-          </div>
+            </div>,
+            document.body,
+          )}
         </>
       )}
     </div>

@@ -40,6 +40,8 @@ function durationLabel(duration) {
 // type   : 'pending' (flow 7) | 'expired' (flow 6) | 'suspended' | 'error' (flow 4)
 //        | 'payment_rejected' (payment terakhir ditolak admin; meta.variant =
 //          'receipt' | 'amount' | 'account', lihat evaluatePaymentGate)
+//        | 'payment_review' (sudah bayar, menunggu verifikasi admin — ikon jam,
+//          satu tombol Log Out)
 // onClose→ tutup / logout / dismiss: bersihkan sesi.
 // onRenew→ lanjut ke halaman langganan (skenario 'expired' & 'payment_rejected').
 // onRetry→ tutup modal untuk mencoba lagi (skenario 'error'; default onClose).
@@ -49,6 +51,33 @@ export function LoginStatusModal({ type, meta = {}, onClose, onRenew, onRetry, o
   if (type === 'suspended') return <SuspendedModal meta={meta} onClose={onClose} />
   if (type === 'rejected') return <RejectedModal meta={meta} onClose={onClose} onReregister={onReregister} />
   if (type === 'payment_rejected') return <PaymentRejectedModal meta={meta} onClose={onClose} onRenew={onRenew} onReupload={onReupload} />
+
+  // Sudah bayar, MENUNGGU verifikasi admin (langganan belum aktif). Ikon jam
+  // orange + satu tombol Log Out. Dipicu di App.handleLoginSuccess saat
+  // paymentPending — menggantikan handoff ke web app yang bikin loop.
+  // Branch tersendiri (bukan CONFIG) supaya jarak body→CTA presisi 2xl (24px)
+  // sama rata desktop & mobile: teks+judul dibungkus 1 anak, tombol anak kedua,
+  // Shell contentGap 'gap-6' (24px) yang mengatur jaraknya di mobile; desktop
+  // pakai lg:mt-6. Gap default 'gap-5' Shell tidak menyentuh modal ini.
+  if (type === 'payment_review') {
+    return (
+      <Shell tone="orange" icon={Clock} sheetClass="min-h-[275px] lg:min-h-0" contentGap="gap-6 lg:gap-0">
+        <div className="w-full">
+          <h2 className="text-2xl font-bold text-foreground mb-3">Pembayaran Sedang Kami Tinjau</h2>
+          <p className="text-[15px] text-muted-foreground leading-relaxed text-center">
+            Pembayaran kamu masih dalam proses verifikasi. Kami akan segera menginformasikan hasilnya dalam waktu{' '}
+            <span className="font-semibold text-foreground">1x24 jam</span>.
+          </p>
+        </div>
+        {/* CTA full-width (block) di desktop & mobile → jaraknya = padding Shell:
+            desktop lg:px-8 (32px), mobile px-6 (24px) → tambah px-2 (8px) khusus
+            mobile supaya sama-sama 32px kiri/kanan. Bawah sudah 32px via Shell pb-8. */}
+        <div className="w-full px-2 lg:px-0 lg:mt-6">
+          <ActionButton label="Log Out" variant="outline" icon={LogOut} onClick={() => onClose?.()} block />
+        </div>
+      </Shell>
+    )
+  }
 
   // Flow 4 — internal server error. Mobile: bottom-sheet (gaya sama layar status
   // lain). Desktop: kartu tengah (otomatis via Shell varian 'sheet' + lg:).
@@ -332,7 +361,7 @@ const DEFAULT_REJECT_REASONS = [
   'Nama sekolah tidak sesuai',
 ]
 
-function RejectedModal({ meta = {}, onClose, onReregister }) {
+function RejectedModal({ meta = {}, onClose }) {
   const reasons = Array.isArray(meta.reasons) && meta.reasons.length ? meta.reasons : DEFAULT_REJECT_REASONS
 
   return (
@@ -359,16 +388,19 @@ function RejectedModal({ meta = {}, onClose, onReregister }) {
         </ul>
       </div>
 
-      <p className="text-xs text-muted-foreground text-center leading-relaxed opacity-80 lg:mb-6">
+      <p className="text-xs text-muted-foreground text-center leading-relaxed opacity-80 lg:mb-4">
         Jika kamu merasa ini adalah kesalahan, silakan{' '}
         <a href={WA_URL} target="_blank" rel="noopener noreferrer" className="font-semibold text-[#0033EC] underline hover:opacity-80">Hubungi Kami</a>{' '}
         untuk bantuan lebih lanjut.
       </p>
 
-      {/* Mobile (Figma): tumpuk vertikal. Desktop: baris berdampingan. */}
-      <div className="flex flex-col gap-3 w-full lg:flex-row-reverse lg:items-center lg:gap-4">
-        <ActionButton label="Daftar Ulang" variant="primary" onClick={() => (onReregister || onClose)?.()} />
-        <ActionButton label="Log Out" variant="outline" onClick={() => onClose?.()} />
+      <p className="text-sm font-semibold text-red-500 text-center leading-relaxed lg:mb-6">
+        * Cek email anda untuk daftar ulang.
+      </p>
+
+      {/* Action button: Log Out primary */}
+      <div className="w-full px-2 lg:px-0">
+        <ActionButton label="Log Out" variant="primary" onClick={() => onClose?.()} block />
       </div>
     </Shell>
   )
@@ -394,7 +426,7 @@ const TONES = {
 //   'sheet'  (default) → mobile: bottom-sheet (naik dari bawah, rounded-top, ada handle);
 //                        desktop: kartu tengah.
 //   'center'          → kartu tengah di semua ukuran (dipakai modal error).
-function Shell({ tone, icon: Icon, children, variant = 'sheet', sheetClass }) {
+function Shell({ tone, icon: Icon, children, variant = 'sheet', sheetClass, contentGap = 'gap-5 lg:gap-0' }) {
   const t = TONES[tone] || TONES.orange
   const sheet = variant === 'sheet'
 
@@ -422,7 +454,7 @@ function Shell({ tone, icon: Icon, children, variant = 'sheet', sheetClass }) {
             <Icon size={26} className={t.icon} />
           </div>
         </div>
-        <div className={cn('flex flex-col items-center justify-center w-full', sheet && 'gap-5 lg:gap-0')}>
+        <div className={cn('flex flex-col items-center justify-center w-full', sheet && contentGap)}>
           {children}
         </div>
       </div>
@@ -430,14 +462,17 @@ function Shell({ tone, icon: Icon, children, variant = 'sheet', sheetClass }) {
   )
 }
 
-function ActionButton({ label, variant, icon: Icon, onClick }) {
+// block=true → tombol full-width tanpa batas lebar desktop (dipakai CTA tunggal
+// yang harus penuh, mis. modal payment_review). Default: dibatasi 173–368px.
+function ActionButton({ label, variant, icon: Icon, onClick, block = false }) {
   return (
     <button
       onClick={onClick}
       className={cn(
         // Desktop: lebar tombol CTA dibatasi — min 173px (kasus 2 tombol),
         // maks 368px (kasus 1 tombol). Mobile tetap full-width.
-        'flex-1 flex items-center justify-center gap-2 font-semibold px-6 py-3.5 rounded-full transition-colors whitespace-nowrap lg:min-w-[173px] lg:max-w-[368px]',
+        'flex items-center justify-center gap-2 font-semibold px-6 py-3.5 rounded-full transition-colors whitespace-nowrap',
+        block ? 'w-full' : 'flex-1 lg:min-w-[173px] lg:max-w-[368px]',
         variant === 'primary'
           ? 'bg-[#0033EC] text-white hover:bg-[#0029BD]'
           : variant === 'danger'

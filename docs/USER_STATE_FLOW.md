@@ -239,19 +239,19 @@ flowchart TD
 
 ## 11. Disabled (dinonaktifkan admin)
 
-Tag `USER/DISCOURSE/DISABLED-SSO` → jangan lewat SSO. Routing beda, bukan blok penuh.
+Tag `USER/DISCOURSE/DISABLED-SSO` = SATU-SATUNYA jalan masuk **Dashboard Admin**. Routing beda, bukan blok penuh.
 
 ```mermaid
 flowchart TD
   A[Login] --> B{isSsoDisabled?<br/>tag DISABLED-SSO}
-  B -- tidak --> C[alur SSO normal]
-  B -- ya --> D{"punya cap<br/>DISCOURSE/GROUP/SYNC?"}
-  D -- ya --> E["/dashboard-admin/ langsung"]
-  D -- tidak --> F[redirectWithTokens<br/>tanpa SSO]
+  B -- ya --> E["/dashboard-admin langsung"]
+  B -- tidak --> D{isSuperAdmin ATAU<br/>canAccessDiscourse?<br/>tag MANAGE_EXTRA_GROUPS}
+  D -- ya --> F["/login/choice panel:<br/>superadmin = 3 tombol Dashboard+Discourse+WebApp<br/>MANAGE_EXTRA_GROUPS = 2 tombol Discourse+WebApp"]
+  D -- tidak --> G[user biasa → cek langganan<br/>redirectWithTokens / subscription]
 ```
 
-**File**: `App.jsx:356-367`.
-⚠ "disabled" di sini = **routing SSO**, BUKAN blok login penuh. Nama field beda dari "disabled akun".
+**File**: `App.jsx → handleLoginSuccess`.
+⚠ "disabled" di sini = **routing ke dashboard**, BUKAN blok login penuh. Nama field beda dari "disabled akun".
 
 ---
 

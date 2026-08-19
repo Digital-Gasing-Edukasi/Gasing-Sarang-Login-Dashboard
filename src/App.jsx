@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback, lazy, Suspense } from "react";
 import { Routes, Route, Navigate, useNavigate, useLocation } from "react-router-dom";
 import { tokenStorage, subscriptionApi, profileApi, authApi, regionsApi, webAppApi } from "@/lib/api";
-import { isSuperAdmin, isOperationalAdmin, isSsoDisabled, hasAllAdminCapabilities, hasCapability } from "@/lib/roles";
+import { canAccessDiscourse, isSsoDisabled, isSuperAdmin } from "@/lib/roles";
 import { decodeFixPayload } from "@/lib/fixLink";
-import { evaluateLoginGate, evaluatePaymentGate } from "@/lib/loginGate";
+import { evaluateLoginGate, evaluatePaymentGate, isPaymentGraceActive } from "@/lib/loginGate";
 import { pathForPage, isPublicStaticPath, skipSessionRestore } from "@/lib/routes";
 import { LoginStatusModal } from "@/components/shared/LoginStatusModal";
 
@@ -189,6 +189,7 @@ export default function App() {
       // ?gatetest=suspended | pending | expired → paksa tampil LoginStatusModal.
       // ?gatetest=payment_receipt | payment_amount | payment_account → modal
       //   "Pembayaran Ditolak" (varian ikut sufiks setelah "payment_").
+      // ?gatetest=payment_review → modal "Pembayaran Sedang Kami Tinjau".
       const gatetest = params.get("gatetest");
       if (gatetest) {
         const meta =
@@ -207,7 +208,7 @@ export default function App() {
                   "Nama sekolah tidak sesuai",
                 ],
               }
-            : gatetest.startsWith("payment")
+            : gatetest.startsWith("payment") && gatetest !== "payment_review"
             ? {
                 type: "payment_rejected",
                 variant: gatetest.split("_")[1] || "receipt",
@@ -369,11 +370,14 @@ export default function App() {
     // langganan belum aktif/expired (nunggu pembayaran diproses).
     // Dihitung sekali, dipakai di gate 'expired' + routing langganan di bawah.
     let paymentPending = false;
+    let graceActive = false; // pending & MASIH < 24 jam → boleh akses web app
     let paymentRejected = null;
     try {
       const latest = await subscriptionApi.getLatestPayment();
       const p = latest?.payment || latest?.data || latest || {};
       paymentPending = p.status === "pending";
+      // Akses sementara 24 jam sejak bayar (manual transfer) walau belum diverifikasi.
+      graceActive = isPaymentGraceActive(p);
       // Payment terakhir ditolak admin (failed/rejected) → gate "Pembayaran Ditolak".
       paymentRejected = evaluatePaymentGate(p);
     } catch {
@@ -403,27 +407,30 @@ export default function App() {
 
     setCurrentUser(user);
 
-    // Punya DISABLED-SSO DAN GROUP/SYNC → langsung ke Dashboard Admin
-    // (jangan lewat SSO, jangan ke web app). Cek ini duluan sebelum cabang lain.
-    if (isSsoDisabled(user) || hasAllAdminCapabilities(user)) {
-      navigate("/dashboard-admin", { replace: true });
-      return;
-    }
+    // ── DEBUG sementara: cek bentuk respons /profile/me & deteksi peran. HAPUS nanti.
+    console.log("[login-debug] profile keys:", Object.keys(user || {}));
+    console.log("[login-debug] superadmin:", user?.superadmin, "| superAdmin:", user?.superAdmin);
+    console.log("[login-debug] capabilities:", user?.capabilities);
+    console.log(
+      "[login-debug] isSuperAdmin:", isSuperAdmin(user),
+      "| isSsoDisabled:", isSsoDisabled(user),
+      "| canAccessDiscourse:", canAccessDiscourse(user),
+    );
+    // ─────────────────────────────────────────────────────────────────────────
 
-    // Tag USER/DISCOURSE/DISABLED-SSO → jangan lewat SSO, langsung ke dashboard.
+    // HANYA yang punya capability USER/DISCOURSE/DISABLED-SSO yang boleh masuk
+    // Dashboard Admin. Selain itu (all-caps admin / operational tanpa tag ini)
+    // TIDAK lagi diarahkan ke dashboard.
     if (isSsoDisabled(user)) {
-      webAppApi.redirectWithTokens();
-      return;
-    }
-
-    if (isOperationalAdmin(user)) {
-
       navigate("/dashboard-admin", { replace: true });
       return;
     }
 
-    if (isSuperAdmin(user)) {
-      webAppApi.redirectWithTokens();
+    // Superadmin / pemilik USER/DISCOURSE/MANAGE_EXTRA_GROUPS → panel pilih tujuan.
+    // JANGAN auto redirect. Superadmin dapat 3 tombol (Dashboard + Moderator/Discourse
+    // + Web App); MANAGE_EXTRA_GROUPS dapat 2 (Moderator/Discourse + Web App).
+    if (isSuperAdmin(user) || canAccessDiscourse(user)) {
+      navigate("/login/choice", { replace: true });
       return;
     }
 
@@ -433,16 +440,30 @@ export default function App() {
       const isActive =
         sub?.hasActiveSubscription === true ||
         sub?.subscription?.status === "active";
-      // Pembayaran masih pending → tetap dilolosin ke web app.
-      if (isActive || paymentPending) {
+      // Boleh handoff ke web app bila: langganan aktif, ATAU masih dalam masa
+      // grace 24 jam sejak bayar manual (graceActive) walau belum diverifikasi.
+      // Payment 'pending' yang grace-nya HABIS (> 24 jam) TIDAK dilempar — web
+      // app pasti menolak lalu bounce ke /login → loop layar putih. Tahan di
+      // modal "Pembayaran Sedang Kami Tinjau" sampai admin verifikasi.
+      if (isActive || graceActive) {
         webAppApi.redirectWithTokens();
+      } else if (paymentPending) {
+        setGate({ type: "payment_review", profile: user });
+        navigate("/login", { replace: true });
       } else {
         navigate("/login/subscription", { replace: true });
       }
     } catch {
-      // Gagal cek langganan → lolos bila ada payment pending, else halaman langganan.
-      if (paymentPending) webAppApi.redirectWithTokens();
-      else navigate("/login/subscription", { replace: true });
+      // Gagal cek langganan → grace 24 jam masih lolos ke web app; pending yang
+      // grace-nya habis tampil modal tinjau; selain itu halaman langganan.
+      if (graceActive) {
+        webAppApi.redirectWithTokens();
+      } else if (paymentPending) {
+        setGate({ type: "payment_review", profile: user });
+        navigate("/login", { replace: true });
+      } else {
+        navigate("/login/subscription", { replace: true });
+      }
     }
   };
 
@@ -538,7 +559,7 @@ export default function App() {
           path="/login/choice"
           element={requireAuth(
             <SplitLayout>
-              <AuthChoicePage onNavigate={go} onSignOut={handleSignOut} />
+              <AuthChoicePage user={currentUser} onNavigate={go} onSignOut={handleSignOut} />
             </SplitLayout>,
           )}
         />
@@ -550,7 +571,6 @@ export default function App() {
                 sso={ssoParams?.sso}
                 sig={ssoParams?.sig}
                 onNavigate={go}
-                onSignOut={handleSignOut}
               />
             </SplitLayout>
           }
@@ -767,14 +787,6 @@ export default function App() {
             } else {
               navigate("/login/subscription", { replace: true });
             }
-          }}
-          // "Daftar Ulang" (akun ditolak / rejected) → bersihkan sesi lalu mulai
-          // pendaftaran dari awal.
-          onReregister={() => {
-            tokenStorage.clear();
-            setCurrentUser(null);
-            setGate(null);
-            navigate("/register", { replace: true });
           }}
         />
       )}

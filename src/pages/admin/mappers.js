@@ -190,9 +190,14 @@ function deriveAlumni(u, { regionFallback } = {}) {
   const alumniDaerah = lts.region?.full_name || lts.name ||
     (regionFallback && regionFallback !== '-' ? regionFallback : '-')
   const alumniTanggal = ltsStartMs ? fmtDate(ltsStartMs) : '-'
-  const riwayatCount =
+  // Count dari tabel trainingHistories (bisa 0 walau firstTrainingSession ada, karena
+  // sesi yang di-assign admin BUKAN record trainingHistory). JANGAN pakai `??` mentah:
+  // `0 ?? x` = 0, jadi count nol menelan fallback & kolom tampil '-'. Ambil count API,
+  // lalu Math.max dengan hasRiwayat (sesi pertama = minimal 1) supaya kolom tidak kosong.
+  const apiCount =
     u.trainingHistoriesCount ?? u.trainingHistoryCount ?? u._count?.trainingHistories ??
-    (Array.isArray(u.trainingHistories) ? u.trainingHistories.length : (hasRiwayat ? 1 : 0))
+    (Array.isArray(u.trainingHistories) ? u.trainingHistories.length : 0)
+  const riwayatCount = Math.max(Number(apiCount) || 0, hasRiwayat ? 1 : 0)
   return { lts, ltsStartMs, hasRiwayat, alumniNama, alumniDaerah, alumniTanggal, riwayatCount }
 }
 
@@ -294,9 +299,9 @@ function parseManajemenStatus(u) {
   if (hasDeletion || u.deletionPending || u.deletionScheduledAt || u.deletedAt) return 'Baru Dihapus'
   if (u.suspendedUntil || u.suspended) return 'Ditangguhkan'
   const vs = u.verifiedStatus
-  // REJECTED(-1) = tolak final; REVISE(2) = diminta perbaiki data. Keduanya hasil
-  // aksi "Tolak Akun" admin, jadi keduanya muncul di tab Ditolak.
-  if (vs === -1 || vs === 'rejected' || vs === 2 || vs === 'revise') return 'Ditolak'
+  // REJECTED(-1) = tolak final; REVISE(2) = tolak pembayaran.
+  // Hanya status -1 yang masuk ke tab Ditolak.
+  if (vs === -1 || vs === 'rejected') return 'Ditolak'
   return 'Disetujui'
 }
 

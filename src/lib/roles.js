@@ -43,6 +43,15 @@ export function isSsoDisabled(user) {
 }
 
 /**
+ * Boleh masuk Discourse? HANYA yang punya capability
+ * USER/DISCOURSE/MANAGE_EXTRA_GROUPS. Dipakai untuk memunculkan panel pilihan
+ * tujuan (Discourse / Web App) sebelum masuk — lihat App.jsx.
+ */
+export function canAccessDiscourse(user) {
+  return hasCapability(user, "USER/DISCOURSE/MANAGE_EXTRA_GROUPS");
+}
+
+/**
  * Apakah user adalah superadmin?
  * Backend kadang mengirim `superadmin`, kadang `superAdmin` — keduanya diterima.
  */
