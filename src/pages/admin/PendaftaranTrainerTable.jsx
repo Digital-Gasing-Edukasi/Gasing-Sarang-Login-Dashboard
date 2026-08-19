@@ -46,7 +46,7 @@ export function PendaftaranTrainerTable({
           <th className="px-4 py-4 font-medium align-bottom">Periode</th>
           <th className="px-4 py-4 font-medium align-bottom">Batas Waktu</th>
           <th className="px-4 py-4 font-medium align-bottom">Status</th>
-          <th className="px-4 py-4 font-medium text-center sticky right-0 z-30 bg-[#0A1128] relative">Tampilkan di Home?<FreezeBlurRight /></th>
+          <th className="px-4 py-4 font-medium align-bottom text-center sticky right-0 z-30 bg-[#0A1128] relative">Tampilkan di Home?<FreezeBlurRight /></th>
         </tr>
       </thead>
       <tbody className="divide-y divide-gray-100">
@@ -56,7 +56,7 @@ export function PendaftaranTrainerTable({
             const ended = !item.isActive;
             return (
             <tr key={item.id} className="group transition-colors hover:bg-[#F9FAFB]">
-              <td className="px-4 py-4">
+              <td className="px-4 py-4 align-top">
                 <div className="flex items-center gap-2">
                   <span className="font-bold text-[#0A1128]">{item.nama}</span>
                   {item.isNew && (
@@ -64,7 +64,7 @@ export function PendaftaranTrainerTable({
                   )}
                 </div>
               </td>
-              <td className="px-4 py-4">
+              <td className="px-4 py-4 align-top">
                 {item.url ? (
                   <a
                     href={item.url}
@@ -79,21 +79,21 @@ export function PendaftaranTrainerTable({
                   <span className="text-gray-400">-</span>
                 )}
               </td>
-              <td className="px-4 py-4 text-[#0A1128] font-medium">{item.periode}</td>
-              <td className={cn('px-4 py-4 font-medium', expired ? 'text-gray-400' : 'text-[#0A1128]')}>
+              <td className="px-4 py-4 align-top text-[#0A1128] font-medium">{item.periode}</td>
+              <td className={cn('px-4 py-4 align-top font-medium', expired ? 'text-gray-400' : 'text-[#0A1128]')}>
                 {fmtBatasWaktu(item.batasWaktu)}
               </td>
-              <td className="px-4 py-4">
+              <td className="px-4 py-4 align-top">
                 <span
                   className={cn(
                     "inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold",
                     item.isActive ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"
                   )}
                 >
-                  {expired ? 'Berakhir' : 'Aktif'}
+                  {expired ? 'Berakhir' : (item.isActive ? 'Aktif' : 'Non-Aktif')}
                 </span>
               </td>
-              <td className="px-4 py-4 sticky right-0 z-10 transition-colors relative bg-white group-hover:bg-[#F9FAFB]">
+              <td className="px-4 py-4 align-top sticky right-0 z-10 transition-colors relative bg-white group-hover:bg-[#F9FAFB]">
                 <FreezeBlurRight />
                 <div className="flex items-center justify-center">
                   {expired ? (

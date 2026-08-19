@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { ArrowDownUp, SearchX, CheckCircle2, Trash2 } from 'lucide-react'
+import { ArrowDownUp, SearchX, CheckCircle2, Trash2, Inbox } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { abbrevRegion } from '@/lib/format'
 import { TableShell, FreezeBlurLeft, FreezeBlurRight } from './TableShell'
@@ -120,11 +120,11 @@ export function VerifikasiPembayaranTable({
         <tbody className="divide-y divide-gray-100">
           {users.length > 0 ? users.map(user => (
             <tr key={user.id} className="group transition-colors hover:bg-[#F9FAFB]">
-              <td className="px-4 py-4 sticky left-0 z-10 bg-white group-hover:bg-[#F9FAFB] transition-colors relative">
-                <div className="flex items-center gap-2">
-                  <span className="font-bold text-[#0A1128]">{user.name}</span>
+              <td className="px-4 py-4 sticky left-0 z-10 bg-white group-hover:bg-[#F9FAFB] transition-colors relative align-top">
+                <div className="flex items-start gap-2 min-w-[160px] max-w-[240px]">
+                  <span className="font-bold text-[#0A1128] line-clamp-2 break-words" title={user.name}>{user.name}</span>
                   {user.isNew && (
-                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-blue-600 text-white">New</span>
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-blue-600 text-white shrink-0">New</span>
                   )}
                 </div>
                 <div className="text-xs text-gray-400 mt-0.5">{user.username}</div>
@@ -200,7 +200,13 @@ export function VerifikasiPembayaranTable({
                     <p className="text-sm text-gray-400">Coba cari lagi menggunakan ejaan atau kata kunci berbeda.</p>
                   </div>
                 ) : (
-                  <p className="text-center text-gray-500">Tidak ada data pada tab ini.</p>
+                  <div className="flex flex-col items-center text-center gap-2">
+                    <div className="w-14 h-14 rounded-full border border-gray-200 flex items-center justify-center text-gray-300 mb-1">
+                      <Inbox size={26} />
+                    </div>
+                    <p className="font-bold text-[#0A1128]">Tidak Ada Antrean</p>
+                    <p className="text-sm text-gray-400">Belum ada akun yang masuk untuk diverifikasi</p>
+                  </div>
                 )}
               </td>
             </tr>

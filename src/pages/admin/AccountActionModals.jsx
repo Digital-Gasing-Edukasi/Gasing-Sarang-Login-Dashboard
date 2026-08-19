@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { History, Trash2, Clock, CheckCircle2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -104,6 +105,46 @@ export function SetujuiAkunModal({ user, onConfirm, onCancel }) {
       onConfirm={onConfirm}
       onCancel={onCancel}
     />
+  )
+}
+
+// Konfirmasi hapus destruktif — ketik "DELETE" buat lanjut. Pola sama dengan
+// yang dipakai PerbaruiRiwayatModal (Hapus Riwayat Pelatihan), diekstrak di
+// sini biar reusable buat aksi hapus destruktif lain (mis. Hapus Pelatihan
+// pendaftaran-trainer). JANGAN bikin modal ketik-DELETE baru dari nol.
+export function TypedDeleteConfirmModal({ title, body, itemName, confirmLabel = 'Hapus', onConfirm, onCancel }) {
+  const [text, setText] = useState('')
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#030B1F]/30 p-4">
+      <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-xl text-center">
+        <div className="w-14 h-14 rounded-full bg-red-50 flex items-center justify-center mx-auto mb-4">
+          <Trash2 className="text-red-500" size={24} />
+        </div>
+        <h3 className="text-lg font-bold text-[#0A1128] mb-2">{title}</h3>
+        <p className="text-sm text-gray-500 mb-4">
+          {body || <>Kamu akan menghapus <span className="font-semibold text-[#0A1128]">{itemName}</span>. Seluruh data yang tersimpan akan hilang.</>}
+        </p>
+        <p className="text-xs text-gray-500 mb-1.5 text-left">Ketik <b className="text-red-500">DELETE</b> untuk melanjutkan</p>
+        <input
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          placeholder="DELETE"
+          className="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm mb-5 focus:outline-none focus:border-red-400 focus:ring-1 focus:ring-red-400"
+        />
+        <div className="flex gap-3">
+          <button onClick={onCancel} className="flex-1 border border-gray-200 text-[#0A1128] font-semibold py-2.5 rounded-full hover:bg-gray-50 transition-colors">
+            Batalkan
+          </button>
+          <button
+            disabled={text !== 'DELETE'}
+            onClick={onConfirm}
+            className="flex-1 bg-red-500 hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-2.5 rounded-full transition-colors"
+          >
+            {confirmLabel}
+          </button>
+        </div>
+      </div>
+    </div>
   )
 }
 

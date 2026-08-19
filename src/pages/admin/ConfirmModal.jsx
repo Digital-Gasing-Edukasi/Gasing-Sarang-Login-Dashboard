@@ -131,7 +131,9 @@ export function RejectModal({ candidate, onConfirm, onCancel }) {
 
 // Dropdown kecil reusable (Pelatihan) — custom panel (bukan <select> native)
 // supaya lebar list persis mengikuti lebar trigger, sama seperti RoleSelect.
-function Dropdown({ value, onChange, options = [], placeholder }) {
+// Diexport supaya dipakai ulang di modal lain (mis. SetujuiAkunModal) — jangan
+// bikin dropdown native baru, ikuti pola ini.
+export function Dropdown({ value, onChange, options = [], placeholder }) {
   const [open, setOpen] = useState(false)
   const ref = useRef(null)
   const current = options.find((o) => String(o.value) === String(value))
@@ -158,7 +160,7 @@ function Dropdown({ value, onChange, options = [], placeholder }) {
       </button>
 
       {open && (
-        <div className="absolute left-0 right-0 top-full mt-2 bg-white border border-gray-100 rounded-xl shadow-lg py-1.5 z-30 max-h-60 overflow-auto">
+        <div className="absolute left-0 right-0 top-full mt-2 bg-white border border-gray-100 rounded-xl shadow-lg py-1.5 z-30 max-h-[320px] overflow-auto">
           {options.length === 0 && <div className="px-4 py-2 text-sm text-gray-400">Tidak ada pelatihan</div>}
           {options.map((o) => {
             const selected = String(o.value) === String(value)

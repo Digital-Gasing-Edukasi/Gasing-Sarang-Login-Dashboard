@@ -22,9 +22,10 @@ import {
   ChevronDown,
   Download,
   Trash2,
+  LogOut,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { subscriptionApi, fileManagerApi } from "@/lib/api";
+import { subscriptionApi, fileManagerApi, webAppApi } from "@/lib/api";
 import mandiriLogo from "@/assets/subscription/mandiri-logo.png";
 import { Logo } from "@/components/shared/Logo";
 import { ProfileMenu } from "@/components/shared/ProfileMenu";
@@ -94,6 +95,14 @@ export default function TransferBankPage({
   onBack,
   initialSubmitted = false,
   initialReceiptFileId = null,
+  // isRetry: true bila user sampai sini lewat gate "Pembayaran Ditolak"
+  // (Attempt ke-2+, lihat App.jsx handler onRenew/onReupload). Dipakai di
+  // layar "Pembayaran Berhasil!" (submitted) utk beda tombol: Attempt #1 →
+  // "Jelajahi Sarang Gasing" (auto-login web app), Attempt #2+ → "Log Out"
+  // (pakai `onSignOut` yg sudah ada, jangan bikin fungsi baru).
+  // TODO(UI dev): belum dipakai di JSX — swap CTA di blok `submitted` (baris
+  // ~316) berdasarkan flag ini.
+  isRetry = false,
 }) {
   const bank = {
     accountNumber:
@@ -124,6 +133,11 @@ export default function TransferBankPage({
   const fileInputRef = useRef(null);
 
   const ADMIN_EMAIL = import.meta.env.VITE_CONTACT_ADMIN || "admin@gasingacademy.org";
+
+  const handleRedirectDefault = () => {
+    webAppApi.redirectWithTokens();
+  };
+
   const orderId =
     pick(payment, "orderId", "orderNumber", "id") ||
     pick(payment?.data, "orderId", "id") ||
@@ -308,12 +322,22 @@ export default function TransferBankPage({
                 Unduh Bukti
               </a>
             )}
-            <button
-              onClick={onSignOut}
-              className="flex items-center justify-center px-8 py-3.5 rounded-full bg-white text-[#0b0a1f] font-bold text-[15px] hover:bg-white/90 active:scale-[0.98] transition-all"
-            >
-              Jelajahi Sarang Gasing
-            </button>
+            {isRetry ? (
+              <button
+                onClick={onSignOut}
+                className="flex items-center justify-center gap-2 px-8 py-3.5 rounded-full bg-white text-[#0b0a1f] font-bold text-[15px] hover:bg-white/90 active:scale-[0.98] transition-all"
+              >
+                <LogOut size={18} />
+                Log Out
+              </button>
+            ) : (
+              <button
+                onClick={handleRedirectDefault}
+                className="flex items-center justify-center px-8 py-3.5 rounded-full bg-white text-[#0b0a1f] font-bold text-[15px] hover:bg-white/90 active:scale-[0.98] transition-all"
+              >
+                Jelajahi Sarang Gasing
+              </button>
+            )}
           </div>
 
           <p className="text-[14px] text-white/40 mt-8">

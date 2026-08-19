@@ -26,7 +26,7 @@ import { PerbaruiRiwayatModal } from './admin/PerbaruiRiwayatModal'
 import { RiwayatDetailModal } from './admin/RiwayatDetailModal'
 import { DaftarPesertaModal } from './admin/DaftarPesertaModal'
 import { UbahRoleModal } from './admin/UbahRoleModal'
-import { HapusAkunModal, PulihkanAkunModal, HapusPermanenModal } from './admin/AccountActionModals'
+import { HapusAkunModal, PulihkanAkunModal, HapusPermanenModal, TypedDeleteConfirmModal } from './admin/AccountActionModals'
 import { SuspendModal } from './admin/SuspendModal'
 import { SetujuiAkunModal } from './admin/SetujuiAkunModal'
 import { KirimVoucherModal } from './admin/KirimVoucherModal'
@@ -205,7 +205,7 @@ function buildCsvContent(tab, users, activeFilter, verifSubTab = 'pending', pemb
 // Generate kode voucher (placeholder FE). TODO(be): kode asli mestinya dari backend
 // saat approve (auto-generate). Ganti pemanggilan ini begitu endpoint tersedia.
 function genVoucherCode() {
-  return 'SUB' + Math.random().toString(36).slice(2, 8).toUpperCase()
+  return 'GASI' + Math.random().toString(36).slice(2, 8).toUpperCase()
 }
 
 export default function AdminDashboardPage({ user, onSignOut }) {
@@ -327,8 +327,8 @@ export default function AdminDashboardPage({ user, onSignOut }) {
         // Lookup by id dari SEMUA user (belum disaring eligible) → tabel lain bisa
         // join by userId walau user-nya bukan status Manajemen.
         setUsersById(Object.fromEntries(mapped.map(({ row }) => [row.id, row])))
-        // Hanya akun ber-keputusan final (approved/rejected) + voucher beres yang
-        // masuk Manajemen. WAITING/REVISE/pending-voucher disaring keluar.
+        // Masuk Manajemen: approved, rejected, DAN revise (revise ikut tab Ditolak —
+        // lihat isManajemenEligible). WAITING/pending-voucher tetap disaring keluar.
         setManagementUsers(mapped.filter(({ raw }) => isManajemenEligible(raw)).map(({ row }) => row))
       }
     } catch (err) {
@@ -493,6 +493,13 @@ export default function AdminDashboardPage({ user, onSignOut }) {
   }, [])
 
   const handleTabChange = (tab) => {
+    // DB-005 #10: toast global (1 state utk semua tab) nyangkut kalau ganti tab
+    // sebelum auto-dismiss 5s (mis. toast "Pendaftaran Trainer" masih nempel di
+    // Riwayat Pelatihan). Cuma sembunyikan tampilannya di sini — JANGAN clearTimeout
+    // toastTimeoutId: sebagian toast (scheduleAction, mis. reject/delete akun) pakai
+    // timer itu buat commit API delayed 5s (undo-window). Kalau timer dibatalkan,
+    // aksinya batal ikut hilang & state jadi tidak sinkron dgn backend.
+    setToast(null)
     setActiveTab(tab); setSearchQuery(''); resetSort()
     setActiveFilter('Disetujui'); setSelectedRoles([]); setSelectedSubscriptions([]); setSelectedPlans([])
     setSelectedIds([]); setBulkModal(null)
@@ -522,7 +529,7 @@ export default function AdminDashboardPage({ user, onSignOut }) {
       // approved + status langganannya ikut muncul (state Manajemen kalau tidak
       // di-refetch tetap basi sampai pindah tab / hard reload).
       async () => { await adminApi.approveManualPayment(target.id); loadUsers('manajemen') },
-      () => { restore(); setApiError('Gagal mengonfirmasi pembayaran.') }
+      (err) => { restore(); setApiError(apiErrMsg(err, 'Gagal mengonfirmasi pembayaran.')) }
     )
   }
 
@@ -544,10 +551,10 @@ export default function AdminDashboardPage({ user, onSignOut }) {
     })
     scheduleAction(
       () => adminApi.rejectManualPayment(target.id, reason, reasonLabel),
-      () => {
+      (err) => {
         setPembayaranDitolak(prev => prev.filter(u => u.id !== target.id))
         setPembayaranMenunggu(prev => [target, ...prev])
-        setApiError('Gagal menolak pembayaran.')
+        setApiError(apiErrMsg(err, 'Gagal menolak pembayaran.'))
       }
     )
   }
@@ -574,7 +581,7 @@ export default function AdminDashboardPage({ user, onSignOut }) {
     scheduleAction(
       // Refresh Manajemen supaya akun muncul di tab "Baru Dihapus".
       async () => { await adminApi.requestUserDeletion(target.userId || target.id); loadUsers('manajemen') },
-      () => { setPembayaranDitolak(prev => [target, ...prev]); setApiError('Gagal menghapus akun.') }
+      (err) => { setPembayaranDitolak(prev => [target, ...prev]); setApiError(apiErrMsg(err, 'Gagal menghapus akun.')) }
     )
   }
 
@@ -823,12 +830,16 @@ export default function AdminDashboardPage({ user, onSignOut }) {
     const id = setTimeout(async () => {
       if (executeActionRef.current) {
         try { await apiCall() }
-        catch { onError() }
+        catch (err) { onError(err) }
       }
       setToast(null)
     }, 5000)
     setToastTimeoutId(id)
   }
+
+  // Tempel pesan error asli dari API (kalau ada) ke belakang copy generik, biar
+  // banner error informatif bukan cuma "Gagal ..." tanpa alasan (DB-002 #11).
+  const apiErrMsg = (err, fallback) => err?.message ? `${fallback} (${err.message})` : fallback
 
   // Toast dengan undo untuk aksi FE-only (tanpa API): perubahan state langsung,
   // `undo` mengembalikan state, auto-dismiss 5 detik.
@@ -874,10 +885,10 @@ export default function AdminDashboardPage({ user, onSignOut }) {
       // BE sudah auto-membuat record training-history saat verify menyetel
       // firstTrainingSession (POST manual → 409 "already exists"), jadi cukup verify saja.
       () => adminApi.verifyUser(target.id, { status: 'approved', discourseGroupId, firstTrainingSessionId }),
-      () => {
+      (err) => {
         setPendingVoucherUsers(prev => prev.filter(u => u.id !== target.id))
         setUsers(prev => [target, ...prev])
-        setApiError('Gagal menyetujui akun.')
+        setApiError(apiErrMsg(err, 'Gagal menyetujui akun.'))
       }
     )
   }
@@ -900,7 +911,7 @@ export default function AdminDashboardPage({ user, onSignOut }) {
     })
     scheduleAction(
       () => adminApi.verifyUser(target.id, { status: 'approved', discourseGroupId: target.discourseGroupId }),
-      () => { setPendingVoucherUsers(prev => [target, ...prev]); setApiError('Gagal menyetujui akun.') }
+      (err) => { setPendingVoucherUsers(prev => [target, ...prev]); setApiError(apiErrMsg(err, 'Gagal menyetujui akun.')) }
     )
   }
 
@@ -915,7 +926,7 @@ export default function AdminDashboardPage({ user, onSignOut }) {
     })
     scheduleAction(
       () => Promise.all(rows.map(r => adminApi.verifyUser(r.id, { status: 'approved', discourseGroupId: r.discourseGroupId }))),
-      () => { setPendingVoucherUsers(prev => [...removed, ...prev]); setApiError('Gagal menyetujui sebagian akun.') }
+      (err) => { setPendingVoucherUsers(prev => [...removed, ...prev]); setApiError(apiErrMsg(err, 'Gagal menyetujui sebagian akun.')) }
     )
   }
 
@@ -945,10 +956,10 @@ export default function AdminDashboardPage({ user, onSignOut }) {
       // BE auto-membuat record training-history saat verify menyetel firstTrainingSession,
       // jadi cukup verify saja (POST manual → 409 "already exists").
       () => Promise.all(rows.map(r => adminApi.verifyUser(r.id, { status: 'approved', discourseGroupId: r.discourseGroupId, firstTrainingSessionId: r.firstTrainingSessionId }))),
-      () => {
+      (err) => {
         setPendingVoucherUsers(prev => prev.filter(u => !ids.includes(u.id)))
         setUsers(prev => [...removed, ...prev])
-        setApiError('Gagal menyetujui sebagian akun.')
+        setApiError(apiErrMsg(err, 'Gagal menyetujui sebagian akun.'))
       }
     )
   }
@@ -965,7 +976,7 @@ export default function AdminDashboardPage({ user, onSignOut }) {
         ? adminApi.rejectUser(r.id, { rejectedReason: r.reason })
         : adminApi.reviseUser(r.id, { rejectedReason: r.reason, fieldsToRevise: r.invalidFields })
       )),
-      () => { setUsers(prev => [...removed, ...prev]); setApiError('Gagal menolak sebagian akun. Silakan coba lagi.') }
+      (err) => { setUsers(prev => [...removed, ...prev]); setApiError(apiErrMsg(err, 'Gagal menolak sebagian akun. Silakan coba lagi.')) }
     )
   }
 
@@ -982,8 +993,8 @@ export default function AdminDashboardPage({ user, onSignOut }) {
       ? () => adminApi.rejectUser(target.id, { rejectedReason: reason })
       : () => adminApi.reviseUser(target.id, { rejectedReason: reason, fieldsToRevise: invalidFields })
 
-    scheduleAction(apiCall, () => {
-      setUsers(prev => [target, ...prev]); setApiError('Gagal menolak akun. Silakan coba lagi.')
+    scheduleAction(apiCall, (err) => {
+      setUsers(prev => [target, ...prev]); setApiError(apiErrMsg(err, 'Gagal menolak akun. Silakan coba lagi.'))
     })
   }
 
@@ -1016,7 +1027,7 @@ export default function AdminDashboardPage({ user, onSignOut }) {
     // Commit ke backend. Undo membatalkan timer.
     scheduleAction(
       () => adminApi.updateDiscourseGroup(target.id, gid),
-      () => { handleRoleChange(target.id, prevRole); setApiError('Gagal mengubah role.') }
+      (err) => { handleRoleChange(target.id, prevRole); setApiError(apiErrMsg(err, 'Gagal mengubah role.')) }
     )
   }
 
@@ -1030,7 +1041,7 @@ export default function AdminDashboardPage({ user, onSignOut }) {
     setToast({ message: <>Akun {target.name} telah dihapus</>, statusUndo: { id: target.id, prevStatus } })
     scheduleAction(
       () => adminApi.requestUserDeletion(target.id),
-      () => { setManagementUsers(prev => prev.map(u => u.id === target.id ? { ...u, accountStatus: prevStatus } : u)); setApiError('Gagal menghapus akun.') }
+      (err) => { setManagementUsers(prev => prev.map(u => u.id === target.id ? { ...u, accountStatus: prevStatus } : u)); setApiError(apiErrMsg(err, 'Gagal menghapus akun.')) }
     )
   }
 
@@ -1048,7 +1059,7 @@ export default function AdminDashboardPage({ user, onSignOut }) {
       : () => adminApi.unsuspendUser(target.id)
     scheduleAction(
       apiCall,
-      () => { setManagementUsers(prev => prev.map(u => u.id === target.id ? { ...u, accountStatus: prevStatus } : u)); setApiError('Gagal memulihkan akun.') }
+      (err) => { setManagementUsers(prev => prev.map(u => u.id === target.id ? { ...u, accountStatus: prevStatus } : u)); setApiError(apiErrMsg(err, 'Gagal memulihkan akun.')) }
     )
   }
 
@@ -1067,7 +1078,7 @@ export default function AdminDashboardPage({ user, onSignOut }) {
     })
     scheduleAction(
       () => adminApi.deleteUserPermanent(target.id),
-      () => { setManagementUsers(snapshot); setApiError('Gagal menghapus akun permanen.') }
+      (err) => { setManagementUsers(snapshot); setApiError(apiErrMsg(err, 'Gagal menghapus akun permanen.')) }
     )
   }
 
@@ -1090,7 +1101,7 @@ export default function AdminDashboardPage({ user, onSignOut }) {
     
     scheduleAction(
       () => adminApi.verifyUser(target.id, payload),
-      () => { setManagementUsers(prev => prev.map(u => u.id === target.id ? { ...u, accountStatus: prevStatus } : u)); setApiError('Gagal menyetujui akun.') }
+      (err) => { setManagementUsers(prev => prev.map(u => u.id === target.id ? { ...u, accountStatus: prevStatus } : u)); setApiError(apiErrMsg(err, 'Gagal menyetujui akun.')) }
     )
   }
 
@@ -1105,7 +1116,7 @@ export default function AdminDashboardPage({ user, onSignOut }) {
     setToast({ message: <>Akun {target.name} telah ditangguhkan</>, statusUndo: { id: target.id, prevStatus } })
     scheduleAction(
       () => adminApi.suspendUser(target.id, { suspendedUntil, reason }),
-      () => { setManagementUsers(prev => prev.map(u => u.id === target.id ? { ...u, accountStatus: prevStatus } : u)); setApiError('Gagal menangguhkan akun.') }
+      (err) => { setManagementUsers(prev => prev.map(u => u.id === target.id ? { ...u, accountStatus: prevStatus } : u)); setApiError(apiErrMsg(err, 'Gagal menangguhkan akun.')) }
     )
   }
 
@@ -1123,9 +1134,9 @@ export default function AdminDashboardPage({ user, onSignOut }) {
     // payload personal voucher — { userId, code } masih tebakan sampai kontrak final.
     scheduleAction(
       () => adminApi.grantPersonalVoucher({ userId: target.id, code: voucherCode }),
-      () => {
+      (err) => {
         setManagementUsers(prev => prev.map(u => u.id === target.id ? { ...u, voucher: prevVoucher } : u))
-        setApiError('Gagal mengirim voucher.')
+        setApiError(apiErrMsg(err, 'Gagal mengirim voucher.'))
       }
     )
   }
@@ -1292,9 +1303,9 @@ export default function AdminDashboardPage({ user, onSignOut }) {
     setToast({ message, bulkStatusUndo: prev })
     scheduleAction(
       () => Promise.all(ids.map(id => commitEach(id, prev.find(x => x.id === id)?.status))),
-      () => {
+      (err) => {
         setManagementUsers(p => p.map(u => { const pr = prev.find(x => x.id === u.id); return pr ? { ...u, accountStatus: pr.status } : u }))
-        setApiError('Gagal memproses sebagian akun.')
+        setApiError(apiErrMsg(err, 'Gagal memproses sebagian akun.'))
       }
     )
   }
@@ -1308,7 +1319,15 @@ export default function AdminDashboardPage({ user, onSignOut }) {
       runBulkStatus(rows, 'Disetujui', <>{rows.length} akun telah dipulihkan</>,
         (id, prevStatus) => prevStatus === 'Baru Dihapus' ? adminApi.cancelUserDeletion(id) : adminApi.unsuspendUser(id))
     } else if (key === 'setujui') {
-      runBulkStatus(rows, 'Disetujui', <>{rows.length} akun telah disetujui</>,
+      // REVISE(2) ga punya endpoint approve langsung (lihat guard sama di
+      // ManajemenTable.jsx ditolakMenuItems) — keluarin dari batch biar ga ada
+      // request yang pasti ditolak BE. Sisanya (REJECTED) jalan seperti biasa.
+      const approvable = rows.filter(r => r.verifiedStatus !== 2 && r.verifiedStatus !== 'revise')
+      if (!approvable.length) {
+        setApiError('Akun revisi tidak bisa disetujui langsung — tunggu user kirim ulang data.')
+        return
+      }
+      runBulkStatus(approvable, 'Disetujui', <>{approvable.length} akun telah disetujui</>,
         (id) => adminApi.verifyUser(id, { status: 'approved', discourseGroupId: rows.find(r => r.id === id)?.discourseGroupId }))
     } else if (key === 'tangguhkan') {
       setBulkSuspendOpen(true)
@@ -1552,7 +1571,7 @@ export default function AdminDashboardPage({ user, onSignOut }) {
                 <PendaftaranTrainerTable
                   data={pendaftaranData}
                   onToggleStatus={handleTogglePendaftaranStatus}
-                  onDelete={handleDeletePendaftaran}
+                  onDelete={(item) => setActionModal({ type: 'hapus-pelatihan-trainer', user: item })}
                   searchQuery={searchQuery}
                 />
               )}
@@ -1576,10 +1595,6 @@ export default function AdminDashboardPage({ user, onSignOut }) {
               activeFilter={activeFilter}
               onActionClick={handleActionClick}
               onRiwayatClick={setRiwayatDetailUser}
-              selectedIds={selectedIds}
-              onToggleSelect={toggleSelect}
-              onToggleSelectAll={toggleSelectAll}
-              allSelected={allSelected}
             />
           )}
           {activeTab === 'daftar-user' && (() => {
@@ -1680,6 +1695,15 @@ export default function AdminDashboardPage({ user, onSignOut }) {
           onCancel={() => setActionModal({ type: null, user: null })}
         />
       )}
+      {actionModal.type === 'hapus-pelatihan-trainer' && (
+        <TypedDeleteConfirmModal
+          title="Yakin Hapus Pelatihan Ini?"
+          itemName={actionModal.user?.nama}
+          confirmLabel="Hapus Pelatihan"
+          onConfirm={() => { handleDeletePendaftaran(actionModal.user); setActionModal({ type: null, user: null }) }}
+          onCancel={() => setActionModal({ type: null, user: null })}
+        />
+      )}
       {actionModal.type === 'setujui-akun' && (
         <SetujuiAkunModal
           user={actionModal.user}
@@ -1687,6 +1711,7 @@ export default function AdminDashboardPage({ user, onSignOut }) {
           trainingSessions={trainingSessions}
           onConfirm={handleConfirmSetujuiAkun}
           onCancel={() => setActionModal({ type: null, user: null })}
+          onCopyVoucher={(code) => setToast({ message: <>Kode voucher {code} disalin</> })}
         />
       )}
       {actionModal.type === 'tangguhkan-akun' && (

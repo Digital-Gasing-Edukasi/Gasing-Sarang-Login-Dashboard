@@ -7,13 +7,17 @@ import { CalendarRangePicker, toYMD, formatIdDate } from './CalendarRangePicker'
 const asList = (data) => (Array.isArray(data) ? data : data?.data || data?.items || [])
 const regionLabel = (r) => r?.regionName || r?.name || ''
 
+// Template CSV peserta (kolom `nama`, `email`) — dibuat di klien, tanpa endpoint.
 function downloadTemplate() {
-  const csv = 'email\ncontoh1@email.com\ncontoh2@email.com\n'
+  const csv = '\uFEFFnama,email\n"contoh nama",contoh1@email.com\n"contoh nama",contoh2@email.com\n'
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
-  a.href = url; a.download = 'template-peserta-guru.csv'
-  document.body.appendChild(a); a.click(); document.body.removeChild(a)
+  a.href = url
+  a.download = 'template-peserta-guru.csv'
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
   URL.revokeObjectURL(url)
 }
 

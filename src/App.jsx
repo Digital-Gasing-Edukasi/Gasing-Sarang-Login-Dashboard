@@ -157,6 +157,15 @@ export default function App() {
   // Transfer Bank (unggah bukti).
   const [checkoutPlan, setCheckoutPlan] = useState(null);
   const [manualPayment, setManualPayment] = useState(null);
+  // isRetry: penanda "ini Payment Attempt ke-2+" (bukan attempt pertama).
+  // TIDAK ADA counter dari backend (getLatestPayment cuma 1 record, tanpa
+  // attemptNumber/retryCount) — jadi ditandai di FE saat user masuk ulang ke
+  // Transfer Bank LEWAT gate "Pembayaran Ditolak" (tombol "Ulang Pembayaran" /
+  // "Upload Bukti Pembayaran" di LoginStatusModal → onRenew/onReupload di bawah).
+  // Default false = attempt pertama (checkout normal dari SubscriptionPage,
+  // tanpa lewat gate). Reset otomatis tiap sesi baru (full reload) — tidak perlu
+  // di-reset manual karena redirectWithTokens() = full page nav (state SPA hilang).
+  const [isRetry, setIsRetry] = useState(false);
   const [sessionChecked, setSessionChecked] = useState(false);
   // gate: status akun yang memblokir masuk app (suspended/pending/expired).
   // Berlaku untuk login manual DAN restore sesi (reload dgn token tersimpan).
@@ -599,6 +608,7 @@ export default function App() {
                 payment={manualPayment}
                 onSignOut={handleSignOut}
                 onBack={() => navigate("/login/subscription")}
+                isRetry={isRetry}
               />
             ) : (
               <Navigate to="/login/subscription" replace />
@@ -692,6 +702,7 @@ export default function App() {
               user={currentUser}
               onSignOut={handleSignOut}
               activePlanName={activePlanName}
+              isRetry={isRetry}
             />
           }
         />
@@ -768,16 +779,22 @@ export default function App() {
           // varian amount/account) → pilih paket di halaman langganan.
           onRenew={() => {
             const p = gate.profile;
+            // Retry hanya bila gate ini "Pembayaran Ditolak" (Attempt sebelumnya
+            // gagal) — 'expired' (langganan habis, belum pernah gagal bayar)
+            // BUKAN retry, tetap attempt pertama.
+            if (gate.type === "payment_rejected") setIsRetry(true);
             setGate(null);
             setCurrentUser(p);
             navigate("/login/subscription", { replace: true });
           }}
           // "Upload Bukti Pembayaran" (payment ditolak varian receipt) → langsung
           // ke TransferBankPage dgn paket terakhir (skip pilih paket). Tanpa paket
-          // terkenal → fallback ke halaman langganan.
+          // terkenal → fallback ke halaman langganan. Selalu dari gate
+          // payment_rejected → selalu retry (Attempt ke-2+).
           onReupload={() => {
             const p = gate.profile;
             const plan = gate.plan;
+            setIsRetry(true);
             setGate(null);
             setCurrentUser(p);
             if (plan?.id) {

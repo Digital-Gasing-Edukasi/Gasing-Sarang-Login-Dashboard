@@ -101,7 +101,7 @@ export function RiwayatPelatihanTable({
           sortedData.map(item => {
             return (
             <tr key={item.id} className="group transition-colors hover:bg-[#F9FAFB]">
-              <td className="px-4 py-4">
+              <td className="px-4 py-4 align-top">
                 <div className="flex items-center gap-3">
                   <span className="font-bold text-[#0A1128] whitespace-normal max-w-[220px]">{item.nama}</span>
                   {item.isNew && (
@@ -109,14 +109,14 @@ export function RiwayatPelatihanTable({
                   )}
                 </div>
               </td>
-              <td className="px-4 py-4 text-[#0A1128] font-medium" title={item.daerah}>{abbrevRegion(item.daerah)}</td>
-              <td className="px-4 py-4 text-[#0A1128] font-medium">{item.tglMulai}</td>
-              <td className="px-4 py-4">
+              <td className="px-4 py-4 align-top text-[#0A1128] font-medium" title={item.daerah}>{abbrevRegion(item.daerah)}</td>
+              <td className="px-4 py-4 align-top text-[#0A1128] font-medium">{item.tglMulai}</td>
+              <td className="px-4 py-4 align-top">
                 {item.pesertaNama && item.pesertaNama !== '-' ? (
                   <button onClick={() => onViewPeserta && onViewPeserta(item)} className="text-left">
-                    <div className="font-medium text-[#0A1128] underline">{item.pesertaNama}</div>
+                    <div className="font-medium text-[#0A1128] bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded inline-block">{item.pesertaNama}</div>
                     {item.pesertaLainnya > 0 && (
-                      <span className="text-xs text-link underline">{item.pesertaLainnya}+ lainnya</span>
+                      <span className="block mt-1 text-xs text-link underline">{item.pesertaLainnya} lainnya</span>
                     )}
                   </button>
                 ) : (
@@ -128,8 +128,8 @@ export function RiwayatPelatihanTable({
                   </button>
                 )}
               </td>
-              <td className="px-4 py-4 text-[#0A1128] font-medium">{item.lastUpdated || '-'}</td>
-              <td className="px-4 py-4 sticky right-0 z-10 transition-colors relative bg-white group-hover:bg-[#F9FAFB]">
+              <td className="px-4 py-4 align-top text-[#0A1128] font-medium">{item.lastUpdated || '-'}</td>
+              <td className="px-4 py-4 align-top sticky right-0 z-10 transition-colors relative bg-white group-hover:bg-[#F9FAFB]">
                 <FreezeBlurRight />
                 <div className="flex items-center justify-center gap-1">
                   <button
