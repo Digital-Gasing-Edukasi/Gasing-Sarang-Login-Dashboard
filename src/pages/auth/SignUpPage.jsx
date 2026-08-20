@@ -393,7 +393,7 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
                 }}
               />
               {errors.name && (
-                <p className="text-xs text-red-500">{errors.name}</p>
+                <p className="text-xs text-red-500 !mt-1">{errors.name}</p>
               )}
             </div>
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 lg:gap-5">
@@ -456,7 +456,7 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
               {showPasswordRules && (
                 <div className="space-y-3 pt-1 animate-in fade-in slide-in-from-top-1">
                   <p className="text-[13px] font-regular lg:font-medium text-foreground">
-                    Password kamu harus memiliki:
+                    Password harus memiliki:
                   </p>
                   <ul className="space-y-3 lg:space-y-2">
                     {passwordRules.map((rule) => (
@@ -512,7 +512,7 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
               ) : null}
             </div>
             <div className="space-y-1.5 lg:space-y-2">
-              <div className="flex items-start gap-2.5">
+              <div className="flex items-start gap-3">
                 <Checkbox
                   id="agree"
                   checked={agree}
@@ -521,11 +521,11 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
                     setAgree(v === true);
                     clearFieldError("agree");
                   }}
-                  className="mt-0.5"
+                  className="mt-0.5 "
                 />
                 <Label
                   htmlFor="agree"
-                  className={`text-[12px] font-medium leading-snug text-muted-foreground ${
+                  className={`!text-[12px] lg:!text-[14px] font-medium leading-snug text-muted-foreground ${
                     step1FieldsValid ? "cursor-pointer" : "cursor-not-allowed"
                   }`}
                 >
@@ -596,7 +596,7 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
               <Label className="text-[13px] font-medium">
                 Lokasi kamu saat ini
               </Label>
-              <div className="grid grid-cols-2 gap-3 lg:gap-5">
+              <div className="grid grid-cols-2 gap-2 lg:gap-5">
                 <Select
                   value={provinceId}
                   onValueChange={handleProvinceChange}
@@ -650,7 +650,7 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
               <Label className="text-[13px] font-medium leading-normal">
                 Kapan kamu mendapat pelatihan Gasing pertama?
               </Label>
-              <div className="grid grid-cols-2 gap-3 lg:gap-5">
+              <div className="grid grid-cols-2 gap-2 lg:gap-5">
                 <Select
                   value={kapanYear}
                   onValueChange={handleYearChange}

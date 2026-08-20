@@ -285,7 +285,7 @@ export function DateField({
           {createPortal(
             <div className="fixed inset-0 z-[100] lg:hidden">
               <div
-                className="absolute inset-0 bg-black/10 backdrop-blur-sm animate-in fade-in-0"
+                className="absolute inset-0 bg-[#030B1F]/30 backdrop-blur animate-in fade-in-0"
                 onClick={() => setOpen(false)}
               />
               <div ref={sheetRef} className="absolute inset-x-0 bottom-0 flex h-[428px] max-h-[85vh] flex-col rounded-t-3xl bg-background px-2 pb-[env(safe-area-inset-bottom)] shadow-[0_-8px_30px_rgba(0,0,0,0.18)] animate-in slide-in-from-bottom duration-200">
