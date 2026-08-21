@@ -1,5 +1,6 @@
 // src/lib/api.js
 import { withBase } from "./format";
+import { translateApiError } from "./errorMessages";
 
 const BASE_URL = import.meta.env.VITE_API_URL;
 
@@ -395,7 +396,7 @@ export const queueApi = {
       const res = await queueApi.getJob(trackId);
       const job = res?.data || res;
       if (job.status === "COMPLETED") return job;
-      if (job.status === "FAILED") throw new Error(job.error || "Proses gagal di server.");
+      if (job.status === "FAILED") throw new Error(job.error ? translateApiError(job.error) : "Proses gagal di server.");
       await new Promise((r) => setTimeout(r, interval));
     }
     throw new Error("Timeout menunggu proses server.");
@@ -440,10 +441,13 @@ export const subscriptionApi = {
 
   // Lampirkan bukti transfer ke sebuah payment. fileId didapat dari
   // fileManagerApi.upload(). Setelah ini payment menunggu verifikasi admin.
-  uploadReceipt: (paymentId, fileId) =>
+  // extra: { senderName, senderBank, transferDate } — opsional, dikirim kalau
+  // ada. Blm terkonfirmasi backend simpan/balikin field ini (lihat API_ACCESS_MATRIX.md
+  // §7 & docs/VERIFIKASI_PEMBAYARAN.md §6 — body dokumentasi cuma { fileId }).
+  uploadReceipt: (paymentId, fileId, extra = {}) =>
     request(`/subscription/payments/${paymentId}/upload-receipt`, {
       method: "POST",
-      body: { fileId },
+      body: { fileId, ...extra },
     }),
 
   // Payment manual_transfer terakhir milik user (status apapun). 404 bila belum ada.

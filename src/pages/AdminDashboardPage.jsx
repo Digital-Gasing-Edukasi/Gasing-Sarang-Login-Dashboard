@@ -534,8 +534,10 @@ export default function AdminDashboardPage({ user, onSignOut }) {
   }
 
   // reason = enum value (BE pakai untuk template email penolakan).
-  // reasonLabel = teks alasan (dikirim sbg `notes` tambahan).
-  const handleTolakPembayaran = ({ candidate: target, reason, reasonLabel }) => {
+  // notes = untuk reason 'unsuficient_transfer' WAJIB string angka (nominal
+  // yang beneran diterima BE); alasan lain teks bebas opsional. Divalidasi di
+  // TolakPembayaranModal sebelum onConfirm dipanggil.
+  const handleTolakPembayaran = ({ candidate: target, reason, notes }) => {
     if (!target) return
     setTolakCandidate(null)
     setKonfirmasiCandidate(null)
@@ -550,7 +552,7 @@ export default function AdminDashboardPage({ user, onSignOut }) {
       },
     })
     scheduleAction(
-      () => adminApi.rejectManualPayment(target.id, reason, reasonLabel),
+      () => adminApi.rejectManualPayment(target.id, reason, notes || undefined),
       (err) => {
         setPembayaranDitolak(prev => prev.filter(u => u.id !== target.id))
         setPembayaranMenunggu(prev => [target, ...prev])
@@ -1244,8 +1246,15 @@ export default function AdminDashboardPage({ user, onSignOut }) {
   // disetujui (langkah-1 beres) tapi BELUM pernah berlangganan (subscription 'Not Active').
   // Belum lolos langkah-2 → belum masuk Manajemen. Sumber = managementUsers (mapToManajemen).
   // Catatan: 'Expired' = pernah bayar → tetap di Manajemen, bukan di sini.
+  // Exclude akun yang sudah submit bukti bayar (nongol di 'Menunggu Verifikasi'
+  // atau 'Pembayaran Ditolak') → jangan dobel-tampil di 'Belum Langganan'.
+  const pembayaranUserIds = new Set([
+    ...pembayaranMenunggu.map(p => p.userId),
+    ...pembayaranDitolak.map(p => p.userId),
+  ])
   const belumLangganan = managementUsers.filter(
-    u => u.accountStatus === 'Disetujui' && u.subscription === 'Not Active'
+    u => u.accountStatus === 'Disetujui' && u.subscription === 'Not Active' &&
+      !pembayaranUserIds.has(u.id)
   )
 
   const currentData = activeTab === 'manajemen'

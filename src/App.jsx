@@ -393,52 +393,58 @@ export default function App() {
       // Gagal / belum pernah bayar → anggap tidak ada pending / tolakan.
     }
 
+    // Staff/capability holder (superadmin, DISABLED-SSO admin, moderator
+    // Discourse) TIDAK punya "langganan" / alur verifikasi member → gate
+    // kondisi akun (suspended/pending/expired/payment) di bawah TIDAK berlaku
+    // buat mereka. Cek ini duluan, sebelum gate.
+    const isStaffCapabilityHolder =
+      isSuperAdmin(user) || canAccessDiscourse(user) || isSsoDisabled(user);
+
     // Guard status akun sebelum masuk. Prioritas:
     //   suspended / pending akun → selalu menang (blokir mutlak).
     //   payment ditolak          → menang atas 'expired' (arahkan perbaiki bayar).
     //   expired                  → di-bypass bila ada payment pending.
-    const blocked = evaluateLoginGate(user);
-    if (blocked && blocked.type !== "expired") {
-      setGate({ ...blocked, profile: user });
-      navigate("/login", { replace: true });
-      return;
-    }
-    if (paymentRejected) {
-      setGate({ ...paymentRejected, profile: user });
-      navigate("/login", { replace: true });
-      return;
-    }
-    if (blocked && blocked.type === "expired" && !paymentPending) {
-      setGate({ ...blocked, profile: user });
-      navigate("/login", { replace: true });
-      return;
+    // Dilewati sepenuhnya untuk staff/capability holder (lihat komentar di atas).
+    if (!isStaffCapabilityHolder) {
+      const blocked = evaluateLoginGate(user);
+      if (blocked && blocked.type !== "expired") {
+        setGate({ ...blocked, profile: user });
+        navigate("/login", { replace: true });
+        return;
+      }
+      if (paymentRejected) {
+        setGate({ ...paymentRejected, profile: user });
+        navigate("/login", { replace: true });
+        return;
+      }
+      if (blocked && blocked.type === "expired" && !paymentPending) {
+        setGate({ ...blocked, profile: user });
+        navigate("/login", { replace: true });
+        return;
+      }
     }
 
     setCurrentUser(user);
 
-    // ── DEBUG sementara: cek bentuk respons /profile/me & deteksi peran. HAPUS nanti.
-    console.log("[login-debug] profile keys:", Object.keys(user || {}));
-    console.log("[login-debug] superadmin:", user?.superadmin, "| superAdmin:", user?.superAdmin);
-    console.log("[login-debug] capabilities:", user?.capabilities);
-    console.log(
-      "[login-debug] isSuperAdmin:", isSuperAdmin(user),
-      "| isSsoDisabled:", isSsoDisabled(user),
-      "| canAccessDiscourse:", canAccessDiscourse(user),
-    );
-    // ─────────────────────────────────────────────────────────────────────────
+    // Superadmin → SELALU ke panel pilih tujuan (3 tombol: Dashboard + Moderator/
+    // Discourse + Web App), walau dia juga punya capability DISABLED-SSO.
+    // Superadmin bypass capability, TIDAK bypass kondisi akun (API_ACCESS_MATRIX.md).
+    if (isSuperAdmin(user)) {
+      navigate("/login/choice", { replace: true });
+      return;
+    }
 
-    // HANYA yang punya capability USER/DISCOURSE/DISABLED-SSO yang boleh masuk
-    // Dashboard Admin. Selain itu (all-caps admin / operational tanpa tag ini)
-    // TIDAK lagi diarahkan ke dashboard.
+    // HANYA yang punya capability USER/DISCOURSE/DISABLED-SSO (dan BUKAN
+    // superadmin, sudah ditangani di atas) yang boleh masuk Dashboard Admin
+    // langsung.
     if (isSsoDisabled(user)) {
       navigate("/dashboard-admin", { replace: true });
       return;
     }
 
-    // Superadmin / pemilik USER/DISCOURSE/MANAGE_EXTRA_GROUPS → panel pilih tujuan.
-    // JANGAN auto redirect. Superadmin dapat 3 tombol (Dashboard + Moderator/Discourse
-    // + Web App); MANAGE_EXTRA_GROUPS dapat 2 (Moderator/Discourse + Web App).
-    if (isSuperAdmin(user) || canAccessDiscourse(user)) {
+    // Moderator (pemilik USER/DISCOURSE/MANAGE_EXTRA_GROUPS) → panel pilih
+    // tujuan, 2 tombol (Moderator/Discourse + Web App). JANGAN auto redirect.
+    if (canAccessDiscourse(user)) {
       navigate("/login/choice", { replace: true });
       return;
     }
