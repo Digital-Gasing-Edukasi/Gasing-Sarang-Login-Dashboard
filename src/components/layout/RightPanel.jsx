@@ -88,23 +88,39 @@ export function RightPanel({ children, mobileHero = null, topBar = null, stickyF
         )}
       >
         {children}
-        {/* Copyright + build = SATU sumber global di sini. Jangan render copyright
-            lagi per-screen (dulu LoginPage kirim prop footer → dobel). */}
-        <div className="mt-auto pt-6 pb-2">
-          <p className="text-xs text-muted-foreground text-center">
-            ©2026 Gasing Academy. All rights reserved.
-          </p>
-          {isStaging() && (
-            <p className="mt-1 text-[11px] text-muted-foreground/60 text-center select-all">
-              build{" "}
-              {typeof __BUILD_DATE__ !== "undefined" ? __BUILD_DATE__ : "dev"}
-            </p>
-          )}
-        </div>
       </div>
       {/* CTA sticky bawah: selalu kelihatan walau form panjang. Dulu prop ini
           diterima tapi ga pernah dirender → tombol Lanjutkan hilang. */}
-      {stickyFooter && <div className="py-4 pb-6 px-4 lg:px-4">{stickyFooter}</div>}
+      {stickyFooter && (
+        <div
+          className={cn(
+            "sticky bottom-0 z-20 w-full mx-auto bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 lg:border-t-0",
+            maxWidth,
+          )}
+        >
+          {/* Strip blur konten yang lewat di atas footer. Mati saat mentok bawah. */}
+          <div
+            className={cn(
+              "pointer-events-none absolute inset-x-0 bottom-full h-5 bg-gradient-to-t from-background to-transparent backdrop-blur-[1.5px] transition-opacity duration-200",
+              edge.atBottom ? "opacity-0" : "opacity-100",
+            )}
+          />
+          <div className="py-4 pb-6 px-4 lg:px-4">{stickyFooter}</div>
+        </div>
+      )}
+      {/* Copyright + build = SATU sumber global di sini. Jangan render copyright
+          lagi per-screen (dulu LoginPage kirim prop footer → dobel). */}
+      <div className="pb-6">
+        <p className="text-xs text-muted-foreground text-center">
+          ©2026 Gasing Academy. All rights reserved.
+        </p>
+        {isStaging() && (
+          <p className="mt-1 text-[11px] text-muted-foreground/60 text-center select-all">
+            build{" "}
+            {typeof __BUILD_DATE__ !== "undefined" ? __BUILD_DATE__ : "dev"}
+          </p>
+        )}
+      </div>
     </div>
   );
 }
