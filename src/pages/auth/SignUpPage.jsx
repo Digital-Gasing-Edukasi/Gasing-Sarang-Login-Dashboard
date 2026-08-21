@@ -658,7 +658,7 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
                 >
                   <SelectTrigger>
                     <SelectValue
-                      placeholder={sessionsLoading ? "Memuat..." : "Tahun"}
+                      placeholder={sessionsLoading ? "Memuat..." : "Pilih Tahun Pelatihan"}
                     />
                   </SelectTrigger>
                   <SelectContent>
@@ -675,7 +675,7 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
                   disabled={!kapanYear}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Bulan" />
+                    <SelectValue placeholder="Pilih Bulan Pelatihan" />
                   </SelectTrigger>
                   <SelectContent>
                     {monthOptions.map((m) => (
@@ -701,7 +701,7 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
                 disabled={!kapanYear}
               >
                 <SelectTrigger className={errors.session ? ERR_INPUT : ""}>
-                  <SelectValue placeholder="Pilih Daerah" />
+                  <SelectValue placeholder="Pilih Daerah Pelatihan" />
                 </SelectTrigger>
                 <SelectContent>
                   {dimanaOptions.map((s) => (
