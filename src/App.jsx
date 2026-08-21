@@ -756,6 +756,29 @@ export default function App() {
                 />
               }
             />
+            {/* Preview layar "Pembayaran Berhasil!" (state submitted) tanpa lewat
+                form transfer — dipakai buat cek 1:1 layout ke referensi desain. */}
+            <Route
+              path="/test-menu/transfer/success"
+              element={
+                <TransferBankPage
+                  user={{ name: "Test User" }}
+                  plan={{
+                    id: "test",
+                    name: "Tahunan",
+                    billingCycle: "annual",
+                    months: 12,
+                    priceTotal: 396000,
+                    priceMonthly: 33000,
+                  }}
+                  payment={{ orderId: "0001SGINVGA-VIII2026" }}
+                  onSignOut={() => navigate("/test-menu")}
+                  onBack={() => navigate("/test-menu/subscription")}
+                  initialSubmitted
+                  initialReceiptFileId="test-receipt"
+                />
+              }
+            />
           </>
         )}
 
