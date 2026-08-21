@@ -13,7 +13,7 @@ import bgDark from '@/assets/dark-mode/Background.png'
 function DarkPwdInput({ value, onChange, placeholder, show, onToggle, error, onFocus, onBlur }) {
   return (
     <div className="relative">
-      <Lock size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40" />
+      <Lock size={16} className="absolute left-5 top-1/2 -translate-y-1/2 text-[#D1D3DA]" />
       <input
         type={show ? 'text' : 'password'}
         value={value}
@@ -22,7 +22,7 @@ function DarkPwdInput({ value, onChange, placeholder, show, onToggle, error, onF
         onBlur={onBlur}
         placeholder={placeholder}
         className={cn(
-          'w-full rounded-full bg-white/[0.06] border border-white/60 pl-12 pr-12 py-3.5 text-[15px] text-white placeholder:text-white/30 outline-none transition-colors focus:border-white focus:bg-white/[0.09]',
+          'w-full h-12 rounded-full bg-white/0 border border-white/60 pl-[46px] pr-12 text-[14px] text-white placeholder:text-white/60 outline-none transition-colors focus:border-white focus:bg-white/[0.09]',
           error ? 'border-[#FFB43C]' : 'border-white/12'
         )}
       />
@@ -30,9 +30,9 @@ function DarkPwdInput({ value, onChange, placeholder, show, onToggle, error, onF
         type="button"
         onMouseDown={(e) => e.preventDefault()}
         onClick={onToggle}
-        className="absolute right-4 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/70 transition-colors"
+        className="absolute right-5 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/70 transition-colors"
       >
-        {show ? <Eye size={18} /> : <EyeOff size={18} />}
+        {show ? <Eye size={16} className="text-[#D1D3DA]" /> : <EyeOff size={16} className="text-[#D1D3DA]/60" />}
       </button>
     </div>
   )
@@ -95,13 +95,13 @@ export function ResetPasswordPage({ token, email, onNavigate }) {
         }}
       >
         {/* Logo — padding kiri/atas 16px (px-6 induk dikompensasi -ml-2) */}
-        <div className="flex items-center -ml-2 mb-[46px] shrink-0">
+        <div className="flex items-center mb-[46px] shrink-0">
           <Logo variant="mobile" />
         </div>
 
         {/* Sukses = toast di atas (form tetap tampil), sesuai reference state-3. */}
         <div className="flex-1 flex flex-col animate-fade-in-up">
-            <h1 className="font-poppins text-[24px] font-bold mb-6">Ubah Password</h1>
+            <h1 className="font-poppins text-[24px] font-bold leading-[140%] text-white/90 mb-6">Ubah Password</h1>
 
             <div className="space-y-8">
               {errors.general && (
@@ -109,7 +109,7 @@ export function ResetPasswordPage({ token, email, onNavigate }) {
               )}
 
               <div className="space-y-2">
-                <label className="text-[14px] font-medium text-white">Password Baru</label>
+                <label className="text-[14px] font-medium text-white/90">Password Baru</label>
                 <DarkPwdInput
                   value={password}
                   placeholder="Masukkan password baru"
@@ -132,16 +132,16 @@ export function ResetPasswordPage({ token, email, onNavigate }) {
                     <li
                       key={rule.label}
                       className={cn(
-                        'flex items-center gap-2 text-[13px] transition-colors',
-                        rule.ok ? 'text-[#4ADE80]' : 'text-white/45'
+                        'flex items-center gap-2 text-[12px] leading-[140%]transition-colors',
+                        rule.ok ? 'text-[#2BDE6D]' : 'text-white/90'
                       )}
                     >
                       {rule.ok ? (
-                        <span className="flex h-4 w-4 items-center justify-center rounded-full bg-[#22c55e] text-[#000000] shrink-0">
-                          <Check size={10} strokeWidth={2} />
+                        <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#2BDE6D] text-[#000000]/90 shrink-0">
+                          <Check size={10} strokeWidth={4} />
                         </span>
                       ) : (
-                        <CircleDashed size={16} className="text-white/25 shrink-0" />
+                        <CircleDashed size={20} className="text-white/60 shrink-0" />
                       )}
                       {rule.label}
                     </li>
@@ -150,7 +150,7 @@ export function ResetPasswordPage({ token, email, onNavigate }) {
               )}
 
               <div className="space-y-2">
-                <label className="text-[14px] font-medium text-white">Konfirmasi Password Baru</label>
+                <label className="text-[14px] font-medium text-white/90">Konfirmasi Password Baru</label>
                 <DarkPwdInput
                   value={confirm}
                   placeholder="Ulangi password baru"
@@ -165,14 +165,14 @@ export function ResetPasswordPage({ token, email, onNavigate }) {
               <button
                 onClick={handleReset}
                 disabled={loading || success || !password || !confirm}
-                className="w-full !mt-9 py-4 rounded-full font-bold text-[15px] bg-white text-[#1a0b3d] hover:bg-white/90 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-all"
+                className="w-full !mt-9 h-12 rounded-full font-semibold text-[14px] leading-[150%] bg-white text-[#030B1F] hover:bg-white/90 active:scale-[0.98] disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-all"
               >
                 {loading ? <><Loader2 size={18} className="animate-spin" /> Memproses...</> : 'Ubah Password'}
               </button>
 
               <button
                 onClick={() => onNavigate('login')}
-                className="flex items-center gap-1.5 text-[14px] font-semibold text-white/90 hover:text-white transition-colors !mt-6 mx-auto pt-1"
+                className="flex items-center gap-2 text-[14px] font-semibold text-white/90 hover:text-white transition-colors !mt-6 mx-auto pt-1"
               >
                 <LogIn size={20} /> Kembali Ke Login
               </button>
@@ -214,7 +214,7 @@ export function ResetPasswordPage({ token, email, onNavigate }) {
                 )}
 
                 <div className="space-y-2">
-                  <label className="text-[14px] font-semibold text-white/85">Password Baru</label>
+                  <label className="text-[14px] font-semibold text-white/90">Password Baru</label>
                   <DarkInput icon={Lock} type={showPass ? 'text' : 'password'}
                     placeholder="Masukkan password baru" value={password} error={errors.password}
                     onFocus={() => setPasswordFocused(true)}
@@ -249,7 +249,7 @@ export function ResetPasswordPage({ token, email, onNavigate }) {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-[14px] font-semibold text-white/85">Konfirmasi Password Baru</label>
+                  <label className="text-[14px] font-semibold text-white/90">Konfirmasi Password Baru</label>
                   <DarkInput icon={Lock} type={showConfirm ? 'text' : 'password'}
                     placeholder="Ulangi password baru" value={confirm} error={errors.confirm}
                     onChange={e => { setConfirm(e.target.value); clearFieldError('confirm') }}

@@ -7,7 +7,7 @@ export function IconInput({ icon: Icon, iconRight, className, ...props }) {
     <div className="relative flex items-center">
       {Icon && (
         <span className="absolute left-5 text-[#81858F] pointer-events-none z-10">
-          <Icon size={16} />
+          <Icon size={16} strokeWidth={2.25}/>
         </span>
       )}
       <Input className={cn(Icon && 'pl-[43px]', iconRight && 'pr-[43px]', className)} {...props} />
