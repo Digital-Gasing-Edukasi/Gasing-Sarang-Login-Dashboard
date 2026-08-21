@@ -17,7 +17,7 @@ function initials(name = '') {
 //   user       : { name } / { profile: { namaLengkap } } — untuk inisial.
 //   onSignOut  : handler logout (wajib).
 //   onContact  : handler "Hubungi Kami" (opsional; default → mailto admin).
-export function ProfileMenu({ user, onSignOut, onContact }) {
+export function ProfileMenu({ user, onSignOut, onContact, className }) {
   const [open, setOpen] = useState(false)
   const ref = useRef(null)
   const sheetRef = useRef(null) // bottom-sheet mobile di-portal ke body → di luar ref
@@ -85,7 +85,10 @@ export function ProfileMenu({ user, onSignOut, onContact }) {
         aria-haspopup="menu"
         aria-expanded={open}
         aria-label="Menu profil"
-        className="flex h-10 w-10 items-center justify-center rounded-full bg-[#ef4444] text-white text-sm font-semibold transition-transform hover:scale-105"
+        className={cn(
+          "flex h-10 w-10 items-center justify-center rounded-full bg-[#ef4444] text-white text-sm font-semibold transition-transform hover:scale-105",
+          className
+        )}
       >
         {initials(name)}
       </button>

@@ -254,15 +254,19 @@ function MobilePlanCard({ plan, selected, onSelect }) {
       onClick={() => onSelect(plan.id)}
       className={cn(
         "relative rounded-[22px] border p-5 cursor-pointer transition-all duration-300",
-        featured
-          ? "border-white/50 bg-gradient-to-b from-[#382274] to-[#180840] shadow-[0_0_30px_rgba(124,58,237,0.25)]"
-          : selected
+        selected
           ? "border-[#8b7bff]/70 bg-gradient-to-b from-[#382274] to-[#180840] shadow-[0_0_30px_rgba(124,58,237,0.25)]"
+          : featured
+          ? "border-[#D1D3DA]/50 bg-gradient-to-b from-[#382274] to-[#180840]"
           : "border-[#D1D3DA]/30 bg-gradient-to-b from-[#382274] to-[#180840]"
       )}
     >
+      {/* Gradient glow wrapper behind content */}
+      {selected && (
+        <div className="absolute -inset-0.5 rounded-[22px] bg-gradient-to-r from-[#B639FF] via-[#5933FF] to-[#B639FF] opacity-60 blur-xl -z-10 pointer-events-none" />
+      )}
       {plan.label && (
-        <span className="absolute -top-3 right-4 bg-gradient-to-r from-[#3A67FF] to-[#00F6FF] text-white text-[11px] font-medium px-3 py-1 rounded-full whitespace-nowrap shadow-sm">
+        <span className="absolute -top-3 right-[26px] bg-gradient-to-r from-[#3A67FF] to-[#00F6FF] text-white text-[14px] font-medium px-3 py-1 rounded-[8px] whitespace-nowrap shadow-sm">
           {plan.label}
         </span>
       )}
@@ -275,7 +279,7 @@ function MobilePlanCard({ plan, selected, onSelect }) {
             </span>
             <span className="text-[13px] font-medium text-white/70">/bln</span>
             {plan.originalPrice && (
-              <span className="text-[13px] font-medium text-red-300/80 line-through">
+              <span className="text-[13px] font-medium text-[#FF0E32] line-through">
                 Rp{formatRp(plan.originalPrice)}
               </span>
             )}
@@ -288,12 +292,12 @@ function MobilePlanCard({ plan, selected, onSelect }) {
         </div>
         <div
           className={cn(
-            "w-6 h-6 rounded-md flex items-center justify-center border-2 transition-all shrink-0 ml-3",
+            "w-8 h-8 rounded-md flex items-center justify-center border transition-all shrink-0 ml-3",
             selected ? "bg-white border-white" : "border-[#BBB6C7] bg-transparent"
           )}
         >
           {selected && (
-            <svg className="w-3.5 h-3.5 text-[#180841]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3.5}>
+            <svg className="w-4 h-4 text-[#180841]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={4}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
             </svg>
           )}
@@ -373,20 +377,20 @@ export default function SubscriptionPage({ user, onSignOut, onPaymentSuccess, on
       >
         <div className="flex items-center justify-between px-4 pt-4 pb-4 shrink-0">
           <Logo variant="mobile" />
-          <ProfileMenu user={user} onSignOut={onSignOut} />
+          <ProfileMenu user={user} onSignOut={onSignOut} className="h-9 w-9 text-xs" />
         </div>
 
         <div className="flex-1 px-4 pt-4 pb-4 overflow-y-auto">
-          <h1 className="text-[32px] font-bold leading-tight mb-6 font-cera-pro">
+          <h1 className="text-[32px] font-bold leading-[130%] mb-6 font-cera-pro">
             Ada apa di Sarang Gasing?
           </h1>
-          <ul className="space-y-6 mb-8">
+          <ul className="space-y-6 mb-[43px]">
             {BENEFITS.map((b, i) => {
               const Icon = b.icon;
               return (
-                <li key={i} className="flex items-start gap-4">
+                <li key={i} className="flex items-center gap-4">
                   <Icon
-                    className="w-6 h-6 text-[#ffffff] shrink-0 mt-0.5"
+                    className="w-6 h-6 text-[#ffffff] shrink-0"
                     strokeWidth={2}
                   />
                   <p className="text-white  text-base leading-snug">
