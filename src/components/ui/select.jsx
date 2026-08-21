@@ -175,7 +175,7 @@ function MobileSheet({ ctx, title, children }) {
     <div className="fixed inset-0 z-[150] lg:hidden">
       {/* Scrim: efek blur ke konten belakang (bukan overlay hitam). */}
       <div
-        className="absolute inset-0 bg-black/10 backdrop-blur-sm animate-in fade-in-0"
+        className="absolute inset-0 bg-[#030B1F]/30 backdrop-blur animate-in fade-in-0"
         onClick={() => setOpen(false)}
       />
       <div className="absolute inset-x-0 bottom-0 flex max-h-[85vh] flex-col rounded-t-3xl bg-white pb-[env(safe-area-inset-bottom)] shadow-[0_-8px_30px_rgba(0,0,0,0.18)] animate-in slide-in-from-bottom duration-200">
@@ -264,8 +264,8 @@ const SelectItem = React.forwardRef(({ className, children, value, ...props }, r
         type="button"
         onClick={() => { ctx.onValueChange?.(value); ctx.setOpen(false) }}
         className={cn(
-          "w-full rounded-full py-3.5 text-center text-[15px] transition-colors",
-          selected ? "bg-[#EEF0FF] font-bold text-[#1a0b3d]" : "text-gray-600 active:bg-gray-100",
+          "h-10 w-full rounded-full text-center text-[15px] transition-colors",
+          selected ? "bg-[#EEF0FF] font-semibold text-[#1a0b3d]" : "text-gray-600 active:bg-gray-100",
           className
         )}
       >

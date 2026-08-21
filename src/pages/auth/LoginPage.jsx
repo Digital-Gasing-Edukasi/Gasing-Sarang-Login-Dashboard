@@ -123,8 +123,8 @@ export function LoginPage({ onNavigate, onLoginSuccess, isSsoMode = false }) {
         <Logo variant="split" />
       </div>
       <div className="animate-fade-in-up delay-100 text-center lg:text-center">
-        <h1 className="text-2xl font-semibold text-foreground mb-6 lg:mt-0 mt-0">
-          <span className="lg:hidden">Selamat Datang!</span>
+        <h1 className="text-2xl font-semibold text-[#030B1F] mb-6 lg:mt-0 mt-0">
+          <span className="lg:hidden text-xl leading-[140%]">Selamat Datang!</span>
           <span className="hidden lg:inline">Selamat Datang!</span>
         </h1>
       </div>
@@ -189,7 +189,7 @@ export function LoginPage({ onNavigate, onLoginSuccess, isSsoMode = false }) {
             />
             <Label
               htmlFor="remember"
-              className="font-normal text-muted-foreground cursor-pointer"
+              className="text-[14px] font-regular text-[#030B1F] cursor-pointer leading-[120%]"
             >
               Ingat saya
             </Label>
@@ -218,8 +218,8 @@ export function LoginPage({ onNavigate, onLoginSuccess, isSsoMode = false }) {
       </div>
 
       <div className="animate-fade-in-up delay-300 text-center mt-6 lg:mt-4">
-        <p className="text-sm text-muted-foreground">
-          Belum punya akun?{" "}
+        <p className="text-sm text-muted-foreground flex gap-[4px] justify-center items-center">
+          Belum punya akun?
           <button
             onClick={() => onNavigate("signup")}
             className="font-semibold text-[#0033EC] underline underline-offset-2"

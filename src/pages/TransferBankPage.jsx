@@ -237,7 +237,7 @@ export default function TransferBankPage({
   };
 
   const inputCls =
-    "w-full rounded-full bg-white/[0.04] border border-white/20 px-5 lg:px-4 py-4 text-[15px] text-white placeholder:text-white/30 outline-none transition-colors focus:border-[#22d3ee]/60 focus:bg-white/[0.06]";
+    "w-full rounded-full bg-white/[0.04] border border-white/20 px-5 lg:px-4 py-3 text-[12px] text-white placeholder:text-white/30 outline-none transition-colors focus:border-[#22d3ee]/60 focus:bg-white/[0.06]";
 
   // Satu definisi CTA; dipakai di footer sticky (mobile) & inline (desktop).
   const cta = (
@@ -366,7 +366,7 @@ export default function TransferBankPage({
           </p>
         </div>
       ) : (
-        <div className="relative z-10 max-w-[1180px] mx-auto px-4 lg:px-10 pt-4 pb-6 lg:pb-24 grid lg:grid-cols-2 lg:gap-14 items-start animate-fade-in-up">
+        <div className="relative z-10 max-w-[1128px] mx-auto px-4 lg:px-10 pt-4 pb-6 lg:pb-24 grid lg:grid-cols-2 lg:gap-12 items-start animate-fade-in-up">
           {/* ── KIRI ── */}
           <div className="min-w-0">
             {onBack && (
@@ -386,8 +386,8 @@ export default function TransferBankPage({
             </p>
 
             {/* Kartu rekening */}
-            <div className="relative rounded-3xl border border-[#3A67FF] bg-[#ffffff]/10 p-5 lg:p-5 mb-4 lg:mb-6 shadow-[0_0_40px_rgba(124,58,237,0.15)]">
-              <div className="flex items-center gap-4 mb-4 lg:mb-6">
+            <div className="relative rounded-3xl border border-[#3A67FF] bg-[#ffffff]/10 p-5 lg:p-5 mb-4 lg:mb-4 shadow-[0_0_40px_rgba(124,58,237,0.15)]">
+              <div className="flex items-center gap-2 mb-4 lg:mb-4">
                 <div className="h-8 w-15 bg-white rounded-md flex items-center justify-center overflow-hidden p-1">
                   <img
                     src={mandiriLogo}
@@ -397,20 +397,20 @@ export default function TransferBankPage({
                 </div>
                 <span className="text-lg font-bold">Bank Mandiri</span>
               </div>
-              <p className="text-white/50 text-xs mb-0.5">No. Rekening</p>
+              <p className="text-white/50 text-xs mb-[2px]">No. Rekening</p>
               <div className="flex items-center justify-between gap-3">
                 <span className="min-w-0 break-all text-xl font-bold tracking-wide">
                   {bank.accountNumber}
                 </span>
                 <button
                   onClick={handleCopy}
-                  className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-white/25 text-xs font-semibold hover:bg-white/10 transition-colors shrink-0"
+                  className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-white/25 text-xs font-semibold hover:bg-white/10 transition-colors shrink-0"
                 >
-                  {copied ? <Check size={15} /> : <Copy size={15} />}
+                  {copied ? <Check size={16} /> : <Copy size={16} />}
                   {copied ? "Tersalin" : "Salin"}
                 </button>
               </div>
-              <p className="text-white/50 text-xs mt-4 lg:mt-5 mb-0.5">Atas Nama</p>
+              <p className="text-white/50 text-xs mt-4 lg:mt-2 mb-[2px]">Atas Nama</p>
               <p className="text-sm font-semibold">{bank.accountName}</p>
             </div>
 
@@ -453,10 +453,10 @@ export default function TransferBankPage({
           </div>
 
           {/* ── KANAN ── */}
-          <div className="min-w-0 space-y-4 lg:space-y-5 lg:pt-6">
+          <div className="min-w-0 space-y-4 lg:space-y-5 lg:pt-10">
             {/* Ringkasan */}
             <div className="rounded-3xl border border-white/20 bg-white/[0.03] p-5 lg:p-6">
-              <p className="text-base font-semibold mb-4">Ringkasan Pesanan</p>
+              <p className="text-base font-semibold mb-2">Ringkasan Pesanan</p>
               <SummaryRow label={packageLabel} value={`Rp${formatRp(total)}`} />
               <SummaryRow
                 label="Durasi Subkripsi"
@@ -473,7 +473,7 @@ export default function TransferBankPage({
 
             {/* Nama Pengirim */}
             <div>
-              <label className="block text-[15px] font-medium text-white/70 lg:!mt-8 mb-2">
+              <label className="block text-[12px] font-medium text-white/70 lg:!mt-8 mb-1.5">
                 Nama Pengirim
               </label>
               <input
@@ -485,9 +485,9 @@ export default function TransferBankPage({
             </div>
 
             {/* Bank Asal + Tanggal */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-[15px] font-medium text-white/70 mb-2">
+                <label className="block text-[12px] font-medium text-white/70 mb-1.5">
                   Bank Asal
                 </label>
                 <input
@@ -498,7 +498,7 @@ export default function TransferBankPage({
                 />
               </div>
               <div>
-                <label className="block text-[15px] font-medium text-white/70 mb-2">
+                <label className="block text-[12px] font-medium text-white/70 mb-1.5">
                   Tanggal Transfer
                 </label>
                 <DateField
@@ -511,20 +511,20 @@ export default function TransferBankPage({
                     d: new Date().getDate(),
                   }}
                   dialogLabel="Pilih tanggal transfer"
-                  className="!h-[54px] !rounded-full !bg-white/[0.04] !border-white/20 !px-4 !text-[15px] !text-white hover:!border-white/20 transition-colors [&.border-primary]:!border-[#22d3ee]/60 [&.ring-2]:!ring-0"
+                  className="!rounded-full !bg-white/[0.04] !border-white/20 !px-4 !text-[12px] !text-white hover:!border-white/20 transition-colors [&.border-primary]:!border-[#22d3ee]/60 [&.ring-2]:!ring-0"
                 />
               </div>
             </div>
 
             {/* Bukti transfer: dropzone saat kosong, baris ringkas saat sudah ada */}
             {file ? (
-              <div className="flex items-center gap-3 rounded-2xl bg-white/[0.04] border border-white/20 px-4 py-3">
-                <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center shrink-0">
+              <div className="flex items-center gap-3 rounded-3xl bg-white/[0.04] border border-white/20 px-4 py-3 lg:h-[76px]">
+                <div className="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center shrink-0">
                   <FileText size={20} className="text-[#22d3ee]" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="font-semibold truncate">{file.name}</p>
-                  <p className="text-white/40 text-[13px]">
+                  <p className="font-medium text-[14px] truncate">{file.name}</p>
+                  <p className="text-white/40 text-[12px]">
                     {formatFileSize(file.size)}
                   </p>
                 </div>
@@ -538,7 +538,7 @@ export default function TransferBankPage({
                   aria-label="Hapus bukti pembayaran"
                   className="w-10 h-10 rounded-xl flex items-center justify-center text-white/50 hover:text-red-400 hover:bg-red-500/10 transition-colors shrink-0"
                 >
-                  <Trash2 size={18} />
+                  <Trash2 size={20} />
                 </button>
                 <input
                   ref={fileInputRef}
@@ -556,14 +556,14 @@ export default function TransferBankPage({
                   e.preventDefault();
                   handleFile(e.dataTransfer.files?.[0]);
                 }}
-                className="rounded-3xl border-2 border-dashed border-white/15 bg-white/[0.03] p-5 flex flex-row items-center gap-4 cursor-pointer hover:border-[#22d3ee]/50 hover:bg-white/[0.05] transition-colors"
+                className="rounded-3xl border border-dashed border-white/30 bg-white/[0.02] p-4 flex flex-row items-center gap-4 cursor-pointer hover:border-[#22d3ee]/50 hover:bg-white/[0.05] transition-colors lg:h-[76px] lg:py-0"
               >
-                <div className="w-14 h-14 rounded-full bg-white/5 flex items-center justify-center shrink-0">
-                  <Upload size={24} className="text-white/50" />
+                <div className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center shrink-0">
+                  <Upload size={20} className="text-white" />
                 </div>
                 <div className="text-left">
-                  <p className="font-semibold text-white">Unggah Bukti Transfer</p>
-                  <p className="text-white/40 text-[13px] mt-0.5">
+                  <p className="font-medium text-[14px] text-white">Unggah Bukti Transfer</p>
+                  <p className="text-white/40 text-[12px] mt-0.5">
                     {`JPG, PNG, atau PDF (maks. ${MAX_FILE_MB}MB)`}
                   </p>
                 </div>
@@ -611,7 +611,7 @@ export default function TransferBankPage({
 // ─── SUMMARY ROW ──────────────────────────────────────────────────────────────
 function SummaryRow({ label, value }) {
   return (
-    <div className="flex items-center justify-between py-1.5">
+    <div className="flex items-center justify-between py-2">
       <span className="text-white/60 text-[15px]">{label}</span>
       <span className="font-semibold text-[15px]">{value}</span>
     </div>

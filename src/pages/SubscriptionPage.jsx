@@ -176,17 +176,21 @@ function PlanCard({ plan, selected, onSelect }) {
     <div
       onClick={() => onSelect(plan.id)}
       className={cn(
-        "relative rounded-[24px] border p-7 cursor-pointer transition-all duration-300",
+        "relative rounded-[24px] border py-6 px-8 cursor-pointer transition-all duration-300",
         featured
-          ? "border-white/50 bg-gradient-to-b from-[#382274] to-[#180840] shadow-[0_0_45px_rgba(124,58,237,0.28)]"
+          ? "border-[#8b7bff]/70 bg-gradient-to-b from-[#382274] to-[#180840]"
           : selected
-          ? "border-[#8b7bff]/70 bg-gradient-to-b from-[#382274] to-[#180840] shadow-[0_0_45px_rgba(124,58,237,0.28)]"
-          : "border-[#D1D3DA]/30 bg-gradient-to-b from-[#382274] to-[#180840] hover:border-white/20"
+          ? "border-[#8b7bff]/70 bg-gradient-to-b from-[#382274] to-[#180840]"
+          : "border-[#D1D3DA]/30 bg-gradient-to-b from-[#382274] to-[#180840] hover:border-white/30"
       )}
     >
+      {/* Gradient glow wrapper behind content */}
+      {selected && (
+        <div className="absolute -inset-0.5 rounded-[24px] bg-gradient-to-r from-[#B639FF] via-[#5933FF] to-[#B639FF] opacity-60 blur-xl -z-10 pointer-events-none" />
+      )}
       {/* Badge hemat mengambang di atas kartu */}
       {plan.label && (
-        <span className="absolute -top-3.5 right-6 bg-gradient-to-r from-[#3A67FF] to-[#00F6FF] text-white text-[13px] font-medium px-4 py-1.5 rounded-full whitespace-nowrap shadow-sm">
+        <span className="absolute -top-[14px] right-[32.5px] bg-gradient-to-r from-[#3A67FF] to-[#00F6FF] text-white text-[13px] font-medium px-2 py-1 rounded-[8px] whitespace-nowrap shadow-sm">
           {plan.label}
         </span>
       )}
@@ -203,7 +207,7 @@ function PlanCard({ plan, selected, onSelect }) {
             </span>
             <span className="text-sm font-medium text-white/70">/bln</span>
             {plan.originalPrice && (
-              <span className="text-sm font-medium text-red-400 line-through ml-1">
+              <span className="text-base font-medium text-[#FF0E32] leading-[150%] line-through ml-1">
                 Rp{formatRp(plan.originalPrice)}
               </span>
             )}
@@ -462,16 +466,16 @@ export default function SubscriptionPage({ user, onSignOut, onPaymentSuccess, on
           <div className="w-full max-w-[1150px] mx-auto px-8 grid lg:grid-cols-2 gap-16 xl:gap-24 items-center">
             {/* Kiri — copywriting */}
             <div className="animate-fade-in-up">
-              <h1 className="text-[48px] font-cera-pro xl:text-[48px] font-bold text-white leading-[1.08] mb-10">
+              <h1 className="text-[48px] font-cera-pro xl:text-[48px] font-bold text-white leading-[150%] mb-10">
                 Ada apa di Sarang Gasing?
               </h1>
               <ul className="space-y-6">
                 {BENEFITS.map((b, i) => {
                   const Icon = b.icon;
                   return (
-                    <li key={i} className="flex items-start gap-4">
+                    <li key={i} className="flex items-center gap-4">
                       <Icon
-                        className="w-6 h-6 text-[#ffffff] shrink-0 mt-0.5"
+                        className="w-8 h-8 text-[#ffffff] shrink-0"
                         strokeWidth={2}
                       />
                       <p className="text-white text-base leading-relaxed">

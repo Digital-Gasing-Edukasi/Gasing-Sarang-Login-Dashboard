@@ -40,14 +40,14 @@ export function DarkInput({ icon: Icon, iconRight, error, className, ...props })
   return (
     <div className="relative flex items-center">
       {Icon && (
-        <span className="absolute left-4 text-white/40 pointer-events-none z-10">
+        <span className="absolute left-5 text-white/40 pointer-events-none z-10">
           <Icon size={18} />
         </span>
       )}
       <input
         className={cn(
-          'w-full rounded-full bg-white/[0.06] border py-3.5 text-[15px] text-white placeholder:text-white/35 outline-none transition-colors focus:border-[#a78bfa]/70 focus:bg-white/[0.09]',
-          Icon ? 'pl-12' : 'pl-5',
+          'w-full h-12 rounded-full bg-white/[0.06] border text-[15px] text-white placeholder:text-white/35 outline-none transition-colors focus:border-[#a78bfa]/70 focus:bg-white/[0.09]',
+          Icon ? 'pl-[46px]' : 'pl-5',
           iconRight ? 'pr-12' : 'pr-5',
           error ? 'border-[#FFB43C]' : 'border-white/15',
           className
@@ -67,7 +67,7 @@ export function DarkTogglePassword({ show, onToggle }) {
       type="button"
       onMouseDown={(e) => e.preventDefault()}
       onClick={onToggle}
-      className="absolute right-4 z-10 text-white/40 hover:text-white/70 transition-colors"
+      className="absolute right-5 z-10 text-white/40 hover:text-white/70 transition-colors"
     >
       {show ? <Eye size={18} /> : <EyeOff size={18} />}
     </button>
@@ -81,7 +81,7 @@ export function DarkPrimaryButton({ children, className, variant = 'gradient', .
   return (
     <button
       className={cn(
-        'w-full rounded-full py-4 font-bold text-[15px] transition-all active:scale-[0.99]',
+        'w-full rounded-full h-12 font-bold text-[15px] transition-all active:scale-[0.99]',
         'flex items-center justify-center gap-2',
         variant === 'white'
           ? 'bg-white text-[#1a0b3d] opacity-90 hover:opacity-100 disabled:opacity-30 disabled:cursor-not-allowed'

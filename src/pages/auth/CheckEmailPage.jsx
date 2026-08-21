@@ -37,10 +37,10 @@ export function CheckEmailPage({ email, onNavigate }) {
       <div className="lg:hidden">
         <AuthFullLayout illustration="envelope">
           <div className="text-center animate-fade-in-up">
-            <h1 className="font-poppins text-2xl font-semibold text-foreground mb-6">Cek Email Kamu</h1>
-            <p className="text-sm text-muted-foreground leading-relaxed mb-8">
+            <h1 className="font-poppins text-xl font-semibold text-[#030B1F] leading-[140%] mb-6">Cek Email Kamu</h1>
+            <p className="text-sm text-muted-foreground leading-[170%] mb-8">
               Kami telah mengirimkan tautan pemulihan ke email{" "}
-              <span className="font-bold text-foreground">{email}</span>. Jika kamu belum
+              <span className="font-bold text-[#424857]">{email}</span>Jika kamu belum
               menerima email tersebut, periksa folder spam.
             </p>
           </div>
@@ -51,9 +51,9 @@ export function CheckEmailPage({ email, onNavigate }) {
               onClick={handleResend}
               disabled={!canResend || loading}
               className={cn(
-                'w-full rounded-full py-3.5 text-[15px] border font-semibold text-white transition-colors',
+                'h-[48px] w-full rounded-full py-3.5 text-[14px] border font-semibold text-[#030b1f]/30 leading-[150%] transition-colors',
                 canResend && !loading
-                  ? 'bg-[#0033EC] hover:bg-[#0033EC]/90 cursor-pointer'
+                  ? 'bg-[#0033EC] hover:bg-[#0033EC]/90 text-white cursor-pointer'
                   : 'border-1 border-[#525359]/30 text-[#030b1f]/30 cursor-not-allowed'
               )}
             >
@@ -64,7 +64,7 @@ export function CheckEmailPage({ email, onNavigate }) {
             </button>
 
             <button onClick={() => onNavigate('login')}
-              className="flex items-center justify-center gap-1.5 text-[14px] font-semibold text-[#0033EC] hover:opacity-80 transition-opacity mx-auto pt-1">
+              className="flex items-center justify-center gap-2 text-[14px] font-semibold text-[#0033EC] hover:opacity-80 transition-opacity mx-auto pt-1">
               <LogIn size={20} /> Kembali ke Login
             </button>
           </div>

@@ -54,13 +54,13 @@ export function RightPanel({ children, mobileHero = null, topBar = null, stickyF
             maxWidth,
           )}
         >
-          <div className={cn("pt-4 pb-4", padX)}>{topBar}</div>
+          <div className={cn("h-[60px] pt-4 pb-4", padX)}>{topBar}</div>
           {/* Fill bar progress MOBILE (style lama), nempel bawah header. Desktop
               pakai StepProgress tersegmen di dalam topBar, jadi ini lg:hidden. */}
           {progress != null && (
-            <div className="lg:hidden h-1.5 w-full overflow-hidden bg-black/[0.06]">
+            <div className="lg:hidden h-1 w-full overflow-hidden bg-black/[0.06]">
               <div
-                className="h-full rounded-r-full bg-[#0033EC] transition-all duration-500 ease-out"
+                className="h-full bg-[#0033EC] transition-all duration-500 ease-out"
                 style={{
                   width: `${Math.min(100, Math.max(0, progress * 100))}%`,
                 }}

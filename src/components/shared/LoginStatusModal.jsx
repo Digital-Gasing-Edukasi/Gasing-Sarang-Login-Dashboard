@@ -460,7 +460,7 @@ function Shell({ tone, icon: Icon, children, variant = 'sheet', sheetClass, cont
   return (
     <div
       className={cn(
-        'fixed inset-0 z-[120] flex justify-center bg-black/30 backdrop-blur-sm animate-fade-in',
+        'fixed inset-0 z-[120] flex justify-center bg-[#030B1F]/30 backdrop-blur animate-fade-in',
         sheet ? 'items-end lg:items-center p-0 lg:p-4' : 'items-center p-4'
       )}
     >

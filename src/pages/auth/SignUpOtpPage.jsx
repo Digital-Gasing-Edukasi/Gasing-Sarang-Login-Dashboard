@@ -88,7 +88,7 @@ export function SignUpOtpPage({ onNavigate, otpToken, email, onOtpToken }) {
               {resending ? <><Loader2 size={14} className="animate-spin" /> Mengirim ulang...</> : 'Kirim ulang kode'}
             </button>
           </p>
-        : <p className="text-sm text-muted-foreground">Tidak menerima kode? <span className="font-bold text-[#EF4444]">{display}</span></p>
+        : <p className="text-sm text-muted-foreground flex items-center justify-center gap-[4px]">Tidak menerima kode? <span className="font-bold text-[#EF4444]">{display}</span></p>
       }
     </div>
   )

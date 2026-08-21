@@ -47,13 +47,13 @@ export function ForgotPasswordPage({ onNavigate, onEmailSent }) {
                 aria-label="Kembali ke login"
                 className="absolute left-0 text-zinc-700 hover:text-muted-foreground transition-colors"
               >
-                <ChevronLeft size={32} />
+                <ChevronLeft size={32} strokeWidth={1.125} className="text-[#3F3F46]" />
               </button>
               <h1 className="font-poppins text-xl font-semibold text-foreground">
                 Lupa Password?
               </h1>
             </div>
-            <p className="text-sm text-muted-foreground mb-6">
+            <p className="text-sm text-muted-foreground leading-[170%] mb-6">
               Masukkan email kamu yang terdaftar. Kami akan mengirimkan tautan
               untuk mengubah password kamu.
             </p>
