@@ -17,11 +17,11 @@ function CopyPill({ code, onCopied }) {
       onClick={copy}
       className={cn(
         'flex items-center justify-center gap-2 min-w-[140px] px-5 py-2.5 rounded-full border border-gray-200 text-sm font-semibold transition-colors shrink-0',
-        copied ? 'text-blue-600' : 'text-[#0A1128] hover:bg-gray-50'
+        copied ? 'text-[#0033EC]' : 'text-[#0A1128] hover:bg-gray-50'
       )}
     >
       {copied
-        ? <><CheckCircle2 size={18} className="fill-blue-600 text-white" /> Tersalin</>
+        ? <><CheckCircle2 size={18} className="fill-[#0033EC] text-white" /> Tersalin</>
         : <><Copy size={16} /> Salin</>}
     </button>
   )
@@ -32,7 +32,7 @@ function VoucherCode({ code }) {
   return (
     <div className="shrink-0">
       <div className="text-sm text-gray-500">Kode Voucher:</div>
-      <div className="font-bold text-blue-600">{code}</div>
+      <div className="font-bold text-[#0033EC]">{code}</div>
     </div>
   )
 }
@@ -76,7 +76,7 @@ export function KonfirmasiVoucherModal({ candidate, onConfirm, onCancel }) {
 
         <div className="px-7 py-7">
           <div className="flex items-center gap-5">
-            <span className="font-bold text-[#0A1128] flex-1 min-w-0">{candidate.name}</span>
+            <span className="text-sm font-bold text-[#0A1128] flex-1 min-w-0">{candidate.name}</span>
             <VoucherCode code={candidate.voucherCode} />
             <CopyPill code={candidate.voucherCode} onCopied={handleCopied} />
           </div>
@@ -87,7 +87,7 @@ export function KonfirmasiVoucherModal({ candidate, onConfirm, onCancel }) {
               onClick={onConfirm}
               className={cn(
                 'font-semibold px-12 py-3.5 rounded-full text-white transition-colors',
-                copied ? 'bg-[#0033EC] hover:bg-[#0029BD]' : 'bg-blue-300 cursor-not-allowed'
+                copied ? 'bg-[#0033EC] hover:bg-[#0029BD]' : 'bg-[#0033EC] opacity-30 cursor-not-allowed'
               )}
             >
               Konfirmasi

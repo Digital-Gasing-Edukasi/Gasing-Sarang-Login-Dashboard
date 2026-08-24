@@ -99,20 +99,38 @@ export function KonfirmasiPembayaranModal({ candidate, onConfirm, onReject, onCa
 }
 
 // Alasan penolakan (value = dikirim ke BE; label = tampilan).
-// Value harus match enum BE — dipakai juga untuk template notifikasi email penolakan.
+// Value harus match enum BE persis — dipakai juga untuk template notifikasi
+// email penolakan. Ejaan 'unsuficient_transfer' (bukan 'insufficient_transfer')
+// dikonfirmasi dari komunitas-api.postman_collection (kontrak resmi BE).
 export const TOLAK_REASONS = [
-  { value: 'insufficient_transfer', label: 'Transfer tidak mencukupi' },
+  { value: 'unsuficient_transfer', label: 'Transfer tidak mencukupi' },
   { value: 'fund_not_retrieved',    label: 'Dana tidak diterima' },
   { value: 'payment_receipt_unclear', label: 'Bukti pembayaran tidak jelas' },
 ]
 
+// Alasan yang mewajibkan `notes` berupa string angka (nominal yang beneran
+// diterima BE dari transfer user, dipakai buat isi email penolakan). Alasan
+// lain: notes opsional teks bebas.
+const NOTES_REQUIRE_NUMERIC = 'unsuficient_transfer'
+
 export function TolakPembayaranModal({ candidate, onConfirm, onCancel }) {
   const [reason, setReason] = useState(TOLAK_REASONS[0].value)
+  const [notes, setNotes] = useState('')
 
-  // Reset ke pilihan pertama tiap kandidat berganti.
-  useEffect(() => { setReason(TOLAK_REASONS[0].value) }, [candidate])
+  // Reset ke pilihan pertama & notes kosong tiap kandidat berganti.
+  useEffect(() => {
+    setReason(TOLAK_REASONS[0].value)
+    setNotes('')
+  }, [candidate])
 
   if (!candidate) return null
+
+  const notesRequired = reason === NOTES_REQUIRE_NUMERIC
+  const notesTrimmed = notes.trim()
+  const notesValid = notesRequired
+    ? notesTrimmed !== '' && /^\d+$/.test(notesTrimmed)
+    : true
+  const canSubmit = notesValid
 
   return (
     <div className="fixed inset-0 z-[110] flex items-center justify-center bg-[#030B1F]/30 backdrop-blur-sm">
@@ -159,6 +177,45 @@ export function TolakPembayaranModal({ candidate, onConfirm, onCancel }) {
               );
             })}
           </div>
+
+          {notesRequired ? (
+            <div className="mt-4">
+              <label className="text-sm font-medium text-[#64748B] mb-2 block">
+                Nominal yang diterima (Rp):
+              </label>
+              <input
+                type="text"
+                inputMode="numeric"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Contoh: 1000000"
+                className={cn(
+                  "w-full rounded-xl border px-4 py-2.5 text-sm focus:outline-none focus:ring-2",
+                  notesTrimmed === "" || notesValid
+                    ? "border-gray-200 focus:ring-blue-100"
+                    : "border-red-300 focus:ring-red-100",
+                )}
+              />
+              {notesTrimmed !== "" && !notesValid && (
+                <p className="text-xs text-red-500 mt-1">
+                  Nominal harus berupa angka saja (tanpa titik/koma/Rp).
+                </p>
+              )}
+            </div>
+          ) : (
+            <div className="mt-4">
+              <label className="text-sm font-medium text-[#64748B] mb-2 block">
+                Catatan (opsional):
+              </label>
+              <textarea
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Catatan tambahan untuk alasan ini..."
+                rows={2}
+                className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 resize-none"
+              />
+            </div>
+          )}
         </div>
 
         <div className="flex items-center gap-4 p-6 border-t border-gray-100 rounded-b-[24px]">
@@ -169,6 +226,7 @@ export function TolakPembayaranModal({ candidate, onConfirm, onCancel }) {
             Batalkan
           </button>
           <button
+            disabled={!canSubmit}
             onClick={() =>
               onConfirm({
                 candidate,
@@ -176,9 +234,10 @@ export function TolakPembayaranModal({ candidate, onConfirm, onCancel }) {
                 reasonLabel:
                   TOLAK_REASONS.find((r) => r.value === reason)?.label ||
                   reason,
+                notes: notesTrimmed,
               })
             }
-            className="flex-1 font-semibold px-6 py-3.5 rounded-full bg-red-500 text-white hover:bg-red-600 transition-colors whitespace-nowrap"
+            className="flex-1 font-semibold px-6 py-3.5 rounded-full bg-red-500 text-white hover:bg-red-600 transition-colors whitespace-nowrap disabled:opacity-40 disabled:cursor-not-allowed"
           >
             Tolak Pembayaran
           </button>

@@ -1,12 +1,15 @@
+import { useState } from 'react'
 import { RightPanel } from '@/components/layout/RightPanel'
 import { Button } from '@/components/ui/button'
 import { tokenStorage, discourseApi, authApi, webAppApi } from '@/lib/api'
 import { isSuperAdmin } from '@/lib/roles'
+import { LoginFailedToast } from '@/components/shared/LoginFailedToast'
 import { ArrowRight, LayoutDashboard, LogIn, LogOut } from 'lucide-react'
 
 export function AuthChoicePage({ user, onNavigate, onSignOut }) {
   // Superadmin dapat tombol tambahan ke Dashboard Admin.
   const showDashboard = isSuperAdmin(user)
+  const [ssoError, setSsoError] = useState(false)
 
   const handleGoDashboard = () => {
     onNavigate('admin-dashboard')
@@ -18,9 +21,11 @@ export function AuthChoicePage({ user, onNavigate, onSignOut }) {
 
   const handleRedirectSso = async () => {
     try {
+      setSsoError(false)
       await discourseApi.ssoLogin()
     } catch (error) {
       console.error('Gagal inisiasi SSO:', error)
+      setSsoError(true)
     }
   }
 
@@ -40,6 +45,12 @@ export function AuthChoicePage({ user, onNavigate, onSignOut }) {
 
   return (
     <RightPanel>
+      {ssoError && (
+        <LoginFailedToast
+          message="Gagal masuk ke Moderator (Discourse). Silakan coba lagi."
+          onClose={() => setSsoError(false)}
+        />
+      )}
       <div className="flex flex-col items-center justify-center h-full max-w-sm mx-auto animate-fade-in-up">
         <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center mb-6">
           <LogIn className="w-6 h-6 text-blue-600" />

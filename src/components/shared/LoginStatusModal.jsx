@@ -36,6 +36,33 @@ function durationLabel(duration) {
   return parts.slice(0, 2).join(' ')
 }
 
+// Fallback: BE (SuspendModal.jsx admin) cuma kirim `suspendedUntil` absolut,
+// TIDAK PERNAH kirim object `duration` — jadi meta.duration selalu kosong.
+// Derive durasi dari selisih meta.until - sekarang, dipecah ke unit yang sama
+// dengan DURATION_UNITS supaya bisa lewat durationLabel() apa adanya.
+const MS_PER_UNIT = {
+  year: 365 * 24 * 60 * 60 * 1000,
+  month: 30 * 24 * 60 * 60 * 1000,
+  day: 24 * 60 * 60 * 1000,
+  hour: 60 * 60 * 1000,
+  min: 60 * 1000,
+  sec: 1000,
+}
+function deriveDurationFromUntil(until) {
+  if (!until) return null
+  const d = new Date(typeof until === 'string' ? until.replace(' ', 'T') : until)
+  if (isNaN(d)) return null
+  let diff = d.getTime() - Date.now()
+  if (diff <= 0) return null
+  const duration = {}
+  for (const key of Object.keys(MS_PER_UNIT)) {
+    const unitMs = MS_PER_UNIT[key]
+    duration[key] = Math.floor(diff / unitMs)
+    diff -= duration[key] * unitMs
+  }
+  return duration
+}
+
 // Modal blocking di atas halaman login.
 // type   : 'pending' (flow 7) | 'expired' (flow 6) | 'suspended' | 'error' (flow 4)
 //        | 'payment_rejected' (payment terakhir ditolak admin; meta.variant =
@@ -166,7 +193,7 @@ export function LoginStatusModal({ type, meta = {}, onClose, onRenew, onRetry, o
 
 function SuspendedModal({ meta, onClose }) {
   const untilStr = fmtDateID(meta.until)
-  const dur = durationLabel(meta.duration)
+  const dur = durationLabel(meta.duration) || durationLabel(deriveDurationFromUntil(meta.until))
   const reason = String(meta.reason || '') || 'Melanggar panduan komunitas'
 
   return (

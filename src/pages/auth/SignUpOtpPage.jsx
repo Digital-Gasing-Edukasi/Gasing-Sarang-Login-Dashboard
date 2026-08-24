@@ -6,6 +6,7 @@ import { StepBar, StepProgress, StepHeader } from '@/components/layout/StepIndic
 import { OtpInput }     from '@/components/shared/OtpInput'
 import { useCountdown } from '@/hooks/useCountdown'
 import { authApi }      from '@/lib/api'
+import { translateApiError } from '@/lib/errorMessages'
 
 // Jeda antar-kirim-ulang OTP (detik). Backend tidak mengembalikan cooldown/retryAfter,
 // hanya melindungi diri dengan rate-limit (429). Jadi gerbang UX ini murni sisi klien.
@@ -36,7 +37,7 @@ export function SignUpOtpPage({ onNavigate, otpToken, email, onOtpToken }) {
     } catch (e) {
       // Kode salah/kedaluwarsa (400/401/422) → wording seragam, jangan bocorkan
       // pesan mentah backend. 429 & error lain tetap apa adanya biar informatif.
-      setError([400, 401, 422].includes(e.status) ? OTP_INVALID_MSG : e.message)
+      setError([400, 401, 422].includes(e.status) ? OTP_INVALID_MSG : translateApiError(e.message))
     } finally {
       setLoading(false)
     }
@@ -58,7 +59,7 @@ export function SignUpOtpPage({ onNavigate, otpToken, email, onOtpToken }) {
       // 429 = user menembak resend terlalu cepat lewat rate-limit backend.
       setError(e.status === 429
         ? 'Terlalu banyak permintaan. Tunggu sebentar lalu coba lagi.'
-        : e.message)
+        : translateApiError(e.message))
     } finally {
       setResending(false)
     }

@@ -1,5 +1,6 @@
 // src/lib/api.js
 import { withBase } from "./format";
+import { translateApiError } from "./errorMessages";
 
 const BASE_URL = import.meta.env.VITE_API_URL;
 
@@ -371,6 +372,17 @@ export const trainingHistoriesApi = {
   // Row invalid + duplikat di-skip otomatis.
   push: (id) =>
     request(`/admin/training-histories/imports/${id}/push`, { method: "POST" }),
+
+  // DB-005 #4 fix: peserta 1 session, langsung dari tabel training_session_participants
+  // (bukan dari filter[firstTrainingSessionId] di /admin/users — field itu cuma ke-set
+  // saat approve akun satu-per-satu, TIDAK ke-update oleh import CSV, jadi peserta hasil
+  // CSV tidak pernah muncul di modal "Lihat peserta" via jalur lama).
+  // status per row: active (terdaftar + subscription aktif) | nonactive (terdaftar,
+  // tanpa subscription) | unreg (belum terdaftar / email invalid).
+  listSessionParticipants: (sessionId, params = {}) => {
+    const q = buildQuery({ page: 1, limit: 20, ...params });
+    return request(`/admin/training-histories/sessions/${sessionId}/participants${q ? "?" + q : ""}`);
+  },
 };
 
 // ─── QUEUE JOBS (polling proses async) ──────────────────────────────────────────
@@ -384,7 +396,7 @@ export const queueApi = {
       const res = await queueApi.getJob(trackId);
       const job = res?.data || res;
       if (job.status === "COMPLETED") return job;
-      if (job.status === "FAILED") throw new Error(job.error || "Proses gagal di server.");
+      if (job.status === "FAILED") throw new Error(job.error ? translateApiError(job.error) : "Proses gagal di server.");
       await new Promise((r) => setTimeout(r, interval));
     }
     throw new Error("Timeout menunggu proses server.");
@@ -429,10 +441,13 @@ export const subscriptionApi = {
 
   // Lampirkan bukti transfer ke sebuah payment. fileId didapat dari
   // fileManagerApi.upload(). Setelah ini payment menunggu verifikasi admin.
-  uploadReceipt: (paymentId, fileId) =>
+  // extra: { senderName, senderBank, transferDate } — opsional, dikirim kalau
+  // ada. Blm terkonfirmasi backend simpan/balikin field ini (lihat API_ACCESS_MATRIX.md
+  // §7 & docs/VERIFIKASI_PEMBAYARAN.md §6 — body dokumentasi cuma { fileId }).
+  uploadReceipt: (paymentId, fileId, extra = {}) =>
     request(`/subscription/payments/${paymentId}/upload-receipt`, {
       method: "POST",
-      body: { fileId },
+      body: { fileId, ...extra },
     }),
 
   // Payment manual_transfer terakhir milik user (status apapun). 404 bila belum ada.
@@ -570,11 +585,11 @@ export const adminApi = {
     return request(`/admin/users/training-history/${userId}${q ? "?" + q : ""}`);
   },
 
-  // Peserta 1 session. Pakai filter[firstTrainingSessionId] — sama dgn field yang
-  // dipakai tabel Manajemen/Verifikasi Akun ("Alumni Pelatihan" dari
-  // firstTrainingSession, di-set saat approve akun). filter[trainingSessionId]
-  // lama memfilter tabel training-history yang sering kosong (record dibuat manual),
-  // jadi peserta tidak muncul walau akunnya ada di Manajemen.
+  // @deprecated DB-005 #4 — filter[firstTrainingSessionId] cuma ke-set saat approve
+  // akun satu-per-satu, TIDAK ke-update oleh import CSV, jadi peserta hasil CSV
+  // tidak pernah muncul. Modal "Lihat peserta" sudah pindah ke
+  // trainingHistoriesApi.listSessionParticipants (tabel training_session_participants).
+  // Dibiarkan (tidak dipakai lagi di FE) buat referensi/kompat kalau ada pemanggil lain.
   getSessionParticipants: (sessionId, params = {}) => {
     const q = buildQuery({ page: 1, limit: 20, "filter[firstTrainingSessionId]": sessionId, ...params });
     return request(`/admin/users${q ? "?" + q : ""}`);

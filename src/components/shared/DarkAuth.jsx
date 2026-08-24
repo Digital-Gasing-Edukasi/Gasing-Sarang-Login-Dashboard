@@ -29,7 +29,7 @@ export function AuthDarkLayout({ children, maxWidth = 'max-w-[520px]' }) {
 
       {/* Footer */}
       <footer className="relative z-10 pb-6 shrink-0">
-        <p className="text-center text-xs text-white/45">©2026 Gasing Academy. All rights reserved..</p>
+        <p className="text-center text-xs text-white">©2026 Gasing Academy. All rights reserved.</p>
       </footer>
     </div>
   )

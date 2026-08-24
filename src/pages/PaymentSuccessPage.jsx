@@ -16,7 +16,11 @@ function Avatar({ name = '' }) {
   )
 }
 
-export default function PaymentSuccessPage({ user, onSignOut, activePlanName }) {
+// isRetry: penanda Attempt ke-2+ (lihat App.jsx / TransferBankPage.jsx untuk
+// kontrak lengkap). Halaman ini landing Midtrans Snap Redirect — belum ada
+// varian retry di flowchart utk jalur ini, prop disediakan biar konsisten
+// kontrak kalau nanti dipakai (belum dipakai di JSX, TODO UI dev bila perlu).
+export default function PaymentSuccessPage({ user, onSignOut, activePlanName, isRetry = false }) {
   const ADMIN_EMAIL = import.meta.env.VITE_CONTACT_ADMIN || 'admin@gasingacademy.org'
   const waUrl       = `mailto:${ADMIN_EMAIL}`
 

@@ -9,7 +9,7 @@
 //   1. checkoutManual(packageId) → payment pending (idempotent per user).
 //   2. fileManagerApi.upload(file) → dapat fileId.
 //   3. uploadReceipt(paymentId, fileId) → payment menunggu review admin.
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import {
   Copy,
   Check,
@@ -21,25 +21,20 @@ import {
   ChevronLeft,
   ChevronDown,
   Download,
-  Trash,
+  Trash2,
+  LogOut,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { subscriptionApi, fileManagerApi } from "@/lib/api";
+import { subscriptionApi, fileManagerApi, webAppApi } from "@/lib/api";
 import mandiriLogo from "@/assets/subscription/mandiri-logo.png";
 import { Logo } from "@/components/shared/Logo";
 import { ProfileMenu } from "@/components/shared/ProfileMenu";
 import { DateField, DATE_MAX } from "@/components/shared/DateField";
 import { formatRp, localizePlanName } from "@/lib/format";
+import { fetchBankAccount, DEFAULT_BANK } from "@/lib/bankAccount";
 
 import bgDark from "@/assets/dark-mode/Background.png";
 import bgDesktop from "@/assets/dark-mode/Background-Desktop.png";
-
-// Rekening tujuan. Default statis (backend belum mengembalikan detail rekening);
-// bila payment membawa field rekening, nilai itu dipakai lebih dulu.
-const DEFAULT_BANK = {
-  accountNumber: "1760007700071",
-  accountName: "Yayasan Teknologi Indonesia Jaya",
-};
 
 const MAX_FILE_MB = 5;
 const ACCEPTED = ["image/jpeg", "image/png", "application/pdf"];
@@ -94,14 +89,36 @@ export default function TransferBankPage({
   onBack,
   initialSubmitted = false,
   initialReceiptFileId = null,
+  // isRetry: true bila user sampai sini lewat gate "Pembayaran Ditolak"
+  // (Attempt ke-2+, lihat App.jsx handler onRenew/onReupload). Dipakai di
+  // layar "Pembayaran Berhasil!" (submitted) utk beda tombol: Attempt #1 →
+  // "Jelajahi Sarang Gasing" (auto-login web app), Attempt #2+ → "Log Out"
+  // (pakai `onSignOut` yg sudah ada, jangan bikin fungsi baru).
+  // TODO(UI dev): belum dipakai di JSX — swap CTA di blok `submitted` (baris
+  // ~316) berdasarkan flag ini.
+  isRetry = false,
 }) {
+  // Rekening tujuan aktif dari master data BE (fetchBankAccount, ganti
+  // DEFAULT_BANK hardcoded). Mulai dari DEFAULT_BANK biar render pertama
+  // (sebelum fetch selesai) tetap tampil, bukan kosong.
+  const [masterBank, setMasterBank] = useState(DEFAULT_BANK);
+  useEffect(() => {
+    let cancelled = false;
+    fetchBankAccount().then((acc) => {
+      if (!cancelled) setMasterBank(acc);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const bank = {
     accountNumber:
       pick(payment, "bankAccountNumber", "accountNumber", "vaNumber") ||
-      DEFAULT_BANK.accountNumber,
+      masterBank.accountNumber,
     accountName:
       pick(payment, "bankAccountName", "accountName") ||
-      DEFAULT_BANK.accountName,
+      masterBank.accountName,
   };
 
   const durationMonths =
@@ -124,6 +141,11 @@ export default function TransferBankPage({
   const fileInputRef = useRef(null);
 
   const ADMIN_EMAIL = import.meta.env.VITE_CONTACT_ADMIN || "admin@gasingacademy.org";
+
+  const handleRedirectDefault = () => {
+    webAppApi.redirectWithTokens();
+  };
+
   const orderId =
     pick(payment, "orderId", "orderNumber", "id") ||
     pick(payment?.data, "orderId", "id") ||
@@ -196,9 +218,14 @@ export default function TransferBankPage({
       if (!paymentId) throw new Error("Data pembayaran tidak ditemukan.");
 
       // 4. Lampirkan bukti → payment menunggu verifikasi admin.
-      //    Catatan: senderName/senderBank/transferDate dikumpulkan untuk admin,
-      //    dikirim ke backend saat skema field tersebut sudah tersedia.
-      await subscriptionApi.uploadReceipt(paymentId, fileId);
+      //    Catatan: nama field senderName/senderBank/transferDate BLM dikonfirmasi
+      //    skema backend (API_ACCESS_MATRIX.md §7, docs/VERIFIKASI_PEMBAYARAN.md §6
+      //    cuma dokumentasikan { fileId }) — pakai nama sama dgn fallback mapper admin.
+      await subscriptionApi.uploadReceipt(paymentId, fileId, {
+        senderName,
+        senderBank,
+        transferDate,
+      });
       setReceiptFileId(fileId);
       setTxnId(resolvedTxnId || paymentId);
       setSubmitted(true);
@@ -308,12 +335,22 @@ export default function TransferBankPage({
                 Unduh Bukti
               </a>
             )}
-            <button
-              onClick={onSignOut}
-              className="flex items-center justify-center px-8 py-3.5 rounded-full bg-white text-[#0b0a1f] font-bold text-[15px] hover:bg-white/90 active:scale-[0.98] transition-all"
-            >
-              Jelajahi Sarang Gasing
-            </button>
+            {isRetry ? (
+              <button
+                onClick={onSignOut}
+                className="flex items-center justify-center gap-2 px-8 py-3.5 rounded-full bg-white text-[#0b0a1f] font-bold text-[15px] hover:bg-white/90 active:scale-[0.98] transition-all"
+              >
+                <LogOut size={18} />
+                Log Out
+              </button>
+            ) : (
+              <button
+                onClick={handleRedirectDefault}
+                className="flex items-center justify-center px-8 py-3.5 rounded-full bg-white text-[#0b0a1f] font-bold text-[15px] hover:bg-white/90 active:scale-[0.98] transition-all"
+              >
+                Jelajahi Sarang Gasing
+              </button>
+            )}
           </div>
 
           <p className="text-[14px] text-white/40 mt-8">

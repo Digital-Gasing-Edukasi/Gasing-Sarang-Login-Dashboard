@@ -39,14 +39,17 @@ Prioritas: **suspended > pending > expired**. Modal: `LoginStatusModal`.
 
 ## 3. Role Routing (`roles.js`) ✅
 
-Routing pakai `isSsoDisabled` (tag `DISABLED-SSO`) + `canAccessDiscourse` (tag `MANAGE_EXTRA_GROUPS`). `isSuperAdmin`/`hasAllAdminCapabilities` **tidak lagi** jadi jalan masuk dashboard.
+Routing pakai `isSuperAdmin` (flag `superadmin`/`superAdmin`) dicek **paling duluan**, baru `isSsoDisabled` (tag
+`DISABLED-SSO`), baru `canAccessDiscourse` (tag `MANAGE_EXTRA_GROUPS`). Super admin selalu sampai ke layar
+pilihan (`auth-choice`) apapun capability lain yang dia bawa — termasuk `DISABLED-SSO` (super admin bypass
+capability, per `API_ACCESS_MATRIX.md` baris 85). Diperbaiki 2026-08-20, lihat `docs/dev-progress-state.md`.
 
 | ID | Skenario | Data user | Expected |
 |----|----------|-----------|----------|
-| ROLE-01 | Punya DISABLED-SSO | cap `USER/DISCOURSE/DISABLED-SSO` | Ke `admin-dashboard` |
+| ROLE-01 | Punya DISABLED-SSO, non-superadmin | cap `USER/DISCOURSE/DISABLED-SSO`, `superadmin` bukan `true` | Ke `admin-dashboard` |
 | ROLE-02 | Punya MANAGE_EXTRA_GROUPS | cap `USER/DISCOURSE/MANAGE_EXTRA_GROUPS`, tanpa DISABLED-SSO | Ke `auth-choice`, **2 tombol** (Moderator/Discourse + Web App), TANPA tombol Dashboard |
 | ROLE-03 | Superadmin (tanpa DISABLED-SSO) | `superadmin=true` | Ke `auth-choice`, **3 tombol** (Dashboard + Moderator/Discourse + Web App) |
-| ROLE-03b | Superadmin + DISABLED-SSO | `superadmin=true` & cap DISABLED-SSO | Ke `admin-dashboard` (cabang isSsoDisabled menang duluan) |
+| ROLE-03b | Superadmin + DISABLED-SSO | `superadmin=true` & cap DISABLED-SSO | Ke `auth-choice`, **3 tombol** — `isSuperAdmin` dicek duluan, cabang `isSsoDisabled` TIDAK lagi menang (fix bug 2026-08-20; sebelumnya ke `admin-dashboard`, itu bug) |
 | ROLE-04 | All-caps admin tanpa 2 tag | punya semua ADMIN_CAPABILITIES kecuali DISABLED-SSO, non-super | BUKAN dashboard → choice bila MANAGE_EXTRA_GROUPS, else user biasa |
 | ROLE-05 | Cap format array | `capabilities: [...]` | Kebaca bener |
 | ROLE-06 | Cap format object | `capabilities: {cap:true}` | Kebaca bener (`cap in caps`) |

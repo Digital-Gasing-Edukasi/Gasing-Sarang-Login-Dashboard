@@ -373,7 +373,8 @@ function FilterDrawer({
           </button>
           <button
             onClick={handleApply}
-            className="flex-1 py-3 rounded-full bg-[#0033EC] text-sm font-semibold text-white hover:bg-[#0029BD] transition-colors"
+            disabled={draftSubs.length === 0 && draftPlans.length === 0 && draftRoles.length === 0}
+            className="flex-1 py-3 rounded-full bg-[#0033EC] text-sm font-semibold text-white hover:bg-[#0029BD] transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-[#0033EC]"
           >
             Terapkan
           </button>

@@ -157,6 +157,15 @@ export default function App() {
   // Transfer Bank (unggah bukti).
   const [checkoutPlan, setCheckoutPlan] = useState(null);
   const [manualPayment, setManualPayment] = useState(null);
+  // isRetry: penanda "ini Payment Attempt ke-2+" (bukan attempt pertama).
+  // TIDAK ADA counter dari backend (getLatestPayment cuma 1 record, tanpa
+  // attemptNumber/retryCount) — jadi ditandai di FE saat user masuk ulang ke
+  // Transfer Bank LEWAT gate "Pembayaran Ditolak" (tombol "Ulang Pembayaran" /
+  // "Upload Bukti Pembayaran" di LoginStatusModal → onRenew/onReupload di bawah).
+  // Default false = attempt pertama (checkout normal dari SubscriptionPage,
+  // tanpa lewat gate). Reset otomatis tiap sesi baru (full reload) — tidak perlu
+  // di-reset manual karena redirectWithTokens() = full page nav (state SPA hilang).
+  const [isRetry, setIsRetry] = useState(false);
   const [sessionChecked, setSessionChecked] = useState(false);
   // gate: status akun yang memblokir masuk app (suspended/pending/expired).
   // Berlaku untuk login manual DAN restore sesi (reload dgn token tersimpan).
@@ -384,52 +393,58 @@ export default function App() {
       // Gagal / belum pernah bayar → anggap tidak ada pending / tolakan.
     }
 
+    // Staff/capability holder (superadmin, DISABLED-SSO admin, moderator
+    // Discourse) TIDAK punya "langganan" / alur verifikasi member → gate
+    // kondisi akun (suspended/pending/expired/payment) di bawah TIDAK berlaku
+    // buat mereka. Cek ini duluan, sebelum gate.
+    const isStaffCapabilityHolder =
+      isSuperAdmin(user) || canAccessDiscourse(user) || isSsoDisabled(user);
+
     // Guard status akun sebelum masuk. Prioritas:
     //   suspended / pending akun → selalu menang (blokir mutlak).
     //   payment ditolak          → menang atas 'expired' (arahkan perbaiki bayar).
     //   expired                  → di-bypass bila ada payment pending.
-    const blocked = evaluateLoginGate(user);
-    if (blocked && blocked.type !== "expired") {
-      setGate({ ...blocked, profile: user });
-      navigate("/login", { replace: true });
-      return;
-    }
-    if (paymentRejected) {
-      setGate({ ...paymentRejected, profile: user });
-      navigate("/login", { replace: true });
-      return;
-    }
-    if (blocked && blocked.type === "expired" && !paymentPending) {
-      setGate({ ...blocked, profile: user });
-      navigate("/login", { replace: true });
-      return;
+    // Dilewati sepenuhnya untuk staff/capability holder (lihat komentar di atas).
+    if (!isStaffCapabilityHolder) {
+      const blocked = evaluateLoginGate(user);
+      if (blocked && blocked.type !== "expired") {
+        setGate({ ...blocked, profile: user });
+        navigate("/login", { replace: true });
+        return;
+      }
+      if (paymentRejected) {
+        setGate({ ...paymentRejected, profile: user });
+        navigate("/login", { replace: true });
+        return;
+      }
+      if (blocked && blocked.type === "expired" && !paymentPending) {
+        setGate({ ...blocked, profile: user });
+        navigate("/login", { replace: true });
+        return;
+      }
     }
 
     setCurrentUser(user);
 
-    // ── DEBUG sementara: cek bentuk respons /profile/me & deteksi peran. HAPUS nanti.
-    console.log("[login-debug] profile keys:", Object.keys(user || {}));
-    console.log("[login-debug] superadmin:", user?.superadmin, "| superAdmin:", user?.superAdmin);
-    console.log("[login-debug] capabilities:", user?.capabilities);
-    console.log(
-      "[login-debug] isSuperAdmin:", isSuperAdmin(user),
-      "| isSsoDisabled:", isSsoDisabled(user),
-      "| canAccessDiscourse:", canAccessDiscourse(user),
-    );
-    // ─────────────────────────────────────────────────────────────────────────
+    // Superadmin → SELALU ke panel pilih tujuan (3 tombol: Dashboard + Moderator/
+    // Discourse + Web App), walau dia juga punya capability DISABLED-SSO.
+    // Superadmin bypass capability, TIDAK bypass kondisi akun (API_ACCESS_MATRIX.md).
+    if (isSuperAdmin(user)) {
+      navigate("/login/choice", { replace: true });
+      return;
+    }
 
-    // HANYA yang punya capability USER/DISCOURSE/DISABLED-SSO yang boleh masuk
-    // Dashboard Admin. Selain itu (all-caps admin / operational tanpa tag ini)
-    // TIDAK lagi diarahkan ke dashboard.
+    // HANYA yang punya capability USER/DISCOURSE/DISABLED-SSO (dan BUKAN
+    // superadmin, sudah ditangani di atas) yang boleh masuk Dashboard Admin
+    // langsung.
     if (isSsoDisabled(user)) {
       navigate("/dashboard-admin", { replace: true });
       return;
     }
 
-    // Superadmin / pemilik USER/DISCOURSE/MANAGE_EXTRA_GROUPS → panel pilih tujuan.
-    // JANGAN auto redirect. Superadmin dapat 3 tombol (Dashboard + Moderator/Discourse
-    // + Web App); MANAGE_EXTRA_GROUPS dapat 2 (Moderator/Discourse + Web App).
-    if (isSuperAdmin(user) || canAccessDiscourse(user)) {
+    // Moderator (pemilik USER/DISCOURSE/MANAGE_EXTRA_GROUPS) → panel pilih
+    // tujuan, 2 tombol (Moderator/Discourse + Web App). JANGAN auto redirect.
+    if (canAccessDiscourse(user)) {
       navigate("/login/choice", { replace: true });
       return;
     }
@@ -599,6 +614,7 @@ export default function App() {
                 payment={manualPayment}
                 onSignOut={handleSignOut}
                 onBack={() => navigate("/login/subscription")}
+                isRetry={isRetry}
               />
             ) : (
               <Navigate to="/login/subscription" replace />
@@ -692,6 +708,7 @@ export default function App() {
               user={currentUser}
               onSignOut={handleSignOut}
               activePlanName={activePlanName}
+              isRetry={isRetry}
             />
           }
         />
@@ -739,6 +756,29 @@ export default function App() {
                 />
               }
             />
+            {/* Preview layar "Pembayaran Berhasil!" (state submitted) tanpa lewat
+                form transfer — dipakai buat cek 1:1 layout ke referensi desain. */}
+            <Route
+              path="/test-menu/transfer/success"
+              element={
+                <TransferBankPage
+                  user={{ name: "Test User" }}
+                  plan={{
+                    id: "test",
+                    name: "Tahunan",
+                    billingCycle: "annual",
+                    months: 12,
+                    priceTotal: 396000,
+                    priceMonthly: 33000,
+                  }}
+                  payment={{ orderId: "0001SGINVGA-VIII2026" }}
+                  onSignOut={() => navigate("/test-menu")}
+                  onBack={() => navigate("/test-menu/subscription")}
+                  initialSubmitted
+                  initialReceiptFileId="test-receipt"
+                />
+              }
+            />
           </>
         )}
 
@@ -768,16 +808,22 @@ export default function App() {
           // varian amount/account) → pilih paket di halaman langganan.
           onRenew={() => {
             const p = gate.profile;
+            // Retry hanya bila gate ini "Pembayaran Ditolak" (Attempt sebelumnya
+            // gagal) — 'expired' (langganan habis, belum pernah gagal bayar)
+            // BUKAN retry, tetap attempt pertama.
+            if (gate.type === "payment_rejected") setIsRetry(true);
             setGate(null);
             setCurrentUser(p);
             navigate("/login/subscription", { replace: true });
           }}
           // "Upload Bukti Pembayaran" (payment ditolak varian receipt) → langsung
           // ke TransferBankPage dgn paket terakhir (skip pilih paket). Tanpa paket
-          // terkenal → fallback ke halaman langganan.
+          // terkenal → fallback ke halaman langganan. Selalu dari gate
+          // payment_rejected → selalu retry (Attempt ke-2+).
           onReupload={() => {
             const p = gate.profile;
             const plan = gate.plan;
+            setIsRetry(true);
             setGate(null);
             setCurrentUser(p);
             if (plan?.id) {
