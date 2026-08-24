@@ -424,7 +424,7 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
                 <Input
                   type="text"
                   placeholder="Min. 5 karakter"
-                  value={username}
+                  value={username.toLowerCase()}
                   className={errors.username ? ERR_INPUT : ""}
                   onChange={(e) => {
                     setUsername(e.target.value);
