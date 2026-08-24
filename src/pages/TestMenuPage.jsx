@@ -34,6 +34,7 @@ const GROUPS = [
     items: [
       { to: "/test-menu/subscription", label: "Paywall / Pilih Paket", note: "tanpa login" },
       { to: "/test-menu/transfer", label: "Transfer Bank", note: "tanpa login" },
+      { to: "/test-menu/transfer/success", label: "Transfer Bank — Berhasil", note: "tanpa login" },
       { to: "/payment/success", label: "Payment — Success" },
       { to: "/payment/finish", label: "Payment — Finish" },
       { to: "/payment/unfinish", label: "Payment — Unfinish" },

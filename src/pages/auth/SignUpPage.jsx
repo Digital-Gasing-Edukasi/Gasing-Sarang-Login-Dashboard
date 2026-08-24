@@ -12,6 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { RightPanel } from "@/components/layout/RightPanel";
 import { StepBar, StepProgress } from "@/components/layout/StepIndicator";
 import { IconInput, TogglePassword } from "@/components/shared/IconInput";
@@ -19,6 +20,7 @@ import { DateField } from "@/components/shared/DateField";
 import { authApi, regionsApi, trainingSessionsApi } from "@/lib/api";
 import { ID_MONTHS as MONTHS, withBase, abbrevRegion } from "@/lib/format";
 import { getPasswordRules, isPasswordValid } from "@/lib/password";
+import { translateApiError } from "@/lib/errorMessages";
 // Dipin ke bad-words 3.x: rilis 4.0.0 (masih `latest` di npm) di-publish tanpa
 // folder `dist/` yang ditunjuk package.json-nya, jadi build gagal me-resolve-nya.
 // v3 mengekspor Filter sebagai default, bukan named export.
@@ -149,6 +151,23 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
     .filter((s) => sessionYear(s) === kapanYear)
     .sort((a, b) => String(a.name).localeCompare(String(b.name)));
 
+  // Label dropdown "Dimana": format kayak dropdown Daerah (KAB./KOTA + nama)
+  // pakai abbrevRegion. Kalau 2+ sesi jatuh ke label sama (mis. daerah sama,
+  // bulan beda dalam tahun yang sama) → tambahin bulan biar gak ambigu.
+  const dimanaLabelCounts = dimanaOptions.reduce((acc, s) => {
+    const label = abbrevRegion(s.name);
+    acc[label] = (acc[label] || 0) + 1;
+    return acc;
+  }, {});
+  const dimanaSelectOptions = dimanaOptions.map((s) => {
+    const base = abbrevRegion(s.name);
+    const label =
+      dimanaLabelCounts[base] > 1
+        ? `${base} — ${MONTHS[Number(sessionMonth(s))] ?? ""}`.trim()
+        : base;
+    return { value: s.id, label };
+  });
+
   const passwordRules = getPasswordRules(password);
   const allRulesOk = isPasswordValid(password);
 
@@ -254,19 +273,22 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
       onOtpToken(data.token, email);
       onNavigate("signup-otp");
     } catch (e) {
-      const msg = e.message;
+      // Routing field pakai teks mentah e.message (biar keyword sniff akurat);
+      // yang ditampilkan ke user tetap versi terjemahan.
+      const msg = e.message || "";
       const msgLower = msg.toLowerCase();
+      const displayMsg = translateApiError(msg);
       if (msgLower.includes("username")) {
-        setErrors({ username: msg });
+        setErrors({ username: displayMsg });
         setStep(1);
       } else if (msgLower.includes("email")) {
-        setErrors({ email: msg });
+        setErrors({ email: displayMsg });
         setStep(1);
       } else if (msgLower.includes("password")) {
-        setErrors({ password: msg });
+        setErrors({ password: displayMsg });
         setStep(1);
       } else {
-        setErrors({ general: msg });
+        setErrors({ general: displayMsg });
       }
     } finally {
       setLoading(false);
@@ -658,7 +680,7 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
                 >
                   <SelectTrigger>
                     <SelectValue
-                      placeholder={sessionsLoading ? "Memuat..." : "Pilih Tahun Pelatihan"}
+                      placeholder={sessionsLoading ? "Memuat..." : "Tahun"}
                     />
                   </SelectTrigger>
                   <SelectContent>
@@ -675,7 +697,7 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
                   disabled={!kapanYear}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Pilih Bulan Pelatihan" />
+                    <SelectValue placeholder="Bulan" />
                   </SelectTrigger>
                   <SelectContent>
                     {monthOptions.map((m) => (
@@ -692,25 +714,19 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
               <Label className="text-[13px] font-medium leading-normal">
                 Dimana kamu mendapat pelatihan Gasing pertama?
               </Label>
-              <Select
+              <SearchableSelect
                 value={lastTrainingSessionId}
                 onValueChange={(v) => {
                   setLastTrainingSessionId(v);
                   clearFieldError("session");
                 }}
+                options={dimanaSelectOptions}
                 disabled={!kapanYear}
-              >
-                <SelectTrigger className={errors.session ? ERR_INPUT : ""}>
-                  <SelectValue placeholder="Pilih Daerah Pelatihan" />
-                </SelectTrigger>
-                <SelectContent>
-                  {dimanaOptions.map((s) => (
-                    <SelectItem key={s.id} value={s.id}>
-                      {s.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                placeholder="Pilih Daerah"
+                searchPlaceholder="Cari daerah..."
+                title="Pilih Daerah"
+                triggerClassName={errors.session ? ERR_INPUT : ""}
+              />
               {errors.session && (
                 <p className="text-xs text-red-500">{errors.session}</p>
               )}

@@ -163,6 +163,24 @@ export function mapToPeserta(u) {
   }
 }
 
+// DB-005 #4 — row dari GET /admin/training-histories/sessions/:id/participants
+// (tabel training_session_participants, bukan /admin/users). Status BE:
+// active (terdaftar + subscription aktif) | nonactive (terdaftar, tanpa
+// subscription aktif) | unreg (belum terdaftar / email invalid → tanpa userId).
+export function mapToSessionParticipant(p) {
+  const status = p.status || (p.user ? 'nonactive' : 'unreg')
+  const langganan =
+    status === 'active'   ? 'Aktif' :
+    status === 'nonactive' ? 'Non-Aktif' : 'Belum Terdaftar'
+  return {
+    userId: p.userId || p.user?.id || null,
+    name:   p.name || p.user?.name || '-',
+    email:  p.email || p.user?.email || '-',
+    status,
+    langganan,
+  }
+}
+
 // verifiedStatus dari API (NUMBER): 1=approved, 2=revise, 3=pending_voucher,
 // -1=rejected, lainnya=waiting.
 function parseVerifiedStatus(v) {
@@ -299,9 +317,11 @@ function parseManajemenStatus(u) {
   if (hasDeletion || u.deletionPending || u.deletionScheduledAt || u.deletedAt) return 'Baru Dihapus'
   if (u.suspendedUntil || u.suspended) return 'Ditangguhkan'
   const vs = u.verifiedStatus
-  // REJECTED(-1) = tolak final; REVISE(2) = tolak pembayaran.
-  // Hanya status -1 yang masuk ke tab Ditolak.
-  if (vs === -1 || vs === 'rejected') return 'Ditolak'
+  // REJECTED(-1) = tolak final; REVISE(2) = diminta perbaiki data.
+  // Keduanya masuk tab Ditolak (selaras isManajemenEligible di bawah — sebelumnya
+  // REVISE(2) lolos eligible tapi jatuh ke default 'Disetujui', jadi akun ditolak
+  // "hilang" dari tab Ditolak. Bug FE, bukan data BE).
+  if (vs === -1 || vs === 'rejected' || vs === 2 || vs === 'revise') return 'Ditolak'
   return 'Disetujui'
 }
 
@@ -569,6 +589,12 @@ export function mapToManajemen(u, regions = [], discourseGroups = []) {
     // mengirim ulang discourseGroupId. Tanpa ini, baris hasil reload halaman kehilangan
     // nilainya dan BE menolak: "discourseGroupId is required when status is approved".
     discourseGroupId: toGroupId(u.discourseGroupId ?? u.discourseGroup?.id),
+    // Dibawa mentah — dipakai bedain REJECTED(-1) vs REVISE(2) di tab Ditolak (keduanya
+    // accountStatus='Ditolak', tapi cuma REJECTED yang punya jalur admin "Setujui Akun"
+    // (unreject). REVISE tidak punya endpoint approve langsung di kontrak — cuma resolve
+    // via user resubmit /auth/revise/submit → reset ke WAITING). Lihat ManajemenTable.jsx
+    // (guard menu) & AdminDashboardPage.jsx handleManajemenBulk (guard bulk).
+    verifiedStatus: u.verifiedStatus,
     subscription: subStatus,
     plan:    parsePlan(sub),
     endDate: endMs ? fmtDate(endMs) : '-',

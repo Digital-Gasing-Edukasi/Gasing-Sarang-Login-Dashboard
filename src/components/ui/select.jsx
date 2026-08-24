@@ -172,7 +172,7 @@ function MobileSheet({ ctx, title, children }) {
     return <div className="hidden" aria-hidden="true">{children}</div>
   }
   return createPortal(
-    <div className="fixed inset-0 z-[100] lg:hidden">
+    <div className="fixed inset-0 z-[150] lg:hidden">
       {/* Scrim: efek blur ke konten belakang (bukan overlay hitam). */}
       <div
         className="absolute inset-0 bg-[#030B1F]/30 backdrop-blur animate-in fade-in-0"
@@ -218,7 +218,7 @@ const SelectContent = React.forwardRef(({ className, children, position = "poppe
       <SelectPrimitive.Content
         ref={ref}
         className={cn(
-          "relative z-50 max-h-96 min-w-[8rem] overflow-hidden rounded-lg border border-input bg-background shadow-md",
+          "relative z-[150] max-h-96 min-w-[8rem] overflow-hidden rounded-lg border border-input bg-background shadow-md",
           "data-[state=open]:animate-in data-[state=closed]:animate-out",
           "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
           "data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",

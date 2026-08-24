@@ -95,11 +95,11 @@ export function PendingVoucherTable({
                   {selected && <Check size={11} className="text-white" strokeWidth={3} />}
                 </button>
               </td>
-              <td className={cn('px-4 py-4 sticky left-[48px] z-10 transition-colors relative', selected ? 'bg-blue-50/50' : 'bg-white group-hover:bg-[#F9FAFB]')}>
-                <div className="flex items-center gap-2">
-                  <span className="font-bold text-[#0A1128]">{user.name}</span>
+              <td className={cn('px-4 py-4 sticky left-[48px] z-10 transition-colors relative align-top', selected ? 'bg-blue-50/50' : 'bg-white group-hover:bg-[#F9FAFB]')}>
+                <div className="flex items-start gap-2 min-w-[160px] max-w-[240px]">
+                  <span className="font-bold text-[#0A1128] line-clamp-2 break-words" title={user.name}>{user.name}</span>
                   {user.isNew && (
-                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-blue-600 text-white">New</span>
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-blue-600 text-white shrink-0">New</span>
                   )}
                 </div>
                 <div className="text-xs text-gray-400 mt-0.5">{user.username}</div>
@@ -124,7 +124,7 @@ export function PendingVoucherTable({
                   <span className="font-medium text-[#0A1128]">{user.riwayatCount ?? 0}</span>
                   <button
                     onClick={() => onRiwayatDetail?.(user)}
-                    className="text-link underline text-sm"
+                    className="text-link underline text-sm px-2 py-1 -mx-2 -my-1 rounded-md hover:bg-blue-50 transition-colors"
                   >
                     Lihat Detail
                   </button>

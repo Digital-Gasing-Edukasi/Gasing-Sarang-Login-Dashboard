@@ -1,34 +1,29 @@
 import { useState, useEffect } from 'react'
-import { ChevronDown, Copy, Check } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { Copy, Check } from 'lucide-react'
 import { getRoleOptions, resolveRoleValue } from './roleOptions'
+import { RoleSelect } from './RoleSelect'
+import { Dropdown } from './ConfirmModal'
 
 // Kode voucher placeholder FE (auto saat approve). TODO(be): dari backend.
 function genVoucher() {
-  return 'SUB' + Math.random().toString(36).slice(2, 8).toUpperCase()
+  return 'GASI' + Math.random().toString(36).slice(2, 8).toUpperCase()
 }
 
-function Select({ label, value, onChange, options, placeholder }) {
+// Field wrapper + label, isi dioper anak (RoleSelect / Dropdown) — konsisten
+// dengan pola dropdown shared lain di app (lihat ApproveModal di ConfirmModal.jsx),
+// bukan <select> native lagi.
+function Field({ label, children }) {
   return (
     <div>
       <label className="block text-sm font-semibold text-[#0A1128] mb-1.5">{label}</label>
-      <div className="relative">
-        <select
-          value={value} onChange={e => onChange(e.target.value)}
-          className={cn('w-full appearance-none border border-gray-200 rounded-xl py-3 pl-4 pr-9 text-sm outline-none focus:border-blue-500', value ? 'text-[#0A1128]' : 'text-gray-400')}
-        >
-          <option value="" disabled>{placeholder}</option>
-          {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-        </select>
-        <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-      </div>
+      {children}
     </div>
   )
 }
 
 // Setujui Akun (dari tab Ditolak) — atur role + pelatihan, tampilkan kode voucher.
 // onConfirm({ discourseGroupId, firstTrainingSessionId, voucherCode }).
-export function SetujuiAkunModal({ user, discourseGroups = [], trainingSessions = [], onConfirm, onCancel }) {
+export function SetujuiAkunModal({ user, discourseGroups = [], trainingSessions = [], onConfirm, onCancel, onCopyVoucher }) {
   const roleOptions = getRoleOptions(discourseGroups)
   const sessionOptions = trainingSessions
     .map(s => ({ value: String(s.id), label: s.name }))
@@ -51,6 +46,7 @@ export function SetujuiAkunModal({ user, discourseGroups = [], trainingSessions 
   const copy = () => {
     navigator.clipboard?.writeText(voucher)
     setCopied(true)
+    onCopyVoucher && onCopyVoucher(voucher) // toast konfirmasi di parent (DB-002 #10)
     setTimeout(() => setCopied(false), 1500)
   }
 
@@ -64,8 +60,12 @@ export function SetujuiAkunModal({ user, discourseGroups = [], trainingSessions 
           </p>
 
           <div className="space-y-4">
-            <Select label="Role Pengguna" value={role} onChange={setRole} options={roleOptions} placeholder="Pilih role" />
-            <Select label="Nama Pelatihan" value={session} onChange={setSession} options={sessionOptions} placeholder="Pilih pelatihan" />
+            <Field label="Role Pengguna">
+              <RoleSelect value={role} onChange={setRole} options={roleOptions} placeholder="Pilih role" />
+            </Field>
+            <Field label="Nama Pelatihan">
+              <Dropdown value={session} onChange={setSession} options={sessionOptions} placeholder="Pilih pelatihan" />
+            </Field>
             <div>
               <label className="block text-sm font-semibold text-[#0A1128] mb-1.5">Kode Voucher</label>
               <div className="flex items-center justify-between gap-2 border border-gray-200 rounded-xl py-3 px-4">

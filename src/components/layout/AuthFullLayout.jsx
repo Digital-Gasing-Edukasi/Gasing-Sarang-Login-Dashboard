@@ -65,10 +65,10 @@ export function AuthFullLayout({ children, illustration = 'robot' }) {
             {children}
           </div>
         </div>
-      </div>
 
-      <div className="pb-6 shrink-0">
-        <p className="text-xs text-muted-foreground text-center">©2026 Gasing Academy. All rights reserved.</p>
+        <div className="pb-6 shrink-0">
+          <p className="text-xs text-muted-foreground text-center">©2026 Gasing Academy. All rights reserved.</p>
+        </div>
       </div>
     </div>
   )

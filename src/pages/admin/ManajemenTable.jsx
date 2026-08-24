@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
-import { ArrowDownUp, MoreHorizontal, Edit, Trash2, Clock, CheckCircle2, History, SearchX, Check } from 'lucide-react'
+import { ArrowDownUp, MoreHorizontal, Edit, Trash2, Clock, CheckCircle2, History, SearchX } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { abbrevRegion } from '@/lib/format'
 import { TableShell, FreezeBlurLeft, FreezeBlurRight } from './TableShell'
@@ -26,6 +26,22 @@ const MENU_BY_TAB = {
     { type: 'pulihkan-akun',        label: 'Pulihkan Akun', Icon: History, danger: false },
     { type: 'hapus-akun-permanen',  label: 'Hapus Akun',    Icon: Trash2,  danger: true  },
   ],
+}
+
+// REVISE(2) tidak punya endpoint approve langsung di kontrak (cuma "unreject" yang
+// sah, dan itu cuma valid dari REJECTED(-1) — lihat komunitas-api.postman_collection
+// "Verify User (Unreject)"). Akun REVISE cuma resolve otomatis via user resubmit data
+// (/auth/revise/submit → reset ke WAITING), admin tidak bisa paksa approve dari sini.
+// Guard: sembunyikan "Setujui Akun" khusus baris REVISE, biar ga kirim request yang
+// pasti ditolak BE. Baris REJECTED tetap dapat tombolnya seperti biasa.
+function isReviseRow(user) {
+  return user?.verifiedStatus === 2 || user?.verifiedStatus === 'revise'
+}
+
+function ditolakMenuItems(user) {
+  return isReviseRow(user)
+    ? MENU_BY_TAB['Ditolak'].filter(i => i.type !== 'setujui-akun')
+    : MENU_BY_TAB['Ditolak']
 }
 
 const MENU_W = 208
@@ -93,7 +109,7 @@ export function RowActionMenu({ tab, items: itemsProp, user, onAction }) {
                 danger ? 'text-red-500 hover:bg-red-50' : 'text-[#0A1128] hover:bg-gray-50'
               )}
             >
-              <Icon size={16} className={danger ? 'text-red-500' : 'text-blue-500'} />
+              <Icon size={16} className={danger ? 'text-red-500' : 'text-[#0033EC]'} />
               {label}
             </button>
           ))}
@@ -152,7 +168,6 @@ const SUBSCRIPTION_CLASSES = {
 
 export function ManajemenTable({
   users, sortConfig, onSort, searchQuery, activeFilter, onActionClick, onRiwayatClick,
-  selectedIds = [], onToggleSelect, onToggleSelectAll, allSelected = false,
 }) {
   const isReducedView = activeFilter === 'Rejected' || activeFilter === 'Deleted' || activeFilter === 'Ditolak' || activeFilter === 'Baru Dihapus'
 
@@ -161,18 +176,9 @@ export function ManajemenTable({
       <table className="w-full text-left text-sm whitespace-nowrap">
         <thead className="bg-[#0A1128] text-white sticky top-0 z-20">
           <tr>
-            <th className="px-4 py-4 w-12 text-center sticky left-0 z-30 bg-[#0A1128] align-bottom">
-              <button
-                onClick={onToggleSelectAll}
-                className={cn(
-                  'w-4 h-4 rounded border flex items-center justify-center mx-auto transition-colors',
-                  allSelected ? 'bg-blue-600 border-blue-600' : 'border-white/30 hover:border-white/60'
-                )}
-              >
-                {allSelected && <Check size={11} className="text-white" strokeWidth={3} />}
-              </button>
-            </th>
-            <th className="px-4 py-4 font-medium align-bottom sticky left-[48px] z-30 bg-[#0A1128] relative">
+            {/* Tanpa checkbox bulk-select — Manajemen Akun bukan tab bulk-select
+                (cuma Verifikasi Akun). Lihat DB-002 #6. */}
+            <th className="px-4 py-4 font-medium align-bottom sticky left-0 z-30 bg-[#0A1128] relative">
               <SortableHeader label="Nama Pengguna" sortKey="name" sortConfig={sortConfig} onSort={onSort} />
               <FreezeBlurLeft />
             </th>
@@ -233,21 +239,9 @@ export function ManajemenTable({
         </thead>
         <tbody className="divide-y divide-gray-100">
           {users.length > 0 ? users.map(user => {
-            const selected = selectedIds.includes(user.id)
             return (
-              <tr key={user.id} className={cn('group transition-colors', selected ? 'bg-[#F4F6FB]' : 'hover:bg-[#F9FAFB]')}>
-                <td className={cn('px-4 py-4 align-top text-center sticky left-0 z-10 transition-colors', selected ? 'bg-[#F4F6FB]' : 'bg-white group-hover:bg-[#F9FAFB]')}>
-                  <button
-                    onClick={() => onToggleSelect && onToggleSelect(user.id)}
-                    className={cn(
-                      'w-4 h-4 rounded border flex items-center justify-center mx-auto transition-colors',
-                      selected ? 'bg-blue-600 border-blue-600' : 'border-gray-300 bg-gray-50 hover:border-gray-400'
-                    )}
-                  >
-                    {selected && <Check size={11} className="text-white" strokeWidth={3} />}
-                  </button>
-                </td>
-                <td className={cn('px-4 py-4 align-top sticky left-[48px] z-10 transition-colors relative', selected ? 'bg-[#F4F6FB]' : 'bg-white group-hover:bg-[#F9FAFB]')}>
+              <tr key={user.id} className="group transition-colors hover:bg-[#F9FAFB]">
+                <td className="px-4 py-4 align-top sticky left-0 z-10 transition-colors bg-white group-hover:bg-[#F9FAFB] relative">
                   <div className="font-bold text-[#0A1128] flex items-center">
                     {user.name}
                     {user.isNew && (
@@ -309,15 +303,20 @@ export function ManajemenTable({
                 <td className="px-4 py-4 text-[#0A1128] font-medium align-top">{user.alumniTanggal || '-'}</td>
                 <td className="px-4 py-4 text-[#0A1128] font-medium whitespace-normal break-words max-w-[200px] leading-snug align-top">{user.school || '-'}</td>
                 <td className="px-4 py-4 text-[#0A1128] font-medium align-top">{user.lastUpdated || '-'}</td>
-                <td className={cn('px-4 py-4 align-top text-center sticky right-0 z-10 transition-colors relative', selected ? 'bg-[#F4F6FB]' : 'bg-white group-hover:bg-[#F9FAFB]')}>
-                  <RowActionMenu tab={activeFilter} user={user} onAction={onActionClick} />
+                <td className="px-4 py-4 align-top text-center sticky right-0 z-10 transition-colors relative bg-white group-hover:bg-[#F9FAFB]">
+                  <RowActionMenu
+                    tab={activeFilter}
+                    items={activeFilter === 'Ditolak' ? ditolakMenuItems(user) : undefined}
+                    user={user}
+                    onAction={onActionClick}
+                  />
                   <FreezeBlurRight />
                 </td>
               </tr>
             )
           }) : (
             <tr>
-              <td colSpan="20" className="px-4 py-16">
+              <td colSpan="19" className="px-4 py-16">
                 {searchQuery ? (
                   <div className="flex flex-col items-center text-center gap-2">
                     <div className="w-14 h-14 rounded-full border border-gray-200 flex items-center justify-center text-gray-300 mb-1">

@@ -135,7 +135,7 @@ export function DateField({
   maxDate = yesterday,
   // Nilai draft awal saat belum ada value.
   defaultDraft,
-  dialogLabel = "Pilih Tanggal Lahir",
+  dialogLabel = "Pilih tanggal lahir",
 }) {
   const [open, setOpen] = useState(false);
   const wrapRef = useRef(null);

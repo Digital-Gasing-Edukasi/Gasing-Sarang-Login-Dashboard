@@ -2,19 +2,25 @@ import { useState, useEffect } from 'react'
 import { X, Pencil, Trash2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { abbrevRegion } from '@/lib/format'
-import { adminApi } from '@/lib/api'
-import { mapToPeserta } from './mappers'
+import { adminApi, trainingHistoriesApi } from '@/lib/api'
+import { mapToSessionParticipant } from './mappers'
 import { EditPesertaModal } from './EditPesertaModal'
 
 const LANGGANAN_CLASSES = {
-  Aktif:       'bg-green-50 text-green-600',
-  'Non-Aktif': 'bg-gray-100 text-gray-400',
-  Berakhir:    'bg-gray-100 text-gray-400',
+  Aktif:            'bg-green-50 text-green-600',
+  'Non-Aktif':       'bg-gray-100 text-gray-400',
+  Berakhir:          'bg-gray-100 text-gray-400',
+  'Belum Terdaftar': 'bg-amber-50 text-amber-600',
 }
 
 // Daftar Peserta Guru 1 session (list + edit). Delete DISABLED sampai backend
-// sediakan endpoint unenroll. List pakai filter existing lastTrainingSessionId
-// (scope: session terakhir user, bisa tidak lengkap).
+// sediakan endpoint unenroll.
+//
+// DB-005 #4 fix: dulu list pakai adminApi.getSessionParticipants (filter
+// firstTrainingSessionId di /admin/users) — field itu cuma ke-set saat approve
+// akun satu-per-satu, jadi peserta hasil IMPORT CSV (jalur utama modal ini)
+// tidak pernah muncul → "Lihat peserta" selalu kosong. Ganti ke endpoint yang
+// query langsung tabel training_session_participants.
 export function DaftarPesertaModal({ isOpen, session, onClose }) {
   const [rows, setRows] = useState([])
   const [total, setTotal] = useState(0)
@@ -26,9 +32,9 @@ export function DaftarPesertaModal({ isOpen, session, onClose }) {
     if (!session) return
     setLoading(true); setError('')
     try {
-      const res = await adminApi.getSessionParticipants(session.id, { limit: 100 })
+      const res = await trainingHistoriesApi.listSessionParticipants(session.id, { limit: 100 })
       const data = Array.isArray(res) ? res : (res?.data || [])
-      setRows(data.map(mapToPeserta))
+      setRows(data.map(mapToSessionParticipant))
       setTotal(res?.meta?.total ?? data.length)
     } catch (err) {
       setError(err.message || 'Gagal memuat peserta.')
@@ -84,8 +90,8 @@ export function DaftarPesertaModal({ isOpen, session, onClose }) {
                 {loading ? (
                   <tr><td colSpan="4" className="px-4 py-8 text-center text-gray-500">Memuat peserta...</td></tr>
                 ) : rows.length > 0 ? (
-                  rows.map((r) => (
-                    <tr key={r.userId} className="hover:bg-gray-50">
+                  rows.map((r, i) => (
+                    <tr key={r.userId || r.email || i} className="hover:bg-gray-50">
                       <td className="px-4 py-3 font-medium text-[#0A1128]">{r.name}</td>
                       <td className="px-4 py-3 text-gray-600">{r.email}</td>
                       <td className="px-4 py-3">
@@ -97,8 +103,9 @@ export function DaftarPesertaModal({ isOpen, session, onClose }) {
                         <div className="flex items-center justify-center gap-1">
                           <button
                             onClick={() => setEditing(r)}
-                            className="w-8 h-8 rounded-full flex items-center justify-center text-gray-500 hover:bg-gray-100 hover:text-[#0A1128] transition-colors"
-                            title="Edit peserta"
+                            disabled={!r.userId}
+                            className="w-8 h-8 rounded-full flex items-center justify-center text-gray-500 hover:bg-gray-100 hover:text-[#0A1128] transition-colors disabled:text-gray-300 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+                            title={r.userId ? 'Edit peserta' : 'Belum terdaftar — tidak bisa diedit'}
                           >
                             <Pencil size={15} />
                           </button>
