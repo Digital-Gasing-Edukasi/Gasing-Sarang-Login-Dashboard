@@ -38,15 +38,15 @@ export function PendaftaranTrainerTable({
 
   return (
     <TableShell>
-    <table className="w-full text-left text-sm whitespace-nowrap">
+    <table className="w-full table-fixed text-left text-sm whitespace-nowrap">
       <thead className="bg-[#0A1128] text-white sticky top-0 z-20">
         <tr>
-          <th className="px-4 py-4 font-medium align-bottom">Nama Pelatihan</th>
-          <th className="px-4 py-4 font-medium align-bottom">Link</th>
-          <th className="px-4 py-4 font-medium align-bottom">Periode</th>
-          <th className="px-4 py-4 font-medium align-bottom">Batas Waktu</th>
-          <th className="px-4 py-4 font-medium align-bottom">Status</th>
-          <th className="px-4 py-4 font-medium align-bottom text-center sticky right-0 z-30 bg-[#0A1128] relative">Tampilkan di Home?<FreezeBlurRight /></th>
+          <th className="px-4 py-4 font-medium align-bottom w-[244px]">Nama Pelatihan</th>
+          <th className="px-4 py-4 font-medium align-bottom w-[244px]">Link</th>
+          <th className="px-4 py-4 font-medium align-bottom w-[244px]">Periode</th>
+          <th className="px-4 py-4 font-medium align-bottom w-[244px]">Batas Waktu</th>
+          <th className="px-4 py-4 font-medium align-bottom w-[244px]">Status</th>
+          <th className="px-4 py-4 font-medium align-bottom w-[244px] text-center sticky right-0 z-30 bg-[#0A1128] relative">Tampilkan di Home?<FreezeBlurRight /></th>
         </tr>
       </thead>
       <tbody className="divide-y divide-gray-100">

@@ -30,11 +30,11 @@ const Td = ({ children, className, ...props }) => (
 export function DaftarUserTable({ users = [], searchQuery = '', stickTop = 0 }) {
   // thead beku di bawah zona header+controls. z tinggi biar nutup baris yg lewat.
   const thStyle = { top: stickTop }
-  const th = 'px-4 py-4 font-medium sticky z-20 bg-[#0A1128]'
+  const th = 'px-4 py-4 font-medium w-[244px] sticky z-20 bg-[#0A1128]'
 
   return (
     <div className="w-max min-w-full rounded-2xl border border-gray-200 shadow-sm bg-white">
-      <table className="w-full text-left text-sm whitespace-nowrap">
+      <table className="w-full table-fixed text-left text-sm whitespace-nowrap">
         <thead className="bg-[#0A1128] text-white">
           <tr>
             <th style={thStyle} className={th}>Nama Pengguna</th>
@@ -54,16 +54,16 @@ export function DaftarUserTable({ users = [], searchQuery = '', stickTop = 0 }) 
         <tbody className="divide-y divide-gray-100">
           {users.length > 0 ? users.map(u => (
             <tr key={u.id} className="transition-colors hover:bg-[#F9FAFB]">
-              <td className="px-4 py-4">
-                <div className="font-bold text-[#0A1128] flex items-center">
-                  {u.name}
+              <td className="px-4 py-4 align-top">
+                <div className="flex items-start gap-2">
+                  <span className="font-bold text-[#0A1128] whitespace-normal break-words line-clamp-2" title={u.name}>{u.name}</span>
                   {u.isNew && (
-                    <span className="bg-blue-600 text-white text-[10px] px-2 py-0.5 rounded-full font-bold ml-2">New</span>
+                    <span className="bg-blue-600 text-white text-[10px] px-2 py-0.5 rounded-full font-bold shrink-0">New</span>
                   )}
                 </div>
                 <div className="text-xs text-gray-400 mt-0.5">{u.username}</div>
               </td>
-              <Td>{u.email || '-'}</Td>
+              <Td className="whitespace-normal break-words line-clamp-2 align-top" title={u.email}>{u.email || '-'}</Td>
               <td className="px-4 py-4">
                 <span className={cn('inline-flex items-center px-3 py-1 rounded-full text-xs font-bold', STATUS_CLASSES[u.accountStatus] || 'bg-gray-50 text-gray-500')}>
                   {u.accountStatus || '-'}
@@ -79,8 +79,8 @@ export function DaftarUserTable({ users = [], searchQuery = '', stickTop = 0 }) 
               <Td>{u.role || '-'}</Td>
               <Td>{u.riwayatCount || '-'}</Td>
               <Td>{u.birthdate || '-'}</Td>
-              <Td className="whitespace-normal break-words max-w-[200px] leading-snug align-top" title={u.lokasi}>{abbrevRegion(u.lokasi) || '-'}</Td>
-              <Td className="whitespace-normal break-words max-w-[200px] leading-snug align-top">{u.school || '-'}</Td>
+              <Td className="whitespace-normal break-words max-w-[244px] leading-snug align-top" title={u.lokasi}>{abbrevRegion(u.lokasi) || '-'}</Td>
+              <Td className="whitespace-normal break-words max-w-[244px] leading-snug align-top" title={u.school}>{u.school || '-'}</Td>
               <Td>{u.lastUpdated || '-'}</Td>
             </tr>
           )) : (

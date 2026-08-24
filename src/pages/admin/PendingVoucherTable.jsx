@@ -29,7 +29,7 @@ export function PendingVoucherTable({
 }) {
   return (
     <TableShell>
-    <table className="w-full text-left text-sm whitespace-nowrap">
+    <table className="w-full table-fixed text-left text-sm whitespace-nowrap">
       <thead className="bg-[#0A1128] text-white sticky top-0 z-20">
         <tr>
           <th className="px-4 py-4 w-12 text-center sticky left-0 z-30 bg-[#0A1128] align-bottom">
@@ -43,40 +43,40 @@ export function PendingVoucherTable({
               {allSelected && <Check size={11} className="text-white" strokeWidth={3} />}
             </button>
           </th>
-          <th className="px-4 py-4 font-medium sticky left-[48px] z-30 bg-[#0A1128] align-bottom relative">
+          <th className="px-4 py-4 font-medium w-[244px] sticky left-[48px] z-30 bg-[#0A1128] align-bottom relative">
             <SortableHeader label="Nama Pengguna" sortKey="name" sortConfig={sortConfig} onSort={onSort} />
             <FreezeBlurLeft />
           </th>
-          <th className="px-4 py-4 font-medium align-bottom">Email</th>
-          <th className="px-4 py-4 font-medium align-bottom">Status Member</th>
-          <th className="px-4 py-4 font-medium align-bottom">
+          <th className="px-4 py-4 font-medium align-bottom w-[244px]">Email</th>
+          <th className="px-4 py-4 font-medium align-bottom w-[244px]">Status Member</th>
+          <th className="px-4 py-4 font-medium align-bottom w-[244px]">
             <SortableHeader label="Kode Voucher" sortKey="voucherCode" sortConfig={sortConfig} onSort={onSort} />
           </th>
-          <th className="px-4 py-4 font-medium align-bottom">
+          <th className="px-4 py-4 font-medium align-bottom w-[244px]">
             <SortableHeader label="Role" sortKey="role" sortConfig={sortConfig} onSort={onSort} />
           </th>
-          <th className="px-4 py-4 font-medium align-bottom">
+          <th className="px-4 py-4 font-medium align-bottom w-[244px]">
             <SortableHeader label="Riwayat Pelatihan" sortKey="riwayatCount" sortConfig={sortConfig} onSort={onSort} />
           </th>
-          <th className="px-4 py-4 font-medium align-bottom">
+          <th className="px-4 py-4 font-medium align-bottom w-[244px]">
             <SortableHeader label="Tgl. Lahir" sortKey="birthdate" sortConfig={sortConfig} onSort={onSort} />
           </th>
-          <th className="px-4 py-4 font-medium align-bottom">
+          <th className="px-4 py-4 font-medium align-bottom w-[244px]">
             <SortableHeader label="Lokasi" sortKey="lokasi" sortConfig={sortConfig} onSort={onSort} />
           </th>
-          <th className="px-4 py-4 font-medium align-bottom">
+          <th className="px-4 py-4 font-medium align-bottom w-[244px]">
             <SortableHeader label="Nama" sublabel="Alumni Pelatihan" sortKey="alumniNama" sortConfig={sortConfig} onSort={onSort} />
           </th>
-          <th className="px-4 py-4 font-medium align-bottom">
+          <th className="px-4 py-4 font-medium align-bottom w-[244px]">
             <SortableHeader label="Daerah" sublabel="Alumni Pelatihan" sortKey="alumniDaerah" sortConfig={sortConfig} onSort={onSort} />
           </th>
-          <th className="px-4 py-4 font-medium align-bottom">
+          <th className="px-4 py-4 font-medium align-bottom w-[244px]">
             <SortableHeader label="Tanggal Mulai" sublabel="Alumni Pelatihan" sortKey="alumniTanggal" sortConfig={sortConfig} onSort={onSort} />
           </th>
-          <th className="px-4 py-4 font-medium align-bottom">
+          <th className="px-4 py-4 font-medium align-bottom w-[244px]">
             <SortableHeader label="Asal Sekolah" sortKey="school" sortConfig={sortConfig} onSort={onSort} />
           </th>
-          <th className="px-4 py-4 font-medium text-center align-bottom sticky right-0 z-30 bg-[#0A1128] relative">Action<FreezeBlurRight /></th>
+          <th className="px-4 py-4 font-medium text-center align-bottom w-[244px] sticky right-0 z-30 bg-[#0A1128] relative">Action<FreezeBlurRight /></th>
         </tr>
       </thead>
       <tbody className="divide-y divide-gray-100">
@@ -96,8 +96,8 @@ export function PendingVoucherTable({
                 </button>
               </td>
               <td className={cn('px-4 py-4 sticky left-[48px] z-10 transition-colors relative align-top', selected ? 'bg-blue-50/50' : 'bg-white group-hover:bg-[#F9FAFB]')}>
-                <div className="flex items-start gap-2 min-w-[160px] max-w-[240px]">
-                  <span className="font-bold text-[#0A1128] line-clamp-2 break-words" title={user.name}>{user.name}</span>
+                <div className="flex items-start gap-2">
+                  <span className="font-bold text-[#0A1128] whitespace-normal line-clamp-2 break-words" title={user.name}>{user.name}</span>
                   {user.isNew && (
                     <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-blue-600 text-white shrink-0">New</span>
                   )}
@@ -105,7 +105,7 @@ export function PendingVoucherTable({
                 <div className="text-xs text-gray-400 mt-0.5">{user.username}</div>
                 <FreezeBlurLeft />
               </td>
-              <td className="px-4 py-4 text-[#0A1128] font-medium">{user.email}</td>
+              <td className="px-4 py-4 text-[#0A1128] font-medium align-top whitespace-normal break-words line-clamp-2" title={user.email}>{user.email}</td>
               <td className="px-4 py-4">
                 <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-[#FFF7ED] text-[#F97316]">
                   Pending Voucher Setup
@@ -131,11 +131,11 @@ export function PendingVoucherTable({
                 </div>
               </td>
               <td className="px-4 py-4 text-[#0A1128] font-medium">{user.birthdate}</td>
-              <td className="px-4 py-4 text-[#0A1128] font-medium whitespace-normal max-w-[200px]" title={user.lokasi}>{abbrevRegion(user.lokasi)}</td>
-              <td className="px-4 py-4 text-[#0A1128] font-medium whitespace-normal max-w-[200px]" title={user.alumniNama}>{user.alumniNama || '-'}</td>
-              <td className="px-4 py-4 text-[#0A1128] font-medium whitespace-normal max-w-[200px]" title={user.alumniDaerah}>{abbrevRegion(user.alumniDaerah) || '-'}</td>
+              <td className="px-4 py-4 text-[#0A1128] font-medium whitespace-normal max-w-[244px]" title={user.lokasi}>{abbrevRegion(user.lokasi)}</td>
+              <td className="px-4 py-4 text-[#0A1128] font-medium whitespace-normal max-w-[244px]" title={user.alumniNama}>{user.alumniNama || '-'}</td>
+              <td className="px-4 py-4 text-[#0A1128] font-medium whitespace-normal max-w-[244px]" title={user.alumniDaerah}>{abbrevRegion(user.alumniDaerah) || '-'}</td>
               <td className="px-4 py-4 text-[#0A1128] font-medium">{user.alumniTanggal || '-'}</td>
-              <td className="px-4 py-4 text-[#0A1128] font-medium whitespace-normal max-w-[220px]" title={user.school}>{user.school || '-'}</td>
+              <td className="px-4 py-4 text-[#0A1128] font-medium whitespace-normal max-w-[244px]" title={user.school}>{user.school || '-'}</td>
               <td className={cn('px-4 py-4 sticky right-0 z-10 transition-colors relative', selected ? 'bg-blue-50/50' : 'bg-white group-hover:bg-[#F9FAFB]')}>
                 <FreezeBlurRight />
                 <div className="flex items-center justify-center">

@@ -75,25 +75,25 @@ export function RiwayatPelatihanTable({
 
   return (
     <TableShell>
-    <table className="w-full text-left text-sm whitespace-nowrap">
+    <table className="w-full table-fixed text-left text-sm whitespace-nowrap">
       <thead className="bg-[#0A1128] text-white sticky top-0 z-20">
         <tr>
-          <th className="px-4 py-4 font-medium align-bottom">
+          <th className="px-4 py-4 font-medium align-bottom w-[244px]">
             <SortableHeader label="Nama Pelatihan" sortKey="nama" sortConfig={sortConfig} onSort={handleSort} />
           </th>
-          <th className="px-4 py-4 font-medium align-bottom">
+          <th className="px-4 py-4 font-medium align-bottom w-[244px]">
             <SortableHeader label="Daerah Pelatihan" sortKey="daerah" sortConfig={sortConfig} onSort={handleSort} />
           </th>
-          <th className="px-4 py-4 font-medium align-bottom">
+          <th className="px-4 py-4 font-medium align-bottom w-[244px]">
             <SortableHeader label="Tgl. Mulai" sortKey="tglMulai" sortConfig={sortConfig} onSort={handleSort} />
           </th>
-          <th className="px-4 py-4 font-medium align-bottom">
+          <th className="px-4 py-4 font-medium align-bottom w-[244px]">
             <SortableHeader label="Nama Peserta" sublabel="Peserta Guru Pelatihan" sortKey="pesertaNama" sortConfig={sortConfig} onSort={handleSort} />
           </th>
-          <th className="px-4 py-4 font-medium align-bottom">
+          <th className="px-4 py-4 font-medium align-bottom w-[244px]">
             <SortableHeader label="Last Updated" sortKey="lastUpdated" sortConfig={sortConfig} onSort={handleSort} />
           </th>
-          <th className="px-4 py-4 font-medium align-bottom text-center sticky right-0 z-30 bg-[#0A1128] relative">Action<FreezeBlurRight /></th>
+          <th className="px-4 py-4 font-medium align-bottom w-[244px] text-center sticky right-0 z-30 bg-[#0A1128] relative">Action<FreezeBlurRight /></th>
         </tr>
       </thead>
       <tbody className="divide-y divide-gray-100">
@@ -103,7 +103,7 @@ export function RiwayatPelatihanTable({
             <tr key={item.id} className="group transition-colors hover:bg-[#F9FAFB]">
               <td className="px-4 py-4 align-top">
                 <div className="flex items-center gap-3">
-                  <span className="font-bold text-[#0A1128] whitespace-normal max-w-[220px]">{item.nama}</span>
+                  <span className="font-bold text-[#0A1128] whitespace-normal max-w-[244px]">{item.nama}</span>
                   {item.isNew && (
                     <span className="bg-blue-600 text-white text-[10px] px-2 py-0.5 rounded-full font-bold shrink-0">New</span>
                   )}

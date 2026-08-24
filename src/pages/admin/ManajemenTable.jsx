@@ -173,65 +173,65 @@ export function ManajemenTable({
 
   return (
     <TableShell>
-      <table className="w-full text-left text-sm whitespace-nowrap">
+      <table className="w-full table-fixed text-left text-sm whitespace-nowrap">
         <thead className="bg-[#0A1128] text-white sticky top-0 z-20">
           <tr>
             {/* Tanpa checkbox bulk-select — Manajemen Akun bukan tab bulk-select
                 (cuma Verifikasi Akun). Lihat DB-002 #6. */}
-            <th className="px-4 py-4 font-medium align-bottom sticky left-0 z-30 bg-[#0A1128] relative">
+            <th className="px-4 py-4 font-medium align-bottom w-[244px] sticky left-0 z-30 bg-[#0A1128] relative">
               <SortableHeader label="Nama Pengguna" sortKey="name" sortConfig={sortConfig} onSort={onSort} />
               <FreezeBlurLeft />
             </th>
-            <th className="px-4 py-4 font-medium align-bottom">
+            <th className="px-4 py-4 font-medium align-bottom w-[244px]">
               <SortableHeader label="Email" sortKey="email" sortConfig={sortConfig} onSort={onSort} />
             </th>
-            <th className="px-4 py-4 font-medium align-bottom">
+            <th className="px-4 py-4 font-medium align-bottom w-[244px]">
               <SortableHeader label="Status Member" sortKey="accountStatus" sortConfig={sortConfig} onSort={onSort} />
             </th>
             
             {!isReducedView && (
               <>
-                <th className="px-4 py-4 font-medium align-bottom">
+                <th className="px-4 py-4 font-medium align-bottom w-[244px]">
                   <SortableHeader label="Langganan" sortKey="subscription" sortConfig={sortConfig} onSort={onSort} />
                 </th>
-                <th className="px-4 py-4 font-medium align-bottom">
+                <th className="px-4 py-4 font-medium align-bottom w-[244px]">
                   <SortableHeader label="Jenis Paket" sortKey="plan" sortConfig={sortConfig} onSort={onSort} />
                 </th>
-                <th className="px-4 py-4 font-medium align-bottom">
+                <th className="px-4 py-4 font-medium align-bottom w-[244px]">
                   <SortableHeader label="Tgl. Berakhir" sortKey="endDate" sortConfig={sortConfig} onSort={onSort} />
                 </th>
-                <th className="px-4 py-4 font-medium align-bottom">Kode Voucher</th>
-                <th className="px-4 py-4 font-medium align-bottom">
+                <th className="px-4 py-4 font-medium align-bottom w-[244px]">Kode Voucher</th>
+                <th className="px-4 py-4 font-medium align-bottom w-[244px]">
                   <SortableHeader label="Role" sortKey="role" sortConfig={sortConfig} onSort={onSort} />
                 </th>
               </>
             )}
 
-            <th className="px-4 py-4 font-medium align-bottom">
+            <th className="px-4 py-4 font-medium align-bottom w-[244px]">
               <SortableHeader label="Riwayat Pelatihan" sortKey="riwayatPelatihan" sortConfig={sortConfig} onSort={onSort} />
             </th>
-            <th className="px-4 py-4 font-medium align-bottom">
+            <th className="px-4 py-4 font-medium align-bottom w-[244px]">
               <SortableHeader label="Tgl. Lahir" sortKey="birthdate" sortConfig={sortConfig} onSort={onSort} />
             </th>
-            <th className="px-4 py-4 font-medium align-bottom">
+            <th className="px-4 py-4 font-medium align-bottom w-[244px]">
               <SortableHeader label="Lokasi" sortKey="lokasi" sortConfig={sortConfig} onSort={onSort} />
             </th>
-            <th className="px-4 py-4 font-medium align-bottom w-[200px]">
+            <th className="px-4 py-4 font-medium align-bottom w-[244px]">
               <SortableHeader label="Nama" sublabel="Alumni Pelatihan" sortKey="training" sortConfig={sortConfig} onSort={onSort} />
             </th>
-            <th className="px-4 py-4 font-medium align-bottom w-[200px]">
+            <th className="px-4 py-4 font-medium align-bottom w-[244px]">
               <SortableHeader label="Daerah" sublabel="Alumni Pelatihan" sortKey="alumniDaerah" sortConfig={sortConfig} onSort={onSort} />
             </th>
-            <th className="px-4 py-4 font-medium align-bottom w-[200px]">
+            <th className="px-4 py-4 font-medium align-bottom w-[244px]">
               <SortableHeader label="Tanggal Mulai" sublabel="Alumni Pelatihan" sortKey="alumniTanggal" sortConfig={sortConfig} onSort={onSort} />
             </th>
-            <th className="px-4 py-4 font-medium align-bottom">
+            <th className="px-4 py-4 font-medium align-bottom w-[244px]">
               <SortableHeader label="Asal Sekolah" sortKey="school" sortConfig={sortConfig} onSort={onSort} />
             </th>
-            <th className="px-4 py-4 font-medium align-bottom">
+            <th className="px-4 py-4 font-medium align-bottom w-[244px]">
               <SortableHeader label="Last Updated" sortKey="lastUpdated" sortConfig={sortConfig} onSort={onSort} />
             </th>
-            <th className="px-4 py-4 font-medium align-bottom text-center sticky right-0 z-30 bg-[#0A1128] relative">
+            <th className="px-4 py-4 font-medium align-bottom w-[244px] text-center sticky right-0 z-30 bg-[#0A1128] relative">
               Action
               <FreezeBlurRight />
             </th>
@@ -242,16 +242,16 @@ export function ManajemenTable({
             return (
               <tr key={user.id} className="group transition-colors hover:bg-[#F9FAFB]">
                 <td className="px-4 py-4 align-top sticky left-0 z-10 transition-colors bg-white group-hover:bg-[#F9FAFB] relative">
-                  <div className="font-bold text-[#0A1128] flex items-center">
-                    {user.name}
+                  <div className="flex items-start gap-2">
+                    <span className="font-bold text-[#0A1128] whitespace-normal break-words line-clamp-2" title={user.name}>{user.name}</span>
                     {user.isNew && (
-                      <span className="bg-blue-600 text-white text-[10px] px-2 py-0.5 rounded-full font-bold ml-2">New</span>
+                      <span className="bg-blue-600 text-white text-[10px] px-2 py-0.5 rounded-full font-bold shrink-0">New</span>
                     )}
                   </div>
                   <div className="text-xs text-gray-400 mt-0.5">{user.username}</div>
                   <FreezeBlurLeft />
                 </td>
-                <td className="px-4 py-4 text-[#0A1128] font-medium align-top">{user.email}</td>
+                <td className="px-4 py-4 text-[#0A1128] font-medium whitespace-normal break-words line-clamp-2 align-top" title={user.email}>{user.email}</td>
                 <td className="px-4 py-4 align-top">
                   <span className={cn('inline-flex items-center px-3 py-1 rounded-full text-xs font-bold', STATUS_CLASSES[user.accountStatus] || '')}>
                     {STATUS_LABELS[user.accountStatus] || user.accountStatus}
@@ -297,11 +297,11 @@ export function ManajemenTable({
                   ) : '-'}
                 </td>
                 <td className="px-4 py-4 text-[#0A1128] font-medium align-top">{user.birthdate || '-'}</td>
-                <td className="px-4 py-4 text-[#0A1128] font-medium whitespace-normal break-words max-w-[200px] leading-snug align-top" title={user.lokasi}>{abbrevRegion(user.lokasi) || '-'}</td>
-                <td className="px-4 py-4 text-[#0A1128] font-medium whitespace-normal break-words max-w-[200px] leading-snug align-top">{user.training || '-'}</td>
-                <td className="px-4 py-4 text-[#0A1128] font-medium whitespace-normal break-words max-w-[200px] leading-snug align-top" title={user.alumniDaerah}>{abbrevRegion(user.alumniDaerah) || '-'}</td>
+                <td className="px-4 py-4 text-[#0A1128] font-medium whitespace-normal break-words max-w-[244px] leading-snug align-top" title={user.lokasi}>{abbrevRegion(user.lokasi) || '-'}</td>
+                <td className="px-4 py-4 text-[#0A1128] font-medium whitespace-normal break-words max-w-[244px] leading-snug align-top">{user.training || '-'}</td>
+                <td className="px-4 py-4 text-[#0A1128] font-medium whitespace-normal break-words max-w-[244px] leading-snug align-top" title={user.alumniDaerah}>{abbrevRegion(user.alumniDaerah) || '-'}</td>
                 <td className="px-4 py-4 text-[#0A1128] font-medium align-top">{user.alumniTanggal || '-'}</td>
-                <td className="px-4 py-4 text-[#0A1128] font-medium whitespace-normal break-words max-w-[200px] leading-snug align-top">{user.school || '-'}</td>
+                <td className="px-4 py-4 text-[#0A1128] font-medium whitespace-normal break-words max-w-[244px] leading-snug align-top">{user.school || '-'}</td>
                 <td className="px-4 py-4 text-[#0A1128] font-medium align-top">{user.lastUpdated || '-'}</td>
                 <td className="px-4 py-4 align-top text-center sticky right-0 z-10 transition-colors relative bg-white group-hover:bg-[#F9FAFB]">
                   <RowActionMenu

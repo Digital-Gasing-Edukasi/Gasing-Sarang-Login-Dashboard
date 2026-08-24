@@ -35,7 +35,7 @@ export function VerifikasiTable({
 }) {
   return (
     <TableShell>
-    <table className="w-full text-left text-sm whitespace-nowrap">
+    <table className="w-full table-fixed text-left text-sm whitespace-nowrap">
       <thead className="bg-[#0A1128] text-white sticky top-0 z-20">
         <tr>
           <th className="px-4 py-4 w-12 text-center sticky left-0 z-30 bg-[#0A1128] align-bottom">
@@ -49,28 +49,28 @@ export function VerifikasiTable({
               {allSelected && <Check size={11} className="text-white" strokeWidth={3} />}
             </button>
           </th>
-          <th className="px-4 py-4 font-medium sticky left-[48px] z-30 bg-[#0A1128] align-bottom relative">
+          <th className="px-4 py-4 font-medium w-[244px] sticky left-[48px] z-30 bg-[#0A1128] align-bottom relative">
             <SortableHeader label="Nama Pengguna" sortKey="name" sortConfig={sortConfig} onSort={onSort} />
             <FreezeBlurLeft />
           </th>
-          <th className="px-4 py-4 font-medium align-bottom">Email</th>
-          <th className="px-4 py-4 font-medium align-bottom">Status</th>
-          <th className="px-4 py-4 font-medium align-bottom">
+          <th className="px-4 py-4 font-medium align-bottom w-[244px]">Email</th>
+          <th className="px-4 py-4 font-medium align-bottom w-[244px]">Status</th>
+          <th className="px-4 py-4 font-medium align-bottom w-[244px]">
             <SortableHeader label="Tgl. Lahir" sortKey="birthdate" sortConfig={sortConfig} onSort={onSort} />
           </th>
-          <th className="px-4 py-4 font-medium align-bottom">
+          <th className="px-4 py-4 font-medium align-bottom w-[244px]">
             <SortableHeader label="Lokasi" sortKey="lokasi" sortConfig={sortConfig} onSort={onSort} />
           </th>
-          <th className="px-4 py-4 font-medium align-bottom">
+          <th className="px-4 py-4 font-medium align-bottom w-[244px]">
             <SortableHeader label="Daerah" sublabel="Alumni Pelatihan" sortKey="alumniDaerah" sortConfig={sortConfig} onSort={onSort} />
           </th>
-          <th className="px-4 py-4 font-medium align-bottom">
+          <th className="px-4 py-4 font-medium align-bottom w-[244px]">
             <SortableHeader label="Bulan & Tahun" sublabel="Alumni Pelatihan" sortKey="trainingPeriod" sortConfig={sortConfig} onSort={onSort} />
           </th>
-          <th className="px-4 py-4 font-medium align-bottom">
+          <th className="px-4 py-4 font-medium align-bottom w-[244px]">
             <SortableHeader label="Asal Sekolah" sortKey="school" sortConfig={sortConfig} onSort={onSort} />
           </th>
-          {selectedIds.length === 0 && <th className="px-4 py-4 font-medium text-center align-bottom sticky right-0 z-30 bg-[#0A1128] relative">Setuju?<FreezeBlurRight /></th>}
+          {selectedIds.length === 0 && <th className="px-4 py-4 font-medium text-center align-bottom w-[244px] sticky right-0 z-30 bg-[#0A1128] relative">Setuju?<FreezeBlurRight /></th>}
         </tr>
       </thead>
       <tbody className="divide-y divide-gray-100">
@@ -89,11 +89,11 @@ export function VerifikasiTable({
                   {selected && <Check size={11} className="text-white" strokeWidth={3} />}
                 </button>
               </td>
-              <td className={cn('px-4 py-4 sticky left-[48px] z-10 transition-colors relative', selected ? 'bg-[#F4F6FB]' : 'bg-white group-hover:bg-[#F9FAFB]')}>
-                <div className="flex items-center gap-2">
-                  <span className="font-bold text-[#0A1128]">{user.name}</span>
+              <td className={cn('px-4 py-4 align-top sticky left-[48px] z-10 transition-colors relative', selected ? 'bg-[#F4F6FB]' : 'bg-white group-hover:bg-[#F9FAFB]')}>
+                <div className="flex items-start gap-2">
+                  <span className="font-bold text-[#0A1128] whitespace-normal break-words line-clamp-2" title={user.name}>{user.name}</span>
                   {user.isNew && (
-                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-blue-600 text-white">
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-blue-600 text-white shrink-0">
                       New
                     </span>
                   )}
@@ -101,17 +101,17 @@ export function VerifikasiTable({
                 <div className="text-xs text-gray-400 mt-0.5">{user.username}</div>
                 <FreezeBlurLeft />
               </td>
-              <td className="px-4 py-4 text-[#0A1128] font-medium">{user.email}</td>
+              <td className="px-4 py-4 text-[#0A1128] font-medium align-top whitespace-normal break-words line-clamp-2" title={user.email}>{user.email}</td>
               <td className="px-4 py-4">
                 <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-[#FDF4FF] text-[#D946EF]">
                   {user.status}
                 </span>
               </td>
               <td className="px-4 py-4 text-[#0A1128] font-medium">{user.birthdate}</td>
-              <td className="px-4 py-4 text-[#0A1128] font-medium whitespace-normal max-w-[220px]" title={user.lokasi}>{abbrevRegion(user.lokasi)}</td>
-              <td className="px-4 py-4 text-[#0A1128] font-medium whitespace-normal max-w-[200px]" title={user.alumniDaerah}>{abbrevRegion(user.alumniDaerah) || '-'}</td>
+              <td className="px-4 py-4 text-[#0A1128] font-medium whitespace-normal max-w-[244px]" title={user.lokasi}>{abbrevRegion(user.lokasi)}</td>
+              <td className="px-4 py-4 text-[#0A1128] font-medium whitespace-normal max-w-[244px]" title={user.alumniDaerah}>{abbrevRegion(user.alumniDaerah) || '-'}</td>
               <td className="px-4 py-4 text-[#0A1128] font-medium">{user.trainingPeriod || '-'}</td>
-              <td className="px-4 py-4 text-[#0A1128] font-medium whitespace-normal max-w-[220px]" title={user.school}>{user.school || '-'}</td>
+              <td className="px-4 py-4 text-[#0A1128] font-medium whitespace-normal max-w-[244px]" title={user.school}>{user.school || '-'}</td>
               {selectedIds.length === 0 && (
                 <td className={cn('px-4 py-4 sticky right-0 z-10 group-hover:z-40 transition-colors relative', selected ? 'bg-[#F4F6FB]' : 'bg-white group-hover:bg-[#F9FAFB]')}>
                   <FreezeBlurRight />
