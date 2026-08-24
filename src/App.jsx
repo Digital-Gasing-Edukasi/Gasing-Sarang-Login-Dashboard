@@ -519,7 +519,19 @@ export default function App() {
   return (
     <>
       <Routes>
-        <Route path="/" element={<Navigate to="/login" replace />} />
+        <Route
+          path="/"
+          element={
+            // Cegah race dgn init(): tepat sesudah sessionChecked jadi true, render
+            // ini kebagian giliran SEBELUM location dari useLocation() sempat
+            // ke-update ke "/login/sso-callback" (masih kebaca "/" sesaat), padahal
+            // window.location sendiri sudah berubah duluan (jadi cek raw URL di
+            // sini gak reliable). ssoParams adalah React state, jadi konsisten
+            // dgn render ini — pakai itu sbg sinyal utk gak ikut redirect ke
+            // /login polos & nimpa tujuan /login/sso-callback yang benar.
+            ssoParams ? null : <Navigate to="/login" replace />
+          }
+        />
 
         {/* ── Login & turunannya ─────────────────────────────────────────── */}
         <Route
