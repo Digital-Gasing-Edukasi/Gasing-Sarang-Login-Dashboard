@@ -3,7 +3,7 @@ import { Search, Download, Filter, Check, X } from 'lucide-react'
 import { ROLE_META } from './roleOptions'
 import { cn } from '@/lib/utils'
 
-function SearchInput({ value, onChange, placeholder = 'Cari user...' }) {
+function SearchInput({ value, onChange, placeholder = 'Cari User...' }) {
   return (
     <div className="relative">
       <Search size={16} className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -25,7 +25,7 @@ function SearchInput({ value, onChange, placeholder = 'Cari user...' }) {
 
 // Search collapsible: default = tombol bulat; klik → melebar jadi input (auto-focus).
 // Menciut lagi saat blur & kosong. Tombol X: bersihkan + ciutkan.
-function ExpandableSearch({ value, onChange, placeholder = 'Cari user...' }) {
+function ExpandableSearch({ value, onChange, placeholder = 'Cari User...' }) {
   const [open, setOpen] = useState(false)
   const inputRef = useRef(null)
 
@@ -566,7 +566,7 @@ export function PendaftaranTrainerControls({
 
       <div className="flex items-center gap-4">
         <div className="w-[300px]">
-          <SearchInput value={searchQuery} onChange={onSearchChange} />
+          <SearchInput value={searchQuery} onChange={onSearchChange} placeholder="Cari Pelatihan..." />
         </div>
       </div>
     </div>

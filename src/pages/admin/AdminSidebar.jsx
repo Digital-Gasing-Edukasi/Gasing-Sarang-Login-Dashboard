@@ -1,21 +1,16 @@
 import { useState } from 'react'
-import { UserSearch, Wallet, Users, Users2, Calendar, ClipboardList, LogOut, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
+import { UserSearch, Wallet, Users, Calendar, ClipboardList, LogOut, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { isProduction } from '@/lib/env'
 import logoRect from '@/assets/logo-saranggasing.png'
 import logoSquare from '@/assets/icon_sg.png'
 
-const NAV_ALL = [
+const NAV = [
   { id: 'verifikasi',            label: 'Verifikasi Akun',       icon: UserSearch },
   { id: 'verifikasi-pembayaran', label: 'Verifikasi Pembayaran', icon: Wallet },
   { id: 'manajemen',             label: 'Manajemen Akun',        icon: Users },
-  { id: 'daftar-user',           label: 'Daftar User',           icon: Users2,  stagingOnly: true },
   { id: 'riwayat-pelatihan',     label: 'Riwayat Pelatihan',     icon: Calendar },
   { id: 'pendaftaran-trainer',   label: 'Pendaftaran Trainer',   icon: ClipboardList },
 ]
-
-// Production: sembunyikan item bertanda stagingOnly.
-const NAV = isProduction() ? NAV_ALL.filter(i => !i.stagingOnly) : NAV_ALL
 
 export function AdminSidebar({ activeTab, onTabChange, onSignOut, user, navFlags = {} }) {
   const [collapsed, setCollapsed] = useState(false)

@@ -45,6 +45,11 @@ const sessionMonth = (s) => {
 // Style border merah saat field invalid (dipakai Input & SelectTrigger).
 const errCls = "border-red-500 focus-visible:border-red-500 focus-visible:ring-red-500/30 focus:border-red-500 focus:ring-red-500/30";
 
+// Placeholder dropdown "langkah berikutnya" (Kab/Kota atau Bulan) saat
+// pasangannya (Provinsi / Tahun) sudah terisi tapi field ini belum.
+const PLACEHOLDER_HINT =
+  "!text-[#D1D3DA] data-[placeholder]:!text-[#D1D3DA] [&_span]:!text-[#D1D3DA]";
+
 // Field yang BISA diperbaiki user di halaman ini (lihat desain — Nama/Username/Email
 // tidak ditampilkan, hanya dikirim ulang apa adanya dari payload). Penanda error
 // hanya untuk key di sini agar submit tidak tersangkut field yang tak punya input.
@@ -336,7 +341,12 @@ export function FixDataPage({ fixData, reviseToken, onNavigate }) {
               onValueChange={(v) => { setRegionId(v); clearErr("lokasi"); }}
               disabled={!provinceId || regencyLoading}
             >
-              <SelectTrigger className={cn(fieldErrors.lokasi && errCls)}>
+              <SelectTrigger
+                className={cn(
+                  fieldErrors.lokasi && errCls,
+                  provinceId && !regionId && PLACEHOLDER_HINT,
+                )}
+              >
                 <SelectValue placeholder={regencyLoading ? "Memuat..." : "Pilih Kab./Kota"} />
               </SelectTrigger>
               <SelectContent>
@@ -363,7 +373,12 @@ export function FixDataPage({ fixData, reviseToken, onNavigate }) {
               </SelectContent>
             </Select>
             <Select value={kapanMonth} onValueChange={handleMonthChange} disabled={!kapanYear}>
-              <SelectTrigger className={cn(fieldErrors.riwayatPelatihan && errCls)}>
+              <SelectTrigger
+                className={cn(
+                  fieldErrors.riwayatPelatihan && errCls,
+                  kapanYear && !kapanMonth && PLACEHOLDER_HINT,
+                )}
+              >
                 <SelectValue placeholder="Bulan" />
               </SelectTrigger>
               <SelectContent>

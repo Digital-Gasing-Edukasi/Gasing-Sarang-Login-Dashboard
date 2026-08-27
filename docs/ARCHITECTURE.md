@@ -310,8 +310,9 @@ isSsoDisabled      = user.capabilities mengandung USER/DISCOURSE/DISABLED-SSO
 canAccessDiscourse = user.capabilities mengandung USER/DISCOURSE/MANAGE_EXTRA_GROUPS
 isSuperAdmin       = user.superadmin === true || user.superAdmin === true
 
-if  (isSsoDisabled)                          → admin-dashboard  (HANYA pemilik DISABLED-SSO)
-elif (isSuperAdmin || canAccessDiscourse)    → auth-choice       (panel pilih tujuan)
+if  (isSuperAdmin)                           → auth-choice       (panel pilih tujuan, SELALU, walau juga DISABLED-SSO)
+elif (isSsoDisabled)                         → admin-dashboard  (HANYA pemilik DISABLED-SSO, bukan superadmin)
+elif (canAccessDiscourse)                    → auth-choice       (panel pilih tujuan)
 else:
      subscriptionApi.getStatus()
        hasActiveSubscription || subscription.status === 'active' || paymentPending
@@ -325,7 +326,7 @@ else:
 >   - **Superadmin** → 3 tombol: **Dashboard** (`admin-dashboard`) + **Moderator (Discourse)** (`discourseApi.ssoLogin`) + **Gasing Web App** (`redirectWithTokens`).
 >   - **MANAGE_EXTRA_GROUPS** (non-superadmin) → 2 tombol: **Moderator (Discourse)** + **Gasing Web App**.
 > - Selain keduanya = user biasa → langsung Web App (via `redirectWithTokens`) atau halaman langganan.
-> - ⚠ **Urutan cabang:** `isSsoDisabled` dicek DULUAN. Jadi superadmin yang JUGA punya tag `DISABLED-SSO` akan ke `admin-dashboard`, bukan `auth-choice`.
+> - ⚠ **Urutan cabang:** `isSuperAdmin` dicek DULUAN. Jadi superadmin yang JUGA punya tag `DISABLED-SSO` tetap ke `auth-choice` (bukan `admin-dashboard`) — superadmin SELALU dapat panel pilih tujuan.
 
 > **Implementasi:** sejak [ADR-0002](docs/adr/0002-refactor-junior-maintainability.md), aturan peran dipindah ke modul murni [`src/lib/roles.js`](src/lib/roles.js) (`isSsoDisabled`, `canAccessDiscourse`, `isSuperAdmin`, `ADMIN_CAPABILITIES`). `handleLoginSuccess` di `App.jsx` tinggal memanggilnya. `AuthChoicePage` menerima prop `user` untuk menentukan tampil-tidaknya tombol Dashboard (`isSuperAdmin(user)`). Ubah daftar capability cukup di `roles.js`.
 
@@ -381,8 +382,20 @@ ForgotPasswordPage → authApi.forgotPassword(email) → onEmailSent(email) → 
 
 ### 7.4 Discourse SSO (login via komunitas)
 
+Dua arah:
+
+**Arah 1 — app inisiasi (tombol "Moderator (Discourse)" di `AuthChoicePage`):**
 ```
-Discourse → redirect: /register?sso=<payload>&sig=<sig>
+discourseApi.ssoLogin() → GET /discourse/sso-login → { redirect_url: ".../session/sso" }
+  → window.location.href = redirect_url  (browser pindah ke Discourse)
+  → Discourse generate nonce+sig sendiri, redirect balik ke callback terdaftar
+     (mis. https://<domain>/register/?sso=<payload>&sig=<sig>)
+  → lanjut ke Arah 2 di bawah (App boot menangkap sso/sig)
+```
+
+**Arah 2 — Discourse inisiasi / lanjutan Arah 1 (user landing dengan `?sso=&sig=`):**
+```
+Discourse → redirect: /register/?sso=<payload>&sig=<sig>
   → App boot: simpan ssoParams, bersihkan URL
        ├─ sudah ada token akses → page = sso-callback
        └─ belum                 → page = login (isSsoMode=true, user login dulu)
@@ -390,7 +403,11 @@ Discourse → redirect: /register?sso=<payload>&sig=<sig>
        → respons { redirectUrl } → window.location.href = redirectUrl (balik ke Discourse, sudah ter-login)
 ```
 
-Arah sebaliknya (`discourseApi.ssoLogin`) meng-inisiasi SSO dari app: memanggil `/discourse/sso-login`, lalu redirect browser ke `redirectUrl` yang dikembalikan server.
+> ⚠ **Bug historis (fixed):** landing Arah 2 selalu mendarat di path root `/` (setelah basename `/register/` di-strip). Route `<Route path="/" element={<Navigate to="/login" replace/>}/>` di `App.jsx` sempat **race** dengan boot-sequence effect di atas — tepat sesudah `sessionChecked` jadi `true`, `<Routes>` render satu kali dengan `location` dari `useLocation()` masih basi (`/`, belum ke-update ke `/login/sso-callback` yang barusan di-`navigate()`), sehingga `<Navigate to="/login">` di root ikut nembak dan menimpa tujuan yang benar — `sso`/`sig` hilang, **tanpa error console, tanpa request ke `/discourse/gateway`**, user cuma balik ke `/login` polos. Fix: root route sekarang dikondisikan pada state React `ssoParams` (bukan `window.location`, yang ternyata sudah keburu berubah duluan saat render itu terjadi):
+> ```jsx
+> <Route path="/" element={ssoParams ? null : <Navigate to="/login" replace />} />
+> ```
+> Hanya berdampak ke entry point "Moderator (Discourse)" (superadmin / `USER/DISCOURSE/MANAGE_EXTRA_GROUPS`) — user biasa tidak pernah lewat jalur ini.
 
 ### 7.5 Pembayaran (Subscription → Midtrans)
 

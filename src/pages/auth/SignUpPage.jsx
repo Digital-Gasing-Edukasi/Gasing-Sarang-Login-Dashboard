@@ -44,6 +44,10 @@ filter.addWords(...indonesianBadWords);
 
 const ERR_INPUT =
   "!border-red-500 focus-visible:!border-red-500 focus-visible:ring-red-200";
+// Placeholder dropdown "langkah berikutnya" (mis. Kab/Kota atau Bulan) saat
+// pasangannya (Provinsi / Tahun) sudah terisi tapi field ini belum.
+const PLACEHOLDER_HINT =
+  "!text-[#D1D3DA] data-[placeholder]:!text-[#D1D3DA] [&_span]:!text-[#D1D3DA]";
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const asList = (data) =>
@@ -184,10 +188,6 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
   // Tombol Lanjutkan aktif hanya kalau semua field valid + checkbox dicentang.
   const step1Complete = step1FieldsValid && agree;
 
-  // Kalau field diubah jadi tidak valid, batalkan centang persetujuan.
-  useEffect(() => {
-    if (!step1FieldsValid && agree) setAgree(false);
-  }, [step1FieldsValid, agree]);
   const step2Complete =
     birthdate &&
     provinceId &&
@@ -424,7 +424,7 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
                 <Input
                   type="text"
                   placeholder="Min. 5 karakter"
-                  value={username}
+                  value={username.toLowerCase()}
                   className={errors.username ? ERR_INPUT : ""}
                   onChange={(e) => {
                     setUsername(e.target.value);
@@ -538,18 +538,15 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
                 <Checkbox
                   id="agree"
                   checked={agree}
-                  disabled={!step1FieldsValid}
                   onCheckedChange={(v) => {
                     setAgree(v === true);
                     clearFieldError("agree");
                   }}
-                  className="mt-0.5 "
+                  className="mt-0.5 border-[#B8BCC8]"
                 />
                 <Label
                   htmlFor="agree"
-                  className={`!text-[12px] lg:!text-[14px] font-medium leading-snug text-muted-foreground ${
-                    step1FieldsValid ? "cursor-pointer" : "cursor-not-allowed"
-                  }`}
+                  className="!text-[12px] lg:!text-[14px] font-medium leading-snug text-muted-foreground cursor-pointer"
                 >
                   Dengan mendaftar akun, saya menyetujui{" "}
                   <a
@@ -647,7 +644,11 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
                   }}
                   disabled={!provinceId || regencyLoading}
                 >
-                  <SelectTrigger className={errors.regionId ? ERR_INPUT : ""}>
+                  <SelectTrigger
+                    className={`${errors.regionId ? ERR_INPUT : ""} ${
+                      provinceId && !regionId ? PLACEHOLDER_HINT : ""
+                    }`}
+                  >
                     <SelectValue
                       placeholder={
                         regencyLoading ? "Memuat..." : "Pilih Kab./Kota"
@@ -696,7 +697,11 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
                   onValueChange={handleMonthChange}
                   disabled={!kapanYear}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger
+                    className={
+                      kapanYear && !kapanMonth ? PLACEHOLDER_HINT : ""
+                    }
+                  >
                     <SelectValue placeholder="Bulan" />
                   </SelectTrigger>
                   <SelectContent>

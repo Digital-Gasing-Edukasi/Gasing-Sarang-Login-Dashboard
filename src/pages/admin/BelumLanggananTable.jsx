@@ -28,43 +28,43 @@ function SortableHeader({ label, sublabel, sortKey, sortConfig, onSort }) {
 export function BelumLanggananTable({ users, sortConfig, onSort, onRiwayatDetail, searchQuery }) {
   return (
     <TableShell>
-    <table className="w-full text-left text-sm whitespace-nowrap">
+    <table className="w-full table-fixed text-left text-sm whitespace-nowrap">
       <thead className="bg-[#0A1128] text-white sticky top-0 z-20">
         <tr>
-          <th className="px-4 py-4 font-medium sticky left-0 z-30 bg-[#0A1128] align-bottom relative">
+          <th className="px-4 py-4 font-medium w-[244px] sticky left-0 z-30 bg-[#0A1128] align-bottom relative">
             <SortableHeader label="Nama Pengguna" sortKey="name" sortConfig={sortConfig} onSort={onSort} />
             <FreezeBlurLeft />
           </th>
-          <th className="px-4 py-4 font-medium align-bottom">Email</th>
-          <th className="px-4 py-4 font-medium align-bottom">Status Member</th>
-          <th className="px-4 py-4 font-medium align-bottom">
+          <th className="px-4 py-4 font-medium align-bottom w-[244px]">Email</th>
+          <th className="px-4 py-4 font-medium align-bottom w-[244px]">Status Member</th>
+          <th className="px-4 py-4 font-medium align-bottom w-[244px]">
             <SortableHeader label="Kode Voucher" sortKey="voucher" sortConfig={sortConfig} onSort={onSort} />
           </th>
-          <th className="px-4 py-4 font-medium align-bottom">
+          <th className="px-4 py-4 font-medium align-bottom w-[244px]">
             <SortableHeader label="Role" sortKey="role" sortConfig={sortConfig} onSort={onSort} />
           </th>
-          <th className="px-4 py-4 font-medium align-bottom">
+          <th className="px-4 py-4 font-medium align-bottom w-[244px]">
             <SortableHeader label="Riwayat Pelatihan" sortKey="riwayatCount" sortConfig={sortConfig} onSort={onSort} />
           </th>
-          <th className="px-4 py-4 font-medium align-bottom">
+          <th className="px-4 py-4 font-medium align-bottom w-[244px]">
             <SortableHeader label="Tgl. Lahir" sortKey="birthdate" sortConfig={sortConfig} onSort={onSort} />
           </th>
-          <th className="px-4 py-4 font-medium align-bottom">
+          <th className="px-4 py-4 font-medium align-bottom w-[244px]">
             <SortableHeader label="Lokasi" sortKey="lokasi" sortConfig={sortConfig} onSort={onSort} />
           </th>
-          <th className="px-4 py-4 font-medium align-bottom">
+          <th className="px-4 py-4 font-medium align-bottom w-[244px]">
             <SortableHeader label="Nama" sublabel="Alumni Pelatihan" sortKey="training" sortConfig={sortConfig} onSort={onSort} />
           </th>
-          <th className="px-4 py-4 font-medium align-bottom">
+          <th className="px-4 py-4 font-medium align-bottom w-[244px]">
             <SortableHeader label="Daerah" sublabel="Alumni Pelatihan" sortKey="alumniDaerah" sortConfig={sortConfig} onSort={onSort} />
           </th>
-          <th className="px-4 py-4 font-medium align-bottom">
+          <th className="px-4 py-4 font-medium align-bottom w-[244px]">
             <SortableHeader label="Tanggal Mulai" sublabel="Alumni Pelatihan" sortKey="alumniTanggal" sortConfig={sortConfig} onSort={onSort} />
           </th>
-          <th className="px-4 py-4 font-medium align-bottom">
+          <th className="px-4 py-4 font-medium align-bottom w-[244px]">
             <SortableHeader label="Asal Sekolah" sortKey="school" sortConfig={sortConfig} onSort={onSort} />
           </th>
-          <th className="px-4 py-4 font-medium align-bottom sticky right-0 z-30 bg-[#0A1128] relative">
+          <th className="px-4 py-4 font-medium align-bottom w-[244px] sticky right-0 z-30 bg-[#0A1128] relative">
             <SortableHeader label="Last Updated" sortKey="lastUpdated" sortConfig={sortConfig} onSort={onSort} />
             <FreezeBlurRight />
           </th>
@@ -73,17 +73,17 @@ export function BelumLanggananTable({ users, sortConfig, onSort, onRiwayatDetail
       <tbody className="divide-y divide-gray-100">
         {users.length > 0 ? users.map(user => (
           <tr key={user.id} className="group transition-colors hover:bg-[#F9FAFB]">
-            <td className="px-4 py-4 sticky left-0 z-10 bg-white group-hover:bg-[#F9FAFB] transition-colors relative">
-              <div className="flex items-center gap-2">
-                <span className="font-bold text-[#0A1128]">{user.name}</span>
+            <td className="px-4 py-4 align-top sticky left-0 z-10 bg-white group-hover:bg-[#F9FAFB] transition-colors relative">
+              <div className="flex items-start gap-2">
+                <span className="font-bold text-[#0A1128] whitespace-normal break-words line-clamp-2" title={user.name}>{user.name}</span>
                 {user.isNew && (
-                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-blue-600 text-white">New</span>
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-blue-600 text-white shrink-0">New</span>
                 )}
               </div>
               <div className="text-xs text-gray-400 mt-0.5">{user.username}</div>
               <FreezeBlurLeft />
             </td>
-            <td className="px-4 py-4 text-[#0A1128] font-medium">{user.email}</td>
+            <td className="px-4 py-4 text-[#0A1128] font-medium align-top whitespace-normal break-words line-clamp-2" title={user.email}>{user.email}</td>
             <td className="px-4 py-4">
               <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-orange-50 text-orange-500">
                 Belum Langganan
@@ -111,11 +111,11 @@ export function BelumLanggananTable({ users, sortConfig, onSort, onRiwayatDetail
               ) : '-'}
             </td>
             <td className="px-4 py-4 text-[#0A1128] font-medium">{user.birthdate || '-'}</td>
-            <td className="px-4 py-4 text-[#0A1128] font-medium whitespace-normal break-words max-w-[200px] leading-snug align-top" title={user.lokasi}>{abbrevRegion(user.lokasi) || '-'}</td>
-            <td className="px-4 py-4 text-[#0A1128] font-medium whitespace-normal break-words max-w-[200px] leading-snug align-top" title={user.training}>{user.training || '-'}</td>
-            <td className="px-4 py-4 text-[#0A1128] font-medium whitespace-normal break-words max-w-[200px] leading-snug align-top" title={user.alumniDaerah}>{abbrevRegion(user.alumniDaerah) || '-'}</td>
+            <td className="px-4 py-4 text-[#0A1128] font-medium whitespace-normal break-words max-w-[244px] leading-snug align-top" title={user.lokasi}>{abbrevRegion(user.lokasi) || '-'}</td>
+            <td className="px-4 py-4 text-[#0A1128] font-medium whitespace-normal break-words max-w-[244px] leading-snug align-top" title={user.training}>{user.training || '-'}</td>
+            <td className="px-4 py-4 text-[#0A1128] font-medium whitespace-normal break-words max-w-[244px] leading-snug align-top" title={user.alumniDaerah}>{abbrevRegion(user.alumniDaerah) || '-'}</td>
             <td className="px-4 py-4 text-[#0A1128] font-medium">{user.alumniTanggal || '-'}</td>
-            <td className="px-4 py-4 text-[#0A1128] font-medium whitespace-normal break-words max-w-[220px] leading-snug align-top" title={user.school}>{user.school || '-'}</td>
+            <td className="px-4 py-4 text-[#0A1128] font-medium whitespace-normal break-words max-w-[244px] leading-snug align-top" title={user.school}>{user.school || '-'}</td>
             <td className="px-4 py-4 text-[#0A1128] font-medium sticky right-0 z-10 bg-white group-hover:bg-[#F9FAFB] transition-colors relative">
               <FreezeBlurRight />
               {user.lastUpdated || '-'}
