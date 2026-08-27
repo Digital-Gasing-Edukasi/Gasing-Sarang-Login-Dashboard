@@ -111,7 +111,7 @@ const SelectTrigger = React.forwardRef(({ className, children, ...props }, ref) 
         className={cn(TRIGGER_CLS, className)}
       >
         {children}
-        <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
+        <ChevronDown className="h-4 w-4 shrink-0 text-[#81858F]" />
       </button>
     )
   }
@@ -119,7 +119,7 @@ const SelectTrigger = React.forwardRef(({ className, children, ...props }, ref) 
     <SelectPrimitive.Trigger ref={ref} className={cn(TRIGGER_CLS, className)} {...props}>
       {children}
       <SelectPrimitive.Icon asChild>
-        <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform duration-200" />
+        <ChevronDown className="h-4 w-4 text-[#81858F] transition-transform duration-200" />
       </SelectPrimitive.Icon>
     </SelectPrimitive.Trigger>
   )

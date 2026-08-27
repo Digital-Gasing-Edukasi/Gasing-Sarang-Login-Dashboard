@@ -477,7 +477,7 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
               )}
               {showPasswordRules && (
                 <div className="space-y-3 pt-1 animate-in fade-in slide-in-from-top-1">
-                  <p className="text-[13px] font-regular lg:font-medium text-foreground">
+                  <p className="text-[13px] lg:text-[12px] font-regular lg:font-medium text-foreground">
                     Password harus memiliki:
                   </p>
                   <ul className="space-y-3 lg:space-y-2">

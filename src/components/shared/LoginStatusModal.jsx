@@ -147,13 +147,13 @@ export function LoginStatusModal({ type, meta = {}, onClose, onRenew, onRetry, o
           <span className="font-medium text-foreground">
             Akun kamu sedang kami tinjau maksimal dalam waktu 24 jam
           </span>
-          <span className="text-[#424857]"> untuk memastikan kamu sudah terdaftar sebagai Trainer di Gasing Academy.</span>
+          <span className="text-[#424857]"> untuk memastikan kamu sudah terdaftar sebagai Trainer di Sarang Gasing.</span>
           <br /><br />
           <span className="font-medium text-foreground">Mohon cek email secara berkala</span>
           <span className="text-[#424857]"> untuk status pengajuan akunmu.</span>
         </p>
       ),
-      actions: [{ label: 'Oke', variant: 'primary', kind: 'close' }],
+      actions: [{ label: 'Oke', variant: 'primary', kind: 'close', block: true }],
       // Tinggi sheet mobile sesuai desain Figma (iPhone base). Desktop auto.
       sheetClass: 'min-h-[471px] lg:min-h-0',
     },
@@ -182,7 +182,7 @@ export function LoginStatusModal({ type, meta = {}, onClose, onRenew, onRetry, o
     <Shell tone="orange" icon={Icon} sheetClass={cfg.sheetClass}>
       <h2 className="text-2xl font-bold text-foreground lg:mb-3">{cfg.title}</h2>
       <div className="text-[15px] text-muted-foreground leading-relaxed lg:mb-8">{cfg.body}</div>
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-4 w-full">
         {cfg.actions.map((a) => (
           <ActionButton key={a.label} {...a} onClick={() => run(a.kind)} />
         ))}
@@ -504,7 +504,7 @@ function ActionButton({ label, variant, icon: Icon, onClick, block = false }) {
           ? 'bg-[#0033EC] text-white hover:bg-[#0029BD]'
           : variant === 'danger'
           ? 'bg-red-500 text-white hover:bg-red-600'
-          : 'border border-gray-200 bg-white text-foreground hover:bg-gray-50'
+          : 'border border-[#D1D3DA] bg-white text-[#030B1F] hover:bg-gray-50'
       )}
     >
       {Icon && <Icon size={18} />}

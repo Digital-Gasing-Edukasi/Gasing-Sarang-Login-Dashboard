@@ -261,7 +261,7 @@ export function DateField({
           className
         )}
       >
-        <Calendar size={16} className="shrink-0 opacity-70" />
+        <Calendar size={16} className="shrink-0 text-[#030B1F]" />
         <span className={cn(value ? "text-current" : "opacity-40")}>
           {value ? formatDateID(value) : "Pilih Tanggal"}
         </span>
