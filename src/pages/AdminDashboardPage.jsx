@@ -227,7 +227,10 @@ export default function AdminDashboardPage({ user, onSignOut }) {
   const [isAddPendaftaranModalOpen, setIsAddPendaftaranModalOpen] = useState(false)
 
   // States for Riwayat Pelatihan (di-load dari GET /training-sessions)
+  const RIWAYAT_PAGE_SIZE = 100
   const [riwayatPelatihanData, setRiwayatPelatihanData] = useState([])
+  const [riwayatPage, setRiwayatPage] = useState(1)
+  const [riwayatTotalPages, setRiwayatTotalPages] = useState(3) // sementara: 3 page dulu
   const [isAddPelatihanModalOpen, setIsAddPelatihanModalOpen] = useState(false)
   const [perbaruiSession, setPerbaruiSession] = useState(null)
   const [pesertaSession, setPesertaSession] = useState(null)
@@ -375,19 +378,30 @@ export default function AdminDashboardPage({ user, onSignOut }) {
   // ~10 req/60s) langsung balikin ThrottlerException 429. Loop dibuang. Kolom
   // "Daerah" & "Peserta" harus di-embed backend di response list (lihat gap
   // manajemen-akun-data-gaps), bukan disintesis lewat N+1 fetch dari FE.
-  const loadRiwayat = useCallback(async () => {
+  const loadRiwayat = useCallback(async (page = 1, keyword = '') => {
     try {
-      const res = await trainingSessionsApi.list({ page: 1, limit: 100 })
+      const params = { page, limit: RIWAYAT_PAGE_SIZE }
+      if (keyword.trim()) params.keyword = keyword.trim()
+      const res = await trainingSessionsApi.list(params)
       const list = Array.isArray(res) ? res : (res?.data || res?.items || [])
       setRiwayatPelatihanData(list.map(s => mapToRiwayat(s)))
+      const total = res?.meta?.total ?? res?.total
+      if (Number.isFinite(total)) {
+        setRiwayatTotalPages(Math.max(1, Math.ceil(total / RIWAYAT_PAGE_SIZE)))
+      } else {
+        setRiwayatTotalPages(3) // sementara: 3 page dulu selagi backend belum kirim meta.total
+      }
     } catch (e) {
       setRiwayatPelatihanData([])
     }
   }, [])
 
   useEffect(() => {
-    if (activeTab === 'riwayat-pelatihan') loadRiwayat()
-  }, [activeTab, loadRiwayat])
+    if (activeTab === 'riwayat-pelatihan') loadRiwayat(riwayatPage, searchQuery)
+  }, [activeTab, loadRiwayat, riwayatPage, searchQuery])
+
+  // Reset ke page 1 tiap kali kata kunci pencarian berubah.
+  useEffect(() => { setRiwayatPage(1) }, [searchQuery])
 
   // Verifikasi Pembayaran (manual transfer): dua request terpisah.
   //  - Menunggu = filter 'receipt_uploaded' (bukti diunggah, menunggu review admin).
@@ -1392,54 +1406,70 @@ export default function AdminDashboardPage({ user, onSignOut }) {
   }, [isPageScroll])
 
   return (
-    <div className={`bg-white flex font-sans ${isPageScroll ? 'min-h-screen w-max min-w-full' : 'h-screen overflow-hidden'}`}>
-      <AdminSidebar activeTab={activeTab} onTabChange={handleTabChange} onSignOut={onSignOut} user={user} navFlags={navFlags} />
+    <div
+      className={`bg-white flex font-sans ${isPageScroll ? "min-h-screen w-max min-w-full" : "h-screen overflow-hidden"}`}
+    >
+      <AdminSidebar
+        activeTab={activeTab}
+        onTabChange={handleTabChange}
+        onSignOut={onSignOut}
+        user={user}
+        navFlags={navFlags}
+      />
 
-      <main className={`flex-1 flex flex-col min-w-0 ${isPageScroll ? '' : 'overflow-hidden'}`}>
+      <main
+        className={`flex-1 flex flex-col min-w-0 ${isPageScroll ? "" : "overflow-hidden"}`}
+      >
         <header
           ref={daftarHeaderRef}
-          className={`px-10 py-8 border-b border-gray-100 bg-white ${isPageScroll ? 'sticky top-0 z-30' : 'shrink-0'}`}
+          className={`px-10 py-8 border-b border-gray-100 bg-white ${isPageScroll ? "sticky top-0 z-30" : "shrink-0"}`}
         >
           <h1
-            className={`text-3xl font-bold text-[#0A1128] ${isPageScroll ? 'w-max sticky' : ''}`}
+            className={`text-3xl font-bold text-[#0A1128] ${isPageScroll ? "w-max sticky" : ""}`}
             style={isPageScroll ? { left: daftarStick.sb } : undefined}
           >
-            {activeTab === 'verifikasi' && 'Verifikasi Akun'}
-            {activeTab === 'verifikasi-pembayaran' && 'Verifikasi Pembayaran'}
-            {activeTab === 'manajemen' && 'Manajemen Akun'}
-            {activeTab === 'daftar-user' && 'Daftar User'}
-            {activeTab === 'pendaftaran-trainer' && 'Pendaftaran Pelatihan Trainer'}
-            {activeTab === 'riwayat-pelatihan' && 'Riwayat Pelatihan'}
+            {activeTab === "verifikasi" && "Verifikasi Akun"}
+            {activeTab === "verifikasi-pembayaran" && "Verifikasi Pembayaran"}
+            {activeTab === "manajemen" && "Manajemen Akun"}
+            {activeTab === "daftar-user" && "Daftar User"}
+            {activeTab === "pendaftaran-trainer" &&
+              "Pendaftaran Pelatihan Trainer"}
+            {activeTab === "riwayat-pelatihan" && "Riwayat Pelatihan"}
           </h1>
         </header>
 
-        <div className={`flex-1 p-10 pt-8 bg-[#F7F8FC] ${isPageScroll ? '' : 'overflow-hidden'}`}>
+        <div
+          className={`flex-1 p-10 pt-8 bg-[#F7F8FC] ${isPageScroll ? "" : "overflow-hidden"}`}
+        >
           {apiError && (
             <div className="mb-4 px-4 py-3 rounded-lg bg-red-50 text-red-700 text-sm border border-red-200">
               {apiError}
             </div>
           )}
 
-          {activeTab === 'verifikasi' && (
+          {activeTab === "verifikasi" && (
             <VerifikasiControls
               searchQuery={searchQuery}
               onSearchChange={setSearchQuery}
               onExport={handleExport}
               subTab={verifSubTab}
-              onSubTabChange={(t) => { setVerifSubTab(t); setSelectedIds([]) }}
+              onSubTabChange={(t) => {
+                setVerifSubTab(t);
+                setSelectedIds([]);
+              }}
               pendingCount={users.length}
               voucherCount={pendingVoucherUsers.length}
               selectedCount={selectedIds.length}
               bulkLimit={BULK_LIMIT}
               limitHit={limitHit}
-              onBulkApprove={() => setBulkModal('approve')}
-              onBulkReject={() => setBulkModal('reject')}
-              onBulkConfirm={() => setBulkModal('confirm')}
+              onBulkApprove={() => setBulkModal("approve")}
+              onBulkReject={() => setBulkModal("reject")}
+              onBulkConfirm={() => setBulkModal("confirm")}
               onClearSelection={clearSelection}
               onDismissLimit={() => setLimitHit(false)}
             />
           )}
-          {activeTab === 'verifikasi-pembayaran' && (
+          {activeTab === "verifikasi-pembayaran" && (
             <VerifikasiPembayaranControls
               searchQuery={searchQuery}
               onSearchChange={setSearchQuery}
@@ -1451,20 +1481,28 @@ export default function AdminDashboardPage({ user, onSignOut }) {
               ditolakCount={pembayaranDitolak.length}
             />
           )}
-          {activeTab === 'pendaftaran-trainer' && (
+          {activeTab === "pendaftaran-trainer" && (
             <PendaftaranTrainerControls
               searchQuery={searchQuery}
               onSearchChange={setSearchQuery}
               onAdd={() => setIsAddPendaftaranModalOpen(true)}
             />
           )}
-          {activeTab === 'manajemen' && (
+          {activeTab === "manajemen" && (
             <ManajemenControls
-              activeFilter={activeFilter} onFilterChange={(f) => { setActiveFilter(f); setSelectedIds([]) }}
-              selectedRoles={selectedRoles} onRolesChange={setSelectedRoles}
-              selectedSubscriptions={selectedSubscriptions} onSubscriptionsChange={setSelectedSubscriptions}
-              selectedPlans={selectedPlans} onPlansChange={setSelectedPlans}
-              searchQuery={searchQuery} onSearchChange={setSearchQuery}
+              activeFilter={activeFilter}
+              onFilterChange={(f) => {
+                setActiveFilter(f);
+                setSelectedIds([]);
+              }}
+              selectedRoles={selectedRoles}
+              onRolesChange={setSelectedRoles}
+              selectedSubscriptions={selectedSubscriptions}
+              onSubscriptionsChange={setSelectedSubscriptions}
+              selectedPlans={selectedPlans}
+              onPlansChange={setSelectedPlans}
+              searchQuery={searchQuery}
+              onSearchChange={setSearchQuery}
               onExport={handleExport}
               selectedCount={selectedIds.length}
               bulkLimit={BULK_LIMIT}
@@ -1474,7 +1512,7 @@ export default function AdminDashboardPage({ user, onSignOut }) {
               onBulkAction={handleManajemenBulk}
             />
           )}
-          {activeTab === 'daftar-user' && (
+          {activeTab === "daftar-user" && (
             <div
               ref={daftarControlsRef}
               style={{ top: daftarStick.h }}
@@ -1484,24 +1522,31 @@ export default function AdminDashboardPage({ user, onSignOut }) {
                   sticky-left ke tepi sidebar & selebar viewport biar search tetap tampak */}
               <div
                 className="sticky flex items-center justify-between gap-4 px-10 pt-1 pb-6"
-                style={{ left: daftarStick.sb, width: `calc(100vw - ${daftarStick.sb}px)` }}
+                style={{
+                  left: daftarStick.sb,
+                  width: `calc(100vw - ${daftarStick.sb}px)`,
+                }}
               >
                 <p className="text-sm text-gray-500">
-                  Total <span className="font-bold text-[#0A1128]">{Object.keys(usersById).length}</span> user
+                  Total{" "}
+                  <span className="font-bold text-[#0A1128]">
+                    {Object.keys(usersById).length}
+                  </span>{" "}
+                  user
                 </p>
                 <div className="flex items-center gap-3 bg-white border border-gray-200 rounded-full px-5 py-3 w-full max-w-sm">
                   <Search size={18} className="text-gray-400 shrink-0" />
                   <input
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Cari user..."
+                    placeholder="Cari Pelatihan..."
                     className="w-full bg-transparent text-sm outline-none placeholder:text-gray-400"
                   />
                 </div>
               </div>
             </div>
           )}
-          {activeTab === 'riwayat-pelatihan' && (
+          {activeTab === "riwayat-pelatihan" && (
             <RiwayatPelatihanControls
               searchQuery={searchQuery}
               onSearchChange={setSearchQuery}
@@ -1509,92 +1554,113 @@ export default function AdminDashboardPage({ user, onSignOut }) {
               onExport={() => {
                 // Ikut baris yang tampil di tabel: terapkan filter pencarian yang sama
                 // (nama / daerah / peserta) seperti RiwayatPelatihanTable.
-                const q = searchQuery.trim().toLowerCase()
+                const q = searchQuery.trim().toLowerCase();
                 const rows = q
-                  ? riwayatPelatihanData.filter(item =>
-                      (item.nama || '').toLowerCase().includes(q) ||
-                      (item.daerah || '').toLowerCase().includes(q) ||
-                      (item.pesertaNama || '').toLowerCase().includes(q) ||
-                      (item.pesertaEmail || '').toLowerCase().includes(q))
-                  : riwayatPelatihanData
+                  ? riwayatPelatihanData.filter(
+                      (item) =>
+                        (item.nama || "").toLowerCase().includes(q) ||
+                        (item.daerah || "").toLowerCase().includes(q) ||
+                        (item.pesertaNama || "").toLowerCase().includes(q) ||
+                        (item.pesertaEmail || "").toLowerCase().includes(q),
+                    )
+                  : riwayatPelatihanData;
                 // Kolom persis header tabel: tanpa "Status" (kolom itu tidak dirender).
                 const csv = [
-                  'Nama Pelatihan,Daerah Pelatihan,Tgl. Mulai,Nama Peserta,Last Updated',
-                  ...rows.map(item => `"${item.nama}","${item.daerah}","${item.tglMulai}","${item.pesertaNama}","${item.lastUpdated}"`)
-                ].join('\n')
-                downloadCsv('riwayat_pelatihan-Export data.csv', csv)
+                  "Nama Pelatihan,Daerah Pelatihan,Tgl. Mulai,Nama Peserta,Last Updated",
+                  ...rows.map(
+                    (item) =>
+                      `"${item.nama}","${item.daerah}","${item.tglMulai}","${item.pesertaNama}","${item.lastUpdated}"`,
+                  ),
+                ].join("\n");
+                downloadCsv("riwayat_pelatihan-Export data.csv", csv);
               }}
             />
           )}
 
-          {activeTab === 'verifikasi' && verifSubTab === 'pending' && (
-                <VerifikasiTable
-                  users={sortedUsers}
-                  sortConfig={sortConfig}
-                  onSort={handleSort}
-                  onApprove={handleVerify}
-                  onReject={setRejectCandidate}
-                  searchQuery={searchQuery}
-                  selectedIds={selectedIds}
-                  onToggleSelect={toggleSelect}
-                  onToggleSelectAll={toggleSelectAll}
-                  allSelected={allSelected}
-                />
-              )}
-              {activeTab === 'verifikasi' && verifSubTab === 'voucher' && (
-                <PendingVoucherTable
-                  users={sortedUsers}
-                  sortConfig={sortConfig}
-                  onSort={handleSort}
-                  onConfirm={setVoucherCandidate}
-                  onRiwayatDetail={setRiwayatDetailUser}
-                  searchQuery={searchQuery}
-                  selectedIds={selectedIds}
-                  onToggleSelect={toggleSelect}
-                  onToggleSelectAll={toggleSelectAll}
-                  allSelected={allSelected}
-                />
-              )}
-              {activeTab === 'verifikasi-pembayaran' && pembayaranSubTab === 'belum-langganan' && (
-                <BelumLanggananTable
-                  users={sortedUsers}
-                  sortConfig={sortConfig}
-                  onSort={handleSort}
-                  onRiwayatDetail={setRiwayatDetailUser}
-                  searchQuery={searchQuery}
-                />
-              )}
-              {activeTab === 'verifikasi-pembayaran' && pembayaranSubTab !== 'belum-langganan' && (
-                <VerifikasiPembayaranTable
-                  users={sortedUsers}
-                  sortConfig={sortConfig}
-                  onSort={handleSort}
-                  searchQuery={searchQuery}
-                  subTab={pembayaranSubTab}
-                  onConfirm={setKonfirmasiCandidate}
-                  onRiwayatClick={setRiwayatDetailUser}
-                  onRowAction={handlePembayaranRowAction}
-                />
-              )}
-              {activeTab === 'pendaftaran-trainer' && (
-                <PendaftaranTrainerTable
-                  data={pendaftaranData}
-                  onToggleStatus={handleTogglePendaftaranStatus}
-                  onDelete={(item) => setActionModal({ type: 'hapus-pelatihan-trainer', user: item })}
-                  searchQuery={searchQuery}
-                />
-              )}
-              {activeTab === 'riwayat-pelatihan' && (
-                <RiwayatPelatihanTable
-                  data={riwayatPelatihanData}
-                  searchQuery={searchQuery}
-                  onEdit={setPerbaruiSession}
-                  onDownload={handleDownloadRiwayat}
-                  onViewPeserta={setPesertaSession}
-                />
-              )}
+          {activeTab === "verifikasi" && verifSubTab === "pending" && (
+            <VerifikasiTable
+              users={sortedUsers}
+              sortConfig={sortConfig}
+              onSort={handleSort}
+              onApprove={handleVerify}
+              onReject={setRejectCandidate}
+              searchQuery={searchQuery}
+              selectedIds={selectedIds}
+              onToggleSelect={toggleSelect}
+              onToggleSelectAll={toggleSelectAll}
+              allSelected={allSelected}
+            />
+          )}
+          {activeTab === "verifikasi" && verifSubTab === "voucher" && (
+            <PendingVoucherTable
+              users={sortedUsers}
+              sortConfig={sortConfig}
+              onSort={handleSort}
+              onConfirm={setVoucherCandidate}
+              onRiwayatDetail={setRiwayatDetailUser}
+              searchQuery={searchQuery}
+              selectedIds={selectedIds}
+              onToggleSelect={toggleSelect}
+              onToggleSelectAll={toggleSelectAll}
+              allSelected={allSelected}
+            />
+          )}
+          {activeTab === "verifikasi-pembayaran" &&
+            pembayaranSubTab === "belum-langganan" && (
+              <BelumLanggananTable
+                users={sortedUsers}
+                sortConfig={sortConfig}
+                onSort={handleSort}
+                onRiwayatDetail={setRiwayatDetailUser}
+                searchQuery={searchQuery}
+              />
+            )}
+          {activeTab === "verifikasi-pembayaran" &&
+            pembayaranSubTab !== "belum-langganan" && (
+              <VerifikasiPembayaranTable
+                users={sortedUsers}
+                sortConfig={sortConfig}
+                onSort={handleSort}
+                searchQuery={searchQuery}
+                subTab={pembayaranSubTab}
+                onConfirm={setKonfirmasiCandidate}
+                onRiwayatClick={setRiwayatDetailUser}
+                onRowAction={handlePembayaranRowAction}
+              />
+            )}
+          {activeTab === "pendaftaran-trainer" && (
+            <PendaftaranTrainerTable
+              data={pendaftaranData}
+              onToggleStatus={handleTogglePendaftaranStatus}
+              onDelete={(item) =>
+                setActionModal({ type: "hapus-pelatihan-trainer", user: item })
+              }
+              searchQuery={searchQuery}
+            />
+          )}
+          {activeTab === "riwayat-pelatihan" && (
+            <p className="mb-4 text-sm text-gray-500">
+              Total{" "}
+              <span className="font-bold text-[#0A1128]">
+                {riwayatPelatihanData.length}
+              </span>{" "}
+              pelatihan
+            </p>
+          )}
+          {activeTab === "riwayat-pelatihan" && (
+            <RiwayatPelatihanTable
+              data={riwayatPelatihanData}
+              searchQuery={searchQuery}
+              page={riwayatPage}
+              totalPages={riwayatTotalPages}
+              onPageChange={setRiwayatPage}
+              onEdit={setPerbaruiSession}
+              onDownload={handleDownloadRiwayat}
+              onViewPeserta={setPesertaSession}
+            />
+          )}
 
-          {activeTab === 'manajemen' && (
+          {activeTab === "manajemen" && (
             <ManajemenTable
               users={sortedUsers}
               sortConfig={sortConfig}
@@ -1606,21 +1672,34 @@ export default function AdminDashboardPage({ user, onSignOut }) {
               onRiwayatClick={setRiwayatDetailUser}
             />
           )}
-          {activeTab === 'daftar-user' && (() => {
-            const q = searchQuery.trim().toLowerCase()
-            const list = Object.values(usersById)
-            const filtered = q
-              ? list.filter(u =>
-                  (u.name || '').toLowerCase().includes(q) ||
-                  (u.email || '').toLowerCase().includes(q) ||
-                  (u.username || '').toLowerCase().includes(q))
-              : list
-            return <DaftarUserTable users={filtered} searchQuery={searchQuery} stickTop={daftarStick.h + daftarStick.c} />
-          })()}
+          {activeTab === "daftar-user" &&
+            (() => {
+              const q = searchQuery.trim().toLowerCase();
+              const list = Object.values(usersById);
+              const filtered = q
+                ? list.filter(
+                    (u) =>
+                      (u.name || "").toLowerCase().includes(q) ||
+                      (u.email || "").toLowerCase().includes(q) ||
+                      (u.username || "").toLowerCase().includes(q),
+                  )
+                : list;
+              return (
+                <DaftarUserTable
+                  users={filtered}
+                  searchQuery={searchQuery}
+                  stickTop={daftarStick.h + daftarStick.c}
+                />
+              );
+            })()}
         </div>
       </main>
 
-      <RejectModal  candidate={rejectCandidate}  onConfirm={handleConfirmReject} onCancel={() => setRejectCandidate(null)} />
+      <RejectModal
+        candidate={rejectCandidate}
+        onConfirm={handleConfirmReject}
+        onCancel={() => setRejectCandidate(null)}
+      />
       <ApproveModal
         candidate={approveCandidate}
         discourseGroups={discourseGroups}
@@ -1628,7 +1707,7 @@ export default function AdminDashboardPage({ user, onSignOut }) {
         onConfirm={handleConfirmApprove}
         onCancel={() => setApproveCandidate(null)}
       />
-      {bulkModal === 'approve' && (
+      {bulkModal === "approve" && (
         <BulkApproveModal
           candidates={selectedUsers}
           discourseGroups={discourseGroups}
@@ -1637,14 +1716,14 @@ export default function AdminDashboardPage({ user, onSignOut }) {
           onCancel={() => setBulkModal(null)}
         />
       )}
-      {bulkModal === 'reject' && (
+      {bulkModal === "reject" && (
         <BulkRejectModal
           candidates={selectedUsers}
           onConfirm={handleBulkReject}
           onCancel={() => setBulkModal(null)}
         />
       )}
-      {bulkModal === 'confirm' && (
+      {bulkModal === "confirm" && (
         <BulkVoucherModal
           candidates={selectedUsers}
           onConfirm={handleBulkConfirmVoucher}
@@ -1661,7 +1740,7 @@ export default function AdminDashboardPage({ user, onSignOut }) {
         onClose={() => setIsAddPendaftaranModalOpen(false)}
         onSave={handleAddPendaftaran}
       />
-      {actionModal.type === 'ubah-role' && (
+      {actionModal.type === "ubah-role" && (
         <UbahRoleModal
           user={actionModal.user}
           discourseGroups={discourseGroups}
@@ -1669,61 +1748,66 @@ export default function AdminDashboardPage({ user, onSignOut }) {
           onCancel={() => setActionModal({ type: null, user: null })}
         />
       )}
-      {actionModal.type === 'kirim-voucher' && (
+      {actionModal.type === "kirim-voucher" && (
         <KirimVoucherModal
           user={actionModal.user}
           onConfirm={handleConfirmKirimVoucher}
           onCancel={() => setActionModal({ type: null, user: null })}
         />
       )}
-      {actionModal.type === 'hapus-akun' && (
+      {actionModal.type === "hapus-akun" && (
         <HapusAkunModal
           user={actionModal.user}
           onConfirm={handleConfirmHapusAkun}
           onCancel={() => setActionModal({ type: null, user: null })}
         />
       )}
-      {actionModal.type === 'hapus-akun-pembayaran' && (
+      {actionModal.type === "hapus-akun-pembayaran" && (
         <HapusAkunModal
           user={actionModal.user}
           onConfirm={handleConfirmHapusAkunPembayaran}
           onCancel={() => setActionModal({ type: null, user: null })}
         />
       )}
-      {actionModal.type === 'pulihkan-akun' && (
+      {actionModal.type === "pulihkan-akun" && (
         <PulihkanAkunModal
           user={actionModal.user}
           onConfirm={handleConfirmPulihkanAkun}
           onCancel={() => setActionModal({ type: null, user: null })}
         />
       )}
-      {actionModal.type === 'hapus-akun-permanen' && (
+      {actionModal.type === "hapus-akun-permanen" && (
         <HapusPermanenModal
           user={actionModal.user}
           onConfirm={handleConfirmHapusPermanen}
           onCancel={() => setActionModal({ type: null, user: null })}
         />
       )}
-      {actionModal.type === 'hapus-pelatihan-trainer' && (
+      {actionModal.type === "hapus-pelatihan-trainer" && (
         <TypedDeleteConfirmModal
           title="Yakin Hapus Pelatihan Ini?"
           itemName={actionModal.user?.nama}
           confirmLabel="Hapus Pelatihan"
-          onConfirm={() => { handleDeletePendaftaran(actionModal.user); setActionModal({ type: null, user: null }) }}
+          onConfirm={() => {
+            handleDeletePendaftaran(actionModal.user);
+            setActionModal({ type: null, user: null });
+          }}
           onCancel={() => setActionModal({ type: null, user: null })}
         />
       )}
-      {actionModal.type === 'setujui-akun' && (
+      {actionModal.type === "setujui-akun" && (
         <SetujuiAkunModal
           user={actionModal.user}
           discourseGroups={discourseGroups}
           trainingSessions={trainingSessions}
           onConfirm={handleConfirmSetujuiAkun}
           onCancel={() => setActionModal({ type: null, user: null })}
-          onCopyVoucher={(code) => setToast({ message: <>Kode voucher {code} disalin</> })}
+          onCopyVoucher={(code) =>
+            setToast({ message: <>Kode voucher {code} disalin</> })
+          }
         />
       )}
-      {actionModal.type === 'tangguhkan-akun' && (
+      {actionModal.type === "tangguhkan-akun" && (
         <SuspendModal
           user={actionModal.user}
           onConfirm={handleConfirmTangguhkanAkun}
@@ -1761,7 +1845,10 @@ export default function AdminDashboardPage({ user, onSignOut }) {
       <KonfirmasiPembayaranModal
         candidate={konfirmasiCandidate}
         onConfirm={handleKonfirmasiPembayaran}
-        onReject={() => { setTolakCandidate(konfirmasiCandidate); setKonfirmasiCandidate(null) }}
+        onReject={() => {
+          setTolakCandidate(konfirmasiCandidate);
+          setKonfirmasiCandidate(null);
+        }}
         onCancel={() => setKonfirmasiCandidate(null)}
       />
       <TolakPembayaranModal
@@ -1771,5 +1858,5 @@ export default function AdminDashboardPage({ user, onSignOut }) {
       />
       <AdminToast toast={toast} onUndo={handleUndoToast} />
     </div>
-  )
+  );
 }

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ArrowDownUp, Pencil, Download } from 'lucide-react'
+import { ArrowDownUp, Pencil, Download, ChevronLeft, ChevronRight } from 'lucide-react'
 import { abbrevRegion } from '@/lib/format'
 import { TableShell, FreezeBlurRight } from './TableShell'
 
@@ -35,6 +35,7 @@ function SortableHeader({ label, sublabel, sortKey, sortConfig, onSort }) {
 
 export function RiwayatPelatihanTable({
   data, searchQuery, onEdit, onDownload, onViewPeserta,
+  page = 1, totalPages = 1, onPageChange,
 }) {
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' })
 
@@ -73,7 +74,13 @@ export function RiwayatPelatihanTable({
       })
     : filteredData
 
+  // Pagination di-drive server: `data` sudah berisi baris utk `page` aktif.
+  const safePage = Math.min(Math.max(1, page), Math.max(1, totalPages))
+  const goTo = (p) => onPageChange && onPageChange(Math.min(Math.max(1, p), totalPages))
+  const pageData = sortedData
+
   return (
+    <div>
     <TableShell>
     <table className="w-full table-fixed text-left text-sm whitespace-nowrap">
       <thead className="bg-[#0A1128] text-white sticky top-0 z-20">
@@ -97,8 +104,8 @@ export function RiwayatPelatihanTable({
         </tr>
       </thead>
       <tbody className="divide-y divide-gray-100">
-        {sortedData.length > 0 ? (
-          sortedData.map(item => {
+        {pageData.length > 0 ? (
+          pageData.map(item => {
             return (
             <tr key={item.id} className="group transition-colors hover:bg-[#F9FAFB]">
               <td className="px-4 py-4 align-top">
@@ -161,5 +168,41 @@ export function RiwayatPelatihanTable({
       </tbody>
     </table>
     </TableShell>
+
+    {totalPages > 1 && (
+      <div className="mt-4 flex items-center justify-end gap-1 text-sm text-gray-500">
+        <button
+          onClick={() => goTo(safePage - 1)}
+          disabled={safePage <= 1}
+          className="w-8 h-8 rounded-full flex items-center justify-center text-gray-500 hover:bg-gray-100 hover:text-[#0A1128] transition-colors disabled:opacity-40 disabled:pointer-events-none"
+          title="Halaman sebelumnya"
+        >
+          <ChevronLeft size={16} />
+        </button>
+        {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
+          <button
+            key={p}
+            onClick={() => goTo(p)}
+            className={
+              'w-8 h-8 rounded-full flex items-center justify-center font-medium transition-colors ' +
+              (p === safePage
+                ? 'bg-[#0033EC] text-white'
+                : 'text-gray-500 hover:bg-gray-100 hover:text-[#0A1128]')
+            }
+          >
+            {p}
+          </button>
+        ))}
+        <button
+          onClick={() => goTo(safePage + 1)}
+          disabled={safePage >= totalPages}
+          className="w-8 h-8 rounded-full flex items-center justify-center text-gray-500 hover:bg-gray-100 hover:text-[#0A1128] transition-colors disabled:opacity-40 disabled:pointer-events-none"
+          title="Halaman berikutnya"
+        >
+          <ChevronRight size={16} />
+        </button>
+      </div>
+    )}
+    </div>
   )
 }
