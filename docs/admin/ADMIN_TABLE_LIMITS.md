@@ -2,7 +2,7 @@
 
 Panduan mengubah **jumlah data yang ditampilkan** di tabel admin dan **jumlah data yang bisa di-bulk action** (approve/reject/konfirmasi/tangguhkan sekaligus).
 
-Berlaku untuk semua tabel di [`AdminDashboardPage.jsx`](../src/pages/AdminDashboardPage.jsx): Verifikasi (Pending & Pending Voucher), Manajemen Akun, dll.
+Berlaku untuk semua tabel di [`AdminDashboardPage.jsx`](../../src/pages/AdminDashboardPage.jsx): Verifikasi (Pending & Pending Voucher), Manajemen Akun, dll.
 
 ---
 
@@ -12,7 +12,7 @@ Tabel **tidak** memakai pagination di sisi klien — semua baris hasil `fetch` l
 
 ### Ubah global (semua pemanggil `getUsers`)
 
-**File:** [`src/lib/api.js`](../src/lib/api.js) — fungsi `getUsers`
+**File:** [`src/lib/api.js`](../../src/lib/api.js) — fungsi `getUsers`
 
 ```js
 getUsers: (params = {}) => {
@@ -25,7 +25,7 @@ Ganti `100` menjadi nilai yang diinginkan. Perubahan ini berlaku untuk **semua**
 
 ### Ubah per-tab (tanpa mengganggu tab lain)
 
-Kirim `limit` sebagai argumen di titik pemanggilan pada [`AdminDashboardPage.jsx`](../src/pages/AdminDashboardPage.jsx):
+Kirim `limit` sebagai argumen di titik pemanggilan pada [`AdminDashboardPage.jsx`](../../src/pages/AdminDashboardPage.jsx):
 
 ```js
 // Tab Verifikasi (± baris 199)
@@ -46,7 +46,7 @@ Argumen di call-site menimpa default `limit` karena spread `...params` ada di ur
 
 Dibatasi satu konstanta: `BULK_LIMIT`.
 
-**File:** [`AdminDashboardPage.jsx`](../src/pages/AdminDashboardPage.jsx) (± baris 160)
+**File:** [`AdminDashboardPage.jsx`](../../src/pages/AdminDashboardPage.jsx) (± baris 160)
 
 ```js
 const BULK_LIMIT = 100 // hard limit jumlah akun yang bisa diproses sekaligus

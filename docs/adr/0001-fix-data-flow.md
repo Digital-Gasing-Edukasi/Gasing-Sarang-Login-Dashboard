@@ -129,10 +129,10 @@ duplikasi.
 3. [ ] Backend: terima `rejectedFields` + `correctionUrl` di `verify`, kirim email.
 4. [ ] Backend: sediakan `POST /auth/correct-data`.
 5. [ ] Backend: kirim email konfirmasi "akun sedang direview" setelah resubmit
-   (lihat [FIX_DATA_FLOW §7.4](../FIX_DATA_FLOW.md)).
+   (lihat [FIX_DATA_FLOW §7.4](../flows/FIX_DATA_FLOW.md)).
 6. [ ] Verifikasi nama field `raw` di `mapToVerifikasi` vs respons API asli.
 7. [ ] Tinjau keamanan data-di-URL; pertimbangkan migrasi token-based untuk produksi.
 
 ## Lihat Juga
 
-- Dokumentasi fitur: [FIX_DATA_FLOW.md](../FIX_DATA_FLOW.md)
+- Dokumentasi fitur: [FIX_DATA_FLOW.md](../flows/FIX_DATA_FLOW.md)

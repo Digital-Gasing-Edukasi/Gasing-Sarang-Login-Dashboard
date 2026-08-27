@@ -1,6 +1,6 @@
 # Dropdown — Perbaikan Teks Value Ke-indent (`text-align`)
 
-> Dokumen ini menjelaskan bug **teks value dropdown yang bergeser ke kanan saat dipilih** (hanya di desktop) dan perbaikannya. Terkait komponen dropdown lihat [`PILL_SHAPE_INPUTS.md`](PILL_SHAPE_INPUTS.md), untuk versi mobile lihat [`MOBILE_RESPONSIVE.md`](MOBILE_RESPONSIVE.md).
+> Dokumen ini menjelaskan bug **teks value dropdown yang bergeser ke kanan saat dipilih** (hanya di desktop) dan perbaikannya. Terkait komponen dropdown lihat [`docs/ui/PILL_SHAPE_INPUTS.md`](PILL_SHAPE_INPUTS.md), untuk versi mobile lihat [`docs/ui/MOBILE_RESPONSIVE.md`](MOBILE_RESPONSIVE.md).
 
 **Status:** Selesai (per 2026-07-21). Fix 1 baris di komponen dasar `select.jsx`. Berlaku desktop & mobile.
 
@@ -41,7 +41,7 @@ Tambah `text-left` ke `TRIGGER_CLS` supaya trigger **selalu** rata kiri, apa pun
 
 | # | File | Lokasi | Perubahan |
 | - | ---- | ------ | --------- |
-| 1 | [`src/components/ui/select.jsx`](../src/components/ui/select.jsx) | `TRIGGER_CLS` | tambah `text-left` pada base class trigger |
+| 1 | [`src/components/ui/select.jsx`](../../src/components/ui/select.jsx) | `TRIGGER_CLS` | tambah `text-left` pada base class trigger |
 
 ```diff
  const TRIGGER_CLS = cn(
@@ -65,7 +65,7 @@ Dropdown **custom** lain tidak terpengaruh bug ini dan **tidak perlu** diubah:
 
 | Komponen | Kenapa kebal |
 | -------- | ------------ |
-| [`RoleSelect.jsx`](../src/pages/admin/RoleSelect.jsx) | Value pakai `<span className="flex items-center">` (flex), bukan `line-clamp`/`-webkit-box`. `text-align` tidak mempengaruhi posisi flex item. Plus konteks Admin rata kiri. |
+| [`RoleSelect.jsx`](../../src/pages/admin/RoleSelect.jsx) | Value pakai `<span className="flex items-center">` (flex), bukan `line-clamp`/`-webkit-box`. `text-align` tidak mempengaruhi posisi flex item. Plus konteks Admin rata kiri. |
 | Filter/aksi di `TableControls.jsx`, dll | Tombol berbasis flex + berada di halaman Admin yang left-aligned. |
 
 **Aturan umum:** hanya trigger yang menampilkan value berbasis **teks + `line-clamp`/`-webkit-box`** yang rentan terhadap warisan `text-align`. Trigger berbasis **flex** aman.

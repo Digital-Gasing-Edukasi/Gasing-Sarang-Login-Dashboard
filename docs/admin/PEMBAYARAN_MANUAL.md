@@ -3,7 +3,7 @@
 > **STATUS: SEMENTARA.** Dipakai selama Midtrans belum siap. Dokumen ini catat semua
 > titik yang diubah + langkah balikin ke Midtrans.
 >
-> Modul terkait: sisi admin → [`VERIFIKASI_PEMBAYARAN.md`](./VERIFIKASI_PEMBAYARAN.md).
+> Modul terkait: sisi admin → [`docs/admin/VERIFIKASI_PEMBAYARAN.md`](VERIFIKASI_PEMBAYARAN.md).
 
 ---
 
@@ -44,17 +44,17 @@ Semua kode Midtrans masih ada. Balikin = ganti pemanggilan, bukan nulis ulang.
 
 | # | File | Sekarang (manual) | Balikin ke Midtrans |
 |---|---|---|---|
-| 1 | [`src/pages/SubscriptionPage.jsx:329`](../src/pages/SubscriptionPage.jsx#L329) `handleCheckout` | panggil `subscriptionApi.checkoutManual(selectedPlan)` → `onCheckoutManual(plan, payment)` | balikin ke `subscriptionApi.checkout(selectedPlan)` + buka Snap / redirect ke `redirect_url` |
-| 2 | [`src/lib/api.js:388`](../src/lib/api.js#L388) | `checkoutManual`, `uploadReceipt`, `getLatestPayment`, `getPayment` | `checkout()` (baris 385) sudah ada — tinggal dipakai lagi. Fungsi manual boleh dibiarkan (dipakai admin) |
-| 3 | [`src/App.jsx:332`](../src/App.jsx#L332) `handleLoginSuccess` | cek `getLatestPayment()`; `status === 'pending'` → **tetap boleh masuk** (bypass gate `expired` + langsung `redirectWithTokens`) | **HAPUS** blok ini. Midtrans bayar realtime, gak ada masa "nunggu admin" |
-| 4 | [`src/App.jsx`](../src/App.jsx) `handleCheckoutManual` + state `manualPayment`, `checkoutPlan` | simpan payment → route `/login/subscription/transfer` | hapus handler + state, hapus route TransferBank |
-| 5 | [`src/pages/TransferBankPage.jsx`](../src/pages/TransferBankPage.jsx) | halaman upload bukti transfer | hapus / arsipkan. Route `transfer-bank` di [`src/lib/routes.js:16`](../src/lib/routes.js#L16) ikut dihapus |
+| 1 | [`src/pages/SubscriptionPage.jsx:329`](../../src/pages/SubscriptionPage.jsx#L329) `handleCheckout` | panggil `subscriptionApi.checkoutManual(selectedPlan)` → `onCheckoutManual(plan, payment)` | balikin ke `subscriptionApi.checkout(selectedPlan)` + buka Snap / redirect ke `redirect_url` |
+| 2 | [`src/lib/api.js:388`](../../src/lib/api.js#L388) | `checkoutManual`, `uploadReceipt`, `getLatestPayment`, `getPayment` | `checkout()` (baris 385) sudah ada — tinggal dipakai lagi. Fungsi manual boleh dibiarkan (dipakai admin) |
+| 3 | [`src/App.jsx:332`](../../src/App.jsx#L332) `handleLoginSuccess` | cek `getLatestPayment()`; `status === 'pending'` → **tetap boleh masuk** (bypass gate `expired` + langsung `redirectWithTokens`) | **HAPUS** blok ini. Midtrans bayar realtime, gak ada masa "nunggu admin" |
+| 4 | [`src/App.jsx`](../../src/App.jsx) `handleCheckoutManual` + state `manualPayment`, `checkoutPlan` | simpan payment → route `/login/subscription/transfer` | hapus handler + state, hapus route TransferBank |
+| 5 | [`src/pages/TransferBankPage.jsx`](../../src/pages/TransferBankPage.jsx) | halaman upload bukti transfer | hapus / arsipkan. Route `transfer-bank` di [`src/lib/routes.js:16`](../../src/lib/routes.js#L16) ikut dihapus |
 | 6 | Dashboard Admin — sub-menu **Verifikasi Pembayaran** | approve/reject bukti transfer, endpoint `/admin/payments/manual-transfer/*` | sembunyikan sub-menu (data lama tetap perlu dibaca? kalau ya, biarkan read-only) |
 
 **Halaman Midtrans yang masih utuh (jangan dihapus):**
 `PaymentFinishPage.jsx`, `PaymentUnfinishPage.jsx`, `PaymentErrorPage.jsx`,
 `PaymentSuccessPage.jsx`, `MidtransTestPage.jsx` + route-nya di
-[`src/lib/routes.js`](../src/lib/routes.js) (`/payment/*`, `/midtrans-test`).
+[`src/lib/routes.js`](../../src/lib/routes.js) (`/payment/*`, `/midtrans-test`).
 
 ---
 
@@ -84,11 +84,11 @@ Semua kode Midtrans masih ada. Balikin = ganti pemanggilan, bukan nulis ulang.
 
 ## 5. Gate Login (paling gampang kelewat pas revert)
 
-[`src/App.jsx`](../src/App.jsx) `handleLoginSuccess` sekarang:
+[`src/App.jsx`](../../src/App.jsx) `handleLoginSuccess` sekarang:
 
 1. Fetch `GET /subscription/payments/latest` **duluan**, sebelum gate.
 2. Kalau `status === 'pending'`:
-   - gate `expired` dari [`src/lib/loginGate.js`](../src/lib/loginGate.js) **di-bypass**
+   - gate `expired` dari [`src/lib/loginGate.js`](../../src/lib/loginGate.js) **di-bypass**
    - routing langganan → `webAppApi.redirectWithTokens()` (masuk web app), bukan `/login/subscription`
    - juga lolos kalau `subscriptionApi.getStatus()` error
 3. Gate `suspended` & `pending` (verifikasi akun) **tetap blokir** — gak kena bypass ini.
@@ -105,10 +105,10 @@ diupload, nunggu admin) **belum** dihitung lolos — kalau mau ikut, tambah di k
 
 Payment terakhir yang **ditolak admin** (status `failed` / `rejected`) memblokir masuk +
 tampilkan modal `LoginStatusModal type="payment_rejected"`. Discriminator varian dari
-alasan tolak (`evaluatePaymentGate` di [`src/lib/loginGate.js`](../src/lib/loginGate.js)):
+alasan tolak (`evaluatePaymentGate` di [`src/lib/loginGate.js`](../../src/lib/loginGate.js)):
 baca `rejectionReason`/`rejectReason`/`reason`/`notes`, cocokkan value-code **atau**
 kata kunci label `TOLAK_REASONS` (admin kirim LABEL sbg `notes`, lihat
-[`VERIFIKASI_PEMBAYARAN.md`](./VERIFIKASI_PEMBAYARAN.md) §2):
+[`docs/admin/VERIFIKASI_PEMBAYARAN.md`](VERIFIKASI_PEMBAYARAN.md) §2):
 
 | Alasan (value / kata kunci) | `meta.variant` | Isi modal | Tombol primary → tujuan |
 |---|---|---|---|
@@ -123,14 +123,14 @@ Default (alasan tak dikenal) → `receipt` (paling aman: minta unggah ulang).
 TransferBankPage. Tanpa `plan.id` terbaca → varian receipt **fallback** ke
 `/login/subscription`.
 
-**Prioritas gate** di `handleLoginSuccess` ([`src/App.jsx`](../src/App.jsx)):
+**Prioritas gate** di `handleLoginSuccess` ([`src/App.jsx`](../../src/App.jsx)):
 `suspended` / `pending` akun **> `payment_rejected` > `expired`**. Payment ditolak menang
 atas `expired` (arahkan user perbaiki bayar), tapi kalah dari blok akun. Tombol **Log Out**
 → `onClose` (bersihkan sesi). Primary bercabang per varian: `receipt` → `onReupload`
 (set `checkoutPlan`, deep-link transfer), `amount`/`account` → `onRenew` (pilih paket).
 
-`RECEIVER_BANK` di [`LoginStatusModal.jsx`](../src/components/shared/LoginStatusModal.jsx)
-duplikat `DEFAULT_BANK` di [`TransferBankPage.jsx`](../src/pages/TransferBankPage.jsx) —
+`RECEIVER_BANK` di [`LoginStatusModal.jsx`](../../src/components/shared/LoginStatusModal.jsx)
+duplikat `DEFAULT_BANK` di [`TransferBankPage.jsx`](../../src/pages/TransferBankPage.jsx) —
 backend belum kembalikan detail rekening; satukan bila endpoint sudah ada.
 
 **Revert Midtrans:** hapus blok `paymentRejected` bareng blok `paymentPending` (§3 #3) —

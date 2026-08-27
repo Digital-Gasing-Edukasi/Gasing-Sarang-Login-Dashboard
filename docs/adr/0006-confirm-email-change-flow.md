@@ -3,7 +3,7 @@
 **Status:** Accepted
 **Date:** 2026-07-29
 **Deciders:** Frontend lead (ery), backend team
-**Terkait:** [ADR-0003](0003-revise-token-flow.md) (pola link-email token), [RESET_PASSWORD_ROUTING.md](../RESET_PASSWORD_ROUTING.md)
+**Terkait:** [ADR-0003](0003-revise-token-flow.md) (pola link-email token), [RESET_PASSWORD_ROUTING.md](../flows/RESET_PASSWORD_ROUTING.md)
 
 ## Context
 
@@ -30,7 +30,7 @@ Tiga hal perlu diputuskan:
    seperti reset-password. Boot sequence `App.jsx` punya cek `?token=` **generik** yang
    melempar ke `/login/reset-password`. Kalau confirm-email diproses setelah cek generik itu,
    link-nya ke-hijack ke reset-password (regresi yang sama persis dgn bug lama di
-   [RESET_PASSWORD_ROUTING.md §4](../RESET_PASSWORD_ROUTING.md)).
+   [RESET_PASSWORD_ROUTING.md §4](../flows/RESET_PASSWORD_ROUTING.md)).
 3. **Cara melayani dua path per-env** tanpa mem-fork logika boot/route per build.
 
 ## Decision
@@ -83,7 +83,7 @@ jadi bukan mekanisme baru untuk dijaga.
 **Perlu dijaga:**
 - **Urutan branch di boot sequence.** `confirm-email-change` WAJIB sebelum cek `?token=`
   generik. Setiap route baru ber-`?token=` harus ikut aturan urutan ini
-  ([RESET_PASSWORD_ROUTING.md §4](../RESET_PASSWORD_ROUTING.md)).
+  ([RESET_PASSWORD_ROUTING.md §4](../flows/RESET_PASSWORD_ROUTING.md)).
 - **Sinkron path per-env dengan backend.** Kalau BE mengubah prefix (mis. staging ikut
   drop `/register/`), sesuaikan `CONFIRM_EMAIL_CHANGE_PATH` di `routes.js`. Match `endsWith`
   di boot tetap aman selama segmen akhir `/confirm-email-change` dipertahankan.
@@ -100,5 +100,5 @@ jadi bukan mekanisme baru untuk dijaga.
 
 ## Lihat Juga
 
-- [CONFIRM_EMAIL_CHANGE.md](../CONFIRM_EMAIL_CHANGE.md) — alur & routing end-to-end.
+- [CONFIRM_EMAIL_CHANGE.md](../flows/CONFIRM_EMAIL_CHANGE.md) — alur & routing end-to-end.
 - [ADR-0003](0003-revise-token-flow.md) — pola link-email token JWT one-time.

@@ -2,7 +2,7 @@
 
 Halaman komunitas statis yang bisa dibuka **tanpa login** ("Lanjut Sebagai Tamu").
 Konten pure statis (dummy, tanpa backend), mobile-first, meniru app `Komonitas`.
-Keputusan arsitektur: [ADR-0004](adr/0004-guest-static-komunitas.md).
+Keputusan arsitektur: [ADR-0004](../adr/0004-guest-static-komunitas.md).
 
 > **Reader:** FE dev Login-Dashboard. Buat nambah/ubah screen tamu, cek data
 > dummy, atau nyambungin ke API beneran nanti.
@@ -32,7 +32,7 @@ LoginPage  ──klik "Lanjut Sebagai Tamu"──▶  onNavigate("komunitas")
            ──▶  /komunitas  ──redirect──▶  /komunitas/home
 ```
 
-- Tombol: [`src/pages/auth/LoginPage.jsx`](../src/pages/auth/LoginPage.jsx) —
+- Tombol: [`src/pages/auth/LoginPage.jsx`](../../src/pages/auth/LoginPage.jsx) —
   `text-[14px] font-bold text-[#424857]`, tampil sama di mobile & desktop
   (ada di `RightPanel` yang dipakai dua-duanya).
 - Fake login = **tidak** panggil `authApi`, **tidak** set token. Cukup navigate.
@@ -44,10 +44,10 @@ LoginPage  ──klik "Lanjut Sebagai Tamu"──▶  onNavigate("komunitas")
 `App.jsx` saat boot cek sesi untuk route app. Route `/komunitas` didaftarkan
 sebagai **publik** supaya cek sesi dilewati:
 
-- [`src/lib/routes.js`](../src/lib/routes.js) → `/komunitas` masuk
+- [`src/lib/routes.js`](../../src/lib/routes.js) → `/komunitas` masuk
   `PUBLIC_PREFIXES` (dipakai `isPublicStaticPath()`), plus key `komunitas` di
   `PAGE_PATHS`.
-- [`src/App.jsx`](../src/App.jsx) → `<Route path="/komunitas/*" element={<KomunitasPage/>} />`
+- [`src/App.jsx`](../../src/App.jsx) → `<Route path="/komunitas/*" element={<KomunitasPage/>} />`
   **tanpa** `requireAuth`.
 
 ---
@@ -55,7 +55,7 @@ sebagai **publik** supaya cek sesi dilewati:
 ## Routes
 
 Semua di bawah `/komunitas/*`. Sub-routing di-handle di dalam
-[`KomunitasPage.jsx`](../src/pages/komunitas/KomunitasPage.jsx) via nested
+[`KomunitasPage.jsx`](../../src/pages/komunitas/KomunitasPage.jsx) via nested
 `<Routes>`.
 
 | Path | Screen | Ket |
@@ -97,7 +97,7 @@ src/pages/komunitas/
 
 ### Bottom nav
 
-[`BottomNav.jsx`](../src/pages/komunitas/BottomNav.jsx) — 5 tab, urutan sesuai
+[`BottomNav.jsx`](../../src/pages/komunitas/BottomNav.jsx) — 5 tab, urutan sesuai
 mockup: **Home · Komunitas · Eksklusif · Meet-Up · Materi**. Ikon PNG punya state
 `_normal` / `_selected` (aktif ditentukan `pathname.startsWith`). Saat screen
 `komunitas` aktif, muncul **sub-navbar** (Forum / Challenge / All Members).
@@ -106,7 +106,7 @@ mockup: **Home · Komunitas · Eksklusif · Meet-Up · Materi**. Ikon PNG punya 
 
 ## Aset
 
-Barrel: [`assets.js`](../src/pages/komunitas/assets.js). Semua di `src/assets/`.
+Barrel: [`assets.js`](../../src/pages/komunitas/assets.js). Semua di `src/assets/`.
 
 | Kategori | Lokasi | Dipakai |
 |---|---|---|
@@ -124,7 +124,7 @@ state **normal** (salah nama di sumber). Sudah di-alias di `BottomNav.jsx`.
 
 ## Data dummy
 
-[`data.js`](../src/pages/komunitas/data.js) — satu-satunya sumber konten. Export:
+[`data.js`](../../src/pages/komunitas/data.js) — satu-satunya sumber konten. Export:
 
 - `GUEST_NAME` — nama sapaan hero ("Tamu Gasing")
 - `kontenEksklusif[]` — kartu video Konten Eksklusif

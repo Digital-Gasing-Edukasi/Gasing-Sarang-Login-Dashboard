@@ -116,5 +116,5 @@ relevan** karena mekanismenya dibuang.
 
 ## Lihat Juga
 
-- [FIX_DATA_FLOW.md](../FIX_DATA_FLOW.md) — alur end-to-end (perlu update sisi user).
+- [FIX_DATA_FLOW.md](../flows/FIX_DATA_FLOW.md) — alur end-to-end (perlu update sisi user).
 - [ADR-0001](0001-fix-data-flow.md) — keputusan lama (superseded).

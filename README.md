@@ -7,8 +7,8 @@
 >
 > 🔑 **Base API & user-flow (baca dulu buat paham perilaku akun):**
 > - **[API_ACCESS_MATRIX.md](API_ACCESS_MATRIX.md)** — matrix akses endpoint × 11 kondisi user + capability admin (UAC). Sumber kebenaran dari BE (`feat/account-access-gate`).
-> - **[USER_STATE_FLOW.md](USER_STATE_FLOW.md)** — flow 12 state user (versi developer: field, gate, file:line).
-> - **[USER_FLOW.md](USER_FLOW.md)** — flow yang sama, versi designer (bahasa awam).
+> - **[USER_STATE_FLOW.md](docs/USER_STATE_FLOW.md)** — flow 12 state user (versi developer: field, gate, file:line).
+> - **[USER_FLOW.md](docs/USER_FLOW.md)** — flow yang sama, versi designer (bahasa awam).
 
 ---
 
@@ -76,7 +76,12 @@ Login-Dashboard/
 ├── index.html              ← entry HTML + Midtrans Snap script
 ├── vite.config.js          ← base '/' + path alias + proxy dev
 ├── deploy/                 ← contoh config Nginx (SPA fallback)
-├── docs/                   ← dokumentasi modul + ADR (mulai dari docs/README.md)
+├── docs/                   ← dokumentasi (mulai dari docs/README.md)
+│   ├── flows/              ← alur fitur: revise, reset password, confirm email, guest
+│   ├── admin/              ← dashboard admin: manajemen akun, verifikasi bayar, tabel, import CSV
+│   ├── ui/                 ← mobile responsive, halaman legal, pill inputs, dropdown align
+│   ├── deployment/         ← runbook deploy staging (2 metode)
+│   └── adr/                ← architecture decision records
 └── src/                    ← 94 file .js/.jsx
     ├── main.jsx            ← mount React + <BrowserRouter>
     ├── App.jsx             ← <Routes> + boot sequence (deep-link, restore sesi)
@@ -197,7 +202,7 @@ Peta URL ada di [`src/lib/routes.js`](src/lib/routes.js) (`PAGE_PATHS`). File pa
 Alur di atas cuma jalur halaman. Untuk **perilaku akun end-to-end** — dari baru daftar
 sampai suspended/disabled, plus endpoint mana yang OK/ditolak per kondisi — lihat:
 
-- **[USER_STATE_FLOW.md](USER_STATE_FLOW.md)** — 12 flowchart per-state (versi dev: `verifiedStatus`, gate, `file:line`) + 1 flowchart gabungan.
+- **[USER_STATE_FLOW.md](docs/USER_STATE_FLOW.md)** — 12 flowchart per-state (versi dev: `verifiedStatus`, gate, `file:line`) + 1 flowchart gabungan.
 - **[API_ACCESS_MATRIX.md](API_ACCESS_MATRIX.md)** — kondisi user dipetakan ke akses tiap endpoint (7 access profile) + capability admin.
 
 Gate login sendiri (`suspended > pending > expired`) ada di [`src/lib/loginGate.js`](src/lib/loginGate.js) — lihat §8.7.
@@ -343,7 +348,7 @@ Setiap halaman auth berdiri sendiri sebagai file terpisah. `App.jsx` hanya bertu
 | `FixDataPage.jsx`       | Revisi data setelah akun diminta perbaikan admin  |
 | `SsoCallbackPage.jsx`   | Proses verifikasi SSO dari Discourse             |
 
-Halaman legal ada terpisah di `src/pages/legal/` (`TermsPage`, `PrivacyPage`, `LegalLayout`) — dibuka di tab baru dari Sign Up. Detail: [docs/LEGAL_PAGES.md](docs/LEGAL_PAGES.md).
+Halaman legal ada terpisah di `src/pages/legal/` (`TermsPage`, `PrivacyPage`, `LegalLayout`) — dibuka di tab baru dari Sign Up. Detail: [docs/ui/LEGAL_PAGES.md](docs/ui/LEGAL_PAGES.md).
 
 ### 8.2 Dashboard Admin (`src/pages/admin/`)
 
@@ -355,7 +360,7 @@ Lima menu di sidebar: **Verifikasi Akun** · **Verifikasi Pembayaran** · **Mana
 | --------------------- | ------------------------------------------------------- |
 | `mappers.js`          | `mapToVerifikasi`, `mapToManajemen`, `mapToRiwayat`, `mapToPembayaran` (API → UI) |
 | `roleOptions.js`      | Daftar opsi role untuk `<RoleSelect>` & `<UbahRoleModal>` |
-| `tableScroll.js`      | `getTableScrollProps` — aturan scroll tabel ([docs/ADMIN_TABLE_SCROLL.md](docs/ADMIN_TABLE_SCROLL.md)) |
+| `tableScroll.js`      | `getTableScrollProps` — aturan scroll tabel ([docs/admin/ADMIN_TABLE_SCROLL.md](docs/admin/ADMIN_TABLE_SCROLL.md)) |
 
 **Navigasi & toolbar**
 
@@ -374,7 +379,7 @@ Lima menu di sidebar: **Verifikasi Akun** · **Verifikasi Pembayaran** · **Mana
 | `VerifikasiTable.jsx` | Tabel tab Verifikasi Akun dengan role select & action   |
 | `ManajemenTable.jsx`  | Tabel tab Manajemen Akun dengan status, voucher, dst.   |
 | `PendingVoucherTable.jsx` | Tabel akun berstatus `PENDING_VOUCHER` (langkah 2 verifikasi) |
-| `VerifikasiPembayaranTable.jsx` | Tabel tab Verifikasi Pembayaran (2 sub-tab: Menunggu / Ditolak) — [docs/VERIFIKASI_PEMBAYARAN.md](docs/VERIFIKASI_PEMBAYARAN.md) |
+| `VerifikasiPembayaranTable.jsx` | Tabel tab Verifikasi Pembayaran (2 sub-tab: Menunggu / Ditolak) — [docs/admin/VERIFIKASI_PEMBAYARAN.md](docs/admin/VERIFIKASI_PEMBAYARAN.md) |
 | `PendaftaranTrainerTable.jsx` | Tabel tab Pendaftaran Trainer + toggle status   |
 | `RiwayatPelatihanTable.jsx` | Tabel tab Riwayat Pelatihan: sort per-kolom, badge status & langganan, action edit/download/hapus |
 
@@ -387,7 +392,7 @@ Lima menu di sidebar: **Verifikasi Akun** · **Verifikasi Pembayaran** · **Mana
 | `SuspendModal.jsx`    | Modal tangguhkan akun (pilih alasan + tanggal berakhir) |
 | `AccountActionModals.jsx` | `<HapusAkunModal>` & `<PulihkanAkunModal>`           |
 | `UbahRoleModal.jsx`   | Modal ubah role pengguna (Manajemen Akun)               |
-| `BulkApproveModal.jsx` / `BulkRejectModal.jsx` | Aksi massal ([docs/ADMIN_TABLE_LIMITS.md](docs/ADMIN_TABLE_LIMITS.md)) |
+| `BulkApproveModal.jsx` / `BulkRejectModal.jsx` | Aksi massal ([docs/admin/ADMIN_TABLE_LIMITS.md](docs/admin/ADMIN_TABLE_LIMITS.md)) |
 
 **Modal — voucher**
 
@@ -450,7 +455,7 @@ Datanya **disimpan di `app-config`** (`appConfigApi.get/set`), bukan tabel sendi
 | `<Checkbox>` | `ui/checkbox.jsx` | Checkbox "Ingat saya"                           |
 | `<Select>`   | `ui/select.jsx`   | Dropdown daerah pelatihan GASING                |
 
-> **Bentuk kontrol = pill (`rounded-full`).** Semua field/trigger yang diisi user — `Input`, `Select` (trigger), `DateField`, dan `Button` — memakai sudut kapsul membulat penuh di kedua sisi. Diatur di **komponen dasar**, jadi berlaku otomatis di seluruh app (user & admin). Detail, jebakan `cn()`, & cara kembalikan: [docs/PILL_SHAPE_INPUTS.md](docs/PILL_SHAPE_INPUTS.md).
+> **Bentuk kontrol = pill (`rounded-full`).** Semua field/trigger yang diisi user — `Input`, `Select` (trigger), `DateField`, dan `Button` — memakai sudut kapsul membulat penuh di kedua sisi. Diatur di **komponen dasar**, jadi berlaku otomatis di seluruh app (user & admin). Detail, jebakan `cn()`, & cara kembalikan: [docs/ui/PILL_SHAPE_INPUTS.md](docs/ui/PILL_SHAPE_INPUTS.md).
 
 ### 8.4 Komponen Layout (`src/components/layout/`)
 
@@ -461,7 +466,7 @@ Datanya **disimpan di `app-config`** (`appConfigApi.get/set`), bukan tabel sendi
 | `<Divider />`         | Garis pemisah horizontal tipis                          |
 | `<AuthFullLayout />`  | Layout full-width untuk halaman forgot/reset password   |
 | `<StepIndicator />`   | Progress bar 3 langkah Sign Up                          |
-| `<MobileHero />`      | Hero ungu mobile (wallpaper + maskot), `lg:hidden` ([docs/MOBILE_RESPONSIVE.md](docs/MOBILE_RESPONSIVE.md)) |
+| `<MobileHero />`      | Hero ungu mobile (wallpaper + maskot), `lg:hidden` ([docs/ui/MOBILE_RESPONSIVE.md](docs/ui/MOBILE_RESPONSIVE.md)) |
 | `<Divider />`         | Garis pemisah (di-`export` dari `RightPanel.jsx`)       |
 
 ### 8.5 Komponen Shared (`src/components/shared/`)
@@ -474,7 +479,7 @@ Datanya **disimpan di `app-config`** (`appConfigApi.get/set`), bukan tabel sendi
 | `<ErrorAlert />`    | Alert merah untuk error dari API                |
 | `<SuccessToast />`  | Toast notifikasi hijau (reset password)         |
 | `<LoginStatusModal />` | Modal blokir login: suspended / pending / expired (lihat §8.7 `loginGate.js`) |
-| `<MobileReviewNotice />` | Notice khusus tampilan mobile ([docs/MOBILE_RESPONSIVE.md](docs/MOBILE_RESPONSIVE.md)) |
+| `<MobileReviewNotice />` | Notice khusus tampilan mobile ([docs/ui/MOBILE_RESPONSIVE.md](docs/ui/MOBILE_RESPONSIVE.md)) |
 | `<NoConnectionBanner />` | Banner saat koneksi ke backend putus        |
 | `DarkAuth.jsx`      | Komponen auth tema-gelap mobile: `AuthDarkLayout`, `DarkInput`, `DarkPrimaryButton`, `DarkGhostButton`, `DarkDivider` (semua pill) |
 | `<DateField />`     | Field tanggal lahir dengan roda pilih (tanggal/bulan/tahun) custom, sama di desktop & mobile |
@@ -503,8 +508,8 @@ Logika non-UI dipusatkan di sini supaya `App.jsx` dan komponen tetap tipis.
 | `routes.js`    | `PAGE_PATHS`, `pathForPage()`, `isPublicStaticPath()`, `skipSessionRestore()` | Peta URL (sumber kebenaran tunggal). `skipSessionRestore` mencegah user yang sedang daftar/reset password dilempar ke dashboard karena token lama di storage |
 | `roles.js`     | `ADMIN_CAPABILITIES`, `isSuperAdmin()`, `isOperationalAdmin()`          | Aturan "siapa boleh ke mana" pasca-login. Admin operasional = punya **semua** 6 capability dan bukan superadmin |
 | `loginGate.js` | `evaluateLoginGate(profile)`                                           | Tentukan apakah login diblokir. Prioritas: **suspended > pending > expired**. Return `null` kalau lolos |
-| `fixLink.js`   | `FIELD_DEFS`, `FIELD_LABEL`, `encodeFixPayload()`, `decodeFixPayload()`, `buildFixUrl()`, `defaultFieldMessage()` | Payload & URL alur perbaikan data — lihat [docs/FIX_DATA_FLOW.md](docs/FIX_DATA_FLOW.md) |
-| `utils.js`     | `cn()`                                                                 | Gabung className — `clsx` saja (**bukan** tailwind-merge; class `rounded-*` bisa tabrakan, lihat [docs/PILL_SHAPE_INPUTS.md §5](docs/PILL_SHAPE_INPUTS.md)) |
+| `fixLink.js`   | `FIELD_DEFS`, `FIELD_LABEL`, `encodeFixPayload()`, `decodeFixPayload()`, `buildFixUrl()`, `defaultFieldMessage()` | Payload & URL alur perbaikan data — lihat [docs/flows/FIX_DATA_FLOW.md](docs/flows/FIX_DATA_FLOW.md) |
+| `utils.js`     | `cn()`                                                                 | Gabung className — `clsx` saja (**bukan** tailwind-merge; class `rounded-*` bisa tabrakan, lihat [docs/ui/PILL_SHAPE_INPUTS.md §5](docs/ui/PILL_SHAPE_INPUTS.md)) |
 | `format.js`    | `formatRp`, `fmtRupiah`, `localizePlanName`, `fmtTimeAmPm`, `ID_MONTHS`, `withBase`, `downloadCsv` | Util format bersama — dulu di-copy di banyak file. `downloadCsv` selalu `revokeObjectURL` (cegah leak). `withBase` prepend `BASE_URL` (dipakai redirect di `api.js` & link legal di SignUp). Dipakai `mappers.js`, Subscription, TransferBank, SignUp, AdminDashboard |
 | `password.js`  | `getPasswordRules(pw)`, `isPasswordValid(pw)` | Aturan password (10 char, 1 kapital, 1 angka, 1 spesial) — 1 sumber, dipakai SignUp & ResetPassword. Terpisah dari `format.js` (validasi ≠ format tampilan). Checklist di UI hanya tampil saat field password fokus |
 
@@ -658,7 +663,7 @@ Impor peserta pelatihan lewat CSV (dipakai tab Riwayat Pelatihan).
 | GET    | `/admin/users/:id`                | Detail satu pengguna                |
 | PATCH  | `/admin/users/:id`                | Update data pengguna                |
 | PATCH  | `/admin/users/:id/password`       | Set password pengguna               |
-| PATCH  | `/admin/users/:id/verify`         | Verifikasi akun — **2 call terpisah**: `WAITING` → *setujui* (`{ status, discourseGroupId, lastTrainingSessionId }`) → `PENDING_VOUCHER` → *finalize* (`{ status, discourseGroupId }` **tanpa** `lastTrainingSessionId`) → `APPROVED`. Penanda langkah-1 = kehadiran `lastTrainingSessionId` ([detail](USER_STATE_FLOW.md)) |
+| PATCH  | `/admin/users/:id/verify`         | Verifikasi akun — **2 call terpisah**: `WAITING` → *setujui* (`{ status, discourseGroupId, lastTrainingSessionId }`) → `PENDING_VOUCHER` → *finalize* (`{ status, discourseGroupId }` **tanpa** `lastTrainingSessionId`) → `APPROVED`. Penanda langkah-1 = kehadiran `lastTrainingSessionId` ([detail](docs/USER_STATE_FLOW.md)) |
 | POST   | `/admin/users/:id/revise`         | Minta user memperbaiki data (`{ rejectedReason, fieldsToRevise }`) → backend kirim email |
 | POST   | `/admin/users/:id/reject`         | Tolak akun (`{ rejectedReason }`)   |
 | POST   | `/admin/users/:id/revise/resend`  | Kirim ulang email revisi            |
@@ -810,7 +815,7 @@ https://app.midtrans.com/snap/snap.js
    (App.jsx mendeteksi path ini di boot sequence)
 ```
 
-> Diagram sequence lengkap alur ini ada di [`ARCHITECTURE.md` §7.5](ARCHITECTURE.md#75-pembayaran-subscription--midtrans).
+> Diagram sequence lengkap alur ini ada di [`ARCHITECTURE.md` §7.5](docs/ARCHITECTURE.md#75-pembayaran-subscription--midtrans).
 
 ### Endpoint Checkout
 
@@ -965,7 +970,7 @@ sudo chown -R www-data:www-data /var/www/gasing-auth
 # Tidak perlu restart Nginx (kecuali config-nya yang berubah → nginx -t && reload)
 ```
 
-> 📘 Panduan lengkap 6 fase + rollback: [`DEPLOYMENT_GUIDE.md`](DEPLOYMENT_GUIDE.md).
+> 📘 Panduan lengkap 6 fase + rollback: [`docs/deployment/DEPLOYMENT_GUIDE.md`](docs/deployment/DEPLOYMENT_GUIDE.md).
 
 ---
 
@@ -1085,7 +1090,7 @@ Ubah CSS variables di `src/index.css`:
 - ✅ Diubah di **komponen dasar** (`ui/input.jsx`, `ui/select.jsx`, `shared/DateField.jsx`, `ui/button.jsx`) + `.otp-input` di `index.css`, jadi konsisten desktop **dan** mobile (1 codebase responsive). Komponen tema-gelap mobile (`DarkAuth`) memang sudah pill sejak awal.
 - ✅ Padding horizontal field dinaikkan `px-3 → px-4` agar teks tidak mepet ke tepi membulat.
 - ℹ️ **Efek disengaja:** karena komponen shared, Admin Dashboard ikut pill. Panel dropdown terbuka & popup roda tanggal **tetap** `rounded-lg/2xl`.
-- 📝 Dokumen baru: [docs/PILL_SHAPE_INPUTS.md](docs/PILL_SHAPE_INPUTS.md) (termasuk catatan `cn()` = `clsx` tanpa tailwind-merge). Index & README §8.3 diselaraskan.
+- 📝 Dokumen baru: [docs/ui/PILL_SHAPE_INPUTS.md](docs/ui/PILL_SHAPE_INPUTS.md) (termasuk catatan `cn()` = `clsx` tanpa tailwind-merge). Index & README §8.3 diselaraskan.
 
 ### v3.0.0 — 15 Juli 2026 *(Migrasi Routing + Pembayaran Manual)*
 
@@ -1097,12 +1102,12 @@ Ubah CSS variables di `src/index.css`:
 - ✅ **Redirect kompatibilitas** untuk link yang sudah tersebar: `/admin-dashboard` → `/dashboard-admin`, `/register/reset-password?…` → `/login/reset-password?…`, path tak dikenal → `/login`.
 - ✅ **`skipSessionRestore`** — user yang sedang mendaftar / reset password tidak lagi dilempar ke dashboard gara-gara token akun lama masih ada di storage.
 - ✅ **Pembayaran Transfer Bank manual** (jalur ke-2 di samping Midtrans): `SubscriptionPage` → `checkoutManual()` → `TransferBankPage` (unggah bukti) → `uploadReceipt()` → status `receipt_uploaded`.
-- ✅ **Menu admin "Verifikasi Pembayaran"** (sub-menu ke-2): 2 sub-tab (Menunggu / Ditolak), approve → langganan aktif, reject → `notes` wajib. Endpoint `/admin/payments/manual-transfer/*`. Detail: [docs/VERIFIKASI_PEMBAYARAN.md](docs/VERIFIKASI_PEMBAYARAN.md).
+- ✅ **Menu admin "Verifikasi Pembayaran"** (sub-menu ke-2): 2 sub-tab (Menunggu / Ditolak), approve → langganan aktif, reject → `notes` wajib. Endpoint `/admin/payments/manual-transfer/*`. Detail: [docs/admin/VERIFIKASI_PEMBAYARAN.md](docs/admin/VERIFIKASI_PEMBAYARAN.md).
 - ✅ **Riwayat Pelatihan tidak lagi dummy** — data dari `trainingSessionsApi.list()`. Loop fetch per-baris (resolve region + peserta) **dibuang** karena memicu **429** dari throttler NestJS (~200 request untuk 100 session).
 - ✅ **Pendaftaran Trainer** tersambung ke `appConfigApi` (disimpan sebagai satu value JSON di `app-config`, bukan tabel).
 - ✅ **API layer bertambah:** `trainingHistoriesApi` (impor CSV peserta), `queueApi` (status job), `appConfigApi`, `authApi.getRevise/submitRevise`, `adminApi.suspendUser/unsuspendUser/requestUserDeletion/cancelUserDeletion`.
 - ✅ **Login gate** (`lib/loginGate.js`) — akun suspended / pending / expired diblokir masuk lewat `LoginStatusModal`, berlaku untuk login manual **dan** restore sesi. DEV: `?gatetest=suspended|pending|expired`.
-- 📝 Dokumentasi diselaraskan: README, [ARCHITECTURE.md](ARCHITECTURE.md), [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md), [docs/README.md](docs/README.md), [docs/RESET_PASSWORD_ROUTING.md](docs/RESET_PASSWORD_ROUTING.md).
+- 📝 Dokumentasi diselaraskan: README, [ARCHITECTURE.md](docs/ARCHITECTURE.md), [DEPLOYMENT_GUIDE.md](docs/deployment/DEPLOYMENT_GUIDE.md), [docs/README.md](docs/README.md), [docs/flows/RESET_PASSWORD_ROUTING.md](docs/flows/RESET_PASSWORD_ROUTING.md).
 
 ### v2.9.1 — 13 Juli 2026
 
@@ -1164,7 +1169,7 @@ Menyelaraskan `src/lib/api.js` dengan Postman collection terbaru. **Catatan:** h
 
 **Yang perlu ditindaklanjuti (UI, di luar scope sesi ini):**
 
-- ✅ ~~`pages/admin/mappers.js` masih membaca `u.trainingRegionId`~~ — sudah diselaraskan ke `firstTrainingRegionId` (nama kanonik) dengan fallback ke `trainingRegionId` lama. Lihat [FIX_DATA_FLOW §8](docs/FIX_DATA_FLOW.md) & [ARCHITECTURE §11](ARCHITECTURE.md).
+- ✅ ~~`pages/admin/mappers.js` masih membaca `u.trainingRegionId`~~ — sudah diselaraskan ke `firstTrainingRegionId` (nama kanonik) dengan fallback ke `trainingRegionId` lama. Lihat [FIX_DATA_FLOW §8](docs/flows/FIX_DATA_FLOW.md) & [ARCHITECTURE §11](docs/ARCHITECTURE.md).
 - Link reset password dari email hanya membawa `?token=`, tanpa `&email=`; collection mewajibkan `email` di body. Pastikan template email menambahkan `&email=` atau backend mengambil email dari token.
 
 ### v2.6.0 — 18 Mei 2026
@@ -1219,7 +1224,7 @@ Menyelaraskan `src/lib/api.js` dengan Postman collection terbaru. **Catatan:** h
 
 ### v2.4.0 — 11 Mei 2026
 
-- ✅ Update Nginx configuration guidelines di `DEPLOYMENT_GUIDE.md` dan `README.md` untuk sepenuhnya mendukung React Router dengan `base: '/register'`.
+- ✅ Update Nginx configuration guidelines di `docs/deployment/DEPLOYMENT_GUIDE.md` dan `README.md` untuk sepenuhnya mendukung React Router dengan `base: '/register'`.
 - ✅ Penambahan input field Username pada flow pendaftaran (`SignUpPage`).
 - ✅ **Perbaikan Asset:** Pindah file `illustration.png` dan `illustrasi_forgotPassword.png` dari `public/` ke `src/assets/` agar path build Vite bisa resolve dengan benar (`/register/assets/...`).
 - ✅ **Perubahan Alur (Flow):** Setelah login berhasil, pengguna kini **langsung dialihkan (redirect)** ke url komunitas (`VITE_DISCOURSE_URL`), melewati halaman Subscription (yang kini dikhususkan untuk alur SSO Callback).

@@ -7,8 +7,8 @@ form yang sudah terisi data lamanya, memperbaiki, lalu mengirim ulang.
 - **Status:** Frontend selesai (admin + user + route + prefill). Token-based.
 - **Audiens:** Frontend & backend engineer Gasing Auth.
 - **Repo:** `gasing-auth` (React + Vite + Tailwind).
-- **Keputusan desain:** [ADR-0003](adr/0003-revise-token-flow.md) (menggantikan
-  [ADR-0001](adr/0001-fix-data-flow.md) yang memakai link self-contained `?fix=`).
+- **Keputusan desain:** [ADR-0003](../adr/0003-revise-token-flow.md) (menggantikan
+  [ADR-0001](../adr/0001-fix-data-flow.md) yang memakai link self-contained `?fix=`).
 
 > **Catatan mekanisme.** Sejak ADR-0003, alur memakai **token JWT** yang di-generate
 > backend, bukan payload yang di-encode di URL. Bagian legacy `?fix=` (`buildFixUrl`,
@@ -88,7 +88,7 @@ Fokus dokumen ini adalah alur **revise**.
 https://[host]/register/revise?token=<JWT>
 ```
 
-- Route React Router: `/register/revise` (lihat `PAGE_PATHS` di [`src/lib/routes.js`](../src/lib/routes.js)).
+- Route React Router: `/register/revise` (lihat `PAGE_PATHS` di [`src/lib/routes.js`](../../src/lib/routes.js)).
   Sejak v3.0.0 `base` Vite = `/`, jadi ini path absolut dari root domain — **bukan** lagi
   turunan dari `base: '/register'` yang lama.
 - Boot sequence mendeteksinya lewat `pathname.startsWith('/register/revise')`, lalu menukar
@@ -134,7 +134,7 @@ Auth `/auth/revise*` lewat `token` di body (bukan access token). Token
 ## 4. Registry Field (`FIELD_DEFS`)
 
 Sumber kebenaran tunggal untuk **checklist admin** (`RejectModal`) dan **penanda
-error user** (`FixDataPage`). Didefinisikan di [`src/lib/fixLink.js`](../src/lib/fixLink.js).
+error user** (`FixDataPage`). Didefinisikan di [`src/lib/fixLink.js`](../../src/lib/fixLink.js).
 
 | key                | label              |
 |--------------------|--------------------|
@@ -167,13 +167,13 @@ terkait.
 
 | File | Peran |
 |------|-------|
-| [`src/lib/api.js`](../src/lib/api.js) | `adminApi.reviseUser/rejectUser/resendReviseEmail`, `authApi.getRevise/submitRevise` |
-| [`src/lib/fixLink.js`](../src/lib/fixLink.js) | `FIELD_DEFS` (registry field). Legacy: encode/decode `?fix=` |
-| [`src/pages/admin/ConfirmModal.jsx`](../src/pages/admin/ConfirmModal.jsx) | `RejectModal` — checklist + "Lainnya" (rejected) vs field (revise) |
-| [`src/pages/AdminDashboardPage.jsx`](../src/pages/AdminDashboardPage.jsx) | `handleConfirmReject` → `reviseUser`/`rejectUser`; list `filter[verifiedStatus]=waiting` |
-| [`src/pages/admin/mappers.js`](../src/pages/admin/mappers.js) | `parseVerifiedStatus` (2→Revise), map tabel |
-| [`src/App.jsx`](../src/App.jsx) | Deteksi `/revise` → `getRevise` → `normalizeRevise` + enrich provinsi → route |
-| [`src/pages/auth/FixDataPage.jsx`](../src/pages/auth/FixDataPage.jsx) | Form perbaikan: prefill + field merah + `submitRevise` |
+| [`src/lib/api.js`](../../src/lib/api.js) | `adminApi.reviseUser/rejectUser/resendReviseEmail`, `authApi.getRevise/submitRevise` |
+| [`src/lib/fixLink.js`](../../src/lib/fixLink.js) | `FIELD_DEFS` (registry field). Legacy: encode/decode `?fix=` |
+| [`src/pages/admin/ConfirmModal.jsx`](../../src/pages/admin/ConfirmModal.jsx) | `RejectModal` — checklist + "Lainnya" (rejected) vs field (revise) |
+| [`src/pages/AdminDashboardPage.jsx`](../../src/pages/AdminDashboardPage.jsx) | `handleConfirmReject` → `reviseUser`/`rejectUser`; list `filter[verifiedStatus]=waiting` |
+| [`src/pages/admin/mappers.js`](../../src/pages/admin/mappers.js) | `parseVerifiedStatus` (2→Revise), map tabel |
+| [`src/App.jsx`](../../src/App.jsx) | Deteksi `/revise` → `getRevise` → `normalizeRevise` + enrich provinsi → route |
+| [`src/pages/auth/FixDataPage.jsx`](../../src/pages/auth/FixDataPage.jsx) | Form perbaikan: prefill + field merah + `submitRevise` |
 
 ---
 

@@ -1,6 +1,6 @@
 # Pill-Shape — Field & Tombol Bentuk Kapsul
 
-> Dokumen ini menjelaskan perubahan style **input user, dropdown, calendar, dan tombol CTA** dari sudut membulat (`rounded-lg`) menjadi **kapsul / pill** (`rounded-full`) — bulat penuh di sisi kiri & kanan. Untuk arsitektur umum lihat [`../ARCHITECTURE.md`](../ARCHITECTURE.md), untuk versi mobile lihat [`MOBILE_RESPONSIVE.md`](MOBILE_RESPONSIVE.md).
+> Dokumen ini menjelaskan perubahan style **input user, dropdown, calendar, dan tombol CTA** dari sudut membulat (`rounded-lg`) menjadi **kapsul / pill** (`rounded-full`) — bulat penuh di sisi kiri & kanan. Untuk arsitektur umum lihat [`../ARCHITECTURE.md`](../ARCHITECTURE.md), untuk versi mobile lihat [`docs/ui/MOBILE_RESPONSIVE.md`](MOBILE_RESPONSIVE.md).
 
 **Status:** Selesai (per 2026-07-21). Berlaku desktop & mobile (1 codebase responsive).
 
@@ -28,12 +28,12 @@ Perubahan dilakukan di **komponen dasar (shared)**, jadi otomatis berlaku di sem
 
 | # | File | Baris | Perubahan |
 | - | ---- | ----- | --------- |
-| 1 | [`src/components/ui/input.jsx`](../src/components/ui/input.jsx) | base class | `rounded-lg px-3` → `rounded-full px-4` |
-| 2 | [`src/components/ui/select.jsx`](../src/components/ui/select.jsx) | `TRIGGER_CLS` | `rounded-lg px-3` → `rounded-full px-4` |
-| 3 | [`src/components/shared/DateField.jsx`](../src/components/shared/DateField.jsx) | tombol trigger | `rounded-lg px-3` → `rounded-full px-4` |
-| 4 | [`src/components/ui/button.jsx`](../src/components/ui/button.jsx) | base + size `sm`/`lg` | `rounded-lg`/`rounded-md` → `rounded-full` |
-| 5 | [`src/index.css`](../src/index.css) | `.otp-input` | `border-radius: var(--radius)` → `12px` (kotak, bukan pill) |
-| 6 | [`src/pages/auth/ResetPasswordPage.jsx`](../src/pages/auth/ResetPasswordPage.jsx) | input reset password (raw) | `rounded-2xl` → `rounded-full` |
+| 1 | [`src/components/ui/input.jsx`](../../src/components/ui/input.jsx) | base class | `rounded-lg px-3` → `rounded-full px-4` |
+| 2 | [`src/components/ui/select.jsx`](../../src/components/ui/select.jsx) | `TRIGGER_CLS` | `rounded-lg px-3` → `rounded-full px-4` |
+| 3 | [`src/components/shared/DateField.jsx`](../../src/components/shared/DateField.jsx) | tombol trigger | `rounded-lg px-3` → `rounded-full px-4` |
+| 4 | [`src/components/ui/button.jsx`](../../src/components/ui/button.jsx) | base + size `sm`/`lg` | `rounded-lg`/`rounded-md` → `rounded-full` |
+| 5 | [`src/index.css`](../../src/index.css) | `.otp-input` | `border-radius: var(--radius)` → `12px` (kotak, bukan pill) |
+| 6 | [`src/pages/auth/ResetPasswordPage.jsx`](../../src/pages/auth/ResetPasswordPage.jsx) | input reset password (raw) | `rounded-2xl` → `rounded-full` |
 
 > Catatan `px`: padding horizontal dinaikkan dari `px-3` → `px-4` supaya teks tidak terlalu mepet ke tepi yang sekarang membulat.
 
@@ -59,7 +59,7 @@ Project ini **1 codebase responsive** (breakpoint `lg:`), jadi mobile dan deskto
 
 | Komponen mobile | File | Status |
 | --------------- | ---- | ------ |
-| `DarkInput` | [`src/components/shared/DarkAuth.jsx`](../src/components/shared/DarkAuth.jsx) | sudah `rounded-full` |
+| `DarkInput` | [`src/components/shared/DarkAuth.jsx`](../../src/components/shared/DarkAuth.jsx) | sudah `rounded-full` |
 | `DarkPrimaryButton` / `DarkGhostButton` | `DarkAuth.jsx` | sudah `rounded-full` |
 | Dropdown bottom-sheet (cabang mobile) | `select.jsx` | pakai `TRIGGER_CLS` yang sama → pill |
 | Item dropdown mobile | `select.jsx` | sudah `rounded-full` |
@@ -72,7 +72,7 @@ Verifikasi di viewport 375px: input & tombol login terukur `border-radius: 9999p
 
 ### `cn()` = `clsx`, bukan `tailwind-merge`
 
-Helper [`cn()`](../src/lib/utils.js) hanya membungkus `clsx` (menggabungkan string), **tanpa** dedup Tailwind. Artinya jika sebuah elemen punya `rounded-lg` (dari base) **dan** `rounded-full` (dari override className), **kedua** class ikut ter-render.
+Helper [`cn()`](../../src/lib/utils.js) hanya membungkus `clsx` (menggabungkan string), **tanpa** dedup Tailwind. Artinya jika sebuah elemen punya `rounded-lg` (dari base) **dan** `rounded-full` (dari override className), **kedua** class ikut ter-render.
 
 Yang menentukan pemenang adalah **urutan di CSS hasil compile**. Di config ini `borderRadius.full` didefinisikan setelah `lg`, sehingga `.rounded-full` menang. Karena itu:
 
@@ -81,7 +81,7 @@ Yang menentukan pemenang adalah **urutan di CSS hasil compile**. Di config ini `
 
 ### `borderRadius` di Tailwind config
 
-[`tailwind.config.js`](../tailwind.config.js) hanya meng-override `lg`/`md`/`sm` (memakai `var(--radius)`). Key `full` tetap default Tailwind (`9999px`), jadi `rounded-full` selalu tersedia dan konsisten.
+[`tailwind.config.js`](../../tailwind.config.js) hanya meng-override `lg`/`md`/`sm` (memakai `var(--radius)`). Key `full` tetap default Tailwind (`9999px`), jadi `rounded-full` selalu tersedia dan konsisten.
 
 ---
 
@@ -89,4 +89,4 @@ Yang menentukan pemenang adalah **urutan di CSS hasil compile**. Di config ini `
 
 - **Ganti radius semua kontrol:** ubah `rounded-full` di 5 file komponen dasar di [Bagian 2](#2-file-yang-diubah).
 - **Kembalikan Admin ke kotak tanpa mengubah user:** jangan ubah komponen dasar; tambahkan override `className` (mis. `rounded-lg`) di tiap pemakaian pada halaman Admin.
-- **OTP:** atur `.otp-input { border-radius }` di [`src/index.css`](../src/index.css).
+- **OTP:** atur `.otp-input { border-radius }` di [`src/index.css`](../../src/index.css).

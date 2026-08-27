@@ -219,7 +219,7 @@ sudo nano /etc/nginx/sites-available/gasing-auth
 
 ### 5.2 Ketik konfigurasi berikut
 
-Versi lengkap (dengan TLS) ada di [`deploy/nginx-gasing-auth.conf`](deploy/nginx-gasing-auth.conf) —
+Versi lengkap (dengan TLS) ada di [`deploy/nginx-gasing-auth.conf`](../../deploy/nginx-gasing-auth.conf) —
 salin dari sana. Versi minimal HTTP untuk staging:
 
 ```nginx

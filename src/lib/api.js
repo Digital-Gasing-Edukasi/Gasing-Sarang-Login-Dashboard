@@ -443,7 +443,7 @@ export const subscriptionApi = {
   // fileManagerApi.upload(). Setelah ini payment menunggu verifikasi admin.
   // extra: { senderName, senderBank, transferDate } — opsional, dikirim kalau
   // ada. Blm terkonfirmasi backend simpan/balikin field ini (lihat API_ACCESS_MATRIX.md
-  // §7 & docs/VERIFIKASI_PEMBAYARAN.md §6 — body dokumentasi cuma { fileId }).
+  // §7 & docs/admin/VERIFIKASI_PEMBAYARAN.md §6 — body dokumentasi cuma { fileId }).
   uploadReceipt: (paymentId, fileId, extra = {}) =>
     request(`/subscription/payments/${paymentId}/upload-receipt`, {
       method: "POST",

@@ -24,7 +24,7 @@
 
 ## 1. Gambaran Arsitektur
 
-Aplikasi adalah **Single Page Application murni client-side**. Tidak ada server-side rendering. Navigasi memakai **React Router v6** (`BrowserRouter` di `main.jsx`, `<Routes>` di `App.jsx`), dengan `base: '/'` — semua route adalah path absolut dari root domain. Peta URL terpusat di [`src/lib/routes.js`](src/lib/routes.js).
+Aplikasi adalah **Single Page Application murni client-side**. Tidak ada server-side rendering. Navigasi memakai **React Router v6** (`BrowserRouter` di `main.jsx`, `<Routes>` di `App.jsx`), dengan `base: '/'` — semua route adalah path absolut dari root domain. Peta URL terpusat di [`src/lib/routes.js`](../src/lib/routes.js).
 
 ```
 ┌──────────────────────────────────────────────────────────────────────┐
@@ -187,7 +187,7 @@ flowchart TD
 
 Setelah resolusi, `setSessionChecked(true)` membuka render (`if (!sessionChecked) return null` mencegah flicker). Query param dibersihkan lewat `navigate(path, { replace: true })` — bukan `history.replaceState`, supaya history React Router tidak putus sinkron.
 
-> **Konsekuensi deploy:** karena URL kini nyata, server **wajib** punya SPA fallback (semua path → `index.html`). Tanpa itu, refresh di `/dashboard-admin` = 404 dari Nginx. Lihat [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md).
+> **Konsekuensi deploy:** karena URL kini nyata, server **wajib** punya SPA fallback (semua path → `index.html`). Tanpa itu, refresh di `/dashboard-admin` = 404 dari Nginx. Lihat [DEPLOYMENT_GUIDE.md](deployment/DEPLOYMENT_GUIDE.md).
 
 ---
 
@@ -328,7 +328,7 @@ else:
 > - Selain keduanya = user biasa → langsung Web App (via `redirectWithTokens`) atau halaman langganan.
 > - ⚠ **Urutan cabang:** `isSuperAdmin` dicek DULUAN. Jadi superadmin yang JUGA punya tag `DISABLED-SSO` tetap ke `auth-choice` (bukan `admin-dashboard`) — superadmin SELALU dapat panel pilih tujuan.
 
-> **Implementasi:** sejak [ADR-0002](docs/adr/0002-refactor-junior-maintainability.md), aturan peran dipindah ke modul murni [`src/lib/roles.js`](src/lib/roles.js) (`isSsoDisabled`, `canAccessDiscourse`, `isSuperAdmin`, `ADMIN_CAPABILITIES`). `handleLoginSuccess` di `App.jsx` tinggal memanggilnya. `AuthChoicePage` menerima prop `user` untuk menentukan tampil-tidaknya tombol Dashboard (`isSuperAdmin(user)`). Ubah daftar capability cukup di `roles.js`.
+> **Implementasi:** sejak [ADR-0002](adr/0002-refactor-junior-maintainability.md), aturan peran dipindah ke modul murni [`src/lib/roles.js`](../src/lib/roles.js) (`isSsoDisabled`, `canAccessDiscourse`, `isSuperAdmin`, `ADMIN_CAPABILITIES`). `handleLoginSuccess` di `App.jsx` tinggal memanggilnya. `AuthChoicePage` menerima prop `user` untuk menentukan tampil-tidaknya tombol Dashboard (`isSuperAdmin(user)`). Ubah daftar capability cukup di `roles.js`.
 
 ---
 
@@ -481,7 +481,7 @@ Admin (tab Verifikasi Pembayaran)
   → approve → langganan aktif   |   reject (notes WAJIB) → status `rejected`
 ```
 
-Detail modul admin-nya: [docs/VERIFIKASI_PEMBAYARAN.md](docs/VERIFIKASI_PEMBAYARAN.md).
+Detail modul admin-nya: [docs/VERIFIKASI_PEMBAYARAN.md](admin/VERIFIKASI_PEMBAYARAN.md).
 
 > `TransferBankPage` butuh `checkoutPlan` + `manualPayment` dari state `App.jsx`. Deep-link langsung ke `/login/subscription/transfer` (state kosong, mis. setelah refresh) → redirect balik ke `/login/subscription`.
 
@@ -510,8 +510,8 @@ Admin reject (RejectModal) → centang field yang salah + catatan
 | Tab (`activeTab`) | Judul | Sumber data | Dokumen |
 | ----------------- | ----- | ----------- | ------- |
 | `verifikasi` | Verifikasi Akun | `adminApi.getUsers({ verifiedStatus: 0 })` — 2 sub-tab: `pending` & `voucher` (`PENDING_VOUCHER`) | — |
-| `verifikasi-pembayaran` | Verifikasi Pembayaran | `adminApi.listManualPayments()` — 2 sub-tab: `receipt_uploaded` & `rejected` | [VERIFIKASI_PEMBAYARAN.md](docs/VERIFIKASI_PEMBAYARAN.md) |
-| `manajemen` | Manajemen Akun | `adminApi.getUsers({})` | [MANAJEMEN_AKUN.md](docs/MANAJEMEN_AKUN.md) |
+| `verifikasi-pembayaran` | Verifikasi Pembayaran | `adminApi.listManualPayments()` — 2 sub-tab: `receipt_uploaded` & `rejected` | [VERIFIKASI_PEMBAYARAN.md](admin/VERIFIKASI_PEMBAYARAN.md) |
+| `manajemen` | Manajemen Akun | `adminApi.getUsers({})` | [MANAJEMEN_AKUN.md](admin/MANAJEMEN_AKUN.md) |
 | `riwayat-pelatihan` | Riwayat Pelatihan | `trainingSessionsApi.list()` → `mapToRiwayat` | — |
 | `pendaftaran-trainer` | Pendaftaran Pelatihan Trainer | `appConfigApi.get(PENDAFTARAN_KEY)` | — |
 
@@ -572,7 +572,7 @@ handleConfirmApprove / handleConfirmReject:
 - **Search**: cocokkan query ke `name/username/email/training/school/voucher`.
 - **Sort**: hook lokal `useSort()` → `applySortToList()` (tanggal di-`getTime()`, string di-lowercase).
 - **Export CSV**: `buildCsvContent(tab, users)` (escaping koma/kutip/newline) → `Blob` → download. Riwayat & satu-baris riwayat punya export sendiri.
-- **Ukuran & scroll**: semua tabel memakai satu helper `getTableScrollProps()` (header + N baris terlihat, sisanya scroll, header sticky). Detail di [docs/ADMIN_TABLE_SCROLL.md](docs/ADMIN_TABLE_SCROLL.md).
+- **Ukuran & scroll**: semua tabel memakai satu helper `getTableScrollProps()` (header + N baris terlihat, sisanya scroll, header sticky). Detail di [docs/ADMIN_TABLE_SCROLL.md](admin/ADMIN_TABLE_SCROLL.md).
 
 ### 8.4 Komponen anak
 
@@ -585,7 +585,7 @@ handleConfirmApprove / handleConfirmReject:
 | `ManajemenTable` | Tab Manajemen Akun. |
 | `RiwayatPelatihanTable` / `PendaftaranTrainerTable` | Tab Riwayat Pelatihan / Pendaftaran Trainer. |
 | `SetujuiAkunModal` / `RejectModal`+`ApproveModal` (`ConfirmModal.jsx`) | Verifikasi akun (langkah 1 → `PENDING_VOUCHER`). |
-| `BulkApproveModal` / `BulkRejectModal` / `VoucherModals` | Aksi massal + voucher ([ADMIN_TABLE_LIMITS.md](docs/ADMIN_TABLE_LIMITS.md)). |
+| `BulkApproveModal` / `BulkRejectModal` / `VoucherModals` | Aksi massal + voucher ([ADMIN_TABLE_LIMITS.md](admin/ADMIN_TABLE_LIMITS.md)). |
 | `UbahRoleModal` / `KirimVoucherModal` / `SuspendModal` / `AccountActionModals` | Aksi pada tab Manajemen (role, voucher, tangguhkan, hapus/pulihkan). |
 | `AddPelatihanModal` / `PerbaruiRiwayatModal` / `DaftarPesertaModal` / `EditPesertaModal` | Tambah & perbarui pelatihan, kelola peserta. |
 | `AddPendaftaranTrainerModal` / `HapusRiwayatModal` | Tambah pendaftaran / hapus riwayat (ketik `DELETE`). |
@@ -648,16 +648,16 @@ Hal yang **tidak konsisten / perlu diketahui maintainer** (ditemukan langsung da
 
 1. **`AuthContext.jsx` tidak terpakai.** `App.jsx` mengelola auth sendiri (`currentUser` + `handleLoginSuccess`). `AuthProvider`/`useAuth` ada tapi tidak membungkus `<App/>` di `main.jsx`. Pilih salah satu agar tidak membingungkan.
 2. **Midtrans: Popup vs Redirect.** Alur produksi (`SubscriptionPage`) memakai Snap **Redirect** + landing `/payment/*`; `window.snap.pay` (Popup) hanya di `MidtransTestPage` (dev tool). README §10 sudah diperbarui agar sesuai — pastikan perubahan implementasi di masa depan ikut menyelaraskan kedua dokumen ini.
-3. **Routing sudah pindah ke React Router v6 + `base: '/'`** (dulu state-based tanpa URL). Konsekuensi yang masih perlu ditindaklanjuti: **Nginx wajib punya SPA fallback** untuk semua path, bukan cuma `/register`. Config di `deploy/` belum tentu ter-deploy di semua environment — lihat [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md). Link email lama (`/register/reset-password`) ditangani route redirect kompatibilitas di `App.jsx`.
+3. **Routing sudah pindah ke React Router v6 + `base: '/'`** (dulu state-based tanpa URL). Konsekuensi yang masih perlu ditindaklanjuti: **Nginx wajib punya SPA fallback** untuk semua path, bukan cuma `/register`. Config di `deploy/` belum tentu ter-deploy di semua environment — lihat [DEPLOYMENT_GUIDE.md](deployment/DEPLOYMENT_GUIDE.md). Link email lama (`/register/reset-password`) ditangani route redirect kompatibilitas di `App.jsx`.
 4. **Page key masih dipakai** (`onNavigate("login")`) walau routing sudah URL-based, disambung shim `go()` + `pathForPage()`. Sengaja, supaya migrasi tidak menyentuh 20+ file page — tapi berarti ada **dua kosakata navigasi** yang harus dijaga sinkron di `lib/routes.js`.
-5. **Alur revisi data kini token-based** (`revise`): admin `reviseUser`/`rejectUser`, user via link `/register/revise?token=` → `getRevise`/`submitRevise`. Endpoint sudah ada di backend. Legacy `?fix=` + `submitCorrection` masih di kode sebagai fallback **deprecated** — hapus setelah stabil. Lihat [ADR-0003](docs/adr/0003-revise-token-flow.md) & [FIX_DATA_FLOW.md](docs/FIX_DATA_FLOW.md).
+5. **Alur revisi data kini token-based** (`revise`): admin `reviseUser`/`rejectUser`, user via link `/register/revise?token=` → `getRevise`/`submitRevise`. Endpoint sudah ada di backend. Legacy `?fix=` + `submitCorrection` masih di kode sebagai fallback **deprecated** — hapus setelah stabil. Lihat [ADR-0003](adr/0003-revise-token-flow.md) & [FIX_DATA_FLOW.md](flows/FIX_DATA_FLOW.md).
 6. **`normalizeRevise` masih menebak nama field.** Ada `TODO(verify)` di `App.jsx` — bentuk respons `/auth/revise` belum dikonfirmasi ke backend; normalizer membaca beberapa alias (`user`/`profile`/`data`, `reviseFields`/`fieldsToRevise`) sebagai jaring pengaman.
 7. **Data admin sudah live, dengan catatan.** Riwayat Pelatihan kini dari `trainingSessionsApi.list()` — tapi kolom **Daerah** & **Peserta** menunggu backend meng-embed-nya di respons list (N+1 fetch dari FE memicu 429, jangan diulang). Pendaftaran Trainer disimpan di **`app-config`**, bukan tabel — tanpa paginasi/audit trail, tulis = ganti seluruh value.
 8. **Nama field region pelatihan sudah diselaraskan ke `firstTrainingRegionId`** (nama kanonik yang dikirim registrasi). `mappers.js` kini membaca `firstTrainingRegionId` dengan fallback ke `trainingRegionId` lama, jadi aman untuk kedua bentuk respons API. Bila respons asli memakai nama lain lagi, ubah di `mapToVerifikasi`/`mapToManajemen`.
 9. **401 → hard redirect `/`.** Saat refresh token gagal, `request()` memaksa `window.location.href = "/"`. Dengan `base: '/'`, `/` diarahkan router ke `/login` — perilaku benar, tapi ini reload penuh (state hilang), bukan navigasi React Router.
 10. **Kode mati di `AccountActionModals.jsx`.** Mengekspor `SetujuiAkunModal` & `TangguhkanAkunModal` yang tidak diimpor di mana pun; versi aktif ada di `SetujuiAkunModal.jsx` & `SuspendModal.jsx`.
 11. **`bad-words` dipin di v3.** Jangan upgrade ke 4.x — tarball-nya tanpa `dist/`, dev jalan tapi `npm run build` mati. Daftar kata Indonesia (`SignUpPage.jsx`) **sengaja tidak memuat** kata identitas/agama netral (cina/islam/kristen/yahudi/budha/hindu/komunis/pki) — memblokirnya menolak nama & nama sekolah yang sah (mis. "SD Islam ...", "Sekolah Kristen ..."). Yang diblokir hanya slur/penghinaan asli. Jangan tambahkan kembali term identitas.
-12. **Visibilitas komponen per-environment.** `lib/env.js` meng-expose `isStaging()`/`isProduction()` (sumber: `__APP_MODE__` yang di-inject Vite dari `--mode`). Komponen staging-only: menu **Daftar User** (`AdminSidebar.jsx`, flag `stagingOnly`) dan **tanggal build** di `LoginPage.jsx`. Lihat [ADR-0005](docs/adr/0005-environment-visibility.md). Untuk menambah komponen staging-only baru, import helper dari `@/lib/env` dan bungkus dengan conditional.
+12. **Visibilitas komponen per-environment.** `lib/env.js` meng-expose `isStaging()`/`isProduction()` (sumber: `__APP_MODE__` yang di-inject Vite dari `--mode`). Komponen staging-only: menu **Daftar User** (`AdminSidebar.jsx`, flag `stagingOnly`) dan **tanggal build** di `LoginPage.jsx`. Lihat [ADR-0005](adr/0005-environment-visibility.md). Untuk menambah komponen staging-only baru, import helper dari `@/lib/env` dan bungkus dengan conditional.
 
 ---
 

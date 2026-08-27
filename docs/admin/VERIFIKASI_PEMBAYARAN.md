@@ -1,6 +1,6 @@
 # Verifikasi Pembayaran — Dokumentasi Modul
 
-Dokumentasi sub-menu **Verifikasi Pembayaran** pada Dashboard Admin (`src/pages/AdminDashboardPage.jsx` + `src/pages/admin/`). Untuk arsitektur umum lihat [`README.md`](../README.md) & [`ARCHITECTURE.md`](../ARCHITECTURE.md); untuk aturan tinggi/scroll tabel lihat [`ADMIN_TABLE_LIMITS.md`](./ADMIN_TABLE_LIMITS.md) & [`ADMIN_TABLE_SCROLL.md`](./ADMIN_TABLE_SCROLL.md); modul sejenis lihat [`MANAJEMEN_AKUN.md`](./MANAJEMEN_AKUN.md).
+Dokumentasi sub-menu **Verifikasi Pembayaran** pada Dashboard Admin (`src/pages/AdminDashboardPage.jsx` + `src/pages/admin/`). Untuk arsitektur umum lihat [`README.md`](../../README.md) & [`ARCHITECTURE.md`](../ARCHITECTURE.md); untuk aturan tinggi/scroll tabel lihat [`docs/admin/ADMIN_TABLE_LIMITS.md`](ADMIN_TABLE_LIMITS.md) & [`docs/admin/ADMIN_TABLE_SCROLL.md`](ADMIN_TABLE_SCROLL.md); modul sejenis lihat [`docs/admin/MANAJEMEN_AKUN.md`](MANAJEMEN_AKUN.md).
 
 ---
 

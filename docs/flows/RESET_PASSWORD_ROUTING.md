@@ -6,11 +6,11 @@ mendarat di halaman signup.
 
 - **Status:** Selesai. Diperbarui untuk migrasi React Router (v3.0.0, 15 Juli 2026).
 - **Audiens:** Frontend & backend engineer Gasing Auth.
-- **File terkait:** [`src/App.jsx`](../src/App.jsx), [`src/lib/routes.js`](../src/lib/routes.js),
-  [`src/pages/auth/ForgotPasswordPage.jsx`](../src/pages/auth/ForgotPasswordPage.jsx),
-  [`src/pages/auth/CheckEmailPage.jsx`](../src/pages/auth/CheckEmailPage.jsx),
-  [`src/pages/auth/ResetPasswordPage.jsx`](../src/pages/auth/ResetPasswordPage.jsx),
-  [`src/pages/auth/LoginPage.jsx`](../src/pages/auth/LoginPage.jsx).
+- **File terkait:** [`src/App.jsx`](../../src/App.jsx), [`src/lib/routes.js`](../../src/lib/routes.js),
+  [`src/pages/auth/ForgotPasswordPage.jsx`](../../src/pages/auth/ForgotPasswordPage.jsx),
+  [`src/pages/auth/CheckEmailPage.jsx`](../../src/pages/auth/CheckEmailPage.jsx),
+  [`src/pages/auth/ResetPasswordPage.jsx`](../../src/pages/auth/ResetPasswordPage.jsx),
+  [`src/pages/auth/LoginPage.jsx`](../../src/pages/auth/LoginPage.jsx).
 
 > **Catatan mekanisme.** Aplikasi memakai **React Router v6** dengan `base: '/'`.
 > Setiap halaman punya URL nyata. Query param dari link email (`?token=`) dibaca

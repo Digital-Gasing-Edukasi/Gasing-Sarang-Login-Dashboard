@@ -72,7 +72,7 @@ Tidak ada lagi risiko `/register/id/TOS` tertelan blok `/register` generic: rout
 
 ### 4b. Tidak butuh cek sesi
 
-Kedua path masuk `PUBLIC_PREFIXES` (`/register/id/`) di [`src/lib/routes.js`](../src/lib/routes.js), jadi `isPublicStaticPath()` bernilai `true` dan boot sequence **berhenti lebih awal** — tidak memanggil `profileApi.getMe()`, tidak me-restore sesi. Halaman legal bisa dibuka siapa pun di tab baru, termasuk pengunjung yang belum punya akun.
+Kedua path masuk `PUBLIC_PREFIXES` (`/register/id/`) di [`src/lib/routes.js`](../../src/lib/routes.js), jadi `isPublicStaticPath()` bernilai `true` dan boot sequence **berhenti lebih awal** — tidak memanggil `profileApi.getMe()`, tidak me-restore sesi. Halaman legal bisa dibuka siapa pun di tab baru, termasuk pengunjung yang belum punya akun.
 
 ### 4c. Tombol "Kembali ke Pendaftaran"
 
@@ -82,7 +82,7 @@ Kedua path masuk `PUBLIC_PREFIXES` (`/register/id/`) di [`src/lib/routes.js`](..
 
 ## 5. Link dari SignUpPage
 
-Ada **4 anchor** — dua di blok desktop, dua di blok mobile (twin block, lihat [`MOBILE_RESPONSIVE.md`](./MOBILE_RESPONSIVE.md)). Semua absolut dan buka tab baru:
+Ada **4 anchor** — dua di blok desktop, dua di blok mobile (twin block, lihat [`docs/ui/MOBILE_RESPONSIVE.md`](MOBILE_RESPONSIVE.md)). Semua absolut dan buka tab baru:
 
 ```jsx
 <a href="/register/id/TOS" target="_blank" rel="noopener noreferrer" ...>

@@ -26,7 +26,7 @@ Breakpoint pemisah mobile↔desktop adalah **`lg` (1024px)**, konsisten dengan `
 | `lg:` (≥ 1024px) | 1366×768 | **380px** |
 | `fhd:` (≥ 1728px) | 1920×1080 | **480px** |
 
-Ambang `fhd` sengaja **1728px** (bukan 1920) supaya monitor 1920 yang viewport-nya menyusut oleh scrollbar (~1903px) tetap kena base FHD; layar 1600/1680 tetap base 1366. Lebar form diatur di default `maxWidth` [`RightPanel`](../src/components/layout/RightPanel.jsx) (split-screen) & container [`AuthFullLayout`](../src/components/layout/AuthFullLayout.jsx) (full-screen). Footer: split → hanya panel kanan; full → center full-width (sudah sesuai, tak berubah).
+Ambang `fhd` sengaja **1728px** (bukan 1920) supaya monitor 1920 yang viewport-nya menyusut oleh scrollbar (~1903px) tetap kena base FHD; layar 1600/1680 tetap base 1366. Lebar form diatur di default `maxWidth` [`RightPanel`](../../src/components/layout/RightPanel.jsx) (split-screen) & container [`AuthFullLayout`](../../src/components/layout/AuthFullLayout.jsx) (full-screen). Footer: split → hanya panel kanan; full → center full-width (sudah sesuai, tak berubah).
 
 **Prinsip:** hanya **layout & styling** yang bercabang mobile/desktop. **Logika** (state, handler, validasi, panggilan API) tetap tunggal dan dipakai bersama. Untuk halaman yang tema mobile-nya berbeda drastis (mis. gelap vs terang), dipakai **twin block** — dua blok markup (`lg:hidden` dan `hidden lg:block`) yang berbagi state dari komponen yang sama.
 
@@ -63,15 +63,15 @@ Di desktop pola ini di-reset (`lg:mt-0 lg:rounded-none lg:shadow-none`) sehingga
 
 | File | Peran mobile |
 | ---- | ------------ |
-| [`components/layout/MobileHero.jsx`](../src/components/layout/MobileHero.jsx) | Hero ungu (wallpaper + bintang + blob + maskot). `lg:hidden`. Dipakai Login & AuthFullLayout. |
-| [`components/layout/RightPanel.jsx`](../src/components/layout/RightPanel.jsx) | Shell Login/SignUp. Terima prop `mobileHero`; konten putih jadi kartu popup di mobile. |
-| [`components/layout/AuthFullLayout.jsx`](../src/components/layout/AuthFullLayout.jsx) | Shell Lupa Password/Cek Email/Ubah Password (desktop). Header & dekorasi `hidden lg:block`, inject `MobileHero`, konten jadi kartu popup. |
-| [`components/layout/StepIndicator.jsx`](../src/components/layout/StepIndicator.jsx) | `StepBar` = header flow signup (back opsional + judul tengah + X tutup); `StepHeader` = pembungkus subtitle. Dipakai `SignUpPage` & `SignUpOtpPage`. |
-| [`pages/auth/LoginPage.jsx`](../src/pages/auth/LoginPage.jsx) | `mobileHero={<MobileHero/>}`; logo `hidden lg:flex`; heading "Selamat Datang!" (mobile) / "Selamat Datang Kembali" (desktop). |
-| [`pages/auth/ResetPasswordPage.jsx`](../src/pages/auth/ResetPasswordPage.jsx) | **Twin block**: mobile = layar gelap penuh ("Ubah Password"); desktop = `AuthFullLayout`. |
-| [`pages/SubscriptionPage.jsx`](../src/pages/SubscriptionPage.jsx) | **Twin block**: mobile = section gelap "Ada apa di Sarang Gasing?" + `MobilePlanCard`; desktop = grid 2 kolom terang. |
-| [`pages/PaymentSuccessPage.jsx`](../src/pages/PaymentSuccessPage.jsx) | **Twin block**: mobile = gelap "Pembayaran Kamu Berhasil!"; desktop = terang dengan wave. |
-| [`pages/TransferBankPage.jsx`](../src/pages/TransferBankPage.jsx) | Sudah dark + responsive sejak awal (`grid lg:grid-cols-2`). Tidak diubah. |
+| [`components/layout/MobileHero.jsx`](../../src/components/layout/MobileHero.jsx) | Hero ungu (wallpaper + bintang + blob + maskot). `lg:hidden`. Dipakai Login & AuthFullLayout. |
+| [`components/layout/RightPanel.jsx`](../../src/components/layout/RightPanel.jsx) | Shell Login/SignUp. Terima prop `mobileHero`; konten putih jadi kartu popup di mobile. |
+| [`components/layout/AuthFullLayout.jsx`](../../src/components/layout/AuthFullLayout.jsx) | Shell Lupa Password/Cek Email/Ubah Password (desktop). Header & dekorasi `hidden lg:block`, inject `MobileHero`, konten jadi kartu popup. |
+| [`components/layout/StepIndicator.jsx`](../../src/components/layout/StepIndicator.jsx) | `StepBar` = header flow signup (back opsional + judul tengah + X tutup); `StepHeader` = pembungkus subtitle. Dipakai `SignUpPage` & `SignUpOtpPage`. |
+| [`pages/auth/LoginPage.jsx`](../../src/pages/auth/LoginPage.jsx) | `mobileHero={<MobileHero/>}`; logo `hidden lg:flex`; heading "Selamat Datang!" (mobile) / "Selamat Datang Kembali" (desktop). |
+| [`pages/auth/ResetPasswordPage.jsx`](../../src/pages/auth/ResetPasswordPage.jsx) | **Twin block**: mobile = layar gelap penuh ("Ubah Password"); desktop = `AuthFullLayout`. |
+| [`pages/SubscriptionPage.jsx`](../../src/pages/SubscriptionPage.jsx) | **Twin block**: mobile = section gelap "Ada apa di Sarang Gasing?" + `MobilePlanCard`; desktop = grid 2 kolom terang. |
+| [`pages/PaymentSuccessPage.jsx`](../../src/pages/PaymentSuccessPage.jsx) | **Twin block**: mobile = gelap "Pembayaran Kamu Berhasil!"; desktop = terang dengan wave. |
+| [`pages/TransferBankPage.jsx`](../../src/pages/TransferBankPage.jsx) | Sudah dark + responsive sejak awal (`grid lg:grid-cols-2`). Tidak diubah. |
 
 ### MobileHero
 
@@ -88,7 +88,7 @@ Props: `title?` (ReactNode) untuk override judul.
 
 ## 4. Aset mobile
 
-Lokasi: [`src/assets/Mobile/`](../src/assets/Mobile/) — **perhatikan huruf kapital `M`** (case-sensitive di build produksi Linux).
+Lokasi: [`src/assets/Mobile/`](../../src/assets/Mobile) — **perhatikan huruf kapital `M`** (case-sensitive di build produksi Linux).
 
 | File | Isi | Dipakai |
 | ---- | --- | ------- |
@@ -152,7 +152,7 @@ tombol CTA putih (`bg-white text-[#1a0b3d]` pill).
 
 ## 6b. Status akun & error di Login (flow 4–7)
 
-Semua ditangani di [`LoginPage.jsx`](../src/pages/auth/LoginPage.jsx) + [`LoginStatusModal.jsx`](../src/components/shared/LoginStatusModal.jsx):
+Semua ditangani di [`LoginPage.jsx`](../../src/pages/auth/LoginPage.jsx) + [`LoginStatusModal.jsx`](../../src/components/shared/LoginStatusModal.jsx):
 
 | Kondisi | Deteksi | Tampilan |
 | ------- | ------- | -------- |
@@ -164,7 +164,7 @@ Semua ditangani di [`LoginPage.jsx`](../src/pages/auth/LoginPage.jsx) + [`LoginS
 | Suspended | `evaluateLoginGate` → `suspended` | Bottom-sheet "Akun Kamu Ditangguhkan" |
 
 Catatan:
-- `handleResponse` di [`lib/api.js`](../src/lib/api.js) menempelkan `err.status` agar UI bisa bedakan 5xx vs 4xx.
+- `handleResponse` di [`lib/api.js`](../../src/lib/api.js) menempelkan `err.status` agar UI bisa bedakan 5xx vs 4xx.
 - `LoginStatusModal` kini **bottom-sheet di mobile** (handle + rounded-top) dan **kartu tengah di desktop** (`variant='sheet'`); modal error pakai `variant='center'` (kartu tengah di semua ukuran).
 - Flow 6 secara arsitektur dipicu di **gate login** (bukan di layar komunitas seperti mockup), karena status langganan dicek saat login.
 
@@ -180,7 +180,7 @@ Catatan:
   - Label → input **16px** (`space-y-4 lg:space-y-1.5`).
   - Username & Email **ditumpuk full-width** di mobile, tetap 2 kolom di desktop (`grid-cols-1 gap-6 lg:grid-cols-2 lg:gap-3`).
   - Checkbox persetujuan → tombol Lanjutkan **65px** (`!mt-[65px] lg:!mt-8`).
-- **Layar sukses gelap** dipakai bersama via [`MobileReviewNotice.jsx`](../src/components/shared/MobileReviewNotice.jsx) (`lg:hidden`, gradient ungu, ikon lingkaran dashed, tombol putih):
+- **Layar sukses gelap** dipakai bersama via [`MobileReviewNotice.jsx`](../../src/components/shared/MobileReviewNotice.jsx) (`lg:hidden`, gradient ungu, ikon lingkaran dashed, tombol putih):
   - Perbaikan Data → "Akunmu Sedang Ditinjau Kembali" (ikon `UserSearch`)
   - Signup → "Terima Kasih Telah Mendaftar!" (ikon `CheckCircle2` hijau)
   - Desktop tetap versi terang existing (twin block `hidden lg:block`).
@@ -192,7 +192,7 @@ Form auth yang panjang (signup) **HARUS pakai document scroll**, bukan container
 **Gejala kalau salah** (mobile signup): abis ketik 1 input tidak bisa scroll · header (`StepBar`) tidak ikut fixed di atas · tombol CTA "Lanjutkan" hilang di bawah fold.
 
 **Biang:**
-1. `SplitLayout` ([`App.jsx`](../src/App.jsx)) pakai `h-screen overflow-hidden` → di mobile `100vh` = tinggi besar (abaikan address bar) → container lebih tinggi dari area kelihatan, isi ke-clip.
+1. `SplitLayout` ([`App.jsx`](../../src/App.jsx)) pakai `h-screen overflow-hidden` → di mobile `100vh` = tinggi besar (abaikan address bar) → container lebih tinggi dari area kelihatan, isi ke-clip.
 2. `RightPanel` mengunci `h-[100dvh] overflow-hidden` + area scroll dalam. Nested overflow + 100vh = jebakan klasik: `sticky` nempel ke container yang ke-clip → tidak fixed.
 3. Varian lama pernah **lupa render `stickyFooter`** → CTA tidak pernah tampil sama sekali.
 

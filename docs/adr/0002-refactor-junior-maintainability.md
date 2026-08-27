@@ -12,8 +12,8 @@ level junior, dan (2) bisa dirawat orang baru **hanya bermodal dokumentasi yang 
 Kondisi awal (audit langsung dari kode + dokumen):
 
 - **Dokumentasi sudah kuat.** [`README.md`](../../README.md) (setup/deploy/endpoint),
-  [`ARCHITECTURE.md`](../../ARCHITECTURE.md) (layer, routing, alur data, utang teknis),
-  [`DEPLOYMENT_GUIDE.md`](../../DEPLOYMENT_GUIDE.md), dan ADR-0001. Sudah dalam Bahasa
+  [`ARCHITECTURE.md`](../ARCHITECTURE.md) (layer, routing, alur data, utang teknis),
+  [`docs/deployment/DEPLOYMENT_GUIDE.md`](../deployment/DEPLOYMENT_GUIDE.md), dan ADR-0001. Sudah dalam Bahasa
   Indonesia, terstruktur, dengan diagram. Ini aset utama dan tidak perlu dibongkar.
 - **Struktur kode sudah modular & rapi.** `pages/`, `components/{ui,layout,shared}`,
   `hooks/`, `lib/`. Data layer terpusat di `lib/api.js`. File rata-rata < 200 baris.
@@ -92,7 +92,7 @@ untuk orkestrasi UI.
 - Aturan peran bisa diuji unit tanpa merender React.
 
 **Lebih sulit / utang tersisa (tidak berubah oleh ADR ini):**
-- Utang di [ARCHITECTURE.md §11](../../ARCHITECTURE.md) masih berlaku: `AuthContext` tak
+- Utang di [ARCHITECTURE.md §11](../ARCHITECTURE.md) masih berlaku: `AuthContext` tak
   terpakai, routing tanpa URL, endpoint `TODO(backend)`, data dummy admin.
 
 **Perlu ditinjau ulang:**
@@ -109,5 +109,5 @@ untuk orkestrasi UI.
 
 ## Lihat Juga
 
-- [ARCHITECTURE.md](../../ARCHITECTURE.md) — §4 Manajemen State, §11 Utang Teknis.
+- [ARCHITECTURE.md](../ARCHITECTURE.md) — §4 Manajemen State, §11 Utang Teknis.
 - [ADR-0001](0001-fix-data-flow.md) — pola "satu sumber kebenaran" (`FIELD_DEFS`).

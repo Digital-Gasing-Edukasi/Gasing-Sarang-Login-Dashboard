@@ -2,7 +2,7 @@
 
 > Sumber kebenaran tunggal untuk **ukuran & perilaku scroll** semua tabel di dashboard admin. Pendamping [`ARCHITECTURE.md` §8](../ARCHITECTURE.md#8-dashboard-admin--arsitektur-internal).
 
-**Lokasi:** [`src/pages/admin/tableScroll.js`](../src/pages/admin/tableScroll.js)
+**Lokasi:** [`src/pages/admin/tableScroll.js`](../../src/pages/admin/tableScroll.js)
 
 ---
 
@@ -92,11 +92,11 @@ Untuk tabel yang punya kolom kiri yang menempel (checkbox + Nama Pengguna di Ver
 
 | Komponen | Kolom kiri sticky? |
 | -------- | ------------------ |
-| [`ManajemenTable`](../src/pages/admin/ManajemenTable.jsx) | ya |
-| [`VerifikasiTable`](../src/pages/admin/VerifikasiTable.jsx) | ya |
-| [`PendingVoucherTable`](../src/pages/admin/PendingVoucherTable.jsx) | ya |
-| [`RiwayatPelatihanTable`](../src/pages/admin/RiwayatPelatihanTable.jsx) | tidak |
-| [`PendaftaranTrainerTable`](../src/pages/admin/PendaftaranTrainerTable.jsx) | tidak |
+| [`ManajemenTable`](../../src/pages/admin/ManajemenTable.jsx) | ya |
+| [`VerifikasiTable`](../../src/pages/admin/VerifikasiTable.jsx) | ya |
+| [`PendingVoucherTable`](../../src/pages/admin/PendingVoucherTable.jsx) | ya |
+| [`RiwayatPelatihanTable`](../../src/pages/admin/RiwayatPelatihanTable.jsx) | tidak |
+| [`PendaftaranTrainerTable`](../../src/pages/admin/PendaftaranTrainerTable.jsx) | tidak |
 
 ---
 
@@ -104,7 +104,7 @@ Untuk tabel yang punya kolom kiri yang menempel (checkbox + Nama Pengguna di Ver
 
 - **`ROW_H` bersifat perkiraan.** `maxHeight` dihitung dari tinggi baris rata-rata (69px). Baris yang lebih pendek/tinggi (mis. teks membungkus 2 baris) membuat jumlah baris terlihat sedikit meleset dari `TABLE_MAX_ROWS`. Ini disengaja — cukup "kira-kira N baris", bukan pixel-perfect.
 - **Pembungkus ganda.** `AdminDashboardPage` sudah membungkus area tabel dengan `border … rounded-2xl overflow-hidden` + `overflow-x-auto`. Wrapper dari `getTableScrollProps` (`overflow-auto`) berada di dalamnya dan yang benar-benar menangani scroll vertikal + sticky. Wrapper luar aman/berdampingan.
-- **Ubah tinggi/jumlah baris** cukup di [`tableScroll.js`](../src/pages/admin/tableScroll.js) — jangan hardcode `maxHeight` di komponen tabel lagi.
+- **Ubah tinggi/jumlah baris** cukup di [`tableScroll.js`](../../src/pages/admin/tableScroll.js) — jangan hardcode `maxHeight` di komponen tabel lagi.
 
 ---
 

@@ -1,6 +1,6 @@
 # Manajemen Akun — Dokumentasi Modul
 
-Dokumentasi layar **Manajemen Akun** pada Dashboard Admin (`src/pages/AdminDashboardPage.jsx` + `src/pages/admin/`). Untuk arsitektur aplikasi secara umum lihat [`README.md`](../README.md) dan [`ARCHITECTURE.md`](../ARCHITECTURE.md); untuk aturan tinggi/scroll tabel lihat [`ADMIN_TABLE_LIMITS.md`](./ADMIN_TABLE_LIMITS.md) & [`ADMIN_TABLE_SCROLL.md`](./ADMIN_TABLE_SCROLL.md).
+Dokumentasi layar **Manajemen Akun** pada Dashboard Admin (`src/pages/AdminDashboardPage.jsx` + `src/pages/admin/`). Untuk arsitektur aplikasi secara umum lihat [`README.md`](../../README.md) dan [`ARCHITECTURE.md`](../ARCHITECTURE.md); untuk aturan tinggi/scroll tabel lihat [`docs/admin/ADMIN_TABLE_LIMITS.md`](ADMIN_TABLE_LIMITS.md) & [`docs/admin/ADMIN_TABLE_SCROLL.md`](ADMIN_TABLE_SCROLL.md).
 
 ---
 
@@ -25,7 +25,7 @@ REVISE(2)                     │                             REJECTED(-1)      
 **Aturan 2 langkah:** tab **Disetujui** hanya menampilkan akun `APPROVED` yang **sudah
 berlangganan** (`subscription !== 'Not Active'`). Akun `APPROVED` yang belum pernah
 berlangganan ditahan di sub-tab **Belum Langganan** pada layar **Verifikasi Pembayaran**
-(lihat [`../../documentation/02-Login-Admin-App.md`](../../documentation/02-Login-Admin-App.md) §11.3).
+(lihat [`../../documentation/02-Login-Admin-App.md`](../../../documentation/02-Login-Admin-App.md) §11.3).
 
 ---
 

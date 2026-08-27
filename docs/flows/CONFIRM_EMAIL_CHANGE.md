@@ -5,10 +5,10 @@ bagaimana token diproses, dan kenapa urutan branch-nya penting.
 
 - **Status:** Selesai. Ditambahkan 29 Juli 2026.
 - **Audiens:** Frontend & backend engineer Gasing Auth.
-- **File terkait:** [`src/App.jsx`](../src/App.jsx), [`src/lib/routes.js`](../src/lib/routes.js),
-  [`src/lib/api.js`](../src/lib/api.js),
-  [`src/pages/auth/ConfirmEmailChangePage.jsx`](../src/pages/auth/ConfirmEmailChangePage.jsx).
-- **Keputusan desain:** [ADR-0006](adr/0006-confirm-email-change-flow.md).
+- **File terkait:** [`src/App.jsx`](../../src/App.jsx), [`src/lib/routes.js`](../../src/lib/routes.js),
+  [`src/lib/api.js`](../../src/lib/api.js),
+  [`src/pages/auth/ConfirmEmailChangePage.jsx`](../../src/pages/auth/ConfirmEmailChangePage.jsx).
+- **Keputusan desain:** [ADR-0006](../adr/0006-confirm-email-change-flow.md).
 
 > **Catatan mekanisme.** Query param `?token=` dari link email dibaca sekali di boot
 > sequence `App.jsx`, disimpan ke state `confirmEmailToken`, lalu **dibuang dari URL** supaya
@@ -68,7 +68,7 @@ berlaku ~2 jam (`exp - iat`).
   `confirmEmailToken`, meneruskan ke `ConfirmEmailChangePage`, lalu menghapusnya dari URL.
 - Request ke `POST /profile/confirm-email` dikirim **`noAuth`** (tanpa Bearer) — auth lewat
   `token` di body, jadi link jalan walau dibuka tanpa sesi login. Lihat
-  [ADR-0006](adr/0006-confirm-email-change-flow.md).
+  [ADR-0006](../adr/0006-confirm-email-change-flow.md).
 
 ## 4. Urutan Branch (WAJIB dijaga)
 

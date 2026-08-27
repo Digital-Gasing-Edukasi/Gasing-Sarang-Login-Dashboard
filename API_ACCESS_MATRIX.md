@@ -5,7 +5,7 @@ Ini **sumber kebenaran** perilaku endpoint **setelah** perubahan `feat/account-a
 
 - **Audience**: dev FE + BE + QA.
 - **Sumber**: Google Sheet 3 tab — *User Endpoints*, *Admin + Capability*, *Legenda*.
-- **Terkait**: [USER_STATE_FLOW.md](USER_STATE_FLOW.md) (flow per-state, versi dev) · [README §9 API Layer](README.md#9-api-layer).
+- **Terkait**: [USER_STATE_FLOW.md](docs/USER_STATE_FLOW.md) (flow per-state, versi dev) · [README §9 API Layer](README.md#9-api-layer).
 
 > ⚠️ Beberapa nama path di sini **beda** dari `src/lib/api.js` (FE). Lihat [§7 Gap FE↔BE](#7-gap-febe).
 
@@ -210,7 +210,7 @@ Nama path di matrix BE **beda** dari `src/lib/api.js` (FE). Perlu direkonsiliasi
 | Cek status akses | `GET /auth/access-status` | *(belum ada di FE)* | BARU — buat halaman status suspend/deletion |
 | Ganti banner | `PATCH /profile/banner` | *(belum ada di FE)* | FE baru punya `/profile/picture` |
 | Detail voucher admin | `/admin/vouchers/:idOrCode` | `/admin/vouchers/:code` | Param idOrCode |
-| Verify akun (langkah-2) | *(sheet tak detail payload)* | `{ status, discourseGroupId }` **tanpa** `lastTrainingSessionId` | README §9 masih tulis "{ status } saja" — **usang**, lihat [USER_STATE_FLOW.md §12](USER_STATE_FLOW.md) |
+| Verify akun (langkah-2) | *(sheet tak detail payload)* | `{ status, discourseGroupId }` **tanpa** `lastTrainingSessionId` | README §9 masih tulis "{ status } saja" — **usang**, lihat [USER_STATE_FLOW.md §12](docs/USER_STATE_FLOW.md) |
 
 **Endpoint BE yang belum ada di FE** (kandidat fitur baru): `/admin/users/deleted`, `/admin/users/:id/first-training-session`, `/admin/users/training-history/:id`, `/admin/users/:id/discourse-groups` (extra groups), `/discourse/groups/sync`, `/admin/subscription-period-groups/*`, `/admin/queue/jobs`, `/admin/uac/groups`.
 

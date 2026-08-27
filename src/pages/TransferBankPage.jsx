@@ -219,7 +219,7 @@ export default function TransferBankPage({
 
       // 4. Lampirkan bukti → payment menunggu verifikasi admin.
       //    Catatan: nama field senderName/senderBank/transferDate BLM dikonfirmasi
-      //    skema backend (API_ACCESS_MATRIX.md §7, docs/VERIFIKASI_PEMBAYARAN.md §6
+      //    skema backend (API_ACCESS_MATRIX.md §7, docs/admin/VERIFIKASI_PEMBAYARAN.md §6
       //    cuma dokumentasikan { fileId }) — pakai nama sama dgn fallback mapper admin.
       await subscriptionApi.uploadReceipt(paymentId, fileId, {
         senderName,
