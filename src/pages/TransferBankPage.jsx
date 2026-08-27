@@ -273,50 +273,41 @@ export default function TransferBankPage({
 
       {/* ── NAVBAR (nempel atas, mobile app-shell) ── */}
       <nav className="relative z-20 shrink-0 flex items-center justify-between px-4 py-4 lg:px-6 lg:py-6">
-        {/* Mobile: pembayaran manual pakai tombol back, bukan logo. Desktop: logo. */}
-        <button
-          type="button"
-          onClick={onBack}
-          aria-label="Kembali ke pilihan paket"
-          className="lg:hidden flex h-9 w-9 items-center justify-center rounded-full text-white/85 transition-colors hover:bg-white/10"
-        >
-          <ChevronLeft size={24} />
-        </button>
-        <Logo variant="full" className="hidden lg:block" />
+        <Logo variant="full" />
         <ProfileMenu user={user} onSignOut={onSignOut} className="h-9 w-9 text-xs" />
       </nav>
 
       {/* ── CONTENT (scroll di tengah pada mobile app-shell) ── */}
       <div className="relative z-10 flex-1 min-h-0 overflow-y-auto lg:overflow-visible lg:flex-none">
       {submitted ? (
-        <div className="relative z-10 max-w-xl mx-auto px-6 pt-6 pb-24 flex flex-col items-center text-center animate-fade-in-up">
+        <div className="relative z-10 max-w-xl mx-auto px-4 pt-[42px] lg:pt-6 pb-24 flex flex-col items-center text-center animate-fade-in-up">
           {/* Ceklis hijau */}
-          <div className="w-20 h-20 rounded-full bg-[#22c55e] flex items-center justify-center mb-8 shadow-[0_0_40px_rgba(34,197,94,0.4)]">
-            <Check size={40} strokeWidth={3} className="text-white" />
+          <div className="w-[52px] h-[52px] rounded-full bg-[#2BDE6D] flex items-center justify-center mb-6 shadow-[0_0_40px_rgba(34,197,94,0.4)]">
+            <Check size={24} strokeWidth={4} className="text-[#210965]" />
           </div>
 
-          <h1 className="text-[42px] font-bold tracking-tight mb-4">
+          <h1 className="text-[28px] font-bold tracking-tight mb-2">
             Pembayaran Berhasil!
           </h1>
-          <p className="text-white/55 text-[16px] leading-relaxed max-w-md mb-10">
+          <p className="text-white/80 text-[14px] leading-[150%]] max-w-md mb-9">
             Terima kasih, pembayaran kamu telah kami terima dan sedang diproses.
           </p>
 
           {/* Rincian Transaksi */}
-          <div className="w-full rounded-3xl border border-white/10 bg-white/[0.03] p-7 text-left mb-8">
-            <div className="flex items-center justify-between mb-4">
-              <span className="text-lg font-bold">Rincian Transaksi</span>
-              <span className="text-sm text-white/40">
+          <div className="w-full rounded-3xl border border-white/10 bg-white/[0.03] p-6 text-left mb-6">
+            <div className="flex items-center justify-between mb-5">
+              <span className="text-sm font-semibold text-[#B5A3C7]">Rincian Transaksi</span>
+              <span className="text-sm text-white/90 text-right pl-2 ">
                 ID: {txnId || orderId}
               </span>
             </div>
-            <div className="border-t border-white/10 mb-4" />
-            <SummaryRow label="Paket Langganan" value={packageLabel} />
+            <div className="border-t border-white/10 mb-5" />
+            <SummaryRow label="Paket Langganan" value={packageLabel} valueClassName="font-semibold" />
             <SummaryRow label="Durasi" value={`${durationMonths} Bulan`} />
             <SummaryRow label="Metode Pembayaran" value="Transfer Bank" />
-            <div className="border-t border-white/10 my-4" />
+            <div className="border-t border-white/10 mt-5 mb-5" />
             <div className="flex items-center justify-between">
-              <span className="text-lg font-bold">Total Bayar</span>
+              <span className="text-[15px] font-bold">Total Bayar</span>
               <span className="text-2xl font-bold text-[#1DF5FF]">
                 Rp{formatRp(total)}
               </span>
@@ -324,17 +315,7 @@ export default function TransferBankPage({
           </div>
 
           {/* Aksi */}
-          <div className="flex flex-col sm:flex-row gap-4 w-full justify-center">
-            {receiptFileId && (
-              <a
-                href={fileManagerApi.getDownloadUrl(receiptFileId)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center justify-center px-8 py-3.5 rounded-full border border-white/25 font-semibold text-[15px] hover:bg-white/10 active:scale-[0.98] transition-all"
-              >
-                Unduh Bukti
-              </a>
-            )}
+          <div className="flex flex-col sm:flex-row gap-3 w-full justify-center">
             {isRetry ? (
               <button
                 onClick={onSignOut}
@@ -351,19 +332,18 @@ export default function TransferBankPage({
                 Jelajahi Sarang Gasing
               </button>
             )}
-          </div>
+            {receiptFileId && (
+              <a
+                href={fileManagerApi.getDownloadUrl(receiptFileId)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-center px-8 py-3.5 rounded-full border border-white/25 font-semibold text-[14px] hover:bg-white/10 active:scale-[0.98] transition-all"
+              >
+                Unduh Bukti
+              </a>
+            )}
 
-          <p className="text-[14px] text-white/40 mt-8">
-            Ada kendala?{" "}
-            <a
-              href={`mailto:${ADMIN_EMAIL}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="font-semibold text-white underline hover:text-white/80 transition-colors"
-            >
-              Hubungi Bantuan
-            </a>
-          </p>
+          </div>
         </div>
       ) : (
         <div className="relative z-10 max-w-[1128px] mx-auto px-4 lg:px-10 pt-4 pb-6 lg:pb-24 grid lg:grid-cols-2 lg:gap-12 items-start animate-fade-in-up">
@@ -611,11 +591,11 @@ export default function TransferBankPage({
 }
 
 // ─── SUMMARY ROW ──────────────────────────────────────────────────────────────
-function SummaryRow({ label, value }) {
+function SummaryRow({ label, value, valueClassName = "font-regular" }) {
   return (
-    <div className="flex items-center justify-between py-2">
-      <span className="text-white/60 text-[15px]">{label}</span>
-      <span className="font-semibold text-[15px]">{value}</span>
+    <div className="flex items-center justify-between py-1.5">
+      <span className="text-white/60 text-[14px]">{label}</span>
+      <span className={`${valueClassName} text-[14px]`}>{value}</span>
     </div>
   );
 }

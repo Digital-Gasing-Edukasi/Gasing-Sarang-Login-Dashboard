@@ -44,7 +44,7 @@ export function StepBar({ title, onBack, onClose }) {
 // "current/total" (kanan). Judul langkah tampil sebagai heading di konten.
 export function StepProgress({ current, total, onBack }) {
   return (
-    <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3">
       {onBack && (
         <button
           onClick={onBack}
@@ -54,18 +54,18 @@ export function StepProgress({ current, total, onBack }) {
           <ArrowLeft size={18} />
         </button>
       )}
-      <div className="flex flex-1 items-center gap-1.5">
+      <div className="flex flex-1 items-center gap-1">
         {Array.from({ length: total }).map((_, i) => (
           <span
             key={i}
             className={cn(
-              'h-1.5 flex-1 rounded-full transition-colors duration-300',
+              'h-1 flex-1 rounded-full transition-colors duration-300',
               i < current ? 'bg-[#0033EC]' : 'bg-gray-200'
             )}
           />
         ))}
       </div>
-      <span className="shrink-0 text-[13px] font-semibold tabular-nums text-gray-500">
+      <span className="shrink-0 text-[13px] lg:text-[10px] font-semibold ml-2 tabular-nums text-[#030B1F]">
         {current}/{total}
       </span>
     </div>

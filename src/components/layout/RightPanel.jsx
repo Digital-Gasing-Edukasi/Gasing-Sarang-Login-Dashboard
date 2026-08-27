@@ -54,7 +54,7 @@ export function RightPanel({ children, mobileHero = null, topBar = null, stickyF
             maxWidth,
           )}
         >
-          <div className={cn("h-[60px] pt-4 pb-4", padX)}>{topBar}</div>
+          <div className={cn("h-[60px] pt-4 lg:pt-8 pb-4", padX)}>{topBar}</div>
           {/* Fill bar progress MOBILE (style lama), nempel bawah header. Desktop
               pakai StepProgress tersegmen di dalam topBar, jadi ini lg:hidden. */}
           {progress != null && (
@@ -84,7 +84,7 @@ export function RightPanel({ children, mobileHero = null, topBar = null, stickyF
           maxWidth,
           sheet
             ? "relative z-10 -mt-6 lg:mt-0 rounded-t-[28px] lg:rounded-none shadow-[0_-12px_30px_rgba(0,0,0,0.10)] lg:shadow-none pt-6 lg:pt-12"
-            : "pt-6 lg:pt-12",
+            : "pt-6 lg:pt-[28px]",
         )}
       >
         {children}

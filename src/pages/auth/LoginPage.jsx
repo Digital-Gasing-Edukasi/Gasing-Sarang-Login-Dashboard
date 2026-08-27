@@ -123,8 +123,8 @@ export function LoginPage({ onNavigate, onLoginSuccess, isSsoMode = false }) {
         <Logo variant="split" />
       </div>
       <div className="animate-fade-in-up delay-100 text-center lg:text-center">
-        <h1 className="text-2xl font-semibold text-[#030B1F] mb-6 lg:mt-0 mt-0">
-          <span className="lg:hidden text-xl leading-[140%]">Selamat Datang!</span>
+        <h1 className="text-2xl font-semibold text-[#030B1F] leading-[140%] mb-6 lg:mt-0 mt-0">
+          <span className="lg:hidden text-xl">Selamat Datang!</span>
           <span className="hidden lg:inline">Selamat Datang!</span>
         </h1>
       </div>
