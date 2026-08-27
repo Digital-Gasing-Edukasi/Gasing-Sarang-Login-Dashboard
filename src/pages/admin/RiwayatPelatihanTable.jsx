@@ -170,7 +170,7 @@ export function RiwayatPelatihanTable({
     </TableShell>
 
     {totalPages > 1 && (
-      <div className="mt-4 flex items-center justify-end gap-1 text-sm text-gray-500">
+      <div className="mt-10 flex items-center justify-end gap-1 text-sm text-gray-500">
         <button
           onClick={() => goTo(safePage - 1)}
           disabled={safePage <= 1}

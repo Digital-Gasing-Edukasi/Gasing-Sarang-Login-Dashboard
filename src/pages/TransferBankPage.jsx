@@ -539,7 +539,7 @@ export default function TransferBankPage({
                   className="w-10 h-10 rounded-full flex items-center justify-center text-white/50 hover:text-red-400 hover:bg-red-500/10 transition-colors shrink-0"
                 >
                 <div className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center shrink-0">
-                  <Trash size={20} className="text-white" />
+                  <Trash2 size={20} className="text-white" />
                 </div>
                 </button>
                 <input

@@ -208,6 +208,9 @@ function genVoucherCode() {
   return 'GASI' + Math.random().toString(36).slice(2, 8).toUpperCase()
 }
 
+// Riwayat Pelatihan: jumlah baris per page (dikirim sbg `limit` ke GET /training-sessions).
+const RIWAYAT_PAGE_SIZE = 100
+
 export default function AdminDashboardPage({ user, onSignOut }) {
   const [activeTab, setActiveTab] = useState('verifikasi')
   const [users, setUsers]                   = useState([])
@@ -227,7 +230,6 @@ export default function AdminDashboardPage({ user, onSignOut }) {
   const [isAddPendaftaranModalOpen, setIsAddPendaftaranModalOpen] = useState(false)
 
   // States for Riwayat Pelatihan (di-load dari GET /training-sessions)
-  const RIWAYAT_PAGE_SIZE = 100
   const [riwayatPelatihanData, setRiwayatPelatihanData] = useState([])
   const [riwayatPage, setRiwayatPage] = useState(1)
   const [riwayatTotalPages, setRiwayatTotalPages] = useState(3) // sementara: 3 page dulu
