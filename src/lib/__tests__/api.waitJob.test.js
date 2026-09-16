@@ -34,7 +34,7 @@ describe("queueApi.waitJob — error message ditranslate", () => {
     ]);
 
     await expect(queueApi.waitJob("track-1", { interval: 1 })).rejects.toThrow(
-      "Email sudah terdaftar. Gunakan email lain atau masuk."
+      "Email sudah terdaftar. Gunakan email lain."
     );
   });
 

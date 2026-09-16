@@ -127,8 +127,9 @@ export function useManajemen({
   }
 
   // Tangguhkan akun (tab Disetujui) → suspend s/d suspendedUntil (modal preset/manual).
-  // TODO(be): emailMessage belum dikirim — endpoint /suspend hanya terima suspendedUntil + reason.
-  const handleConfirmTangguhkanAkun = ({ suspendedUntil, reason }) => {
+  // Payload BE: { suspendedUntil, reason: [code], remarks } — emailMessage
+  // (pesan email opsional) belum dikirim, endpoint /suspend tidak menerimanya.
+  const handleConfirmTangguhkanAkun = ({ suspendedUntil, reason, remarks }) => {
     const target = actionModal.user
     if (!target) return
     setActionModal({ type: null, user: null })
@@ -136,7 +137,7 @@ export function useManajemen({
     setManagementUsers(prev => prev.map(u => u.id === target.id ? { ...u, accountStatus: 'Ditangguhkan' } : u))
     setToast({ message: `Akun ${target.name} telah ditangguhkan`, statusUndo: { id: target.id, prevStatus } })
     scheduleAction(
-      () => adminApi.suspendUser(target.id, { suspendedUntil, reason }),
+      () => adminApi.suspendUser(target.id, { suspendedUntil, reason, remarks }),
       (err) => { setManagementUsers(prev => prev.map(u => u.id === target.id ? { ...u, accountStatus: prevStatus } : u)); setApiError(apiErrMsg(err, 'Gagal menangguhkan akun.')) }
     )
   }
@@ -204,11 +205,11 @@ export function useManajemen({
     }
   }
 
-  // Bulk tangguhkan pakai satu SuspendModal → suspendedUntil + reason sama untuk semua terpilih.
-  const handleBulkTangguhkan = ({ suspendedUntil, reason }) => {
+  // Bulk tangguhkan pakai satu SuspendModal → suspendedUntil + reason + remarks sama untuk semua terpilih.
+  const handleBulkTangguhkan = ({ suspendedUntil, reason, remarks }) => {
     const rows = selectedUsers
     setBulkSuspendOpen(false)
-    runBulkStatus(rows, 'Ditangguhkan', `${rows.length} akun telah ditangguhkan`, (id) => adminApi.suspendUser(id, { suspendedUntil, reason }))
+    runBulkStatus(rows, 'Ditangguhkan', `${rows.length} akun telah ditangguhkan`, (id) => adminApi.suspendUser(id, { suspendedUntil, reason, remarks }))
   }
 
   return {

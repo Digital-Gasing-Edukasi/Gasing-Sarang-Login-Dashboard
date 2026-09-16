@@ -108,9 +108,10 @@ export function RightPanel({ children, mobileHero = null, topBar = null, stickyF
           <div className="py-4 pb-6 px-4 lg:px-4">{stickyFooter}</div>
         </div>
       )}
-      {/* Copyright + build = SATU sumber global di sini. Jangan render copyright
-          lagi per-screen (dulu LoginPage kirim prop footer → dobel). */}
-      <div className="pb-6">
+      {/* Copyright + build = SATU sumber global di sini untuk MOBILE.
+          Desktop (lg+): copyright pindah ke kiri-bawah placeholder image
+          (LeftPanel, audit #6) supaya tidak dobel. */}
+      <div className="pb-6 lg:hidden">
         <p className="text-xs text-muted-foreground text-center">
           ©2026 Gasing Academy. All rights reserved.
         </p>

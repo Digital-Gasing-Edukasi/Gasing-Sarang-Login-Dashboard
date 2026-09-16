@@ -65,7 +65,7 @@ export function StepProgress({ current, total, onBack }) {
           />
         ))}
       </div>
-      <span className="shrink-0 text-[13px] lg:text-[10px] font-semibold ml-2 tabular-nums text-[#030B1F]">
+      <span className="shrink-0 text-[13px] lg:text-[10px] font-bold ml-2 tabular-nums text-[#030B1F]">
         {current}/{total}
       </span>
     </div>

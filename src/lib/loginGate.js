@@ -79,6 +79,22 @@ export function evaluateLoginGate(profile) {
   return null
 }
 
+// Status expired dari payment terakhir (GET /subscription/payments/latest,
+// sudah di-unwrap dari {payment|data} di useAuthSession) — sumber kebenaran
+// saat /profile/me dan /subscription/me tidak membawa detail subscription
+// (audit #9: /subscription/me hanya mengembalikan {hasActiveSubscription:false}).
+// Bentuk asli: payment.subscription = { id, status: 'expired'|'active', ... }
+// (lihat dev/responses/subscription-payments-latest_expired.json vs _active.json).
+// Bentuk {subscription:{status}} dari /subscription/me tetap didukung defensif.
+//
+// True HANYA bila status eksplisit 'expired' (case-insensitive). Belum-pernah-
+// langganan (null/false/tanpa status) BUKAN expired → tetap ke halaman langganan.
+export function isSubscriptionExpired(latestPayment) {
+  const p = latestPayment || {};
+  const s = p.subscription ?? p.data?.subscription ?? null;
+  const raw = s?.status ?? p?.status ?? null;
+  return String(raw || '').toLowerCase() === 'expired';
+}
 // Akses web app sementara pasca pembayaran manual: user boleh masuk web app
 // selama 24 JAM sejak pembayaran dibuat, walau admin belum verifikasi. Lewat
 // 24 jam tanpa verifikasi → akses dicabut (modal "Pembayaran Sedang Kami Tinjau").
@@ -93,7 +109,9 @@ export function evaluateLoginGate(profile) {
 const GRACE_MS = 24 * 60 * 60 * 1000;
 export function isPaymentGraceActive(payment) {
   const p = payment?.payment || payment?.data || payment || {}
-  if (String(p.status || '').toLowerCase() !== 'pending') return false
+  // Audit #60: manual transfer memakai 'receipt_uploaded' — perlakukan sama dgn 'pending'.
+  const st = String(p.status || '').toLowerCase()
+  if (st !== 'pending' && st !== 'receipt_uploaded' && st !== 'waiting_verification' && st !== 'uploaded' && st !== 'waiting') return false
 
   const raw = p.createdAt || p.created_at || p.paidAt || p.paid_at || null
   if (!raw) return false

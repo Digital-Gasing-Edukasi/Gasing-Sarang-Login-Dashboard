@@ -485,7 +485,7 @@ export function mapToPembayaran(p, regions = [], discourseGroups = []) {
     // Detail transfer buat modal konfirmasi:
     payment: {
       senderName:   pay.senderName || pay.accountName || u.name || '-',
-      bank:         pay.bankName || pay.senderBank || pay.bank || '-',
+      bank:         pay.senderBankName || pay.bankName || pay.senderBank || pay.bank || '-',
       transferDate: transferMs ? fmtDate(transferMs) : '-',
       amount:       fmtRupiah(pay.amount ?? pay.total ?? pay.grossAmount),
       packageName:  localizePlanName(pkg.name || pay.packageName) || '-',

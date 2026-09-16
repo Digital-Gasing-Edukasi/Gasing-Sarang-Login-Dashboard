@@ -74,15 +74,25 @@ const sessionMonth = (s) => {
 export function SignUpPage({ onNavigate, onOtpToken }) {
   // Back dari step OTP mengirim { step: 2 } supaya user balik ke Data Pribadi,
   // bukan reset ke step 1 (SignUpPage di-mount ulang tiap masuk /register).
+  // Field user persisted ke sessionStorage (audit #38) supaya Back dari OTP
+  // tidak me-reset isian.
   const location = useLocation();
-  const [step, setStep] = useState(location.state?.step ?? 1);
-  const [name, setName] = useState("");
-  const [username, setUsername] = useState("");
-  const [email, setEmail] = useState("");
+  const loadDraft = () => {
+    try {
+      return JSON.parse(sessionStorage.getItem('signup-draft') || '{}');
+    } catch {
+      return {};
+    }
+  };
+  const draft = loadDraft();
+  const [step, setStep] = useState(location.state?.step ?? draft.step ?? 1);
+  const [name, setName] = useState(draft.name || "");
+  const [username, setUsername] = useState(draft.username || "");
+  const [email, setEmail] = useState(draft.email || "");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
-  const [birthdate, setBirthdate] = useState("");
-  const [schoolName, setSchoolName] = useState("");
+  const [birthdate, setBirthdate] = useState(draft.birthdate || "");
+  const [schoolName, setSchoolName] = useState(draft.schoolName || "");
   const [showPass, setShowPass] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [agree, setAgree] = useState(false);
@@ -96,17 +106,29 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
   // Lokasi saat ini (Provinsi → Kab/Kota = regionId)
   const [provinces, setProvinces] = useState([]);
   const [provincesLoading, setProvincesLoading] = useState(true);
-  const [provinceId, setProvinceId] = useState("");
+  const [provinceId, setProvinceId] = useState(draft.provinceId || "");
   const [regencies, setRegencies] = useState([]);
   const [regencyLoading, setRegencyLoading] = useState(false);
-  const [regionId, setRegionId] = useState("");
+  const [regionId, setRegionId] = useState(draft.regionId || "");
 
   // Pelatihan Gasing: Kapan (filter) → Dimana (session = lastTrainingSessionId)
   const [sessions, setSessions] = useState([]);
   const [sessionsLoading, setSessionsLoading] = useState(true);
-  const [kapanYear, setKapanYear] = useState("");
-  const [kapanMonth, setKapanMonth] = useState("");
-  const [lastTrainingSessionId, setLastTrainingSessionId] = useState("");
+  const [kapanYear, setKapanYear] = useState(draft.kapanYear || "");
+  const [kapanMonth, setKapanMonth] = useState(draft.kapanMonth || "");
+  const [lastTrainingSessionId, setLastTrainingSessionId] = useState(draft.lastTrainingSessionId || "");
+
+  // Persist draft tiap ada perubahan (audit #38: Back dari OTP tidak reset).
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(
+        'signup-draft',
+        JSON.stringify({ step, name, username, email, birthdate, schoolName, provinceId, regionId, kapanYear, kapanMonth, lastTrainingSessionId })
+      );
+    } catch {
+      /* storage penuh/nonaktif — abaikan */
+    }
+  }, [step, name, username, email, birthdate, schoolName, provinceId, regionId, kapanYear, kapanMonth, lastTrainingSessionId]);
 
   useEffect(() => {
     regionsApi
@@ -120,6 +142,18 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
       .then((d) => setSessions(asList(d)))
       .catch(() => setSessions([]))
       .finally(() => setSessionsLoading(false));
+  }, []);
+
+  // Restore kab/kota saat kembali dari OTP dengan draft provinceId (audit #38).
+  useEffect(() => {
+    if (!provinceId) return;
+    setRegencyLoading(true);
+    regionsApi
+      .list({ type: "REGENCY", parentId: provinceId })
+      .then((d) => setRegencies(asList(d)))
+      .catch(() => setRegencies([]))
+      .finally(() => setRegencyLoading(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleProvinceChange = (v) => {
@@ -209,6 +243,8 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
     if (!username) next.username = "Username wajib diisi.";
     else if (username.length < 5)
       next.username = "Username minimal 5 karakter.";
+    else if (username.length > 20)
+      next.username = "Maksimal 20 karakter.";
     else if (!/^[a-z][a-z0-9_]*$/.test(username))
       next.username =
         "Username harus diawali huruf kecil dan hanya berisi huruf kecil, angka, dan underscore.";
@@ -246,6 +282,8 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
     if (!lastTrainingSessionId)
       next.session = "Lokasi pelatihan wajib dipilih.";
     if (!schoolName) next.schoolName = "Nama sekolah wajib diisi.";
+    else if (schoolName.length > 100)
+      next.schoolName = "Nama sekolah terlalu panjang. Maksimal 100 karakter.";
     if (Object.keys(next).length) {
       setErrors(next);
       return;
@@ -271,6 +309,11 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
         schoolName,
       });
       onOtpToken(data.token, email);
+      try {
+        sessionStorage.removeItem('signup-draft');
+      } catch {
+        /* noop */
+      }
       onNavigate("signup-otp");
     } catch (e) {
       // Routing field pakai teks mentah e.message (biar keyword sniff akurat);
@@ -325,14 +368,13 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
   // (di bawah CTA, sesuai desain). Mobile tetap pakai versi di dalam konten.
   const loginLink = (
     <p className="text-sm text-center text-muted-foreground">
-       
-      {/* Sudah punya akun?{" "}
+      Sudah punya akun?{" "}
       <button
         onClick={() => onNavigate("login")}
         className="font-bold text-[#0033EC] underline underline-offset-2 hover:text-[#0033EC]/80 transition-colors"
       >
         Log In
-      </button> */}
+      </button>
     </p>
   );
 
@@ -379,12 +421,12 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
               onClose={() => onNavigate("login")}
             />
           </div>
-          {/* DESKTOP: progress tersegmen + counter + back bulat. */}
+          {/* DESKTOP: progress tersegmen + counter + back bulat. Step 1 tanpa back (audit #13). */}
           <div className="hidden lg:block">
             <StepProgress
               current={step}
               total={3}
-              onBack={step === 2 ? () => setStep(1) : () => onNavigate("login")}
+              onBack={step === 2 ? () => setStep(1) : undefined}
             />
           </div>
         </>
@@ -408,7 +450,7 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
                 type="text"
                 placeholder="Cth: Budi Susanto"
                 value={name}
-                className={errors.name ? ERR_INPUT : ""}
+                className={`placeholder:text-[#81858F] ${errors.name ? ERR_INPUT : ""}`}
                 onChange={(e) => {
                   setName(e.target.value);
                   clearFieldError("name");
@@ -425,7 +467,8 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
                   type="text"
                   placeholder="Min. 5 karakter"
                   value={username.toLowerCase()}
-                  className={errors.username ? ERR_INPUT : ""}
+                  maxLength={20}
+                  className={`placeholder:text-[#81858F] ${errors.username ? ERR_INPUT : ""}`}
                   onChange={(e) => {
                     setUsername(e.target.value);
                     clearFieldError("username");
@@ -441,7 +484,7 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
                   type="email"
                   placeholder="aku@gmail.com"
                   value={email}
-                  className={errors.email ? ERR_INPUT : ""}
+                  className={`placeholder:text-[#81858F] ${errors.email ? ERR_INPUT : ""}`}
                   onChange={(e) => {
                     setEmail(e.target.value);
                     clearFieldError("email");
@@ -744,7 +787,8 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
               <Input
                 placeholder="Nama sekolah"
                 value={schoolName}
-                className={errors.schoolName ? ERR_INPUT : ""}
+                maxLength={100}
+                className={`placeholder:text-[#81858F] ${errors.schoolName ? ERR_INPUT : ""}`}
                 onChange={(e) => {
                   setSchoolName(e.target.value);
                   clearFieldError("schoolName");

@@ -11,6 +11,7 @@ import {
   evaluateLoginGate,
   evaluatePaymentGate,
   isPaymentGraceActive,
+  isSubscriptionExpired,
 } from "@/lib/loginGate";
 
 // Sesi auth + gate akun. Pure state + routing pasca-login; tidak tahu soal
@@ -44,10 +45,16 @@ export function useAuthSession({ setIsRetry, setCheckoutPlan, setManualPayment }
       let paymentPending = false;
       let graceActive = false; // pending & MASIH < 24 jam → boleh akses web app
       let paymentRejected = null;
+      let latestPayment = null; // payment terakhir utuh — sumber gate expired (subscription ter-embed)
       try {
         const latest = await subscriptionApi.getLatestPayment();
         const p = latest?.payment || latest?.data || latest || {};
-        paymentPending = p.status === "pending";
+        latestPayment = p;
+        // Audit #60: backend manual memakai status 'receipt_uploaded' (menunggu
+        // verifikasi admin), bukan 'pending'. Anggap keduanya sebagai pending
+        // supaya user diarahkan ke modal tinjau, bukan kembali ke subscription.
+        const st = String(p.status || '').toLowerCase();
+        paymentPending = st === "pending" || st === "receipt_uploaded" || st === "waiting_verification" || st === "uploaded" || st === "waiting";
         // Akses sementara 24 jam sejak bayar (manual transfer) walau belum diverifikasi.
         graceActive = isPaymentGraceActive(p);
         // Payment terakhir ditolak admin (failed/rejected) → gate "Pembayaran Ditolak".
@@ -112,25 +119,35 @@ export function useAuthSession({ setIsRetry, setCheckoutPlan, setManualPayment }
         return;
       }
 
+      // User biasa: cek expired dari payment terakhir (subscription ter-embed —
+      // GET /subscription/me hanya mengembalikan {hasActiveSubscription:false}
+      // tanpa detail, jadi tidak bisa dipakai). Dibypass bila ada payment
+      // pending (menunggu verifikasi admin) — sama seperti gate expired profil.
+      if (isSubscriptionExpired(latestPayment) && !paymentPending) {
+        setGate({ type: "expired", profile: user });
+        navigate("/login", { replace: true });
+        return;
+      }
+
       // User biasa: cek status langganan untuk menentukan halaman.
       try {
         const sub = await subscriptionApi.getStatus();
         const isActive =
           sub?.hasActiveSubscription === true ||
           sub?.subscription?.status === "active";
-        // Boleh handoff ke web app bila: langganan aktif, ATAU masih dalam masa
-        // grace 24 jam sejak bayar manual (graceActive) walau belum diverifikasi.
-        // Payment 'pending' yang grace-nya HABIS (> 24 jam) TIDAK dilempar — web
-        // app pasti menolak lalu bounce ke /login → loop layar putih. Tahan di
-        // modal "Pembayaran Sedang Kami Tinjau" sampai admin verifikasi.
-        if (isActive || graceActive) {
-          webAppApi.redirectWithTokens();
-        } else if (paymentPending) {
-          setGate({ type: "payment_review", profile: user });
-          navigate("/login", { replace: true });
-        } else {
-          navigate("/login/subscription", { replace: true });
-        }
+      // Boleh handoff ke web app bila: langganan aktif, ATAU masih dalam masa
+      // grace 24 jam sejak bayar manual (graceActive) walau belum diverifikasi.
+      // Payment 'pending' yang grace-nya HABIS (> 24 jam) TIDAK dilempar — web
+      // app pasti menolak lalu bounce ke /login → loop layar putih. Tahan di
+      // modal "Pembayaran Sedang Kami Tinjau" sampai admin verifikasi.
+      if (isActive || graceActive) {
+        webAppApi.redirectWithTokens();
+      } else if (paymentPending) {
+        setGate({ type: "payment_review", profile: user });
+        navigate("/login", { replace: true });
+      } else {
+        navigate("/login/subscription", { replace: true });
+      }
       } catch {
         // Gagal cek langganan → grace 24 jam masih lolos ke web app; pending yang
         // grace-nya habis tampil modal tinjau; selain itu halaman langganan.

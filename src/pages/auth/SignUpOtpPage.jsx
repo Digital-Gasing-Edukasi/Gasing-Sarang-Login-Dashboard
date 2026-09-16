@@ -29,14 +29,16 @@ export function SignUpOtpPage({ onNavigate, otpToken, email, onOtpToken }) {
   const maskedEmail = email ? email.replace(/(.{3}).*(@.*)/, '$1*****$2') : 'email Anda'
 
   const handleVerify = async () => {
-    if (otpCode.length !== 6) { setError('Masukkan 6 digit OTP'); return }
-    setError(''); setLoading(true)
+    if (otpCode.length !== 6) { setError('Masukkan 6 digit OTP'); setInfo(''); return }
+    setError(''); setInfo(''); setLoading(true)
     try {
       await authApi.confirmEmail(token, otpCode)
       onNavigate('signup-review')
     } catch (e) {
       // Kode salah/kedaluwarsa (400/401/422) → wording seragam, jangan bocorkan
       // pesan mentah backend. 429 & error lain tetap apa adanya biar informatif.
+      // Audit #45: error & sukses mutually exclusive — info selalu dibersihkan di sini.
+      setInfo('')
       setError([400, 401, 422].includes(e.status) ? OTP_INVALID_MSG : translateApiError(e.message))
     } finally {
       setLoading(false)
@@ -72,8 +74,10 @@ export function SignUpOtpPage({ onNavigate, otpToken, email, onOtpToken }) {
     </Button>
   )
 
-  // Blok "Kirim ulang kode" / countdown. Desktop app-shell menaruhnya di footer
+  // Blok "Kirim Ulang" / countdown. Desktop app-shell menaruhnya di footer
   // (di bawah CTA); mobile tetap pakai versi di dalam konten.
+  // Audit #34: blok selalu di bawah Input OTP (gap 24px via space-y-6 parent).
+  // Audit #35: gap 4px antara copy & tombol via gap-1.
   const resendBlock = (
     <div className="text-center">
       {expired
@@ -83,13 +87,11 @@ export function SignUpOtpPage({ onNavigate, otpToken, email, onOtpToken }) {
             <button
               onClick={handleResend}
               disabled={resending}
-              className="align-middle text-[#0033EC] font-medium underline underline-offset-2 disabled:opacity-50 inline-flex items-center gap-1.5"
+              className="align-middle text-[#0033EC] font-medium underline underline-offset-2 disabled:opacity-50 inline-flex items-center gap-1"
             >
-              {resending ? <><Loader2 size={14} className="animate-spin" /> Mengirim ulang...</> : 'Kirim ulang kode'}
-            </button>
+              {resending ? <><Loader2 size={14} className="animate-spin" /> Mengirim ulang...</> : 'Kirim Ulang'}</button>
           </p>
-        : <p className="text-sm text-muted-foreground flex items-center justify-center gap-[4px]">Tidak menerima kode? <span className="font-bold text-[#EF4444]">{display}</span></p>
-      }
+        : <p className="text-sm text-muted-foreground flex items-center justify-center gap-1">Tidak menerima kode? <span className="font-bold text-[#EF4444]">{display}</span></p>}
     </div>
   )
 

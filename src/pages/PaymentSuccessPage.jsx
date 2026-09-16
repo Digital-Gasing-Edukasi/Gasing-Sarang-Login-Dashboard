@@ -170,7 +170,7 @@ export default function PaymentSuccessPage({ user, onSignOut, activePlanName, is
 
         {/* Footer */}
         <footer className="relative z-10 pb-8 text-center mt-auto">
-          <p className="text-[13px] text-white/30">©2026 Gasing Academy. All rights reserved..</p>
+          <p className="text-[13px] text-white/30">©2026 Gasing Academy. All rights reserved.</p>
         </footer>
       </div>
     </div>

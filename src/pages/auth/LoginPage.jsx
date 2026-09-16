@@ -55,12 +55,18 @@ export function LoginPage({ onNavigate, onLoginSuccess, isSsoMode = false }) {
     setErrors({}); setNoConn(false); setLoginFailed(false); setLoading(true)
     try {
       const data = await authApi.login(email, password)
+      console.log("####################");
+      console.log({data});
       tokenStorage.setTokens(data.accessToken, data.refreshToken, remember)
       const profile = await profileApi.getMe()
+      console.log({profile});
       // Guard status akun (pending/expired/suspended) ditangani terpusat di
       // App.handleLoginSuccess — berlaku juga saat restore sesi (reload).
       onLoginSuccess(profile)
     } catch (e) {
+      console.log("####################");
+      console.error({e});
+      
       if (isNetworkError(e)) {
         setNoConn(true)                    // flow 5 — tidak ada koneksi
       } else if (e?.status === 429) {
@@ -228,10 +234,12 @@ export function LoginPage({ onNavigate, onLoginSuccess, isSsoMode = false }) {
           </button>
         </p>
 
-        {/* Fake login: masuk sebagai tamu → halaman komunitas statis (ADR-0004) */}
+        {/* Fake login: masuk sebagai tamu → halaman komunitas statis (ADR-0004).
+            Desktop: icon button di kiri-atas placeholder image (LeftPanel, audit #7).
+            Tombol teks ini khusus mobile. */}
         <button
           onClick={() => onNavigate("komunitas")}
-          className="mt-4 text-[14px] font-semibold text-[#424857] transition-opacity hover:opacity-70"
+          className="lg:hidden mt-4 text-[14px] font-semibold text-[#424857] transition-opacity hover:opacity-70"
         >
           Lanjut Sebagai Tamu
         </button>

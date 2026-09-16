@@ -1,13 +1,23 @@
+import { useEffect } from 'react'
 import { X } from 'lucide-react'
 
 // Toast "Login gagal" untuk 401 Invalid credentials.
 // Figma: mobile 9047:63649 · desktop 9047:61004. Visual identik RateLimitBanner
 // (pill merah, pojok atas tengah). Mobile: w penuh, 14px center WRAP, tanpa X.
 // Desktop (sm:): satu baris nowrap 16px + tombol X.
+// Auto-dismiss ~3s (audit #3: 2.5s–4s) — manual close tetap tersedia.
+const AUTO_DISMISS_MS = 3000
+
 export function LoginFailedToast({
   message = 'Login gagal. Silakan periksa kembali dan coba lagi.',
   onClose,
+  duration = AUTO_DISMISS_MS,
 }) {
+  useEffect(() => {
+    if (!onClose) return
+    const t = setTimeout(() => onClose(), duration)
+    return () => clearTimeout(t)
+  }, [onClose, duration, message])
   return (
     <div className="pointer-events-none fixed top-6 left-0 right-0 z-[100] flex justify-center px-4">
       <div className="pointer-events-auto flex w-full max-w-[358px] items-center justify-center gap-4 rounded-[100px] bg-[#EF4444] px-5 py-[10px] text-white shadow-[1px_1px_18px_3px_rgba(0,0,0,0.1)] animate-fade-in-up sm:w-auto sm:max-w-full sm:rounded-2xl sm:py-3">

@@ -4,13 +4,15 @@ import { AuthDarkLayout, DarkInput, DarkTogglePassword, DarkPrimaryButton } from
 import { SuccessToast }              from '@/components/shared/SuccessToast'
 import { cn }      from '@/lib/utils'
 import { authApi } from '@/lib/api'
+import { translateApiError } from '@/lib/errorMessages'
 import { getPasswordRules, isPasswordValid } from '@/lib/password'
 import { Logo } from '@/components/shared/Logo'
 import bgDark from '@/assets/dark-mode/Background.png'
 
 
 // Input password bertema gelap khusus layar mobile.
-function DarkPwdInput({ value, onChange, placeholder, show, onToggle, error, onFocus, onBlur }) {
+// Audit #82: override autofill browser (kuning/putih) via tailwind arbitrary variant.
+function DarkPwdInput({ value, onChange, placeholder, show, onToggle, error, onFocus, onBlur, disabled }) {
   return (
     <div className="relative">
       <Lock size={16} className="absolute left-5 top-1/2 -translate-y-1/2 text-[#D1D3DA]" />
@@ -21,8 +23,11 @@ function DarkPwdInput({ value, onChange, placeholder, show, onToggle, error, onF
         onFocus={onFocus}
         onBlur={onBlur}
         placeholder={placeholder}
+        disabled={disabled}
+        autoComplete="new-password"
         className={cn(
-          'w-full h-12 rounded-full bg-white/0 border border-white/60 pl-[46px] pr-12 text-[14px] text-white placeholder:text-white/60 outline-none transition-colors focus:border-white focus:bg-white/[0.09]',
+          'w-full h-12 rounded-full bg-white/0 border border-white/60 pl-[46px] pr-12 text-[14px] text-white placeholder:text-white/60 outline-none transition-colors focus:border-white focus:bg-white/[0.09] disabled:opacity-30 disabled:cursor-not-allowed',
+          '[&:-webkit-autofill]:[-webkit-text-fill-color:#fff] [&:-webkit-autofill]:[transition:background-color_9999s_ease-in-out_0s] [&:-webkit-autofill]:[box-shadow:0_0_0_1000px_transparent_inset]',
           error ? 'border-[#FFB43C]' : 'border-white/12'
         )}
       />
@@ -75,7 +80,11 @@ export function ResetPasswordPage({ token, email, onNavigate }) {
       await authApi.resetPassword(token, email, password)
       setSuccess(true)
     } catch (e) {
-      setErrors({ general: e.message })
+      // Audit #80/#83: 5xx → toast-style Indonesia, bukan mentah "Internal server error".
+      const msg = e?.status >= 500
+        ? 'Server sedang gangguan. Coba lagi dalam beberapa saat.'
+        : translateApiError(e.message)
+      setErrors({ general: msg })
     } finally {
       setLoading(false)
     }
@@ -94,9 +103,11 @@ export function ResetPasswordPage({ token, email, onNavigate }) {
           backgroundPosition: 'center',
         }}
       >
-        {/* Logo — padding kiri/atas 16px (px-6 induk dikompensasi -ml-2) */}
+        {/* Logo — padding kiri/atas 16px (px-6 induk dikompensasi -ml-2). Audit #89: clickable → login. */}
         <div className="flex items-center mb-[46px] shrink-0">
-          <Logo variant="mobile" />
+          <button onClick={() => onNavigate('login')} aria-label="Kembali ke login" className="transition-opacity hover:opacity-80">
+            <Logo variant="mobile" />
+          </button>
         </div>
 
         {/* Sukses = toast di atas (form tetap tampil), sesuai reference state-3. */}
@@ -157,8 +168,10 @@ export function ResetPasswordPage({ token, email, onNavigate }) {
                   show={showConfirm}
                   onToggle={() => setShowConfirm(v => !v)}
                   error={errors.confirm}
+                  disabled={!password}
                   onChange={e => { setConfirm(e.target.value); clearFieldError('confirm') }}
                 />
+                {!password && <p className="text-xs text-white/50">Isi Password Baru dulu untuk mengaktifkan kolom ini.</p>}
                 {errors.confirm && <p className="text-xs text-[#FFB43C]">{errors.confirm}</p>}
               </div>
 
@@ -252,6 +265,7 @@ export function ResetPasswordPage({ token, email, onNavigate }) {
                   <label className="text-[14px] font-semibold text-white/90">Konfirmasi Password Baru</label>
                   <DarkInput icon={Lock} type={showConfirm ? 'text' : 'password'}
                     placeholder="Ulangi password baru" value={confirm} error={errors.confirm}
+                    disabled={!password}
                     onChange={e => { setConfirm(e.target.value); clearFieldError('confirm') }}
                     iconRight={<DarkTogglePassword show={showConfirm} onToggle={() => setShowConfirm(v => !v)} />} />
                   {errors.confirm && <p className="text-xs text-[#FFB43C]">{errors.confirm}</p>}

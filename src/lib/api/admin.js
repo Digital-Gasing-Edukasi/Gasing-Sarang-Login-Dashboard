@@ -104,12 +104,17 @@ export const adminApi = {
     request(`/admin/users/${userId}`, { method: "DELETE" }),
 
   // ── Tangguhkan / Pulihkan akun (suspend) ──
-  // suspendedUntil: "YYYY-MM-DD HH:mm:ss". reason wajib (BE menolak tanpa itu:
-  // "Invalid input: expected string, received undefined"). Akun masuk tab "Ditangguhkan".
-  suspendUser: (userId, { suspendedUntil, reason }) =>
+  // Daftar alasan suspend: [{ code, title, desc }] — jarang berubah, di-cache
+  // di zustand (src/stores/useSuspendReasons.js), bukan di-fetch tiap buka modal.
+  getSuspendReasons: () => request("/admin/users/suspend-reasons"),
+
+  // suspendedUntil: "YYYY-MM-DD HH:mm:ss". reason = ARRAY code alasan
+  // (multi-select di SuspendModal). remarks = gabungan desc alasan terpilih
+  // (join '. '). Akun masuk tab "Ditangguhkan".
+  suspendUser: (userId, { suspendedUntil, reason, remarks }) =>
     request(`/admin/users/${userId}/suspend`, {
       method: "POST",
-      body: { suspendedUntil, reason },
+      body: { suspendedUntil, reason, remarks },
     }),
   // Pulihkan akun dari "Ditangguhkan" → cabut penangguhan.
   unsuspendUser: (userId) =>

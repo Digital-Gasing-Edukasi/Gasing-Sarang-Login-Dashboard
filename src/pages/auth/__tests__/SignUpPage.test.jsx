@@ -79,6 +79,7 @@ async function fillStep2AndSubmit(ue) {
 describe('SignUpPage — handleRegister error translation', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    sessionStorage.clear()
     setupMocks()
   })
 
@@ -99,7 +100,7 @@ describe('SignUpPage — handleRegister error translation', () => {
     await waitFor(() => expect(authApi.register).toHaveBeenCalledTimes(1))
 
     // Field-routing by keyword tetap jalan: balik ke step 1, error di bawah Email.
-    const errText = await screen.findByText('Email sudah terdaftar. Gunakan email lain atau masuk.')
+    const errText = await screen.findByText('Email sudah terdaftar. Gunakan email lain.')
     expect(errText).toBeInTheDocument()
     // Regresi utama: BUKAN pesan mentah backend.
     expect(screen.queryByText('Email already registered')).not.toBeInTheDocument()

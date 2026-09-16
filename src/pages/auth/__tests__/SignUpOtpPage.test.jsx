@@ -65,7 +65,7 @@ describe('SignUpOtpPage — error translation', () => {
   })
 
   it('resend OTP gagal (bukan 429) → teks error yang SUDAH diterjemahkan', async () => {
-    // expired=true (default state useCountdown) supaya tombol "Kirim ulang kode" tampil & aktif.
+    // expired=true (default state useCountdown) supaya tombol "Kirim Ulang" tampil & aktif.
     const err = new Error('expired session token')
     err.status = 500
     authApi.resendOtp.mockRejectedValue(err)
@@ -75,7 +75,7 @@ describe('SignUpOtpPage — error translation', () => {
     )
 
     // Dua tombol identik ke-render (desktop footer + mobile inline, CSS-hidden saja).
-    const [resendBtn] = await screen.findAllByRole('button', { name: 'Kirim ulang kode' })
+    const [resendBtn] = await screen.findAllByRole('button', { name: 'Kirim Ulang' })
     fireEvent.click(resendBtn)
 
     await waitFor(() => {

@@ -147,7 +147,7 @@ export function LoginStatusModal({ type, meta = {}, onClose, onRenew, onRetry, o
           <span className="font-medium text-foreground">
             Akun kamu sedang kami tinjau maksimal dalam waktu 24 jam
           </span>
-          <span className="text-[#424857]"> untuk memastikan kamu sudah terdaftar sebagai Trainer di Sarang Gasing.</span>
+          <span className="text-[#424857]"> untuk memastikan kamu sudah terdaftar sebagai Alumni Pelatihan Gasing.</span>
           <br /><br />
           <span className="font-medium text-foreground">Mohon cek email secara berkala</span>
           <span className="text-[#424857]"> untuk status pengajuan akunmu.</span>
@@ -215,7 +215,14 @@ function SuspendedModal({ meta, onClose }) {
       </div>
 
       <div className="flex items-center gap-4 w-full">
-        <ActionButton label="Hubungi Kami" variant="outline" onClick={onClose} />
+        <a
+          href={WA_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex flex-1 items-center justify-center gap-2 font-semibold px-6 py-3.5 rounded-full transition-colors whitespace-nowrap border border-[#D1D3DA] bg-white text-[#030B1F] hover:bg-gray-50 lg:min-w-[173px] lg:max-w-[368px]"
+        >
+          Hubungi Kami
+        </a>
         <ActionButton label="Saya Mengerti" variant="primary" onClick={onClose} />
       </div>
     </Shell>
@@ -498,8 +505,8 @@ function ActionButton({ label, variant, icon: Icon, onClick, block = false }) {
       className={cn(
         // Desktop: lebar tombol CTA dibatasi — min 173px (kasus 2 tombol),
         // maks 368px (kasus 1 tombol). Mobile tetap full-width.
-        'flex items-center justify-center gap-2 font-semibold px-6 py-3.5 rounded-full transition-colors whitespace-nowrap',
-        block ? 'w-full' : 'flex-1 lg:min-w-[173px] lg:max-w-[368px]',
+        'flex items-center justify-center gap-2 text-sm font-semibold px-6 h-12 rounded-full transition-colors whitespace-nowrap',
+        block ? 'w-full' : 'md:flex-1 lg:min-w-[173px] lg:max-w-[368px]',
         variant === 'primary'
           ? 'bg-[#0033EC] text-white hover:bg-[#0029BD]'
           : variant === 'danger'

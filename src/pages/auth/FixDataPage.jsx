@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Calendar, Loader2, LogIn, UserSearch, HelpCircle, X } from "lucide-react";
+import { Loader2, LogIn, UserSearch, HelpCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/select";
 import { RightPanel } from "@/components/layout/RightPanel";
 import { StepBar } from "@/components/layout/StepIndicator";
-import { IconInput } from "@/components/shared/IconInput";
+import { DateField, DATE_MAX } from "@/components/shared/DateField";
 import { ErrorAlert } from "@/components/shared/ErrorAlert";
 import { cn } from "@/lib/utils";
 import { abbrevRegion } from "@/lib/format";
@@ -55,10 +55,10 @@ const PLACEHOLDER_HINT =
 // hanya untuk key di sini agar submit tidak tersangkut field yang tak punya input.
 const CORRECTABLE_KEYS = ["tanggalLahir", "lokasi", "riwayatPelatihan", "namaSekolah"];
 
-// Pesan error merah di bawah field yang salah (border merah + teks).
+// Pesan error merah di bawah field yang salah (border merah + teks, gap 4px audit #10).
 function FieldError({ message }) {
   if (!message) return null;
-  return <p className="mt-1.5 text-[13px] text-red-500 animate-fade-in">{message}</p>;
+  return <p className="mt-1 text-[13px] text-red-500 animate-fade-in">{message}</p>;
 }
 
 export function FixDataPage({ fixData, reviseToken, onNavigate }) {
@@ -127,6 +127,28 @@ export function FixDataPage({ fixData, reviseToken, onNavigate }) {
   }, []);
 
   // Prefill kab/kota kalau provinsi sudah diketahui dari payload.
+  // Audit #93: payload kadang hanya bawa regionId tanpa provinceId → resolve
+  // parent via daftar regency (cari yang id-nya cocok) lalu set provinceId.
+  useEffect(() => {
+    if (provinceId || !regionId) return;
+    let cancelled = false;
+    regionsApi
+      .list({ type: "REGENCY" })
+      .then((d) => {
+        if (cancelled) return;
+        const list = asList(d);
+        const hit = list.find((r) => String(r.id) === String(regionId));
+        const parent = hit?.parentId || hit?.parent?.id || hit?.provinceId || null;
+        if (parent) setProvinceId(String(parent));
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [regionId]);
+
+  // Prefill kab/kota kalau provinsi sudah diketahui dari payload.
   useEffect(() => {
     if (!provinceId) return;
     setRegencyLoading(true);
@@ -157,16 +179,16 @@ export function FixDataPage({ fixData, reviseToken, onNavigate }) {
     clearErr("riwayatPelatihan");
   };
 
-  const yearOptions = [...new Set(sessions.map(sessionYear).filter(Boolean))]
+  const yearOptions = [...new Set([...sessions.map(sessionYear).filter(Boolean), kapanYear].filter(Boolean))]
     .sort()
     .reverse();
-  const monthOptions = [
-    ...new Set(
-      sessions.filter((s) => sessionYear(s) === kapanYear).map(sessionMonth).filter(Boolean)
-    ),
-  ].sort((a, b) => Number(a) - Number(b));
+  // Audit #93: bulan tampil penuh (12 bulan) seperti SignUp agar prefill dari
+  // payload selalu cocok, bukan hanya bulan yang ada sesi.
+  const monthOptions = Array.from({ length: 12 }, (_, i) => String(i));
+  // Audit #93: opsi daerah difilter tahun saja (seperti SignUp), bukan tahun+bulan,
+  // supaya prefill tidak kosong saat sesi belum load / bulan tak cocok.
   const dimanaOptions = sessions.filter(
-    (s) => sessionYear(s) === kapanYear && sessionMonth(s) === kapanMonth
+    (s) => sessionYear(s) === kapanYear
   );
 
   // Validasi lalu langsung submit (tanpa modal konfirmasi — sesuai desain terbaru).
@@ -269,41 +291,42 @@ export function FixDataPage({ fixData, reviseToken, onNavigate }) {
   }
 
   // CTA dipakai di footer sticky (mobile) & inline (desktop).
-  const cta = (
-    <Button
-      className="w-full rounded-full"
-      onClick={handleSubmit}
-      disabled={loading || !birthdate || !regionId || !lastTrainingSessionId || !schoolName}
+  // Audit #90: tanpa tombol close — gantinya "Kembali ke Log In" di bawah CTA, gap 16px.
+  const backToLogin = (
+    <button
+      onClick={() => onNavigate("login")}
+      className="w-full rounded-full border border-[#D1D3DA] bg-white py-3.5 text-sm font-semibold text-[#030B1F] transition-colors hover:bg-gray-50"
     >
-      {loading ? (
-        <><Loader2 size={16} className="animate-spin" /> Mengirim...</>
-      ) : (
-        "Kirim Perbaikan Data"
-      )}
-    </Button>
+      Kembali ke Log In
+    </button>
+  );
+  const cta = (
+    <div className="flex flex-col gap-4">
+      <Button
+        className="w-full rounded-full"
+        onClick={handleSubmit}
+        disabled={loading || !birthdate || !regionId || !lastTrainingSessionId || !schoolName}
+      >
+        {loading ? (
+          <><Loader2 size={16} className="animate-spin" /> Mengirim...</>
+        ) : (
+          "Kirim Perbaikan Data"
+        )}
+      </Button>
+      {backToLogin}
+    </div>
   );
 
   return (
     <RightPanel stickyFooter={cta}>
-      {/* MOBILE: header nempel atas (judul + X), tanpa deskripsi (sesuai reference). */}
+      {/* MOBILE: header tanpa tombol close (audit #90) — hanya judul. */}
       <div className="lg:hidden sticky top-0 z-20 -mx-6 -mt-4 mb-4 bg-background/95 px-6 pt-4 pb-4 backdrop-blur">
-        <StepBar title="Perbaikan Data" onClose={() => onNavigate("login")} />
+        <StepBar title="Perbaikan Data" />
       </div>
 
-      {/* DESKTOP: header inline (judul + X + deskripsi) — tak berubah. */}
+      {/* DESKTOP: header inline judul saja (audit #90 tanpa X, #91 tanpa subtitle). */}
       <div className="hidden lg:block animate-fade-in-up delay-100 relative mb-2">
-        <button
-          onClick={() => onNavigate("login")}
-          className="absolute right-0 top-0 text-muted-foreground hover:text-foreground transition-colors"
-          aria-label="Tutup"
-        >
-          <X size={22} />
-        </button>
         <h1 className="text-[22px] font-bold text-foreground text-center mb-1.5">Perbaikan Data</h1>
-        <p className="text-[13px] text-muted-foreground text-center px-6">
-          Silakan lengkapi dan perbaiki data berikut sesuai tindakan perbaikan yang
-          diperlukan.
-        </p>
       </div>
 
       <div className="space-y-4 animate-fade-in-up delay-200">
@@ -313,10 +336,10 @@ export function FixDataPage({ fixData, reviseToken, onNavigate }) {
           <Label className="text-[13px] font-semibold">
             Tanggal lahir <span className="text-red-500">*</span>
           </Label>
-          <IconInput
-            icon={Calendar}
-            type="date"
+          {/* Audit #92: samakan dengan SignUp step 1 (DateField roda, bukan native date). */}
+          <DateField
             value={birthdate}
+            maxDate={DATE_MAX.yesterday()}
             onChange={(e) => { setBirthdate(e.target.value); clearErr("tanggalLahir"); }}
             className={cn(fieldErrors.tanggalLahir && errCls)}
           />

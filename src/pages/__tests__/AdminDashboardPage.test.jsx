@@ -21,6 +21,7 @@ vi.mock('@/lib/api', () => ({
     deleteUserPermanent: vi.fn(),
     suspendUser: vi.fn(),
     unsuspendUser: vi.fn(),
+    getSuspendReasons: vi.fn(),
     grantPersonalVoucher: vi.fn(),
     updateDiscourseGroup: vi.fn(),
     listManualPayments: vi.fn(),
@@ -51,6 +52,12 @@ function setupDefaultMocks() {
     if (params['filter[verifiedStatus]']) return Promise.resolve({ data: [] })
     return Promise.resolve({ data: [APPROVED_USER] })
   })
+  // Alasan suspend BE (bentuk asli dev/responses/admin-users-suspend-reasons.json),
+  // di-cache di zustand useSuspendReasons.
+  adminApi.getSuspendReasons.mockResolvedValue([
+    { code: 'spam', title: 'Terlalu banyak spam', desc: 'Akun kamu mengirim spam berulang kali.' },
+    { code: 'other', title: 'Lainnya', desc: 'Aktivitas tidak sesuai ketentuan.' },
+  ])
   adminApi.listManualPayments.mockResolvedValue({ data: [] })
   adminApi.getManualPaymentStats.mockResolvedValue({ data: {} })
   discourseApi.getGroups.mockResolvedValue({ data: [] })
@@ -107,13 +114,20 @@ describe('AdminDashboardPage — error handling (DB-002 #11)', () => {
     await openRowMenu(ue, 'Budi Approved')
     await ue.click(screen.getByText('Tangguhkan Akun'))
 
-    // SuspendModal: pilih preset + alasan lalu submit.
+    // SuspendModal: pilih preset + centang alasan lalu submit.
     const selects = document.querySelectorAll('select')
     await ue.selectOptions(selects[0], '6h') // durasi
-    await ue.selectOptions(selects[1], 'Terindikasi spam') // alasan
+    await ue.click(await screen.findByRole('checkbox', { name: /Terlalu banyak spam/i }))
     await ue.click(screen.getByRole('button', { name: 'Tangguhkan' }))
 
     await waitCommit()
+
+    // Payload baru: reason = array code, remarks = gabungan desc (join '. ').
+    expect(adminApi.suspendUser).toHaveBeenCalledWith(101, {
+      suspendedUntil: expect.any(String),
+      reason: ['spam'],
+      remarks: 'Akun kamu mengirim spam berulang kali.',
+    })
 
     const banner = await screen.findByText((t) => t.includes('pesan asli dari BE'))
     expect(banner).toBeInTheDocument()
