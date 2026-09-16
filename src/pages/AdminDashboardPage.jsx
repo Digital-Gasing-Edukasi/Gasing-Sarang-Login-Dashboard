@@ -11,8 +11,8 @@ import { useManajemen } from './admin/hooks/useManajemen'
 import { usePendaftaranTrainer } from './admin/hooks/usePendaftaranTrainer'
 import { useRiwayatPelatihan } from './admin/hooks/useRiwayatPelatihan'
 import { useAdminBoot } from './admin/hooks/useAdminBoot'
-import { AdminSidebar }    from './admin/AdminSidebar'
-import { AdminToast }      from './admin/AdminToast'
+import { AdminSidebar } from './admin/AdminSidebar'
+import { AdminToast } from './admin/AdminToast'
 import { RejectModal, ApproveModal } from './admin/ConfirmModal'
 import { BulkApproveModal } from './admin/BulkApproveModal'
 import { BulkRejectModal } from './admin/BulkRejectModal'
@@ -23,7 +23,7 @@ import { VerifikasiTable } from './admin/VerifikasiTable'
 import { VerifikasiPembayaranTable } from './admin/VerifikasiPembayaranTable'
 import { BelumLanggananTable } from './admin/BelumLanggananTable'
 import { KonfirmasiPembayaranModal, TolakPembayaranModal } from './admin/PembayaranModals'
-import { ManajemenTable }  from './admin/ManajemenTable'
+import { ManajemenTable } from './admin/ManajemenTable'
 import { DaftarUserTable } from './admin/DaftarUserTable'
 import { PendaftaranTrainerTable } from './admin/PendaftaranTrainerTable'
 import { RiwayatPelatihanTable } from './admin/RiwayatPelatihanTable'
@@ -38,8 +38,6 @@ import { SuspendModal } from './admin/SuspendModal'
 import { SetujuiAkunModal } from './admin/SetujuiAkunModal'
 import { KirimVoucherModal } from './admin/KirimVoucherModal'
 
-
-
 export default function AdminDashboardPage({ user, onSignOut }) {
   const [activeTab, setActiveTab] = useState('verifikasi')
   const [searchQuery, setSearchQuery] = useState('')
@@ -48,8 +46,8 @@ export default function AdminDashboardPage({ user, onSignOut }) {
   const [actionModal, setActionModal] = useState({ type: null, user: null })
   // Filter Manajemen: dipakai derived data (filteredUsers) yang dihitung sebelum
   // useManajemen dipanggil → milik page, bukan hook.
-  const [activeFilter, setActiveFilter]     = useState('Disetujui') // tab Manajemen aktif
-  const [selectedRoles, setSelectedRoles]   = useState([])
+  const [activeFilter, setActiveFilter] = useState('Disetujui') // tab Manajemen aktif
+  const [selectedRoles, setSelectedRoles] = useState([])
   const [selectedSubscriptions, setSelectedSubscriptions] = useState([])
   const [selectedPlans, setSelectedPlans] = useState([]) // filter Jenis Paket (Tahunan/Bulanan)
   const { sortConfig, handleSort, resetSort } = useSort()
@@ -151,11 +149,11 @@ export default function AdminDashboardPage({ user, onSignOut }) {
     handleConfirmReject,
   } = ver
   const navFlags = {
-    'verifikasi':            users.length > 0 || pendingVoucherUsers.length > 0,
+    'verifikasi': users.length > 0 || pendingVoucherUsers.length > 0,
     'verifikasi-pembayaran': pembayaranLoaded ? pembayaranMenunggu.length > 0 : pembayaranMenungguCount > 0,
-    'manajemen':             managementUsers.some(u => u.isNew),
-    'riwayat-pelatihan':     riwayatPelatihanData.some(r => r.isNew),
-    'pendaftaran-trainer':   pendaftaranData.some(r => r.isNew),
+    'manajemen': managementUsers.some(u => u.isNew),
+    'riwayat-pelatihan': riwayatPelatihanData.some(r => r.isNew),
+    'pendaftaran-trainer': pendaftaranData.some(r => r.isNew),
   }
 
   // Kolom yang response payment TIDAK embed → ambil dari user (GET /admin/users)
@@ -168,20 +166,20 @@ export default function AdminDashboardPage({ user, onSignOut }) {
     const pick = (k) => (has(mu[k]) ? mu[k] : row[k])
     return {
       ...row,
-      role:          pick('role'),
-      birthdate:     pick('birthdate'),
-      lokasi:        pick('lokasi'),
-      training:      pick('training'),
-      alumniDaerah:  pick('alumniDaerah'),
+      role: pick('role'),
+      birthdate: pick('birthdate'),
+      lokasi: pick('lokasi'),
+      training: pick('training'),
+      alumniDaerah: pick('alumniDaerah'),
       alumniTanggal: pick('alumniTanggal'),
-      school:        pick('school'),
-      voucher:       has(mu.voucher) ? mu.voucher : row.voucher,
+      school: pick('school'),
+      voucher: has(mu.voucher) ? mu.voucher : row.voucher,
       // endDate SENGAJA tidak ditimpa: tabel ini pakai proyeksi manual dari
       // mapToPembayaran (tgl payment + durasi), bukan endDate subscription user.
-      plan:          pick('plan'),
+      plan: pick('plan'),
       // riwayat: angka user (>0) menang; simpan juga list buat modal Lihat Detail.
-      riwayatCount:  mu.riwayatCount > 0 ? mu.riwayatCount : row.riwayatCount,
-      riwayatList:   mu.riwayatList ?? row.riwayatList,
+      riwayatCount: mu.riwayatCount > 0 ? mu.riwayatCount : row.riwayatCount,
+      riwayatList: mu.riwayatList ?? row.riwayatList,
     }
   }
 
@@ -204,8 +202,8 @@ export default function AdminDashboardPage({ user, onSignOut }) {
     ? managementUsers
     : activeTab === 'verifikasi-pembayaran'
       ? (pembayaranSubTab === 'belum-langganan'
-          ? belumLangganan
-          : (pembayaranSubTab === 'ditolak' ? pembayaranDitolak : pembayaranMenunggu).map(enrichFromUser))
+        ? belumLangganan
+        : (pembayaranSubTab === 'ditolak' ? pembayaranDitolak : pembayaranMenunggu).map(enrichFromUser))
       : (verifSubTab === 'voucher' ? pendingVoucherUsers : users)
 
   const filteredUsers = currentData.filter(user => {
@@ -367,11 +365,11 @@ export default function AdminDashboardPage({ user, onSignOut }) {
     const filename =
       activeTab === 'verifikasi'
         ? (verifSubTab === 'voucher' ? 'pending_voucher-Export data.csv' : 'verifikasi_akun-Export data.csv')
-      : activeTab === 'verifikasi-pembayaran'
-        ? (pembayaranSubTab === 'belum-langganan' ? 'belum_langganan-Export data.csv'
-           : pembayaranSubTab === 'ditolak' ? 'pembayaran_ditolak-Export data.csv'
-           : 'menunggu_verifikasi-Export data.csv')
-      : 'manajemen_akun-Export data.csv'
+        : activeTab === 'verifikasi-pembayaran'
+          ? (pembayaranSubTab === 'belum-langganan' ? 'belum_langganan-Export data.csv'
+            : pembayaranSubTab === 'ditolak' ? 'pembayaran_ditolak-Export data.csv'
+              : 'menunggu_verifikasi-Export data.csv')
+          : 'manajemen_akun-Export data.csv'
     downloadCsv(filename, csv)
   }
 
@@ -555,12 +553,12 @@ export default function AdminDashboardPage({ user, onSignOut }) {
                 const q = searchQuery.trim().toLowerCase();
                 const rows = q
                   ? riwayatPelatihanData.filter(
-                      (item) =>
-                        (item.nama || "").toLowerCase().includes(q) ||
-                        (item.daerah || "").toLowerCase().includes(q) ||
-                        (item.pesertaNama || "").toLowerCase().includes(q) ||
-                        (item.pesertaEmail || "").toLowerCase().includes(q),
-                    )
+                    (item) =>
+                      (item.nama || "").toLowerCase().includes(q) ||
+                      (item.daerah || "").toLowerCase().includes(q) ||
+                      (item.pesertaNama || "").toLowerCase().includes(q) ||
+                      (item.pesertaEmail || "").toLowerCase().includes(q),
+                  )
                   : riwayatPelatihanData;
                 // Kolom persis header tabel: tanpa "Status" (kolom itu tidak dirender).
                 const csv = [
@@ -676,11 +674,11 @@ export default function AdminDashboardPage({ user, onSignOut }) {
               const list = Object.values(usersById);
               const filtered = q
                 ? list.filter(
-                    (u) =>
-                      (u.name || "").toLowerCase().includes(q) ||
-                      (u.email || "").toLowerCase().includes(q) ||
-                      (u.username || "").toLowerCase().includes(q),
-                  )
+                  (u) =>
+                    (u.name || "").toLowerCase().includes(q) ||
+                    (u.email || "").toLowerCase().includes(q) ||
+                    (u.username || "").toLowerCase().includes(q),
+                )
                 : list;
               return (
                 <DaftarUserTable

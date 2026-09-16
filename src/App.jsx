@@ -1,10 +1,10 @@
-import { useState } from "react";
 import { LoginStatusModal } from "@/components/shared/LoginStatusModal";
-import { AppRoutes } from "@/routes/AppRoutes";
+import { useAppBoot } from "@/hooks/useAppBoot";
 import { useAppNavigation } from "@/hooks/useAppNavigation";
 import { useAuthSession } from "@/hooks/useAuthSession";
 import { useCheckoutFlow } from "@/hooks/useCheckoutFlow";
-import { useAppBoot } from "@/hooks/useAppBoot";
+import { AppRoutes } from "@/routes/AppRoutes";
+import { useState } from "react";
 
 export default function App() {
   const { go } = useAppNavigation();
