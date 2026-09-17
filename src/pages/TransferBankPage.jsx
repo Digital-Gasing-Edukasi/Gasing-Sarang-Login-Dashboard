@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { subscriptionApi, fileManagerApi, webAppApi } from "@/lib/api";
+import { translateApiError } from "@/lib/errorMessages";
 import mandiriLogo from "@/assets/subscription/mandiri-logo.png";
 import { Logo } from "@/components/shared/Logo";
 import { ProfileMenu } from "@/components/shared/ProfileMenu";
@@ -128,7 +129,7 @@ export default function TransferBankPage({
 
   const [copied, setCopied] = useState(false);
   const [senderName, setSenderName] = useState("");
-  const [senderBank, setSenderBank] = useState("");
+  const [senderBankName, setSenderBankName] = useState("");
   const [transferDate, setTransferDate] = useState("");
   const [file, setFile] = useState(null);
   const [error, setError] = useState("");
@@ -178,7 +179,7 @@ export default function TransferBankPage({
   const handleSubmit = async () => {
     setError("");
     if (!senderName.trim()) return setError("Nama pengirim wajib diisi.");
-    if (!senderBank.trim()) return setError("Bank asal wajib diisi.");
+    if (!senderBankName.trim()) return setError("Bank asal wajib diisi.");
     if (!transferDate) return setError("Tanggal transfer wajib diisi.");
     if (!file) return setError("Unggah bukti transfer terlebih dahulu.");
 
@@ -218,19 +219,27 @@ export default function TransferBankPage({
       if (!paymentId) throw new Error("Data pembayaran tidak ditemukan.");
 
       // 4. Lampirkan bukti → payment menunggu verifikasi admin.
-      //    Catatan: nama field senderName/senderBank/transferDate BLM dikonfirmasi
-      //    skema backend (API_ACCESS_MATRIX.md §7, docs/admin/VERIFIKASI_PEMBAYARAN.md §6
-      //    cuma dokumentasikan { fileId }) — pakai nama sama dgn fallback mapper admin.
+      //    Field backend terkonfirmasi: { fileId, senderName, senderBankName,
+      //    transferDate } (audit #53).
+      console.log("payload", {
+        senderName,
+        senderBankName,
+        transferDate,
+      });
+      
       await subscriptionApi.uploadReceipt(paymentId, fileId, {
         senderName,
-        senderBank,
+        senderBankName,
         transferDate,
       });
       setReceiptFileId(fileId);
       setTxnId(resolvedTxnId || paymentId);
       setSubmitted(true);
     } catch (e) {
-      setError(e.message || "Gagal mengirim bukti, coba lagi.");
+      console.error(e);
+      
+      // Audit #53: pesan backend mentah → Indonesia, loading selalu pulih via finally.
+      setError(translateApiError(e.message) || "Gagal mengirim bukti, coba lagi.");
     } finally {
       setLoading(false);
     }
@@ -246,7 +255,7 @@ export default function TransferBankPage({
       disabled={
         loading ||
         !senderName.trim() ||
-        !senderBank.trim() ||
+        !senderBankName.trim() ||
         !transferDate ||
         !file
       }
@@ -314,12 +323,12 @@ export default function TransferBankPage({
             </div>
           </div>
 
-          {/* Aksi */}
-          <div className="flex flex-col sm:flex-row gap-3 w-full justify-center">
+          {/* Aksi — audit #57: container max 500px, tiap tombol h-12 (48px), gap 16px, fill responsive */}
+          <div className="flex flex-col sm:flex-row gap-4 w-full max-w-[500px] justify-center">
             {isRetry ? (
               <button
                 onClick={onSignOut}
-                className="flex items-center justify-center gap-2 px-8 py-3.5 rounded-full bg-white text-[#0b0a1f] font-bold text-[15px] hover:bg-white/90 active:scale-[0.98] transition-all"
+                className="flex md:flex-1 h-12 items-center justify-center gap-2 px-8 rounded-full bg-white text-[#0b0a1f] font-bold text-[15px] hover:bg-white/90 active:scale-[0.98] transition-all"
               >
                 <LogOut size={18} />
                 Log Out
@@ -327,7 +336,7 @@ export default function TransferBankPage({
             ) : (
               <button
                 onClick={handleRedirectDefault}
-                className="flex items-center justify-center px-8 py-3.5 rounded-full bg-white text-[#0b0a1f] font-bold text-[15px] hover:bg-white/90 active:scale-[0.98] transition-all"
+                className="flex md:flex-1 h-12 items-center justify-center px-8 rounded-full bg-white text-[#0b0a1f] font-bold text-[15px] hover:bg-white/90 active:scale-[0.98] transition-all"
               >
                 Jelajahi Sarang Gasing
               </button>
@@ -337,7 +346,7 @@ export default function TransferBankPage({
                 href={fileManagerApi.getDownloadUrl(receiptFileId)}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center justify-center px-8 py-3.5 rounded-full border border-white/25 font-semibold text-[14px] hover:bg-white/10 active:scale-[0.98] transition-all"
+                className="flex md:flex-1 h-12 items-center justify-center px-8 rounded-full border border-white/25 font-semibold text-[14px] hover:bg-white/10 active:scale-[0.98] transition-all"
               >
                 Unduh Bukti
               </a>
@@ -471,8 +480,8 @@ export default function TransferBankPage({
                   Bank Asal
                 </label>
                 <input
-                  value={senderBank}
-                  onChange={(e) => setSenderBank(e.target.value)}
+                  value={senderBankName}
+                  onChange={(e) => setSenderBankName(e.target.value)}
                   placeholder="BCA / Mandiri / dll"
                   className={inputCls}
                 />
@@ -575,7 +584,7 @@ export default function TransferBankPage({
 
       <footer className="hidden lg:block relative z-10 pb-8 text-center">
         <p className="text-[13px] text-white/30">
-          ©2026 Gasing Academy. All rights reserved..
+          ©2026 Gasing Academy. All rights reserved.
         </p>
       </footer>
       </div>

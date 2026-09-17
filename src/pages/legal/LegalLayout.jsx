@@ -44,7 +44,7 @@ export function LegalLayout({ title, updatedAt, children, onNavigate }) {
         </div>
         <div className="pb-6">
           <p className="text-xs text-muted-foreground text-center">
-            ©2026 Gasing Academy. All rights reserved..
+            ©2026 Gasing Academy. All rights reserved.
           </p>
         </div>
       </div>

@@ -12,7 +12,7 @@ export function SignUpReviewPage({ onNavigate }) {
       >
         Akun kamu akan kami tinjau maksimal dalam{" "}
         <span className="font-semibold text-white">24 jam</span>untuk memastikan
-        kamu sudah terdaftar sebagai Trainer di Gasing Academy.
+        kamu sudah terdaftar sebagai Alumni Pelatihan Gasing.
         <br />
         <br />
         Mohon cek email secara berkala untuk status pendaftaran akunmu.
@@ -28,7 +28,7 @@ export function SignUpReviewPage({ onNavigate }) {
             <p className="text-base font-normal leading-6 text-white/90 text-center mb-9">
               Akun kamu sedang kami tinjau maksimal{" "}
               <span className="font-bold text-white/90">24 jam</span> untuk
-              memastikan kamu sudah terdaftar sebagai Trainer di Gasing Academy.
+              memastikan kamu sudah terdaftar sebagai Alumni Pelatihan Gasing.
             </p>
           </div>
 

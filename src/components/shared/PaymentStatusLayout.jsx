@@ -39,7 +39,7 @@ export function PaymentStatusLayout({ children }) {
       </div>
 
       <footer className="relative z-10 mt-auto pb-8 text-center">
-        <p className="text-[13px] text-white/30">©2026 Gasing Academy. All rights reserved..</p>
+        <p className="text-[13px] text-white/30">©2026 Gasing Academy. All rights reserved.</p>
       </footer>
     </div>
   )

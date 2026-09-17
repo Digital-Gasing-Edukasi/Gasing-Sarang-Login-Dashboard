@@ -5,7 +5,7 @@ import { Logo } from '@/components/shared/Logo'
 
 // Layout auth full-bleed tema gelap (desktop). Wallpaper = Background.png,
 // logo kiri-atas, konten di tengah, footer bawah.
-export function AuthDarkLayout({ children, maxWidth = 'max-w-[520px]' }) {
+export function AuthDarkLayout({ children, maxWidth = 'max-w-[520px]', onLogoClick }) {
   return (
     <div className="relative min-h-screen w-full overflow-hidden bg-[#0D0B2E] flex flex-col">
       <img
@@ -15,10 +15,12 @@ export function AuthDarkLayout({ children, maxWidth = 'max-w-[520px]' }) {
         className="pointer-events-none absolute inset-0 h-full w-full select-none object-cover"
       />
 
-      {/* Logo — pojok kiri-atas: padding 16px (mobile) / 24px (desktop non-split) */}
+      {/* Logo — pojok kiri-atas: padding 16px (mobile) / 24px (desktop non-split). Audit #89: clickable → login. */}
       <header className="relative z-10 px-4 pt-4 lg:px-6 lg:pt-6 shrink-0">
         <div className="flex items-center">
-          <Logo variant="responsive" />
+          <button onClick={onLogoClick} aria-label="Kembali ke login" className="transition-opacity hover:opacity-80">
+            <Logo variant="responsive" />
+          </button>
         </div>
       </header>
 
@@ -35,7 +37,7 @@ export function AuthDarkLayout({ children, maxWidth = 'max-w-[520px]' }) {
   )
 }
 
-// Input pill tema gelap (glass).
+// Input pill tema gelap (glass). Audit #82: autofill override via tailwind.
 export function DarkInput({ icon: Icon, iconRight, error, className, ...props }) {
   return (
     <div className="relative flex items-center">
@@ -46,7 +48,8 @@ export function DarkInput({ icon: Icon, iconRight, error, className, ...props })
       )}
       <input
         className={cn(
-          'w-full h-12 rounded-full bg-white/[0.06] border text-[15px] text-white placeholder:text-white/35 outline-none transition-colors focus:border-[#a78bfa]/70 focus:bg-white/[0.09]',
+          'w-full h-12 rounded-full bg-white/[0.06] border text-[15px] text-white placeholder:text-white/35 outline-none transition-colors focus:border-[#a78bfa]/70 focus:bg-white/[0.09] disabled:opacity-30 disabled:cursor-not-allowed',
+          '[&:-webkit-autofill]:[-webkit-text-fill-color:#fff] [&:-webkit-autofill]:[transition:background-color_9999s_ease-in-out_0s] [&:-webkit-autofill]:[box-shadow:0_0_0_1000px_transparent_inset]',
           Icon ? 'pl-[46px]' : 'pl-5',
           iconRight ? 'pr-12' : 'pr-5',
           error ? 'border-[#FFB43C]' : 'border-white/15',

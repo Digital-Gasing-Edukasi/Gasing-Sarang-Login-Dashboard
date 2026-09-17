@@ -5,6 +5,7 @@ import { ErrorAlert }     from '@/components/shared/ErrorAlert'
 import { AuthDarkLayout, DarkGhostButton, DarkDivider } from '@/components/shared/DarkAuth'
 import { cn }             from '@/lib/utils'
 import { authApi }        from '@/lib/api'
+import { translateApiError } from '@/lib/errorMessages'
 
 export function CheckEmailPage({ email, onNavigate }) {
   const [loading, setLoading] = useState(false)
@@ -25,7 +26,10 @@ export function CheckEmailPage({ email, onNavigate }) {
       await authApi.forgotPassword(email)
       setSeconds(30)
     } catch (e) {
-      setError(e.message)
+      const msg = e?.status >= 500
+        ? 'Server sedang gangguan. Coba lagi dalam beberapa saat.'
+        : translateApiError(e.message)
+      setError(msg)
     } finally {
       setLoading(false)
     }
@@ -40,7 +44,7 @@ export function CheckEmailPage({ email, onNavigate }) {
             <h1 className="font-poppins text-xl font-semibold text-[#030B1F] leading-[140%] mb-6">Cek Email Kamu</h1>
             <p className="text-sm text-muted-foreground leading-[170%] mb-8">
               Kami telah mengirimkan tautan pemulihan ke email{" "}
-              <span className="font-bold text-[#424857]">{email}</span>Jika kamu belum
+              <span className="font-bold text-[#424857]">{email}</span>. Jika kamu belum
               menerima email tersebut, periksa folder spam.
             </p>
           </div>
@@ -100,7 +104,7 @@ export function CheckEmailPage({ email, onNavigate }) {
             >
               {loading
                 ? <span className="flex items-center justify-center gap-2"><Loader2 size={16} className="animate-spin" /> Mengirim...</span>
-                : <>Kirim Ulang Link{!canResend && <span className="text-[#FF004D]/30"> ({seconds})</span>}</>
+                : <>Kirim Ulang Tautan{!canResend && <span className="text-[#FF004D]/30"> ({seconds})</span>}</>
               }
             </button>
 

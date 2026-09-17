@@ -30,13 +30,14 @@ function useIsMobile() {
 }
 
 const TRIGGER_CLS = cn(
-  "flex h-11 w-full items-center justify-between rounded-full border border-input bg-background px-5 py-2 text-sm text-left",
+  "flex h-11 w-full min-w-0 items-center justify-between gap-2 rounded-full border border-input bg-background px-5 py-2 text-sm text-left",
   "placeholder:text-muted-foreground",
   "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-0 focus:border-primary",
   "hover:border-gray-300",
   "disabled:cursor-not-allowed disabled:opacity-50 disabled:bg-gray-100",
   "transition-all duration-200 cursor-pointer",
-  "[&>span]:line-clamp-1"
+  // Audit #28/#29: value truncate di dalam box fixed.
+  "[&>span]:min-w-0 [&>span]:flex-1 [&>span]:truncate"
 )
 
 const SelectGroup = SelectPrimitive.Group
@@ -91,7 +92,7 @@ function SelectValue({ placeholder, ...props }) {
     const hasVal = ctx.value != null && ctx.value !== ""
     const label = hasVal ? ctx.labels[ctx.value] : undefined
     return (
-      <span className={cn("line-clamp-1 text-left", !label && "text-muted-foreground")}>
+      <span title={label ?? placeholder} className={cn("min-w-0 flex-1 truncate text-left", !label && "text-muted-foreground")}>
         {label ?? placeholder}
       </span>
     )

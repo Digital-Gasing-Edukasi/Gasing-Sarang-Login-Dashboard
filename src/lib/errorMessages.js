@@ -8,7 +8,7 @@
 const PATTERNS = [
   [/email cannot be changed for existing registration/i, "Email tidak bisa diubah untuk pendaftaran yang sudah ada."],
   [/username.*(already exists|already registered|already taken|taken)/i, "Username sudah digunakan. Coba username lain."],
-  [/email.*(already exists|already registered|already taken|taken)/i, "Email sudah terdaftar. Gunakan email lain atau masuk."],
+  [/email.*(already exists|already registered|already taken|taken)/i, "Email sudah terdaftar. Gunakan email lain."],
   [/(already exists|already registered|already taken)/i, "Data sudah terdaftar sebelumnya."],
   [/too many requests|rate limit/i, "Terlalu banyak permintaan. Tunggu sebentar lalu coba lagi."],
   [/not found/i, "Data tidak ditemukan."],

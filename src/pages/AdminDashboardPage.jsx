@@ -1,11 +1,18 @@
-import { useState, useRef, useEffect, useCallback } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { Search } from 'lucide-react'
-import { adminApi, discourseApi, regionsApi, appConfigApi, trainingSessionsApi, trainingHistoriesApi, queueApi } from '@/lib/api'
-import { mapToVerifikasi, mapToManajemen, mapToRiwayat, mapToPembayaran, fmtDate, computeIsNew, isManajemenEligible, VERIFIED_STATUS } from './admin/mappers'
-import { downloadCsv, fmtTimeAmPm } from '@/lib/format'
-import { canonicalRole } from './admin/roleOptions'
-import { AdminSidebar }    from './admin/AdminSidebar'
-import { AdminToast }      from './admin/AdminToast'
+import { downloadCsv } from '@/lib/format'
+import { buildCsvContent } from './admin/adminCsv'
+import { useSort, applySortToList } from './admin/hooks/useSort'
+import { useAdminToast } from './admin/hooks/useAdminToast'
+import { useAdminUsers } from './admin/hooks/useAdminUsers'
+import { usePembayaran } from './admin/hooks/usePembayaran'
+import { useVerifikasi, BULK_LIMIT } from './admin/hooks/useVerifikasi'
+import { useManajemen } from './admin/hooks/useManajemen'
+import { usePendaftaranTrainer } from './admin/hooks/usePendaftaranTrainer'
+import { useRiwayatPelatihan } from './admin/hooks/useRiwayatPelatihan'
+import { useAdminBoot } from './admin/hooks/useAdminBoot'
+import { AdminSidebar } from './admin/AdminSidebar'
+import { AdminToast } from './admin/AdminToast'
 import { RejectModal, ApproveModal } from './admin/ConfirmModal'
 import { BulkApproveModal } from './admin/BulkApproveModal'
 import { BulkRejectModal } from './admin/BulkRejectModal'
@@ -16,7 +23,7 @@ import { VerifikasiTable } from './admin/VerifikasiTable'
 import { VerifikasiPembayaranTable } from './admin/VerifikasiPembayaranTable'
 import { BelumLanggananTable } from './admin/BelumLanggananTable'
 import { KonfirmasiPembayaranModal, TolakPembayaranModal } from './admin/PembayaranModals'
-import { ManajemenTable }  from './admin/ManajemenTable'
+import { ManajemenTable } from './admin/ManajemenTable'
 import { DaftarUserTable } from './admin/DaftarUserTable'
 import { PendaftaranTrainerTable } from './admin/PendaftaranTrainerTable'
 import { RiwayatPelatihanTable } from './admin/RiwayatPelatihanTable'
@@ -31,482 +38,248 @@ import { SuspendModal } from './admin/SuspendModal'
 import { SetujuiAkunModal } from './admin/SetujuiAkunModal'
 import { KirimVoucherModal } from './admin/KirimVoucherModal'
 
-
-// ─── Pendaftaran Trainer (app-config hero_banner-home-v2) ───────────────────────
-const PENDAFTARAN_KEY = 'hero_banner-home-v2'
-const HEADER_BASE = 'Apa kamu mau daftar menjadi Trainer di pelatihan Gasing tanggal '
-const DEFAULT_SHARED = {
-  modalBody: 'Tim Gasing akan menghubungi members yang terpilih menjadi Trainer untuk pengimbasan, berikut informasi lainnya. Pastikan nomor HP kamu aktif ya!',
-  modalTitle: 'Yuk, daftar jadi Trainer pengimbasan Gasing!',
-  modalSuccess: 'Terima kasih sudah mendaftar sebagai Trainer!',
-}
-
-// Batas waktu pendaftaran sudah lewat? String kosong / tanggal invalid = belum lewat
-// (jangan auto-matikan baris yang datanya memang tidak punya batas waktu).
-function isPastDeadline(batasWaktu) {
-  if (!batasWaktu) return false
-  const t = new Date(batasWaktu).getTime()
-  if (isNaN(t)) return false
-  return t <= Date.now()
-}
-
-// Matikan semua baris aktif yang batas waktunya sudah lewat.
-// Balikin { rows, changed } supaya caller tahu perlu persist atau tidak.
-function autoOffExpired(rows) {
-  let changed = false
-  const next = rows.map(r => {
-    if (r.isActive && isPastDeadline(r.batasWaktu)) {
-      changed = true
-      return { ...r, isActive: false }
-    }
-    return r
-  })
-  return { rows: changed ? next : rows, changed }
-}
-
-// Ambil id topik dari URL Discourse (mis .../t/slug/143 atau .../t/slug/143/5 → 143).
-function parseThreadId(url) {
-  if (!url) return null
-  const s = String(url)
-  const m = s.match(/\/t\/[^/]+\/(\d+)/)
-  if (m) return m[1]
-  const nums = s.match(/\d+/g)
-  return nums ? nums[nums.length - 1] : null
-}
-
-// value.threads (object) → array baris untuk table.
-function threadsToRows(value) {
-  const threads = value?.threads || {}
-  return Object.entries(threads).map(([id, t]) => ({
-    id,
-    threadId: id,
-    nama: t.namaPelatihan || '-',
-    url: t.url || '',
-    periode: t.periode || '-',
-    batasWaktu: t.batasWaktu || '',
-    isActive: !!t.enabled,
-    headerText: t.headerText || '',
-    createdAt: t.createdAt || null,
-    isNew: computeIsNew(t.createdAt),
-  }))
-}
-
-// array baris → value untuk PUT (pertahankan shared_content).
-function rowsToValue(rows, sharedContent) {
-  const threads = {}
-  rows.forEach(r => {
-    threads[r.threadId] = {
-      enabled: r.isActive,
-      headerText: r.headerText,
-      namaPelatihan: r.nama,
-      periode: r.periode,
-      batasWaktu: r.batasWaktu,
-      url: r.url,
-      createdAt: r.createdAt || null,
-    }
-  })
-  return { threads, shared_content: sharedContent || DEFAULT_SHARED }
-}
-
-function useSort() {
-  const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' })
-  const handleSort = (key) => {
-    setSortConfig(prev => ({
-      key,
-      direction: prev.key === key && prev.direction === 'asc' ? 'desc' : 'asc',
-    }))
-  }
-  return { sortConfig, handleSort, resetSort: () => setSortConfig({ key: null, direction: 'asc' }) }
-}
-
-function applySortToList(list, sortConfig) {
-  if (!sortConfig.key) return list
-  return [...list].sort((a, b) => {
-    let valA = a[sortConfig.key] || ''
-    let valB = b[sortConfig.key] || ''
-    if (sortConfig.key === 'lastUpdated') {
-      valA = a.lastUpdatedMs || 0
-      valB = b.lastUpdatedMs || 0
-    } else if (sortConfig.key === 'submittedDate') {
-      valA = a.submittedMs || 0
-      valB = b.submittedMs || 0
-    } else if (sortConfig.key === 'trainingPeriod') {
-      valA = a.trainingPeriodMs || 0
-      valB = b.trainingPeriodMs || 0
-    } else if (sortConfig.key === 'birthdate' || sortConfig.key === 'endDate') {
-      valA = valA ? new Date(valA).getTime() : 0
-      valB = valB ? new Date(valB).getTime() : 0
-    } else if (typeof valA === 'string') {
-      valA = valA.toLowerCase(); valB = valB.toLowerCase()
-    }
-    if (valA < valB) return sortConfig.direction === 'asc' ? -1 : 1
-    if (valA > valB) return sortConfig.direction === 'asc' ? 1 : -1
-    return 0
-  })
-}
-
-// Label status akun sama seperti yang dirender ManajemenTable (STATUS_LABELS),
-// supaya isi CSV konsisten dengan yang dilihat admin di layar.
-const CSV_STATUS_LABELS = {
-  Pending: 'Ditangguhkan', Ditangguhkan: 'Ditangguhkan',
-  Rejected: 'Ditolak', Ditolak: 'Ditolak',
-  Approved: 'Disetujui', Disetujui: 'Disetujui',
-  Deleted: 'Baru Dihapus', Dihapus: 'Baru Dihapus', 'Baru Dihapus': 'Baru Dihapus',
-}
-
-function buildCsvContent(tab, users, activeFilter, verifSubTab = 'pending', pembayaranSubTab = 'menunggu') {
-  const escapeCsv = (str) => {
-    const s = String(str ?? '')
-    return s.includes(',') || s.includes('"') || s.includes('\n') ? `"${s.replace(/"/g, '""')}"` : s
-  }
-  const toCsv = (headers, rows) =>
-    [headers.join(','), ...rows.map(r => r.map(escapeCsv).join(','))].join('\n')
-  if (tab === 'verifikasi-pembayaran') {
-    // Sub-tab "Belum Langganan" pakai kolom read-only (tanpa Jenis Paket/Tgl. Berakhir,
-    // + Last Updated) mengikuti BelumLanggananTable.
-    if (pembayaranSubTab === 'belum-langganan') {
-      const headers = ['Nama Pengguna', 'Email', 'Status Member', 'Kode Voucher', 'Role', 'Riwayat Pelatihan', 'Tgl. Lahir', 'Lokasi', 'Alumni Pelatihan Nama', 'Alumni Pelatihan Daerah', 'Alumni Pelatihan Tanggal Mulai', 'Asal Sekolah', 'Last Updated']
-      const rows = users.map(u => [u.name, u.email, 'Belum Langganan', u.voucher || '-', u.role || '-', u.riwayatCount || 0, u.birthdate || '-', u.lokasi || '-', u.training || '-', u.alumniDaerah || '-', u.alumniTanggal || '-', u.school || '-', u.lastUpdated || '-'])
-      return toCsv(headers, rows)
-    }
-    const headers = ['Nama Pengguna', 'Email', 'Status Member', 'Jenis Paket', 'Tgl. Berakhir', 'Kode Voucher', 'Role', 'Riwayat Pelatihan', 'Tgl. Lahir', 'Lokasi', 'Alumni Pelatihan Nama', 'Alumni Pelatihan Daerah', 'Alumni Pelatihan Tanggal Mulai', 'Asal Sekolah', 'Submitted Date']
-    const rows = users.map(u => [u.name, u.email, u.statusMember || '-', u.plan || '-', u.endDate || '-', u.voucher || '-', u.role || '-', u.riwayatCount || 0, u.birthdate || '-', u.lokasi || '-', u.training || '-', u.alumniDaerah || '-', u.alumniTanggal || '-', u.school || '-', u.submittedDate || '-'])
-    return toCsv(headers, rows)
-  }
-  if (tab === 'manajemen') {
-    // Kolom mengikuti ManajemenTable persis, termasuk "reduced view" untuk
-    // tab Ditolak / Baru Dihapus (kolom Langganan..Role disembunyikan).
-    const isReducedView = activeFilter === 'Rejected' || activeFilter === 'Deleted'
-      || activeFilter === 'Ditolak' || activeFilter === 'Baru Dihapus'
-    const headHeaders = ['Nama Pengguna', 'Email', 'Status Member']
-    const midHeaders  = ['Langganan', 'Jenis Paket', 'Tgl. Berakhir', 'Kode Voucher', 'Role']
-    const tailHeaders = ['Riwayat Pelatihan', 'Tgl. Lahir', 'Lokasi', 'Alumni Pelatihan Nama', 'Alumni Pelatihan Daerah', 'Alumni Pelatihan Tanggal Mulai', 'Asal Sekolah', 'Last Updated']
-    const headers = isReducedView ? [...headHeaders, ...tailHeaders] : [...headHeaders, ...midHeaders, ...tailHeaders]
-    const rows = users.map(u => {
-      const head = [u.name, u.email, CSV_STATUS_LABELS[u.accountStatus] || u.accountStatus || '-']
-      const mid  = [u.subscription || 'Tidak Aktif', u.plan || '-', u.endDate || '-', u.voucher || '-', u.role || '-']
-      const tail = [u.riwayatCount || '-', u.birthdate || '-', u.lokasi || '-', u.training || '-', u.alumniDaerah || '-', u.alumniTanggal || '-', u.school || '-', u.lastUpdated || '-']
-      return isReducedView ? [...head, ...tail] : [...head, ...mid, ...tail]
-    })
-    return toCsv(headers, rows)
-  }
-  // tab === 'verifikasi', sub-tab 'voucher' → kolom ikut PendingVoucherTable.
-  if (verifSubTab === 'voucher') {
-    const headers = ['Nama Pengguna', 'Email', 'Status Member', 'Kode Voucher', 'Role', 'Riwayat Pelatihan', 'Tgl. Lahir', 'Lokasi', 'Alumni Pelatihan Nama', 'Alumni Pelatihan Daerah', 'Alumni Pelatihan Tanggal Mulai', 'Asal Sekolah']
-    const rows = users.map(u => [u.name, u.email, 'Pending Voucher Setup', u.voucherCode || '-', u.role || '-', u.riwayatCount ?? 0, u.birthdate || '-', u.lokasi || '-', u.alumniNama || '-', u.alumniDaerah || '-', u.alumniTanggal || '-', u.school || '-'])
-    return toCsv(headers, rows)
-  }
-  // tab === 'verifikasi', sub-tab 'pending' → kolom ikut VerifikasiTable.
-  const headers = ['Nama Pengguna', 'Email', 'Status', 'Tgl. Lahir', 'Lokasi', 'Alumni Pelatihan Daerah', 'Alumni Pelatihan Bulan & Tahun', 'Asal Sekolah']
-  const rows = users.map(u => [u.name, u.email, u.status, u.birthdate, u.lokasi, u.alumniDaerah || '-', u.trainingPeriod || '-', u.school || '-'])
-  return [headers.join(','), ...rows.map(r => r.map(escapeCsv).join(','))].join('\n')
-}
-
-// Generate kode voucher (placeholder FE). TODO(be): kode asli mestinya dari backend
-// saat approve (auto-generate). Ganti pemanggilan ini begitu endpoint tersedia.
-function genVoucherCode() {
-  return 'GASI' + Math.random().toString(36).slice(2, 8).toUpperCase()
-}
-
-// Riwayat Pelatihan: jumlah baris per page (dikirim sbg `limit` ke GET /training-sessions).
-const RIWAYAT_PAGE_SIZE = 100
-
 export default function AdminDashboardPage({ user, onSignOut }) {
   const [activeTab, setActiveTab] = useState('verifikasi')
-  const [users, setUsers]                   = useState([])
-  const [managementUsers, setManagementUsers] = useState([])
-  // Lookup user hasil GET /admin/users (mapToManajemen), keyed by id. Diisi sekali
-  // saat load Manajemen, dipakai ulang tabel lain (mis. Verifikasi Pembayaran) buat
-  // isi kolom yang tidak di-embed response payment (role, alumni, lokasi, dst).
-  const [usersById, setUsersById] = useState({})
-  const [loadingUsers, setLoadingUsers]     = useState(false)
-  const [apiError, setApiError]             = useState('')
-  const [searchQuery, setSearchQuery]       = useState('')
-  const [roleErrors, setRoleErrors]         = useState({})
-  
-  // States for Pendaftaran Trainer (sumber: app-config hero_banner-home-v2)
-  const [pendaftaranData, setPendaftaranData] = useState([])
-  const [sharedContent, setSharedContent] = useState(DEFAULT_SHARED)
-  const [isAddPendaftaranModalOpen, setIsAddPendaftaranModalOpen] = useState(false)
-
-  // States for Riwayat Pelatihan (di-load dari GET /training-sessions)
-  const [riwayatPelatihanData, setRiwayatPelatihanData] = useState([])
-  const [riwayatPage, setRiwayatPage] = useState(1)
-  const [riwayatTotalPages, setRiwayatTotalPages] = useState(3) // sementara: 3 page dulu
-  const [isAddPelatihanModalOpen, setIsAddPelatihanModalOpen] = useState(false)
-  const [perbaruiSession, setPerbaruiSession] = useState(null)
-  const [pesertaSession, setPesertaSession] = useState(null)
-  const [riwayatDetailUser, setRiwayatDetailUser] = useState(null) // modal Riwayat Pelatihan (Lihat Detail)
-
-  const [discourseGroups, setDiscourseGroups] = useState([])
-  // Ref agar mapToManajemen selalu baca daftar group terbaru tanpa memicu ulang loadUsers.
-  const discourseGroupsRef = useRef([])
-  const [trainingRegions, setTrainingRegions] = useState([])
-  // Ref regions terbaru → loadPembayaran bisa useCallback([]) (stabil) tanpa
-  // ikut trainingRegions. Kalau ikut, identity-nya berubah saat loadUsers nge-set
-  // regions dan memicu ulang mount-effect → semua loader nembak 2x → 429.
-  const trainingRegionsRef = useRef([])
-  // userId yang sudah pernah di-fetch on-demand (sukses/gagal) → jangan tembak ulang.
-  const fetchedUserIdsRef = useRef(new Set())
-  const [trainingSessions, setTrainingSessions] = useState([])
-  const [rejectCandidate, setRejectCandidate] = useState(null)
-  const [approveCandidate, setApproveCandidate] = useState(null)
-
-  // ── Verifikasi Pembayaran ───────────────────────────────────────────────────
-  // Dua sub-tab = dua dataset: 'menunggu' (payment pending + bukti) & 'ditolak'.
-  const [pembayaranMenunggu, setPembayaranMenunggu] = useState([])
-  const [pembayaranDitolak, setPembayaranDitolak]   = useState([])
-  const [pembayaranSubTab, setPembayaranSubTab]     = useState('menunggu')
-  const [konfirmasiCandidate, setKonfirmasiCandidate] = useState(null) // modal bukti transfer
-  const [tolakCandidate, setTolakCandidate]           = useState(null) // modal pilih alasan tolak
-  // Titik biru navbar: sebelum tab dibuka pakai count ringan dari /stats (1 request
-  // kecil, bukan full list); setelah tab dibuka, pakai list live (pembayaranLoaded).
-  const [pembayaranMenungguCount, setPembayaranMenungguCount] = useState(0)
-  const [pembayaranLoaded, setPembayaranLoaded]     = useState(false)
-
-  // ── Bulk verifikasi ────────────────────────────────────────────────────────
-  const BULK_LIMIT = 10 // keputusan #2: hard limit 10 akun sekaligus
-  const [selectedIds, setSelectedIds] = useState([])
-  const [verifSubTab, setVerifSubTab] = useState('pending') // 'pending' | 'voucher'
-  const [bulkSuspendOpen, setBulkSuspendOpen] = useState(false) // modal tangguhkan bulk (Manajemen)
-  const [bulkModal, setBulkModal] = useState(null) // 'approve' | 'reject' | 'confirm' | null
-
-  // Sub-tab Pending Voucher Setup (task b). Diisi FE dari hasil approve tab Pending
-  // (opsi B — belum ada state backend). TODO(be): list dari endpoint saat tersedia.
-  const [pendingVoucherUsers, setPendingVoucherUsers] = useState([])
-  const [voucherCandidate, setVoucherCandidate] = useState(null) // konfirmasi voucher tunggal
-  const [limitHit, setLimitHit] = useState(false)
-  const limitTimeoutRef = useRef(null)
-  const [toast, setToast]                   = useState(null)
-  const [toastTimeoutId, setToastTimeoutId] = useState(null)
-  const [activeFilter, setActiveFilter]     = useState('Disetujui') // tab Manajemen aktif
-  const [selectedRoles, setSelectedRoles]   = useState([])
+  const [searchQuery, setSearchQuery] = useState('')
+  const [apiError, setApiError] = useState('')
+  // actionModal lintas domain (dibuka dari Manajemen & Pembayaran) → milik page.
+  const [actionModal, setActionModal] = useState({ type: null, user: null })
+  // Filter Manajemen: dipakai derived data (filteredUsers) yang dihitung sebelum
+  // useManajemen dipanggil → milik page, bukan hook.
+  const [activeFilter, setActiveFilter] = useState('Disetujui') // tab Manajemen aktif
+  const [selectedRoles, setSelectedRoles] = useState([])
   const [selectedSubscriptions, setSelectedSubscriptions] = useState([])
   const [selectedPlans, setSelectedPlans] = useState([]) // filter Jenis Paket (Tahunan/Bulanan)
-  const [actionModal, setActionModal]       = useState({ type: null, user: null })
-  const executeActionRef = useRef(true)
   const { sortConfig, handleSort, resetSort } = useSort()
 
-  const loadUsers = useCallback(async (tab, currentRegions = []) => {
-    setLoadingUsers(true); setApiError('')
-    try {
-      let regions = currentRegions.length ? currentRegions : [];
-      if (regions.length === 0) {
-        try {
-          const rRes = await regionsApi.list();
-          regions = Array.isArray(rRes) ? rRes : (rRes.data || []);
-          // update state tapi jangan trigger infinite loop
-          setTrainingRegions(regions);
-        } catch (e) {
-          console.error("Failed to load regions", e)
-        }
-      }
+  const toastApi = useAdminToast()
+  const {
+    toast, setToast, toastTimeoutId, limitHit, setLimitHit,
+    executeActionRef, flashLimit,
+  } = toastApi
 
-      if (tab === 'verifikasi') {
-        // Dua sub-tab = dua request: WAITING(0) → tabel Pending, PENDING_VOUCHER(3) →
-        // tabel Pending Voucher Setup. Tidak bisa satu request tanpa filter karena
-        // /admin/users dipaginasi (limit default 20).
-        const res = await adminApi.getUsers({ 'filter[verifiedStatus]': 'waiting' })
-        const rawList = Array.isArray(res) ? res : res.data || []
-        // Defensif: kalau server tidak memfilter, saring lagi di klien.
-        const isWaiting = (u) => u.verifiedStatus === 0 || u.verifiedStatus === 'waiting' ||
-          (u.verifiedStatus != 1 && u.verifiedStatus != -1 && u.verifiedStatus != 3)
-        setUsers(rawList.filter(isWaiting).map(u => mapToVerifikasi(u, regions, discourseGroupsRef.current)))
+  const usersApi = useAdminUsers({ setApiError })
+  const {
+    users, setUsers,
+    managementUsers, setManagementUsers,
+    usersById, setUsersById,
+    discourseGroups, setDiscourseGroups, discourseGroupsRef,
+    trainingRegionsRef,
+    loadUsers,
+  } = usersApi
 
-        // Sub-tab Pending Voucher Setup. Dibungkus try/catch supaya kegagalan di sini
-        // (mis. nilai filter tidak dikenal server) tidak ikut mengosongkan tabel Pending.
-        try {
-          const vRes = await adminApi.getUsers({ 'filter[verifiedStatus]': 'pending_voucher' })
-          const vRaw = Array.isArray(vRes) ? vRes : vRes.data || []
-          const isPendingVoucher = (u) => u.verifiedStatus === 3 || u.verifiedStatus === 'pending_voucher'
-          setPendingVoucherUsers(vRaw.filter(isPendingVoucher).map(u => mapToVerifikasi(u, regions, discourseGroupsRef.current)))
-        } catch (e) {
-          console.error('Failed to load pending voucher users', e)
-        }
-        setSelectedIds([]) // buang seleksi lama setelah reload
-      } else {
-        const res = await adminApi.getUsers({})
-        const rawList = Array.isArray(res) ? res : res.data || []
-        // Map sekali; simpan pasangan {raw, row} supaya bisa dipakai dua-duanya.
-        const mapped = rawList.map(u => ({ raw: u, row: mapToManajemen(u, regions, discourseGroupsRef.current) }))
-        // Lookup by id dari SEMUA user (belum disaring eligible) → tabel lain bisa
-        // join by userId walau user-nya bukan status Manajemen.
-        setUsersById(Object.fromEntries(mapped.map(({ row }) => [row.id, row])))
-        // Masuk Manajemen: approved, rejected, DAN revise (revise ikut tab Ditolak —
-        // lihat isManajemenEligible). WAITING/pending-voucher tetap disaring keluar.
-        setManagementUsers(mapped.filter(({ raw }) => isManajemenEligible(raw)).map(({ row }) => row))
-      }
-    } catch (err) {
-      setApiError(err.message || 'Gagal memuat data')
-    } finally {
-      setLoadingUsers(false)
+  const pendaftaran = usePendaftaranTrainer({ activeTab, setApiError, toastApi })
+  const {
+    pendaftaranData,
+    isAddPendaftaranModalOpen, setIsAddPendaftaranModalOpen,
+    loadPendaftaran,
+    handleAddPendaftaran,
+    handleTogglePendaftaranStatus,
+    handleDeletePendaftaran,
+  } = pendaftaran
+
+  const riwayat = useRiwayatPelatihan({ activeTab, searchQuery, setApiError, toastApi })
+  const {
+    riwayatPelatihanData, setRiwayatPelatihanData,
+    riwayatPage, setRiwayatPage,
+    riwayatTotalPages,
+    isAddPelatihanModalOpen, setIsAddPelatihanModalOpen,
+    perbaruiSession, setPerbaruiSession,
+    pesertaSession, setPesertaSession,
+    riwayatDetailUser, setRiwayatDetailUser,
+    loadRiwayat,
+    handleAddPelatihan,
+    handleDeleteRiwayat,
+    handleUpdatePelatihan,
+    handleDownloadRiwayat,
+  } = riwayat
+
+  const pembayaran = usePembayaran({
+    activeTab,
+    setApiError,
+    usersById, setUsersById,
+    trainingRegionsRef, discourseGroupsRef,
+    loadUsers,
+    toastApi,
+    actionModal, setActionModal,
+  })
+  const {
+    pembayaranMenunggu, pembayaranDitolak,
+    pembayaranSubTab, setPembayaranSubTab,
+    konfirmasiCandidate, setKonfirmasiCandidate,
+    tolakCandidate, setTolakCandidate,
+    pembayaranMenungguCount, setPembayaranMenungguCount,
+    pembayaranLoaded,
+    handleKonfirmasiPembayaran,
+    handleTolakPembayaran,
+    handlePembayaranRowAction,
+    handleConfirmHapusAkunPembayaran,
+  } = pembayaran
+
+  const boot = useAdminBoot({
+    loadUsers, loadRiwayat, loadPendaftaran,
+    setDiscourseGroups,
+    setPembayaranMenungguCount,
+  })
+  const { trainingSessions } = boot
+
+  const ver = useVerifikasi({
+    users, setUsers,
+    discourseGroups,
+    trainingSessions,
+    setApiError,
+    toastApi,
+  })
+  const {
+    selectedIds, setSelectedIds, toggleSelect, clearSelection,
+    verifSubTab, setVerifSubTab,
+    bulkModal, setBulkModal,
+    bulkSuspendOpen, setBulkSuspendOpen,
+    rejectCandidate, setRejectCandidate,
+    approveCandidate, setApproveCandidate,
+    pendingVoucherUsers, setPendingVoucherUsers,
+    voucherCandidate, setVoucherCandidate,
+    roleNameFromId,
+    handleVerify,
+    handleConfirmApprove,
+    handleConfirmVoucher,
+    handleBulkConfirmVoucher,
+    handleBulkApprove,
+    handleBulkReject,
+    handleConfirmReject,
+  } = ver
+  const navFlags = {
+    'verifikasi': users.length > 0 || pendingVoucherUsers.length > 0,
+    'verifikasi-pembayaran': pembayaranLoaded ? pembayaranMenunggu.length > 0 : pembayaranMenungguCount > 0,
+    'manajemen': managementUsers.some(u => u.isNew),
+    'riwayat-pelatihan': riwayatPelatihanData.some(r => r.isNew),
+    'pendaftaran-trainer': pendaftaranData.some(r => r.isNew),
+  }
+
+  // Kolom yang response payment TIDAK embed → ambil dari user (GET /admin/users)
+  // via usersById. Pakai nilai user hanya kalau "berisi" ('-'/''/null dianggap kosong);
+  // kalau tidak, pertahankan nilai dari payment (mis. plan Yearly/Monthly).
+  const enrichFromUser = (row) => {
+    const mu = usersById[row.userId]
+    if (!mu) return row
+    const has = (v) => v != null && v !== '' && v !== '-'
+    const pick = (k) => (has(mu[k]) ? mu[k] : row[k])
+    return {
+      ...row,
+      role: pick('role'),
+      birthdate: pick('birthdate'),
+      lokasi: pick('lokasi'),
+      training: pick('training'),
+      alumniDaerah: pick('alumniDaerah'),
+      alumniTanggal: pick('alumniTanggal'),
+      school: pick('school'),
+      voucher: has(mu.voucher) ? mu.voucher : row.voucher,
+      // endDate SENGAJA tidak ditimpa: tabel ini pakai proyeksi manual dari
+      // mapToPembayaran (tgl payment + durasi), bukan endDate subscription user.
+      plan: pick('plan'),
+      // riwayat: angka user (>0) menang; simpan juga list buat modal Lihat Detail.
+      riwayatCount: mu.riwayatCount > 0 ? mu.riwayatCount : row.riwayatCount,
+      riwayatList: mu.riwayatList ?? row.riwayatList,
     }
-  }, [])
+  }
 
-  useEffect(() => { loadUsers(activeTab) }, [activeTab])
+  // Sub-tab "Belum Langganan" (langkah verifikasi pembayaran): akun yang datanya SUDAH
+  // disetujui (langkah-1 beres) tapi BELUM pernah berlangganan (subscription 'Not Active').
+  // Belum lolos langkah-2 → belum masuk Manajemen. Sumber = managementUsers (mapToManajemen).
+  // Catatan: 'Expired' = pernah bayar → tetap di Manajemen, bukan di sini.
+  // Exclude akun yang sudah submit bukti bayar (nongol di 'Menunggu Verifikasi'
+  // atau 'Pembayaran Ditolak') → jangan dobel-tampil di 'Belum Langganan'.
+  const pembayaranUserIds = new Set([
+    ...pembayaranMenunggu.map(p => p.userId),
+    ...pembayaranDitolak.map(p => p.userId),
+  ])
+  const belumLangganan = managementUsers.filter(
+    u => u.accountStatus === 'Disetujui' && u.subscription === 'Not Active' &&
+      !pembayaranUserIds.has(u.id)
+  )
 
-  const loadPendaftaran = useCallback(async () => {
-    try {
-      const res = await appConfigApi.get(PENDAFTARAN_KEY)
-      const value = res?.value ?? res?.data?.value ?? res ?? {}
-      const shared = value.shared_content || DEFAULT_SHARED
-      setSharedContent(shared)
+  const currentData = activeTab === 'manajemen'
+    ? managementUsers
+    : activeTab === 'verifikasi-pembayaran'
+      ? (pembayaranSubTab === 'belum-langganan'
+        ? belumLangganan
+        : (pembayaranSubTab === 'ditolak' ? pembayaranDitolak : pembayaranMenunggu).map(enrichFromUser))
+      : (verifSubTab === 'voucher' ? pendingVoucherUsers : users)
 
-      // Batas waktu bisa terlewat saat dashboard tidak dibuka sama sekali, jadi
-      // status hasil baca dinormalisasi dulu lalu ditulis balik ke app-config —
-      // kalau tidak, Home masih menampilkan pendaftaran yang sudah tutup.
-      const { rows, changed } = autoOffExpired(threadsToRows(value))
-      setPendaftaranData(rows)
-      if (changed) {
-        appConfigApi.set(PENDAFTARAN_KEY, rowsToValue(rows, shared)).catch(() => {})
+  const filteredUsers = currentData.filter(user => {
+    if (activeTab === 'manajemen') {
+      // Tiap tab = 1 tabel utama → hanya baris dgn status == tab aktif.
+      if (user.accountStatus !== activeFilter) return false
+      // Flow: hanya akun yang lolos 2 langkah (verifikasi akun + pembayaran) yang masuk
+      // Manajemen. Akun Disetujui tapi belum pernah langganan ('Not Active') masih di
+      // langkah pembayaran (tab "Belum Langganan") → jangan tampil di Manajemen Disetujui.
+      if (activeFilter === 'Disetujui' && user.subscription === 'Not Active') return false
+      // Tab Ditolak & Baru Dihapus: tanpa filter (tombol filter disembunyikan) →
+      // filter tersisa dari tab lain jangan ikut memotong baris.
+      const filterable = activeFilter !== 'Ditolak' && activeFilter !== 'Baru Dihapus'
+      if (filterable) {
+        if (selectedRoles.length > 0 && !selectedRoles.includes(user.role)) return false
+        if (selectedSubscriptions.length > 0 && !selectedSubscriptions.includes(user.subscription)) return false
+        if (selectedPlans.length > 0 && !selectedPlans.includes(user.plan)) return false
       }
-    } catch (e) {
-      // Belum dikonfigurasi / gagal baca → mulai dari kosong.
-      setPendaftaranData([])
-      setSharedContent(DEFAULT_SHARED)
     }
-  }, [])
+    if (!searchQuery) return true
+    const q = searchQuery.toLowerCase()
+    return ['name', 'username', 'email', 'training', 'school', 'voucher', 'voucherCode'].some(k =>
+      (user[k] || '').toLowerCase().includes(q)
+    )
+  })
 
+  const sortedUsers = applySortToList(filteredUsers, sortConfig)
+
+  // "Pilih semua" dibatasi BULK_LIMIT (keputusan #2): pilih maksimal 10 baris teratas.
+  const selectableIds = sortedUsers.slice(0, BULK_LIMIT).map(u => u.id)
+  const allSelected = selectableIds.length > 0 && selectableIds.every(id => selectedIds.includes(id))
+  const toggleSelectAll = () => {
+    if (allSelected) { setSelectedIds([]); return }
+    if (sortedUsers.length > BULK_LIMIT) flashLimit()
+    setSelectedIds(selectableIds)
+  }
+  const selectedUsers = currentData.filter(u => selectedIds.includes(u.id))
+
+  const man = useManajemen({
+    activeTab,
+    users, setUsers,
+    managementUsers, setManagementUsers,
+    selectedUsers,
+    actionModal, setActionModal,
+    setApiError,
+    toastApi,
+    roleNameFromId,
+    setBulkSuspendOpen,
+    clearSelection,
+  })
+  const {
+    handleRoleChange,
+    handleActionClick,
+    handleConfirmUbahRole,
+    handleConfirmHapusAkun,
+    handleConfirmPulihkanAkun,
+    handleConfirmHapusPermanen,
+    handleConfirmSetujuiAkun,
+    handleConfirmTangguhkanAkun,
+    handleConfirmKirimVoucher,
+    handleManajemenBulk,
+    handleBulkTangguhkan,
+  } = man
+
+  // Trigger muat ulang per tab — di page (bukan useAdminUsers) supaya bisa
+  // menyambungkan bridges milik useVerifikasi.
   useEffect(() => {
-    if (activeTab === 'pendaftaran-trainer') loadPendaftaran()
-  }, [activeTab, loadPendaftaran])
-
-  // Cukup 1 request: list training-sessions. mapToRiwayat auto-pakai region yang
-  // di-embed backend (s.region/s.regency) kalau ada.
-  //
-  // CATATAN 429: dulu di sini ada 2 loop per-session — resolve region (GET
-  // /regions/:id per id) + ringkasan peserta (getSessionParticipants per id).
-  // Untuk 100 session itu ~200 request → backend NestJS throttler (default
-  // ~10 req/60s) langsung balikin ThrottlerException 429. Loop dibuang. Kolom
-  // "Daerah" & "Peserta" harus di-embed backend di response list (lihat gap
-  // manajemen-akun-data-gaps), bukan disintesis lewat N+1 fetch dari FE.
-  const loadRiwayat = useCallback(async (page = 1, keyword = '') => {
-    try {
-      const params = { page, limit: RIWAYAT_PAGE_SIZE }
-      if (keyword.trim()) params.keyword = keyword.trim()
-      const res = await trainingSessionsApi.list(params)
-      const list = Array.isArray(res) ? res : (res?.data || res?.items || [])
-      setRiwayatPelatihanData(list.map(s => mapToRiwayat(s)))
-      const total = res?.meta?.total ?? res?.total
-      if (Number.isFinite(total)) {
-        setRiwayatTotalPages(Math.max(1, Math.ceil(total / RIWAYAT_PAGE_SIZE)))
-      } else {
-        setRiwayatTotalPages(3) // sementara: 3 page dulu selagi backend belum kirim meta.total
-      }
-    } catch (e) {
-      setRiwayatPelatihanData([])
-    }
-  }, [])
-
-  useEffect(() => {
-    if (activeTab === 'riwayat-pelatihan') loadRiwayat(riwayatPage, searchQuery)
-  }, [activeTab, loadRiwayat, riwayatPage, searchQuery])
-
-  // Reset ke page 1 tiap kali kata kunci pencarian berubah.
-  useEffect(() => { setRiwayatPage(1) }, [searchQuery])
-
-  // Verifikasi Pembayaran (manual transfer): dua request terpisah.
-  //  - Menunggu = filter 'receipt_uploaded' (bukti diunggah, menunggu review admin).
-  //  - Ditolak  = filter 'rejected'.
-  // try/catch per sub-tab supaya gagal di satu tidak mengosongkan lainnya.
-  const loadPembayaran = useCallback(async (currentRegions = []) => {
-    const regions = currentRegions.length ? currentRegions : trainingRegionsRef.current
-    try {
-      const res = await adminApi.listManualPayments({ filter: 'receipt_uploaded' })
-      const list = Array.isArray(res) ? res : (res?.data || res?.items || [])
-      setPembayaranMenunggu(list.map(p => mapToPembayaran(p, regions, discourseGroupsRef.current)))
-      setPembayaranLoaded(true) // mulai sekarang titik biru pakai list live, bukan count /stats
-    } catch (e) {
-      console.error('Failed to load pending payments', e)
-      setPembayaranMenunggu([])
-    }
-    try {
-      const res = await adminApi.listManualPayments({ filter: 'rejected' })
-      const list = Array.isArray(res) ? res : (res?.data || res?.items || [])
-      setPembayaranDitolak(list.map(p => mapToPembayaran(p, regions, discourseGroupsRef.current)))
-    } catch (e) {
-      console.error('Failed to load rejected payments', e)
-      setPembayaranDitolak([])
-    }
-  }, [])
-
-  useEffect(() => {
-    if (activeTab === 'verifikasi-pembayaran') loadPembayaran()
-  }, [activeTab, loadPembayaran])
-
-  // Enrich on-demand (opsi B): kalau baris payment usernya tidak ada di usersById
-  // (mis. di luar 20 user pertama yang ke-load Manajemen), fetch GET /admin/users/{id}
-  // per user yang kurang, map, lalu gabung ke usersById. Guard fetchedUserIdsRef
-  // supaya tidak menembak ulang (termasuk yang gagal) walau effect re-run.
-  useEffect(() => {
-    const rows = [...pembayaranMenunggu, ...pembayaranDitolak]
-    const missing = [...new Set(rows.map(r => r.userId).filter(Boolean))]
-      .filter(id => !usersById[id] && !fetchedUserIdsRef.current.has(id))
-    if (!missing.length) return
-    missing.forEach(id => fetchedUserIdsRef.current.add(id))
-    let cancelled = false
-    Promise.all(missing.map(id =>
-      adminApi.getUser(id)
-        .then(res => ({ id, raw: res?.data ?? res }))
-        .catch(() => null)
-    )).then(results => {
-      if (cancelled) return
-      const add = {}
-      for (const r of results) {
-        if (!r?.raw) continue
-        const row = mapToManajemen(r.raw, trainingRegionsRef.current, discourseGroupsRef.current)
-        add[row.id ?? r.id] = row
-      }
-      if (Object.keys(add).length) setUsersById(prev => ({ ...prev, ...add }))
+    loadUsers(activeTab, [], {
+      onVoucher: (rows) => setPendingVoucherUsers(rows),
+      onReset: () => clearSelection(),
     })
-    return () => { cancelled = true }
-  }, [pembayaranMenunggu, pembayaranDitolak, usersById])
+  }, [activeTab, loadUsers, setPendingVoucherUsers, clearSelection])
 
-  // Muat semua dataset sekali di mount supaya titik biru navbar akurat walau
-  // tab-nya belum pernah dibuka (dot = ada baris isNew / ada akun pending).
-  useEffect(() => {
-    loadUsers('manajemen')
-    loadRiwayat()
-    loadPendaftaran()
-  }, [loadUsers, loadRiwayat, loadPendaftaran])
+  // Derived data (currentData/selectedUsers) dihitung di sini, lalu dipakai
+  // useManajemen di bawah — hook tetap unconditional, urutan stabil.
 
-  // Titik biru Verifikasi Pembayaran: cukup count ringan dari /stats saat mount
-  // (bukan full list). Full list baru di-fetch saat tab dibuka (loadPembayaran).
-  useEffect(() => {
-    adminApi.getManualPaymentStats()
-      .then(res => {
-        const s = res?.data ?? res ?? {}
-        const n = s.receipt_uploaded ?? s.receiptUploaded ?? s.pendingReview ?? 0
-        setPembayaranMenungguCount(Number(n) || 0)
-      })
-      .catch(err => console.error('Failed to load payment stats', err))
-  }, [])
-
-  useEffect(() => {
-    discourseApi.getGroups()
-      .then(res => setDiscourseGroups(Array.isArray(res) ? res : (res.data || [])))
-      .catch(err => console.error("Failed to load discourse groups", err))
-  }, [])
-
-  // Sinkron ref + re-map kolom Role begitu daftar group siap (jika user datang
-  // sebelum groups selesai di-load, nama role tetap terisi setelah ini).
-  // Jaga ref regions selalu terbaru (dipakai loadPembayaran tanpa jadi dep).
-  useEffect(() => { trainingRegionsRef.current = trainingRegions }, [trainingRegions])
-
-  useEffect(() => {
-    discourseGroupsRef.current = discourseGroups
-    if (discourseGroups.length) loadUsers('manajemen', trainingRegions)
-  }, [discourseGroups, loadUsers])
-
-  // Opsi "Nama Pelatihan Terbaru" untuk modal approve (single & bulk). Load sekali.
-  useEffect(() => {
-    trainingSessionsApi.list({ page: 1, limit: 100 })
-      .then(res => {
-        const list = Array.isArray(res) ? res : (res?.data || res?.items || [])
-        setTrainingSessions(list.map(s => ({ id: s.id, name: s.name || '-' })))
-      })
-      .catch(err => console.error("Failed to load training sessions", err))
-  }, [])
 
   const handleTabChange = (tab) => {
     // DB-005 #10: toast global (1 state utk semua tab) nyangkut kalau ganti tab
@@ -520,643 +293,6 @@ export default function AdminDashboardPage({ user, onSignOut }) {
     setActiveFilter('Disetujui'); setSelectedRoles([]); setSelectedSubscriptions([]); setSelectedPlans([])
     setSelectedIds([]); setBulkModal(null)
     setPembayaranSubTab('menunggu'); setKonfirmasiCandidate(null); setTolakCandidate(null)
-  }
-
-  // ── Verifikasi Pembayaran: konfirmasi / tolak ──────────────────────────────
-  // Pola sama dgn approve/reject akun: optimistic remove baris + toast undo 5s +
-  // commit via scheduleAction. TODO(be): endpoint confirm/reject belum live.
-  const handleKonfirmasiPembayaran = (target) => {
-    if (!target) return
-    setKonfirmasiCandidate(null)
-    // Kandidat bisa datang dari sub-tab "menunggu" atau "ditolak" (aksi Setujui
-    // Pembayaran). Buang dari kedua list; restore diarahkan ke list asalnya.
-    const fromDitolak = target.statusMember === 'Pembayaran Ditolak'
-    const restore = () => fromDitolak
-      ? setPembayaranDitolak(prev => [target, ...prev])
-      : setPembayaranMenunggu(prev => [target, ...prev])
-    setPembayaranMenunggu(prev => prev.filter(u => u.id !== target.id))
-    setPembayaranDitolak(prev => prev.filter(u => u.id !== target.id))
-    setToast({
-      message: <>Berhasil konfirmasi pembayaran akun {target.name}</>,
-      undo: restore,
-    })
-    scheduleAction(
-      // Approve sukses → langganan aktif di BE. Refresh Manajemen supaya user
-      // approved + status langganannya ikut muncul (state Manajemen kalau tidak
-      // di-refetch tetap basi sampai pindah tab / hard reload).
-      async () => { await adminApi.approveManualPayment(target.id); loadUsers('manajemen') },
-      (err) => { restore(); setApiError(apiErrMsg(err, 'Gagal mengonfirmasi pembayaran.')) }
-    )
-  }
-
-  // reason = enum value (BE pakai untuk template email penolakan).
-  // notes = untuk reason 'unsuficient_transfer' WAJIB string angka (nominal
-  // yang beneran diterima BE); alasan lain teks bebas opsional. Divalidasi di
-  // TolakPembayaranModal sebelum onConfirm dipanggil.
-  const handleTolakPembayaran = ({ candidate: target, reason, notes }) => {
-    if (!target) return
-    setTolakCandidate(null)
-    setKonfirmasiCandidate(null)
-    const rejected = { ...target, statusMember: 'Pembayaran Ditolak' }
-    setPembayaranMenunggu(prev => prev.filter(u => u.id !== target.id))
-    setPembayaranDitolak(prev => [rejected, ...prev])
-    setToast({
-      message: <>Pembayaran {target.name} telah ditolak</>,
-      undo: () => {
-        setPembayaranDitolak(prev => prev.filter(u => u.id !== target.id))
-        setPembayaranMenunggu(prev => [target, ...prev])
-      },
-    })
-    scheduleAction(
-      () => adminApi.rejectManualPayment(target.id, reason, notes || undefined),
-      (err) => {
-        setPembayaranDitolak(prev => prev.filter(u => u.id !== target.id))
-        setPembayaranMenunggu(prev => [target, ...prev])
-        setApiError(apiErrMsg(err, 'Gagal menolak pembayaran.'))
-      }
-    )
-  }
-
-  // Menu "..." di sub-tab Pembayaran Ditolak → dua aksi:
-  //   setujui-pembayaran → buka modal bukti transfer (approve, sama alur menunggu)
-  //   hapus-akun         → konfirmasi lalu deletion-request (pindah ke Baru Dihapus)
-  const handlePembayaranRowAction = (type, user) => {
-    if (type === 'setujui-pembayaran') setKonfirmasiCandidate(user)
-    else if (type === 'hapus-akun') setActionModal({ type: 'hapus-akun-pembayaran', user })
-  }
-
-  // Hapus akun dari tab Pembayaran Ditolak → deletion-request + pindah ke Baru
-  // Dihapus. Row pembayaran: id = payment id, userId = id akun (dipakai endpoint).
-  const handleConfirmHapusAkunPembayaran = () => {
-    const target = actionModal.user
-    if (!target) return
-    setActionModal({ type: null, user: null })
-    setPembayaranDitolak(prev => prev.filter(u => u.id !== target.id))
-    setToast({
-      message: <>Akun {target.name} telah dihapus</>,
-      undo: () => setPembayaranDitolak(prev => [target, ...prev]),
-    })
-    scheduleAction(
-      // Refresh Manajemen supaya akun muncul di tab "Baru Dihapus".
-      async () => { await adminApi.requestUserDeletion(target.userId || target.id); loadUsers('manajemen') },
-      (err) => { setPembayaranDitolak(prev => [target, ...prev]); setApiError(apiErrMsg(err, 'Gagal menghapus akun.')) }
-    )
-  }
-
-  const flashLimit = () => {
-    setLimitHit(true)
-    if (limitTimeoutRef.current) clearTimeout(limitTimeoutRef.current)
-    limitTimeoutRef.current = setTimeout(() => setLimitHit(false), 2500)
-  }
-
-  const toggleSelect = (id) => {
-    setSelectedIds(prev => {
-      if (prev.includes(id)) return prev.filter(x => x !== id)
-      if (prev.length >= BULK_LIMIT) { flashLimit(); return prev } // hard limit
-      return [...prev, id]
-    })
-  }
-
-  const clearSelection = () => setSelectedIds([])
-
-  const persistPendaftaran = (rows) =>
-    appConfigApi.set(PENDAFTARAN_KEY, rowsToValue(rows, sharedContent))
-
-  // Auto-dismiss toast (aksi tanpa API) setelah 5 detik; reset timer sebelumnya.
-  const armToastDismiss = () => {
-    if (toastTimeoutId) clearTimeout(toastTimeoutId)
-    const id = setTimeout(() => setToast(null), 5000)
-    setToastTimeoutId(id)
-  }
-
-  const handleAddPendaftaran = async (data) => {
-    const threadId = parseThreadId(data.url)
-    if (!threadId) {
-      setApiError('Tautan topik tidak valid. Pastikan URL mengandung id topik Discourse.')
-      return
-    }
-
-    const newRow = {
-      id: threadId,
-      threadId,
-      nama: data.nama,
-      url: data.url,
-      periode: data.periode,
-      batasWaktu: data.batasWaktu,
-      isActive: false,
-      headerText: HEADER_BASE + (data.periode || ''),
-      createdAt: Date.now(),
-      isNew: true,
-    }
-    // Ganti kalau threadId sama sudah ada.
-    const next = [newRow, ...pendaftaranData.filter(r => r.threadId !== threadId)]
-    const prev = pendaftaranData
-
-    setApiError('')
-    setPendaftaranData(next)
-    try {
-      await persistPendaftaran(next)
-      setToast({ message: <>Pelatihan {data.nama} berhasil ditambahkan</> })
-    } catch (err) {
-      setPendaftaranData(prev)
-      setApiError(err.message || 'Gagal menyimpan pendaftaran pelatihan.')
-    }
-  }
-
-  // Dashboard bisa dibiarkan terbuka melewati batas waktu, jadi status juga
-  // dicek berkala, bukan cuma saat load.
-  useEffect(() => {
-    const tick = () => {
-      setPendaftaranData(prev => {
-        const { rows, changed } = autoOffExpired(prev)
-        if (changed) persistPendaftaran(rows).catch(() => {})
-        return rows
-      })
-    }
-    const timer = setInterval(tick, 30_000)
-    return () => clearInterval(timer)
-  }, [sharedContent])
-
-  // Aturan: hanya 1 pelatihan boleh aktif. Nyalakan 1 → matikan sisanya.
-  // Baris yang batas waktunya lewat tidak boleh dinyalakan lagi.
-  const handleTogglePendaftaranStatus = async (id) => {
-    const target = pendaftaranData.find(r => r.id === id)
-    if (!target) return
-    const turningOn = !target.isActive
-    if (turningOn && isPastDeadline(target.batasWaktu)) {
-      setApiError('Batas waktu pendaftaran sudah lewat. Perbarui batas waktu sebelum mengaktifkan kembali.')
-      return
-    }
-    const next = pendaftaranData.map(r => ({
-      ...r,
-      isActive: turningOn ? r.id === id : (r.id === id ? false : r.isActive),
-    }))
-    const prev = pendaftaranData
-
-    setApiError('')
-    setPendaftaranData(next)
-    try {
-      await persistPendaftaran(next)
-    } catch (err) {
-      setPendaftaranData(prev)
-      setApiError(err.message || 'Gagal memperbarui status pelatihan.')
-    }
-  }
-
-
-  // Hapus pendaftaran pelatihan (baris berstatus Berakhir). Sumber data tab ini =
-  // app-config JSON (PENDAFTARAN_KEY), BUKAN training-sessions. Jadi "delete" =
-  // buang entry dari daftar rows lalu tulis balik JSON tanpa entry itu
-  // (persistPendaftaran → rowsToValue). Optimistic remove + revert bila gagal.
-  const handleDeletePendaftaran = async (item) => {
-    if (!item) return
-    const prev = pendaftaranData
-    const next = pendaftaranData.filter(r => r.id !== item.id)
-    setApiError('')
-    setPendaftaranData(next)
-    try {
-      await persistPendaftaran(next)
-      setToast({ message: <>Pelatihan {item.nama} berhasil dihapus</> })
-      armToastDismiss()
-    } catch (err) {
-      setPendaftaranData(prev) // revert
-      setApiError(err.message || 'Gagal menghapus pelatihan.')
-    }
-  }
-
-  // Tambah pelatihan baru → POST /admin/training-sessions (optimistic).
-  // Status = state upload: Processing (in-flight) → Saved (sukses) / Error (gagal).
-  // Response cuma balikin session (tanpa peserta/langganan) → kolom itu diisi '-'.
-  const handleAddPelatihan = async (data) => {
-    const tempId = `temp-${Date.now()}`
-    const baseRow = {
-      id: tempId,
-      nama: data.name,
-      isNew: true,
-      daerah: data.daerahLabel,
-      tglMulai: data.tglMulaiLabel,
-      status: 'Processing',
-      pesertaNama: '-',
-      pesertaLainnya: 0,
-      pesertaEmail: '-',
-      langganan: '-',
-      lastUpdated: fmtTimeAmPm(new Date()),
-      lastUpdatedMs: Date.now(),
-      regionId: data.regionId,
-      startMs: data.startDate ? new Date(data.startDate).getTime() : null,
-      endMs: data.endDate ? new Date(data.endDate).getTime() : null,
-    }
-    setRiwayatPelatihanData(prev => [baseRow, ...prev])
-
-    try {
-      const res = await adminApi.createTrainingSession({
-        name: data.name,
-        regionId: data.regionId,
-        startDate: data.startDate,
-        endDate: data.endDate,
-      })
-      const sessionId = res?.id || res?.data?.id || tempId
-      setRiwayatPelatihanData(prev =>
-        prev.map(r => (r.id === tempId ? { ...r, id: sessionId } : r))
-      )
-
-      // Kalau ada CSV peserta: upload → validasi → push (row invalid/duplikat di-skip).
-      // Session tetap dibuat meski import gagal → row Saved + toast peringatan.
-      let pesertaWarn = ''
-      if (data.pesertaFile) {
-        try {
-          const up = await trainingHistoriesApi.upload(data.pesertaFile, sessionId)
-          await queueApi.waitJob(up.trackId)
-          const pushRes = await trainingHistoriesApi.push(up.importId)
-          await queueApi.waitJob(pushRes.trackId)
-        } catch (impErr) {
-          pesertaWarn = ` (import peserta gagal: ${impErr.message || 'error'})`
-        }
-      }
-
-      setRiwayatPelatihanData(prev =>
-        prev.map(r => (r.id === sessionId ? { ...r, status: 'Saved' } : r))
-      )
-      setToast({ message: <>Pelatihan {data.name} berhasil ditambahkan{pesertaWarn}</> })
-      armToastDismiss()
-    } catch (err) {
-      setRiwayatPelatihanData(prev =>
-        prev.map(r => (r.id === tempId ? { ...r, status: 'Error' } : r))
-      )
-      setApiError(err.message || 'Gagal menambah pelatihan.')
-    }
-  }
-
-  // Hapus session → DELETE /admin/training-sessions/:id (optimistic + revert).
-  // Dipicu dari tombol "Hapus Riwayat" di modal edit (ketik DELETE).
-  const handleDeleteRiwayat = async (item) => {
-    if (!item) return
-    const prev = riwayatPelatihanData
-    setRiwayatPelatihanData(p => p.filter(r => r.id !== item.id))
-    try {
-      await adminApi.deleteTrainingSession(item.id)
-      setToast({ message: 'Berhasil menghapus riwayat pelatihan' })
-      armToastDismiss()
-    } catch (err) {
-      setRiwayatPelatihanData(prev) // revert
-      setApiError(err.message || 'Gagal menghapus riwayat pelatihan.')
-    }
-  }
-
-  // Simpan perubahan session → PATCH + (opsional) ganti CSV peserta (upload+push).
-  const handleUpdatePelatihan = async (data) => {
-    const prev = riwayatPelatihanData
-    // Optimistic: update tampilan + status Processing selama request jalan.
-    setRiwayatPelatihanData(p => p.map(r => r.id === data.id
-      ? { ...r, nama: data.name, daerah: data.daerahLabel, tglMulai: data.tglMulaiLabel, regionId: data.regionId, status: 'Processing' }
-      : r))
-    try {
-      await adminApi.updateTrainingSession(data.id, {
-        name: data.name, regionId: data.regionId, startDate: data.startDate, endDate: data.endDate,
-      })
-      let pesertaWarn = ''
-      if (data.pesertaFile) {
-        try {
-          const up = await trainingHistoriesApi.upload(data.pesertaFile, data.id)
-          await queueApi.waitJob(up.trackId)
-          const pushRes = await trainingHistoriesApi.push(up.importId)
-          await queueApi.waitJob(pushRes.trackId)
-        } catch (impErr) {
-          pesertaWarn = ` (import peserta gagal: ${impErr.message || 'error'})`
-        }
-      }
-      setRiwayatPelatihanData(p => p.map(r => r.id === data.id ? { ...r, status: 'Saved' } : r))
-      setToast({ message: <>Berhasil menyimpan riwayat {data.name}{pesertaWarn}</> })
-      armToastDismiss()
-    } catch (err) {
-      setRiwayatPelatihanData(prev) // revert
-      setApiError(err.message || 'Gagal menyimpan riwayat pelatihan.')
-    }
-  }
-
-  const handleDownloadRiwayat = (item) => {
-    const csv = [
-      'Nama Pelatihan,Daerah Pelatihan,Tgl. Mulai,Status,Nama Peserta,Last Updated',
-      `"${item.nama}","${item.daerah}","${item.tglMulai}","${item.status}","${item.pesertaNama}","${item.lastUpdated}"`
-    ].join('\n')
-    downloadCsv(`${item.nama}-Export data.csv`, csv)
-  }
-
-  const scheduleAction = (apiCall, onError) => {
-    executeActionRef.current = true
-    if (toastTimeoutId) clearTimeout(toastTimeoutId)
-    const id = setTimeout(async () => {
-      if (executeActionRef.current) {
-        try { await apiCall() }
-        catch (err) { onError(err) }
-      }
-      setToast(null)
-    }, 5000)
-    setToastTimeoutId(id)
-  }
-
-  // Tempel pesan error asli dari API (kalau ada) ke belakang copy generik, biar
-  // banner error informatif bukan cuma "Gagal ..." tanpa alasan (DB-002 #11).
-  const apiErrMsg = (err, fallback) => err?.message ? `${fallback} (${err.message})` : fallback
-
-  // Toast dengan undo untuk aksi FE-only (tanpa API): perubahan state langsung,
-  // `undo` mengembalikan state, auto-dismiss 5 detik.
-  const showUndoToast = (message, undo) => {
-    setToast({ message, undo })
-    armToastDismiss()
-  }
-
-  // Role + Pelatihan kini dipilih di dalam ApproveModal (bukan lagi di baris tabel),
-  // jadi klik centang langsung buka modal — validasi wajib ada di modal.
-  const handleVerify = (id) => {
-    setApproveCandidate(users.find(u => u.id === id))
-  }
-
-  // Resolve nama role (discourse group) dari id — untuk kolom Role di tabel voucher.
-  const roleNameFromId = (id) => {
-    const g = discourseGroups.find(x => String(x.id ?? x.groupId) === String(id))
-    return canonicalRole(g) || ''
-  }
-
-  // Approve langkah-1 ("Approve Main Data"): WAITING(0) → PENDING_VOUCHER(3).
-  // discourseGroupId + firstTrainingSessionId WAJIB di payload — kehadirannya yang
-  // menandai request ini sebagai langkah-1. Optimistic + toast undo 5s.
-  const handleConfirmApprove = ({ discourseGroupId, firstTrainingSessionId }) => {
-    if (!approveCandidate) return
-    const target = approveCandidate
-    setApproveCandidate(null)
-    // firstTrainingSession baru ke-set → BE bikin 1 record histori. Baris optimistic
-    // masih bawa riwayatCount lama (0 dari tahap WAITING); bump ke min 1 + isi Alumni Nama
-    // dari sesi terpilih supaya kolom "Riwayat Pelatihan" langsung akurat sebelum reload.
-    const pickedSession = trainingSessions.find(s => String(s.id) === String(firstTrainingSessionId))
-    const vUser = { ...target, verifiedStatus: VERIFIED_STATUS.PENDING_VOUCHER, status: 'Pending Voucher', discourseGroupId, firstTrainingSessionId, role: roleNameFromId(discourseGroupId) || target.role, voucherCode: genVoucherCode(), hasRiwayat: true, riwayatCount: Math.max(target.riwayatCount || 0, 1), alumniNama: pickedSession?.name || target.alumniNama }
-    setUsers(prev => prev.filter(u => u.id !== target.id))
-    setPendingVoucherUsers(prev => [vUser, ...prev])
-    setToast({
-      message: <>Akun {target.name} telah disetujui</>,
-      undo: () => {
-        setPendingVoucherUsers(prev => prev.filter(u => u.id !== target.id))
-        setUsers(prev => [target, ...prev])
-      },
-    })
-    scheduleAction(
-      // BE sudah auto-membuat record training-history saat verify menyetel
-      // firstTrainingSession (POST manual → 409 "already exists"), jadi cukup verify saja.
-      () => adminApi.verifyUser(target.id, { status: 'approved', discourseGroupId, firstTrainingSessionId }),
-      (err) => {
-        setPendingVoucherUsers(prev => prev.filter(u => u.id !== target.id))
-        setUsers(prev => [target, ...prev])
-        setApiError(apiErrMsg(err, 'Gagal menyetujui akun.'))
-      }
-    )
-  }
-
-  // Konfirmasi voucher → langkah-2 ("Finalize"): PENDING_VOUCHER(3) → APPROVED(1).
-  // Payload { status, discourseGroupId }. firstTrainingSessionId TETAP tidak dikirim:
-  // dulu kehadiran kedua field itu dibaca backend sebagai penanda langkah-1 sehingga
-  // akun mental balik ke PENDING_VOUCHER. Sejak 20 Jul backend mewajibkan
-  // discourseGroupId untuk status approved, jadi field itu terpaksa ikut.
-  // VERIFIKASI: pastikan akun benar-benar mendarat di APPROVED, bukan PENDING_VOUCHER.
-  // Optimistic remove baris + toast undo 5s.
-  const handleConfirmVoucher = () => {
-    if (!voucherCandidate) return
-    const target = voucherCandidate
-    setVoucherCandidate(null)
-    setPendingVoucherUsers(prev => prev.filter(u => u.id !== target.id))
-    setToast({
-      message: <>Akun {target.name} telah disetujui</>,
-      undo: () => setPendingVoucherUsers(prev => [target, ...prev]),
-    })
-    scheduleAction(
-      () => adminApi.verifyUser(target.id, { status: 'approved', discourseGroupId: target.discourseGroupId }),
-      (err) => { setPendingVoucherUsers(prev => [target, ...prev]); setApiError(apiErrMsg(err, 'Gagal menyetujui akun.')) }
-    )
-  }
-
-  const handleBulkConfirmVoucher = (rows) => {
-    const ids = rows.map(r => r.id)
-    const removed = pendingVoucherUsers.filter(u => ids.includes(u.id))
-    setPendingVoucherUsers(prev => prev.filter(u => !ids.includes(u.id)))
-    setBulkModal(null); setSelectedIds([])
-    setToast({
-      message: <>{rows.length} akun telah disetujui</>,
-      undo: () => setPendingVoucherUsers(prev => [...removed, ...prev]),
-    })
-    scheduleAction(
-      () => Promise.all(rows.map(r => adminApi.verifyUser(r.id, { status: 'approved', discourseGroupId: r.discourseGroupId }))),
-      (err) => { setPendingVoucherUsers(prev => [...removed, ...prev]); setApiError(apiErrMsg(err, 'Gagal menyetujui sebagian akun.')) }
-    )
-  }
-
-  // ── Bulk approve / reject ───────────────────────────────────────────────────
-  // Pola sama dengan single: optimistic remove + toast undo 5 detik + commit batch
-  // (Promise.all). Undo membatalkan timer, jadi API tak pernah dipanggil.
-  // Bulk approve langkah-1: kirim discourseGroupId + firstTrainingSessionId per baris.
-  const handleBulkApprove = (rows) => {
-    const ids = rows.map(r => r.id)
-    const removed = users.filter(u => ids.includes(u.id))
-    const vUsers = rows.map(r => {
-      const base = removed.find(u => u.id === r.id) || {}
-      const pickedSession = trainingSessions.find(s => String(s.id) === String(r.firstTrainingSessionId))
-      return { ...base, verifiedStatus: VERIFIED_STATUS.PENDING_VOUCHER, status: 'Pending Voucher', discourseGroupId: r.discourseGroupId, firstTrainingSessionId: r.firstTrainingSessionId, role: roleNameFromId(r.discourseGroupId) || base.role, voucherCode: genVoucherCode(), hasRiwayat: true, riwayatCount: Math.max(base.riwayatCount || 0, 1), alumniNama: pickedSession?.name || base.alumniNama }
-    })
-    setUsers(prev => prev.filter(u => !ids.includes(u.id)))
-    setPendingVoucherUsers(prev => [...vUsers, ...prev])
-    setBulkModal(null); setSelectedIds([])
-    setToast({
-      message: <>{rows.length} akun disetujui, menunggu setup voucher</>,
-      undo: () => {
-        setPendingVoucherUsers(prev => prev.filter(u => !ids.includes(u.id)))
-        setUsers(prev => [...removed, ...prev])
-      },
-    })
-    scheduleAction(
-      // BE auto-membuat record training-history saat verify menyetel firstTrainingSession,
-      // jadi cukup verify saja (POST manual → 409 "already exists").
-      () => Promise.all(rows.map(r => adminApi.verifyUser(r.id, { status: 'approved', discourseGroupId: r.discourseGroupId, firstTrainingSessionId: r.firstTrainingSessionId }))),
-      (err) => {
-        setPendingVoucherUsers(prev => prev.filter(u => !ids.includes(u.id)))
-        setUsers(prev => [...removed, ...prev])
-        setApiError(apiErrMsg(err, 'Gagal menyetujui sebagian akun.'))
-      }
-    )
-  }
-
-  const handleBulkReject = (rows) => {
-    const ids = rows.map(r => r.id)
-    const removed = users.filter(u => ids.includes(u.id))
-    setUsers(prev => prev.filter(u => !ids.includes(u.id)))
-    setBulkModal(null); setSelectedIds([])
-    setToast({ message: <>{rows.length} akun telah ditolak</>, users: removed })
-
-    scheduleAction(
-      () => Promise.all(rows.map(r => r.status === 'rejected'
-        ? adminApi.rejectUser(r.id, { rejectedReason: r.reason })
-        : adminApi.reviseUser(r.id, { rejectedReason: r.reason, fieldsToRevise: r.invalidFields })
-      )),
-      (err) => { setUsers(prev => [...removed, ...prev]); setApiError(apiErrMsg(err, 'Gagal menolak sebagian akun. Silakan coba lagi.')) }
-    )
-  }
-
-  const handleConfirmReject = ({ status, invalidFields, reason }) => {
-    if (!rejectCandidate) return
-    const target = rejectCandidate
-    setUsers(prev => prev.filter(u => u.id !== target.id))
-    setRejectCandidate(null)
-    setToast({ message: <>Akun {target.name} telah ditolak</>, user: target })
-
-    // status 'rejected' → tolak final (teks bebas). status 'revise' → minta perbaiki
-    // data (backend generate token JWT + email link revise). Lihat ADR-0003.
-    const apiCall = status === 'rejected'
-      ? () => adminApi.rejectUser(target.id, { rejectedReason: reason })
-      : () => adminApi.reviseUser(target.id, { rejectedReason: reason, fieldsToRevise: invalidFields })
-
-    scheduleAction(apiCall, (err) => {
-      setUsers(prev => [target, ...prev]); setApiError(apiErrMsg(err, 'Gagal menolak akun. Silakan coba lagi.'))
-    })
-  }
-
-  const handleRoleChange = (id, newRole) => {
-    if (activeTab === 'verifikasi') {
-      setUsers(users.map(u => u.id === id ? { ...u, role: newRole } : u))
-    } else {
-      setManagementUsers(managementUsers.map(u => u.id === id ? { ...u, role: newRole } : u))
-    }
-    if (newRole) setRoleErrors(prev => ({ ...prev, [id]: false }))
-  }
-
-  const handleActionClick = (type, user) => {
-    setActionModal({ type, user })
-  }
-
-  // gid = discourseGroupId dari dropdown (opsinya sudah berasal dari backend, jadi
-  // id-nya selalu sah). Nama role cuma dipakai untuk tampilan optimistic.
-  const handleConfirmUbahRole = (gid) => {
-    const target = actionModal.user
-    const prevRole = target.role
-    setActionModal({ type: null, user: null })
-
-    const newRole = roleNameFromId(gid)
-    handleRoleChange(target.id, newRole)
-    setToast({
-      message: <>Berhasil mengubah role akun {target.name}</>,
-      roleUndo: { id: target.id, prevRole },
-    })
-    // Commit ke backend. Undo membatalkan timer.
-    scheduleAction(
-      () => adminApi.updateDiscourseGroup(target.id, gid),
-      (err) => { handleRoleChange(target.id, prevRole); setApiError(apiErrMsg(err, 'Gagal mengubah role.')) }
-    )
-  }
-
-  // Hapus akun (tab Disetujui/Ditolak) → pindah ke "Baru Dihapus" (deletion-request).
-  const handleConfirmHapusAkun = () => {
-    const target = actionModal.user
-    if (!target) return
-    setActionModal({ type: null, user: null })
-    const prevStatus = target.accountStatus
-    setManagementUsers(prev => prev.map(u => u.id === target.id ? { ...u, accountStatus: 'Baru Dihapus' } : u))
-    setToast({ message: <>Akun {target.name} telah dihapus</>, statusUndo: { id: target.id, prevStatus } })
-    scheduleAction(
-      () => adminApi.requestUserDeletion(target.id),
-      (err) => { setManagementUsers(prev => prev.map(u => u.id === target.id ? { ...u, accountStatus: prevStatus } : u)); setApiError(apiErrMsg(err, 'Gagal menghapus akun.')) }
-    )
-  }
-
-  // Pulihkan akun → kembali "Disetujui". Sumber "Baru Dihapus" = cancelDeletion,
-  // sumber "Ditangguhkan" = unsuspend.
-  const handleConfirmPulihkanAkun = () => {
-    const target = actionModal.user
-    if (!target) return
-    setActionModal({ type: null, user: null })
-    const prevStatus = target.accountStatus
-    setManagementUsers(prev => prev.map(u => u.id === target.id ? { ...u, accountStatus: 'Disetujui' } : u))
-    setToast({ message: <>Akun {target.name} telah dipulihkan</>, statusUndo: { id: target.id, prevStatus } })
-    const apiCall = prevStatus === 'Baru Dihapus'
-      ? () => adminApi.cancelUserDeletion(target.id)
-      : () => adminApi.unsuspendUser(target.id)
-    scheduleAction(
-      apiCall,
-      (err) => { setManagementUsers(prev => prev.map(u => u.id === target.id ? { ...u, accountStatus: prevStatus } : u)); setApiError(apiErrMsg(err, 'Gagal memulihkan akun.')) }
-    )
-  }
-
-  // Hapus akun PERMANEN (tab Baru Dihapus) → baris hilang total dari daftar.
-  // Optimistic remove + toast undo 5 dtk (clearTimeout membatalkan commit). Undo
-  // mengembalikan snapshot. Endpoint = adminApi.deleteUserPermanent (TODO: konfirmasi).
-  const handleConfirmHapusPermanen = () => {
-    const target = actionModal.user
-    if (!target) return
-    setActionModal({ type: null, user: null })
-    const snapshot = managementUsers
-    setManagementUsers(prev => prev.filter(u => u.id !== target.id))
-    setToast({
-      message: <>Akun {target.name} dihapus permanen</>,
-      undo: () => setManagementUsers(snapshot),
-    })
-    scheduleAction(
-      () => adminApi.deleteUserPermanent(target.id),
-      (err) => { setManagementUsers(snapshot); setApiError(apiErrMsg(err, 'Gagal menghapus akun permanen.')) }
-    )
-  }
-
-  // Setujui akun (tab Ditolak) → approve dgn role + pelatihan + voucher (dari modal).
-  const handleConfirmSetujuiAkun = ({ discourseGroupId, firstTrainingSessionId, voucherCode }) => {
-    const target = actionModal.user
-    if (!target) return
-    setActionModal({ type: null, user: null })
-    const prevStatus = target.accountStatus
-    const roleName = roleNameFromId(discourseGroupId)
-    setManagementUsers(prev => prev.map(u => u.id === target.id
-      ? { ...u, accountStatus: 'Disetujui', role: roleName || u.role, voucher: voucherCode || u.voucher }
-      : u))
-    setToast({ message: <>Akun {target.name} telah disetujui</>, statusUndo: { id: target.id, prevStatus } })
-    
-    const isUnreject = prevStatus === 'Ditolak'
-    const payload = isUnreject 
-      ? { status: 'unreject' } 
-      : { status: 'approved', discourseGroupId, firstTrainingSessionId }
-    
-    scheduleAction(
-      () => adminApi.verifyUser(target.id, payload),
-      (err) => { setManagementUsers(prev => prev.map(u => u.id === target.id ? { ...u, accountStatus: prevStatus } : u)); setApiError(apiErrMsg(err, 'Gagal menyetujui akun.')) }
-    )
-  }
-
-  // Tangguhkan akun (tab Disetujui) → suspend s/d suspendedUntil (modal preset/manual).
-  // TODO(be): emailMessage belum dikirim — endpoint /suspend hanya terima suspendedUntil + reason.
-  const handleConfirmTangguhkanAkun = ({ suspendedUntil, reason }) => {
-    const target = actionModal.user
-    if (!target) return
-    setActionModal({ type: null, user: null })
-    const prevStatus = target.accountStatus
-    setManagementUsers(prev => prev.map(u => u.id === target.id ? { ...u, accountStatus: 'Ditangguhkan' } : u))
-    setToast({ message: <>Akun {target.name} telah ditangguhkan</>, statusUndo: { id: target.id, prevStatus } })
-    scheduleAction(
-      () => adminApi.suspendUser(target.id, { suspendedUntil, reason }),
-      (err) => { setManagementUsers(prev => prev.map(u => u.id === target.id ? { ...u, accountStatus: prevStatus } : u)); setApiError(apiErrMsg(err, 'Gagal menangguhkan akun.')) }
-    )
-  }
-
-  const handleConfirmKirimVoucher = (voucherCode) => {
-    const target = actionModal.user
-    if (!target) return
-    const prevVoucher = target.voucher
-    setManagementUsers(prev => prev.map(u => u.id === target.id ? { ...u, voucher: voucherCode } : u))
-    setActionModal({ type: null, user: null })
-    setToast({
-      message: <>Voucher {voucherCode} berhasil dikirim ke {target.name}</>,
-      undo: () => setManagementUsers(prev => prev.map(u => u.id === target.id ? { ...u, voucher: prevVoucher } : u)),
-    })
-    // Commit ke backend (optimistic + toast undo 5s). TODO(be): konfirmasi bentuk
-    // payload personal voucher — { userId, code } masih tebakan sampai kontrak final.
-    scheduleAction(
-      () => adminApi.grantPersonalVoucher({ userId: target.id, code: voucherCode }),
-      (err) => {
-        setManagementUsers(prev => prev.map(u => u.id === target.id ? { ...u, voucher: prevVoucher } : u))
-        setApiError(apiErrMsg(err, 'Gagal mengirim voucher.'))
-      }
-    )
   }
 
   const handleUndoToast = () => {
@@ -1223,159 +359,17 @@ export default function AdminDashboardPage({ user, onSignOut }) {
   // Titik biru navbar per menu.
   //  - verifikasi: selalu muncul kalau ada akun di tabel Pending / Pending Voucher.
   //  - menu lain : muncul hanya kalau ada baris "komponen baru" (isNew, < 3 hari).
-  const navFlags = {
-    'verifikasi':            users.length > 0 || pendingVoucherUsers.length > 0,
-    'verifikasi-pembayaran': pembayaranLoaded ? pembayaranMenunggu.length > 0 : pembayaranMenungguCount > 0,
-    'manajemen':             managementUsers.some(u => u.isNew),
-    'riwayat-pelatihan':     riwayatPelatihanData.some(r => r.isNew),
-    'pendaftaran-trainer':   pendaftaranData.some(r => r.isNew),
-  }
-
-  // Kolom yang response payment TIDAK embed → ambil dari user (GET /admin/users)
-  // via usersById. Pakai nilai user hanya kalau "berisi" ('-'/''/null dianggap kosong);
-  // kalau tidak, pertahankan nilai dari payment (mis. plan Yearly/Monthly).
-  const enrichFromUser = (row) => {
-    const mu = usersById[row.userId]
-    if (!mu) return row
-    const has = (v) => v != null && v !== '' && v !== '-'
-    const pick = (k) => (has(mu[k]) ? mu[k] : row[k])
-    return {
-      ...row,
-      role:          pick('role'),
-      birthdate:     pick('birthdate'),
-      lokasi:        pick('lokasi'),
-      training:      pick('training'),
-      alumniDaerah:  pick('alumniDaerah'),
-      alumniTanggal: pick('alumniTanggal'),
-      school:        pick('school'),
-      voucher:       has(mu.voucher) ? mu.voucher : row.voucher,
-      // endDate SENGAJA tidak ditimpa: tabel ini pakai proyeksi manual dari
-      // mapToPembayaran (tgl payment + durasi), bukan endDate subscription user.
-      plan:          pick('plan'),
-      // riwayat: angka user (>0) menang; simpan juga list buat modal Lihat Detail.
-      riwayatCount:  mu.riwayatCount > 0 ? mu.riwayatCount : row.riwayatCount,
-      riwayatList:   mu.riwayatList ?? row.riwayatList,
-    }
-  }
-
-  // Sub-tab "Belum Langganan" (langkah verifikasi pembayaran): akun yang datanya SUDAH
-  // disetujui (langkah-1 beres) tapi BELUM pernah berlangganan (subscription 'Not Active').
-  // Belum lolos langkah-2 → belum masuk Manajemen. Sumber = managementUsers (mapToManajemen).
-  // Catatan: 'Expired' = pernah bayar → tetap di Manajemen, bukan di sini.
-  // Exclude akun yang sudah submit bukti bayar (nongol di 'Menunggu Verifikasi'
-  // atau 'Pembayaran Ditolak') → jangan dobel-tampil di 'Belum Langganan'.
-  const pembayaranUserIds = new Set([
-    ...pembayaranMenunggu.map(p => p.userId),
-    ...pembayaranDitolak.map(p => p.userId),
-  ])
-  const belumLangganan = managementUsers.filter(
-    u => u.accountStatus === 'Disetujui' && u.subscription === 'Not Active' &&
-      !pembayaranUserIds.has(u.id)
-  )
-
-  const currentData = activeTab === 'manajemen'
-    ? managementUsers
-    : activeTab === 'verifikasi-pembayaran'
-      ? (pembayaranSubTab === 'belum-langganan'
-          ? belumLangganan
-          : (pembayaranSubTab === 'ditolak' ? pembayaranDitolak : pembayaranMenunggu).map(enrichFromUser))
-      : (verifSubTab === 'voucher' ? pendingVoucherUsers : users)
-
-  const filteredUsers = currentData.filter(user => {
-    if (activeTab === 'manajemen') {
-      // Tiap tab = 1 tabel utama → hanya baris dgn status == tab aktif.
-      if (user.accountStatus !== activeFilter) return false
-      // Flow: hanya akun yang lolos 2 langkah (verifikasi akun + pembayaran) yang masuk
-      // Manajemen. Akun Disetujui tapi belum pernah langganan ('Not Active') masih di
-      // langkah pembayaran (tab "Belum Langganan") → jangan tampil di Manajemen Disetujui.
-      if (activeFilter === 'Disetujui' && user.subscription === 'Not Active') return false
-      // Tab Ditolak & Baru Dihapus: tanpa filter (tombol filter disembunyikan) →
-      // filter tersisa dari tab lain jangan ikut memotong baris.
-      const filterable = activeFilter !== 'Ditolak' && activeFilter !== 'Baru Dihapus'
-      if (filterable) {
-        if (selectedRoles.length > 0 && !selectedRoles.includes(user.role)) return false
-        if (selectedSubscriptions.length > 0 && !selectedSubscriptions.includes(user.subscription)) return false
-        if (selectedPlans.length > 0 && !selectedPlans.includes(user.plan)) return false
-      }
-    }
-    if (!searchQuery) return true
-    const q = searchQuery.toLowerCase()
-    return ['name', 'username', 'email', 'training', 'school', 'voucher', 'voucherCode'].some(k =>
-      (user[k] || '').toLowerCase().includes(q)
-    )
-  })
-
-  const sortedUsers = applySortToList(filteredUsers, sortConfig)
-
-  // "Pilih semua" dibatasi BULK_LIMIT (keputusan #2): pilih maksimal 10 baris teratas.
-  const selectableIds = sortedUsers.slice(0, BULK_LIMIT).map(u => u.id)
-  const allSelected = selectableIds.length > 0 && selectableIds.every(id => selectedIds.includes(id))
-  const toggleSelectAll = () => {
-    if (allSelected) { setSelectedIds([]); return }
-    if (sortedUsers.length > BULK_LIMIT) flashLimit()
-    setSelectedIds(selectableIds)
-  }
-  const selectedUsers = currentData.filter(u => selectedIds.includes(u.id))
-
-  // ── Bulk aksi Manajemen (mengikuti aksi baris per tab) ──────────────────────
-  // Ubah status banyak akun sekaligus + toast undo 5s. commitEach(id, prevStatus)->Promise.
-  const runBulkStatus = (rows, newStatus, message, commitEach) => {
-    if (!rows.length) return
-    const prev = rows.map(u => ({ id: u.id, status: u.accountStatus }))
-    const ids = rows.map(r => r.id)
-    setManagementUsers(p => p.map(u => ids.includes(u.id) ? { ...u, accountStatus: newStatus } : u))
-    setSelectedIds([])
-    setToast({ message, bulkStatusUndo: prev })
-    scheduleAction(
-      () => Promise.all(ids.map(id => commitEach(id, prev.find(x => x.id === id)?.status))),
-      (err) => {
-        setManagementUsers(p => p.map(u => { const pr = prev.find(x => x.id === u.id); return pr ? { ...u, accountStatus: pr.status } : u }))
-        setApiError(apiErrMsg(err, 'Gagal memproses sebagian akun.'))
-      }
-    )
-  }
-
-  const handleManajemenBulk = (key) => {
-    const rows = selectedUsers
-    if (!rows.length) return
-    if (key === 'hapus') {
-      runBulkStatus(rows, 'Baru Dihapus', <>{rows.length} akun telah dihapus</>, (id) => adminApi.requestUserDeletion(id))
-    } else if (key === 'pulihkan') {
-      runBulkStatus(rows, 'Disetujui', <>{rows.length} akun telah dipulihkan</>,
-        (id, prevStatus) => prevStatus === 'Baru Dihapus' ? adminApi.cancelUserDeletion(id) : adminApi.unsuspendUser(id))
-    } else if (key === 'setujui') {
-      // REVISE(2) ga punya endpoint approve langsung (lihat guard sama di
-      // ManajemenTable.jsx ditolakMenuItems) — keluarin dari batch biar ga ada
-      // request yang pasti ditolak BE. Sisanya (REJECTED) jalan seperti biasa.
-      const approvable = rows.filter(r => r.verifiedStatus !== 2 && r.verifiedStatus !== 'revise')
-      if (!approvable.length) {
-        setApiError('Akun revisi tidak bisa disetujui langsung — tunggu user kirim ulang data.')
-        return
-      }
-      runBulkStatus(approvable, 'Disetujui', <>{approvable.length} akun telah disetujui</>,
-        (id) => adminApi.verifyUser(id, { status: 'approved', discourseGroupId: rows.find(r => r.id === id)?.discourseGroupId }))
-    } else if (key === 'tangguhkan') {
-      setBulkSuspendOpen(true)
-    }
-  }
-
-  // Bulk tangguhkan pakai satu SuspendModal → suspendedUntil + reason sama untuk semua terpilih.
-  const handleBulkTangguhkan = ({ suspendedUntil, reason }) => {
-    const rows = selectedUsers
-    setBulkSuspendOpen(false)
-    runBulkStatus(rows, 'Ditangguhkan', <>{rows.length} akun telah ditangguhkan</>, (id) => adminApi.suspendUser(id, { suspendedUntil, reason }))
-  }
 
   const handleExport = () => {
     const csv = buildCsvContent(activeTab, sortedUsers, activeFilter, verifSubTab, pembayaranSubTab)
     const filename =
       activeTab === 'verifikasi'
         ? (verifSubTab === 'voucher' ? 'pending_voucher-Export data.csv' : 'verifikasi_akun-Export data.csv')
-      : activeTab === 'verifikasi-pembayaran'
-        ? (pembayaranSubTab === 'belum-langganan' ? 'belum_langganan-Export data.csv'
-           : pembayaranSubTab === 'ditolak' ? 'pembayaran_ditolak-Export data.csv'
-           : 'menunggu_verifikasi-Export data.csv')
-      : 'manajemen_akun-Export data.csv'
+        : activeTab === 'verifikasi-pembayaran'
+          ? (pembayaranSubTab === 'belum-langganan' ? 'belum_langganan-Export data.csv'
+            : pembayaranSubTab === 'ditolak' ? 'pembayaran_ditolak-Export data.csv'
+              : 'menunggu_verifikasi-Export data.csv')
+          : 'manajemen_akun-Export data.csv'
     downloadCsv(filename, csv)
   }
 
@@ -1559,12 +553,12 @@ export default function AdminDashboardPage({ user, onSignOut }) {
                 const q = searchQuery.trim().toLowerCase();
                 const rows = q
                   ? riwayatPelatihanData.filter(
-                      (item) =>
-                        (item.nama || "").toLowerCase().includes(q) ||
-                        (item.daerah || "").toLowerCase().includes(q) ||
-                        (item.pesertaNama || "").toLowerCase().includes(q) ||
-                        (item.pesertaEmail || "").toLowerCase().includes(q),
-                    )
+                    (item) =>
+                      (item.nama || "").toLowerCase().includes(q) ||
+                      (item.daerah || "").toLowerCase().includes(q) ||
+                      (item.pesertaNama || "").toLowerCase().includes(q) ||
+                      (item.pesertaEmail || "").toLowerCase().includes(q),
+                  )
                   : riwayatPelatihanData;
                 // Kolom persis header tabel: tanpa "Status" (kolom itu tidak dirender).
                 const csv = [
@@ -1680,11 +674,11 @@ export default function AdminDashboardPage({ user, onSignOut }) {
               const list = Object.values(usersById);
               const filtered = q
                 ? list.filter(
-                    (u) =>
-                      (u.name || "").toLowerCase().includes(q) ||
-                      (u.email || "").toLowerCase().includes(q) ||
-                      (u.username || "").toLowerCase().includes(q),
-                  )
+                  (u) =>
+                    (u.name || "").toLowerCase().includes(q) ||
+                    (u.email || "").toLowerCase().includes(q) ||
+                    (u.username || "").toLowerCase().includes(q),
+                )
                 : list;
               return (
                 <DaftarUserTable

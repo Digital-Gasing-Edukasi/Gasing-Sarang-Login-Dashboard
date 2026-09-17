@@ -6,6 +6,7 @@ import { AuthFullLayout } from '@/components/layout/AuthFullLayout'
 import { IconInput }      from '@/components/shared/IconInput'
 import { AuthDarkLayout, DarkInput, DarkPrimaryButton, DarkGhostButton, DarkDivider } from '@/components/shared/DarkAuth'
 import { authApi }        from '@/lib/api'
+import { translateApiError } from '@/lib/errorMessages'
 
 const ERR_INPUT = '!border-red-500 focus-visible:!border-red-500 focus-visible:ring-red-200'
 const EMAIL_RE  = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -29,7 +30,11 @@ export function ForgotPasswordPage({ onNavigate, onEmailSent }) {
       await authApi.forgotPassword(email)
       onEmailSent(email)
     } catch (e) {
-      setErrors({ email: e.message })
+      // Audit #83: pesan backend → Indonesia, jangan tampilkan mentah.
+      const msg = e?.status >= 500
+        ? 'Server sedang gangguan. Coba lagi dalam beberapa saat.'
+        : translateApiError(e.message)
+      setErrors({ email: msg })
     } finally {
       setLoading(false)
     }

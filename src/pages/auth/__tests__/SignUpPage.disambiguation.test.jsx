@@ -37,6 +37,9 @@ async function gotoDimana(ue) {
 describe('SignUpPage — disambiguasi label "Dimana" (SearchableSelect)', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    // SignUpPage persist draft ke sessionStorage (audit #38) — bersihkan antar-tes
+    // supaya step/field dari tes sebelumnya tidak bocor ke tes berikutnya.
+    sessionStorage.clear()
   })
 
   it('2 sesi collide ke label sama dalam tahun sama → masing-masing dapat suffix bulan', async () => {

@@ -39,7 +39,14 @@ export function OtpInput({ onChange, onComplete, disabled, error }) {
           disabled={disabled}
           onChange={e => handleChange(i, e.target.value)}
           onKeyDown={e => handleKeyDown(i, e)} onPaste={handlePaste}
-          className={cn('otp-input', v && 'filled', error && 'error', disabled && 'opacity-50 cursor-not-allowed')} />
+          aria-label={`Digit OTP ${i + 1}`}
+          className={cn(
+            'h-14 w-14 rounded-xl border-[1.5px] bg-white text-center font-poppins text-xl font-semibold text-[#0033EC] outline-none transition-colors focus:border-[#0033EC] focus:ring-2 focus:ring-[#0033EC]/10',
+            v && 'border-[#0033EC]',
+            !v && !error && 'border-[#D1D3DA]',
+            error && 'border-[#EF4444] focus:border-[#EF4444] focus:ring-red-500/10',
+            disabled && 'opacity-50 cursor-not-allowed',
+          )} />
       ))}
     </div>
   )

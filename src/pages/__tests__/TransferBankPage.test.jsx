@@ -111,15 +111,15 @@ describe('TransferBankPage - submitted screen', () => {
   })
 })
 
-// Regresi: form submit sekarang ikut kirim senderName/senderBank/transferDate
-// sebagai extra arg ke-3 uploadReceipt (Fix: bank origin field, lihat api.js
-// subscriptionApi.uploadReceipt & TransferBankPage.jsx handleSubmit).
+// Regresi: form submit sekarang ikut kirim senderName/senderBankName/transferDate
+// sebagai extra arg ke-3 uploadReceipt (Fix #53: bank origin field backend =
+// senderBankName, lihat subscriptionApi.uploadReceipt & handleSubmit).
 describe('TransferBankPage - submit mengirim data bank asal ke uploadReceipt', () => {
   beforeEach(() => {
     vi.clearAllMocks()
   })
 
-  it('memanggil uploadReceipt(paymentId, fileId, { senderName, senderBank, transferDate }) sesuai isian form', async () => {
+  it('memanggil uploadReceipt(paymentId, fileId, { senderName, senderBankName, transferDate }) sesuai isian form', async () => {
     const ue = userEvent.setup()
     fileManagerApi.upload.mockResolvedValue({ id: 'file-1' })
     subscriptionApi.uploadReceipt.mockResolvedValue({})
@@ -155,7 +155,7 @@ describe('TransferBankPage - submit mengirim data bank asal ke uploadReceipt', (
     await waitFor(() => expect(subscriptionApi.uploadReceipt).toHaveBeenCalledTimes(1))
     expect(subscriptionApi.uploadReceipt).toHaveBeenCalledWith('payment-77', 'file-1', {
       senderName: 'Budi Santoso',
-      senderBank: 'BCA',
+      senderBankName: 'BCA',
       transferDate: expectedTransferDate,
     })
   })

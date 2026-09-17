@@ -1,6 +1,8 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { AlertTriangle, ChevronDown, ChevronLeft, ChevronRight, Bold, Italic, Underline, Link2, List } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { Checkbox } from '@/components/ui/checkbox'
+import { useSuspendReasons } from '@/stores/useSuspendReasons'
 import { formatIdDate } from './CalendarRangePicker'
 
 // Preset durasi penangguhan (Komponen). ms dari sekarang.
@@ -11,13 +13,6 @@ const PRESETS = [
   { key: '3d',  label: '3 Hari',   ms: 3  * 24 * 3600e3 },
   { key: '1w',  label: '1 Minggu', ms: 7  * 24 * 3600e3 },
   { key: '1mo', label: '1 Bulan',  ms: 30 * 24 * 3600e3 },
-]
-
-const REASONS = [
-  'Melanggar aturan komunitas',
-  'Konten tidak pantas',
-  'Terindikasi spam',
-  'Tindakan yang dianggap merugikan pelaksanaan di dalam komunitas',
 ]
 
 const ID_MONTHS = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember']
@@ -83,16 +78,28 @@ function Field({ label, children }) {
 }
 
 // Tangguhkan Akun — durasi via Preset (dropdown) atau Manual (kalender + jam),
-// alasan (dropdown), pesan email opsional. onConfirm({ suspendedUntil, reason, emailMessage }).
+// alasan MULTI-select (checkbox, dari BE via zustand useSuspendReasons),
+// pesan email opsional.
+// onConfirm({ suspendedUntil, reason: [code], remarks, emailMessage }) —
+// remarks = gabungan desc alasan terpilih (join '. ').
 export function SuspendModal({ user, onConfirm, onCancel }) {
   const [mode, setMode]     = useState('preset') // 'preset' | 'manual'
   const [preset, setPreset] = useState('')
   const [date, setDate]     = useState(null)
   const [time, setTime]     = useState('23:59')
-  const [reason, setReason] = useState('')
+  const [selected, setSelected] = useState([]) // code alasan terpilih (bisa >1)
   const [email, setEmail]   = useState('')
 
+  // Daftar alasan jarang berubah → fetch sekali per sesi (cache zustand).
+  const { reasons, loading: reasonsLoading, error: reasonsError, fetchReasons } = useSuspendReasons()
+  useEffect(() => { fetchReasons() }, [fetchReasons])
+
   if (!user) return null
+
+  const toggleReason = (code) =>
+    setSelected(prev => prev.includes(code) ? prev.filter(c => c !== code) : [...prev, code])
+  const selectedReasons = reasons.filter(r => selected.includes(r.code))
+  const remarks = selectedReasons.map(r => r.desc).join('. ')
 
   const computeUntil = () => {
     if (mode === 'preset') {
@@ -107,7 +114,7 @@ export function SuspendModal({ user, onConfirm, onCancel }) {
     return null
   }
   const until = computeUntil()
-  const valid = !!until && !!reason
+  const valid = !!until && selected.length > 0
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#030B1F]/30 backdrop-blur-sm p-4">
@@ -165,17 +172,33 @@ export function SuspendModal({ user, onConfirm, onCancel }) {
             )}
           </Field>
 
-          <Field label="Alasan penangguhan Pengguna">
-            <div className="relative">
-              <select
-                value={reason} onChange={e => setReason(e.target.value)}
-                className={cn('w-full appearance-none border border-gray-200 rounded-xl py-3 pl-4 pr-9 text-sm outline-none focus:border-blue-500', reason ? 'text-[#0A1128]' : 'text-gray-400')}
-              >
-                <option value="" disabled>Pilih alasan</option>
-                {REASONS.map(r => <option key={r} value={r}>{r}</option>)}
-              </select>
-              <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-            </div>
+          <Field label="Alasan penangguhan Pengguna (bisa pilih lebih dari satu)">
+            {reasonsLoading ? (
+              <p className="text-sm text-gray-400 py-3">Memuat alasan...</p>
+            ) : reasonsError ? (
+              <div className="flex items-center gap-2 text-sm text-red-500 py-3">
+                <span>Gagal memuat alasan.</span>
+                <button type="button" onClick={fetchReasons} className="font-semibold underline hover:opacity-80">
+                  Coba lagi
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-1 max-h-56 overflow-y-auto border border-gray-200 rounded-xl p-2">
+                {reasons.map(r => (
+                  <label key={r.code} className="flex items-start gap-3 rounded-lg px-2 py-2 cursor-pointer hover:bg-gray-50 transition-colors">
+                    <Checkbox
+                      checked={selected.includes(r.code)}
+                      onCheckedChange={() => toggleReason(r.code)}
+                      className="mt-0.5 shrink-0"
+                    />
+                    <span className="min-w-0">
+                      <span className="block text-sm font-medium text-[#0A1128]">{r.title}</span>
+                      <span className="block text-xs text-gray-500 leading-relaxed">{r.desc}</span>
+                    </span>
+                  </label>
+                ))}
+              </div>
+            )}
           </Field>
 
           <Field label="Pesan email (opsional)">
@@ -200,7 +223,7 @@ export function SuspendModal({ user, onConfirm, onCancel }) {
           </button>
           <button
             disabled={!valid}
-            onClick={() => onConfirm({ suspendedUntil: fmtDateTime(until), reason, emailMessage: email })}
+            onClick={() => onConfirm({ suspendedUntil: fmtDateTime(until), reason: selected, remarks, emailMessage: email })}
             className="flex-1 font-semibold px-6 py-3 rounded-full bg-red-500 text-white hover:bg-red-600 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
             Tangguhkan

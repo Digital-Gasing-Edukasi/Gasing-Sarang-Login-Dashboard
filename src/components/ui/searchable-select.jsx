@@ -36,13 +36,14 @@ function useIsMobile() {
 }
 
 const TRIGGER_CLS = cn(
-  "flex h-11 w-full items-center justify-between rounded-full border border-input bg-background px-5 py-2 text-sm text-left",
+  "flex h-11 w-full min-w-0 items-center justify-between gap-2 rounded-full border border-input bg-background px-5 py-2 text-sm text-left",
   "placeholder:text-muted-foreground",
   "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-0 focus:border-primary",
   "hover:border-gray-300",
   "disabled:cursor-not-allowed disabled:opacity-50 disabled:bg-gray-100",
   "transition-all duration-200 cursor-pointer",
-  "[&>span]:line-clamp-1"
+  // Audit #28/#29: teks value fix di dalam box — truncate + ellipsis, tak boleh overflow.
+  "[&>span]:min-w-0 [&>span]:flex-1 [&>span]:truncate"
 )
 
 export function SearchableSelect({
@@ -209,7 +210,10 @@ export function SearchableSelect({
         aria-haspopup="listbox"
         aria-expanded={open}
       >
-        <span className={cn("line-clamp-1 text-left", !selected && "text-muted-foreground")}>
+        <span
+          title={selected ? String(selected.label) : placeholder}
+          className={cn("min-w-0 flex-1 truncate text-left", !selected && "text-muted-foreground")}
+        >
           {selected ? selected.label : placeholder}
         </span>
         <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />

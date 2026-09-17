@@ -176,4 +176,37 @@ describe('handleLoginSuccess routing matrix', () => {
 
     await waitFor(() => expect(webAppApi.redirectWithTokens).toHaveBeenCalled())
   })
+
+  it('audit #9: regular member, profil TANPA embedded subscription + payments/latest.subscription expired -> gate modal expired (bukan langsung subscription)', async () => {
+    // /profile/me tidak meng-embed subscription (makanya evaluateLoginGate lolos)
+    // dan /subscription/me cuma {hasActiveSubscription:false} — sumber kebenaran
+    // adalah subscription ter-embed di payments/latest (bentuk asli di
+    // dev/responses/subscription-payments-latest_expired.json).
+    subscriptionApi.getLatestPayment.mockResolvedValueOnce({
+      id: 'pay-1',
+      status: 'paid',
+      subscription: { id: 'sub-1', status: 'expired' },
+    })
+    renderApp()
+    await login({ verifiedStatus: 'approved' })
+
+    await waitFor(() =>
+      expect(screen.getByTestId('gate-modal')).toBeInTheDocument(),
+    )
+    expect(screen.getByTestId('gate-modal')).toHaveAttribute('data-type', 'expired')
+    // Balik ke LoginPage (stub), bukan halaman subscription.
+    expect(screen.getByText('DO_LOGIN')).toBeInTheDocument()
+    expect(screen.queryByText('MOCK_SUBSCRIPTION_PAGE')).not.toBeInTheDocument()
+  })
+
+  it('audit #9 (negatif): getStatus tanpa status expired -> tetap ke subscription, tanpa modal', async () => {
+    subscriptionApi.getStatus.mockResolvedValueOnce({ hasActiveSubscription: false })
+    renderApp()
+    await login({ verifiedStatus: 'approved' })
+
+    await waitFor(() =>
+      expect(screen.getByText('MOCK_SUBSCRIPTION_PAGE')).toBeInTheDocument(),
+    )
+    expect(screen.queryByTestId('gate-modal')).not.toBeInTheDocument()
+  })
 })
