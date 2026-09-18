@@ -184,7 +184,7 @@ export function LoginStatusModal({ type, meta = {}, onClose, onRenew, onRetry, o
       <div className="text-[15px] text-muted-foreground leading-relaxed lg:mb-8">{cfg.body}</div>
       <div className="flex items-center gap-4 w-full">
         {cfg.actions.map((a) => (
-          <ActionButton key={a.label} {...a} onClick={() => run(a.kind)} />
+          <ActionButton key={a.label} {...a} block onClick={() => run(a.kind)} />
         ))}
       </div>
     </Shell>
@@ -483,7 +483,7 @@ function Shell({ tone, icon: Icon, children, variant = 'sheet', sheetClass, cont
         {/* Drag handle — hanya bottom-sheet mobile */}
         {sheet && <div className="mx-auto h-1.5 w-11 rounded-full bg-gray-200 lg:hidden" />}
 
-        <div className={cn('mx-auto w-[68px] h-[68px] rounded-full border-2 border-dashed flex items-center justify-center', sheet ? 'lg:mb-6' : 'mb-6', t.ring)}>
+        <div className={cn('hidden md:flex mx-auto w-[68px] h-[68px] rounded-full border-2 border-dashed items-center justify-center', sheet ? 'lg:mb-6' : 'mb-6', t.ring)}>
           <div className={cn('w-[52px] h-[52px] rounded-full flex items-center justify-center', t.bg)}>
             <Icon size={26} className={t.icon} />
           </div>
