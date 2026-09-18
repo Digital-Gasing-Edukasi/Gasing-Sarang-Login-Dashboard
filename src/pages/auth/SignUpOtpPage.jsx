@@ -119,13 +119,14 @@ export function SignUpOtpPage({ onNavigate, otpToken, email, onOtpToken }) {
       progress={1}
       topBar={
         <>
-          {/* MOBILE: header lama + fill bar. */}
+          {/* MOBILE: header tanpa back — data sudah ter-submit di step 2, kembali
+              hanya akan mengulang registrasi dari awal (audit #38). */}
           <div className="lg:hidden">
-            <StepBar title="Verifikasi OTP" onBack={() => onNavigate('signup', { step: 2 })} onClose={() => onNavigate('login')} />
+            <StepBar title="Verifikasi OTP" onClose={() => onNavigate('login')} />
           </div>
-          {/* DESKTOP: progress tersegmen + counter + back bulat. */}
+          {/* DESKTOP: progress tersegmen + counter, tanpa back (alasan sama). */}
           <div className="hidden lg:block">
-            <StepProgress current={3} total={3} onBack={() => onNavigate('signup', { step: 2 })} />
+            <StepProgress current={3} total={3} />
           </div>
         </>
       }

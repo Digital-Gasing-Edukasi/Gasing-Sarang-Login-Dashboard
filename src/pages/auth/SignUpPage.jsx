@@ -72,10 +72,9 @@ const sessionMonth = (s) => {
 };
 
 export function SignUpPage({ onNavigate, onOtpToken }) {
-  // Back dari step OTP mengirim { step: 2 } supaya user balik ke Data Pribadi,
-  // bukan reset ke step 1 (SignUpPage di-mount ulang tiap masuk /register).
-  // Field user persisted ke sessionStorage (audit #38) supaya Back dari OTP
-  // tidak me-reset isian.
+  // Draft form di sessionStorage (audit #38): step OTP tidak punya tombol back
+  // (data sudah ter-submit), tapi draft menjaga isian saat navigasi internal
+  // step 1 ↔ 2 dan saat reload /register di tengah jalan.
   const location = useLocation();
   const loadDraft = () => {
     try {
