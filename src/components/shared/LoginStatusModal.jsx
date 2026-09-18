@@ -141,6 +141,7 @@ export function LoginStatusModal({ type, meta = {}, onClose, onRenew, onRetry, o
   const CONFIG = {
     pending: {
       icon: UserSearch,
+      showMobileIcon: true,
       title: 'Kami Sedang Meninjau Akunmu',
       body: (
         <p className="text-sm leading-normal">
@@ -159,6 +160,7 @@ export function LoginStatusModal({ type, meta = {}, onClose, onRenew, onRetry, o
     },
     expired: {
       icon: Clock,
+      showMobileIcon: false,
       title: 'Masa Berlangganan Berakhir',
       body: 'Masa berlangganan kamu telah habis. Ayo perbarui langgananmu untuk kembali mendapatkan akses ke Sarang Gasing!',
       actions: [
@@ -179,7 +181,7 @@ export function LoginStatusModal({ type, meta = {}, onClose, onRenew, onRetry, o
   }
 
   return (
-    <Shell tone="orange" icon={Icon} sheetClass={cfg.sheetClass}>
+    <Shell tone="orange" icon={Icon} showMobileIcon={cfg.showMobileIcon} sheetClass={cfg.sheetClass}>
       <h2 className="text-2xl font-bold text-foreground lg:mb-3">{cfg.title}</h2>
       <div className="text-[15px] text-muted-foreground leading-relaxed lg:mb-8">{cfg.body}</div>
       <div className="flex items-center gap-4 w-full">
@@ -453,14 +455,14 @@ function DetailRow({ label, value }) {
 // Ring dashed + inner soft circle. tone: 'orange' | 'red'.
 const TONES = {
   orange: { ring: 'border-orange-300', bg: 'bg-orange-100', icon: 'text-orange-500' },
-  red:    { ring: 'border-red-300',    bg: 'bg-red-100',    icon: 'text-red-500' },
+  red: { ring: 'border-red-300', bg: 'bg-red-100', icon: 'text-red-500' },
 }
 
 // variant:
 //   'sheet'  (default) → mobile: bottom-sheet (naik dari bawah, rounded-top, ada handle);
 //                        desktop: kartu tengah.
 //   'center'          → kartu tengah di semua ukuran (dipakai modal error).
-function Shell({ tone, icon: Icon, children, variant = 'sheet', sheetClass, contentGap = 'gap-5 lg:gap-0' }) {
+function Shell({ tone, icon: Icon, showMobileIcon = true, children, variant = 'sheet', sheetClass, contentGap = 'gap-5 lg:gap-0' }) {
   const t = TONES[tone] || TONES.orange
   const sheet = variant === 'sheet'
 
@@ -483,7 +485,7 @@ function Shell({ tone, icon: Icon, children, variant = 'sheet', sheetClass, cont
         {/* Drag handle — hanya bottom-sheet mobile */}
         {sheet && <div className="mx-auto h-1.5 w-11 rounded-full bg-gray-200 lg:hidden" />}
 
-        <div className={cn('hidden md:flex mx-auto w-[68px] h-[68px] rounded-full border-2 border-dashed items-center justify-center', sheet ? 'lg:mb-6' : 'mb-6', t.ring)}>
+        <div className={cn('mx-auto w-[68px] h-[68px] rounded-full border-2 border-dashed items-center justify-center', sheet ? 'lg:mb-6' : 'mb-6', showMobileIcon ? 'flex' : 'hidden md:flex', t.ring)}>
           <div className={cn('w-[52px] h-[52px] rounded-full flex items-center justify-center', t.bg)}>
             <Icon size={26} className={t.icon} />
           </div>
@@ -510,8 +512,8 @@ function ActionButton({ label, variant, icon: Icon, onClick, block = false }) {
         variant === 'primary'
           ? 'bg-[#0033EC] text-white hover:bg-[#0029BD]'
           : variant === 'danger'
-          ? 'bg-red-500 text-white hover:bg-red-600'
-          : 'border border-[#D1D3DA] bg-white text-[#030B1F] hover:bg-gray-50'
+            ? 'bg-red-500 text-white hover:bg-red-600'
+            : 'border border-[#D1D3DA] bg-white text-[#030B1F] hover:bg-gray-50'
       )}
     >
       {Icon && <Icon size={18} />}
