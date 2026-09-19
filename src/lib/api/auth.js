@@ -19,6 +19,11 @@ export const authApi = {
   login: (email, password) =>
     request("/auth/login", { method: "POST", body: { email, password }, noAuth: true }),
 
+  // Status sesi akun: { blocked, reasonCode, message } — dibaca di
+  // useAuthSession.handleLoginSuccess SEBELUM cek payment. blocked:true →
+  // modal session_blocked (reasonCode spesifik menyusul).
+  sessionStatus: () => request("/auth/session-status"),
+
   logout: () => request("/auth/logout", { method: "POST" }),
 
   logoutAll: () => request("/auth/logout-all", { method: "POST" }),

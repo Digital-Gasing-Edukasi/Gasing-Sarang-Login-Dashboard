@@ -50,13 +50,14 @@ vi.mock('@/lib/api', () => ({
   },
   authApi: {
     logout: vi.fn(() => Promise.resolve()),
+    sessionStatus: vi.fn(() => Promise.resolve({ blocked: false })),
   },
   regionsApi: { get: vi.fn() },
   webAppApi: { redirectWithTokens: vi.fn() },
 }))
 
 import App from '../App'
-import { webAppApi, tokenStorage, subscriptionApi } from '@/lib/api'
+import { webAppApi, tokenStorage, subscriptionApi, authApi } from '@/lib/api'
 
 // App renders null sampai init() (async useEffect) set sessionChecked=true.
 // Tunggu tombol stub DO_LOGIN muncul dulu sebelum klik, biar gak ngeklik body kosong.
@@ -200,6 +201,49 @@ describe('handleLoginSuccess routing matrix', () => {
   })
 
   it('audit #9 (negatif): getStatus tanpa status expired -> tetap ke subscription, tanpa modal', async () => {
+    subscriptionApi.getStatus.mockResolvedValueOnce({ hasActiveSubscription: false })
+    renderApp()
+    await login({ verifiedStatus: 'approved' })
+
+    await waitFor(() =>
+      expect(screen.getByText('MOCK_SUBSCRIPTION_PAGE')).toBeInTheDocument(),
+    )
+    expect(screen.queryByTestId('gate-modal')).not.toBeInTheDocument()
+  })
+
+  it('session-status blocked:true -> gate modal session_blocked dengan message BE, stop sebelum payment', async () => {
+    authApi.sessionStatus.mockResolvedValueOnce({
+      blocked: true,
+      reasonCode: 'email_unconfirmed',
+      message: 'Please confirm your email first',
+    })
+    renderApp()
+    await login({ verifiedStatus: 'approved' })
+
+    await waitFor(() =>
+      expect(screen.getByTestId('gate-modal')).toBeInTheDocument(),
+    )
+    expect(screen.getByTestId('gate-modal')).toHaveAttribute('data-type', 'session_blocked')
+    expect(screen.getByText('DO_LOGIN')).toBeInTheDocument()
+    // Berhenti sebelum cek payment/langganan.
+    expect(subscriptionApi.getLatestPayment).not.toHaveBeenCalled()
+    expect(subscriptionApi.getStatus).not.toHaveBeenCalled()
+    expect(webAppApi.redirectWithTokens).not.toHaveBeenCalled()
+  })
+
+  it('session-status blocked:false -> flow normal (tanpa modal)', async () => {
+    subscriptionApi.getStatus.mockResolvedValueOnce({ hasActiveSubscription: false })
+    renderApp()
+    await login({ verifiedStatus: 'approved' })
+
+    await waitFor(() =>
+      expect(screen.getByText('MOCK_SUBSCRIPTION_PAGE')).toBeInTheDocument(),
+    )
+    expect(screen.queryByTestId('gate-modal')).not.toBeInTheDocument()
+  })
+
+  it('session-status fetch gagal -> fail-open, flow normal', async () => {
+    authApi.sessionStatus.mockRejectedValueOnce(new Error('endpoint belum ada'))
     subscriptionApi.getStatus.mockResolvedValueOnce({ hasActiveSubscription: false })
     renderApp()
     await login({ verifiedStatus: 'approved' })

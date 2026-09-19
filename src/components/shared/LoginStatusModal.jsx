@@ -63,6 +63,11 @@ function deriveDurationFromUntil(until) {
   return duration
 }
 
+// Judul modal session_blocked per reasonCode (tombol/aksi spesifik menyusul).
+const SESSION_BLOCK_TITLES = {
+  email_unconfirmed: 'Email Belum Dikonfirmasi',
+}
+
 // Modal blocking di atas halaman login.
 // type   : 'pending' (flow 7) | 'expired' (flow 6) | 'suspended' | 'error' (flow 4)
 //        | 'payment_rejected' (payment terakhir ditolak admin; meta.variant =
@@ -78,6 +83,24 @@ export function LoginStatusModal({ type, meta = {}, onClose, onRenew, onRetry, o
   if (type === 'suspended') return <SuspendedModal meta={meta} onClose={onClose} />
   if (type === 'rejected') return <RejectedModal meta={meta} onClose={onClose} onReregister={onReregister} />
   if (type === 'payment_rejected') return <PaymentRejectedModal meta={meta} onClose={onClose} onRenew={onRenew} onReupload={onReupload} />
+
+  // Akun diblokir menurut BE (GET /auth/session-status → { blocked:true,
+  // reasonCode, message }). Judul per-reasonCode menyusul; untuk sekarang
+  // modal generik: tampilkan message + satu tombol Log Out.
+  if (type === 'session_blocked') {
+    const blockTitle = SESSION_BLOCK_TITLES[meta.reasonCode] || 'Akses Akun Dibatasi'
+    return (
+      <Shell tone="red" icon={ShieldAlert}>
+        <h2 className="text-2xl font-bold text-foreground lg:mb-3">{blockTitle}</h2>
+        <p className="text-[15px] text-muted-foreground leading-relaxed lg:mb-8">
+          {meta.message || 'Akun kamu tidak dapat digunakan saat ini. Silakan hubungi admin untuk bantuan.'}
+        </p>
+        <div className="w-full px-2 lg:px-0">
+          <ActionButton label="Log Out" variant="primary" icon={LogOut} onClick={() => onClose?.()} block />
+        </div>
+      </Shell>
+    )
+  }
 
   // Sudah bayar, MENUNGGU verifikasi admin (langganan belum aktif). Ikon jam
   // orange + satu tombol Log Out. Dipicu di App.handleLoginSuccess saat

@@ -39,6 +39,28 @@ export function useAuthSession({ setIsRetry, setCheckoutPlan, setManualPayment }
   //   - User biasa         → /login/choice bila langganan aktif, else /login/subscription
   const handleLoginSuccess = useCallback(
     async (user) => {
+      // Sesi diblokir BE (akun rejected / tidak aktif / email dsb):
+      // GET /auth/session-status → { blocked, reasonCode, message }.
+      // Dicek PALING DULU, sebelum payment. blocked:true → modal + stop.
+      // Fetch gagal → fail-open (lanjut flow lama), hanya blocked eksplisit
+      // yang menghentikan login.
+      try {
+        const st = await authApi.sessionStatus();
+        const s = st?.data || st || {};
+        if (s.blocked === true) {
+          setGate({
+            type: "session_blocked",
+            reasonCode: s.reasonCode || null,
+            message: s.message || null,
+            profile: user,
+          });
+          navigate("/login", { replace: true });
+          return;
+        }
+      } catch {
+        // Endpoint gagal / belum ada → abaikan, lanjut flow normal.
+      }
+
       // Payment terakhir masih 'pending' → user dianggap boleh masuk walau
       // langganan belum aktif/expired (nunggu pembayaran diproses).
       // Dihitung sekali, dipakai di gate 'expired' + routing langganan di bawah.

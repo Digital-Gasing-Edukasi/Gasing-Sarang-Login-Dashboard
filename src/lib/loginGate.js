@@ -7,7 +7,7 @@
 //   - langganan : activeSubscription | subscription → { status: 'active'|'expired'|... }
 //
 // Return null (login lolos) atau { type: 'suspended'|'pending'|'expired', ...meta }.
-export function evaluateLoginGate(profile) {
+export function evaluateLoginGate(profile) {  
   const p = profile?.user || profile?.data || profile || {}
 
   // 1. Ditangguhkan — admin men-suspend akun (paling tinggi prioritas).
