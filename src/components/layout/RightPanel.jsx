@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { cn } from '@/lib/utils'
 import { isStaging } from "@/lib/env";
-
+export const APP_VERSION = import.meta.env.VITE_APP_VERSION;
 
 // maxWidth default = lebar form 2-base desktop: mobile pakai max-w-md (cap lama,
 // tak berpengaruh di layar sempit), lg → base 1366 (380px), fhd → base 1920 (480px).
@@ -115,12 +115,10 @@ export function RightPanel({ children, mobileHero = null, topBar = null, stickyF
         <p className="text-xs text-muted-foreground text-center">
           ©2026 Gasing Academy. All rights reserved.
         </p>
-        {isStaging() && (
-          <p className="mt-1 text-[11px] text-muted-foreground/60 text-center select-all">
-            build{" "}
-            {typeof __BUILD_DATE__ !== "undefined" ? __BUILD_DATE__ : "dev"}
-          </p>
-        )}
+        <p className="mt-1 text-[11px] text-muted-foreground/60 text-center select-all">
+          v{" "}
+          {APP_VERSION}
+        </p>
       </div>
     </div>
   );
