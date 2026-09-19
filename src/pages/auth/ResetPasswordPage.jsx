@@ -1,14 +1,13 @@
-import { useState, useEffect } from 'react'
-import { Lock, Loader2, Check, CircleDashed, Eye, EyeOff, LogIn } from 'lucide-react'
-import { AuthDarkLayout, DarkInput, DarkTogglePassword, DarkPrimaryButton } from '@/components/shared/DarkAuth'
-import { SuccessToast }              from '@/components/shared/SuccessToast'
-import { cn }      from '@/lib/utils'
+import bgDark from '@/assets/dark-mode/Background.png'
+import { AuthDarkLayout, DarkInput, DarkPrimaryButton, DarkTogglePassword } from '@/components/shared/DarkAuth'
+import { Logo } from '@/components/shared/Logo'
+import { SuccessToast } from '@/components/shared/SuccessToast'
 import { authApi } from '@/lib/api'
 import { translateApiError } from '@/lib/errorMessages'
 import { getPasswordRules, isPasswordValid } from '@/lib/password'
-import { Logo } from '@/components/shared/Logo'
-import bgDark from '@/assets/dark-mode/Background.png'
-
+import { cn } from '@/lib/utils'
+import { Check, CircleDashed, Eye, EyeOff, Loader2, Lock, LogIn } from 'lucide-react'
+import { useEffect, useState } from 'react'
 
 // Input password bertema gelap khusus layar mobile.
 // Audit #82: override autofill browser (kuning/putih) via tailwind arbitrary variant.
@@ -44,13 +43,13 @@ function DarkPwdInput({ value, onChange, placeholder, show, onToggle, error, onF
 }
 
 export function ResetPasswordPage({ token, email, onNavigate }) {
-  const [password, setPassword]       = useState('')
-  const [confirm, setConfirm]         = useState('')
-  const [showPass, setShowPass]       = useState(false)
+  const [password, setPassword] = useState('')
+  const [confirm, setConfirm] = useState('')
+  const [showPass, setShowPass] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
-  const [loading, setLoading]         = useState(false)
-  const [errors, setErrors]           = useState({})
-  const [success, setSuccess]         = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [errors, setErrors] = useState({})
+  const [success, setSuccess] = useState(false)
   const [passwordFocused, setPasswordFocused] = useState(false)
 
   const clearFieldError = (field) =>
@@ -69,10 +68,10 @@ export function ResetPasswordPage({ token, email, onNavigate }) {
 
   const handleReset = async () => {
     const next = {}
-    if (!password)                 next.password = 'Password baru wajib diisi.'
-    else if (!allRulesOk)          next.password = 'Password belum memenuhi semua ketentuan.'
-    if (!confirm)                  next.confirm  = 'Konfirmasi password wajib diisi.'
-    else if (password !== confirm) next.confirm  = 'Konfirmasi password tidak cocok.'
+    if (!password) next.password = 'Password baru wajib diisi.'
+    else if (!allRulesOk) next.password = 'Password belum memenuhi semua ketentuan.'
+    if (!confirm) next.confirm = 'Konfirmasi password wajib diisi.'
+    else if (password !== confirm) next.confirm = 'Konfirmasi password tidak cocok.'
     if (Object.keys(next).length) { setErrors(next); return }
 
     setErrors({}); setLoading(true)
@@ -93,6 +92,7 @@ export function ResetPasswordPage({ token, email, onNavigate }) {
   return (
     <>
       {success && <SuccessToast message="Berhasil mengubah password. Silahkan login kembali" />}
+      <SuccessToast message="Berhasil mengubah password. Silahkan login kembali" />
 
       {/* ═══════════════ MOBILE (tema gelap, sesuai reference) ═══════════════ */}
       <div
@@ -112,85 +112,85 @@ export function ResetPasswordPage({ token, email, onNavigate }) {
 
         {/* Sukses = toast di atas (form tetap tampil), sesuai reference state-3. */}
         <div className="flex-1 flex flex-col animate-fade-in-up">
-            <h1 className="font-poppins text-[24px] font-bold leading-[140%] text-white/90 mb-6">Ubah Password</h1>
+          <h1 className="font-poppins text-[24px] font-bold leading-[140%] text-white/90 mb-6">Ubah Password</h1>
 
-            <div className="space-y-8">
-              {errors.general && (
-                <p className="text-sm text-red-300 text-center">{errors.general}</p>
-              )}
+          <div className="space-y-8">
+            {errors.general && (
+              <p className="text-sm text-red-300 text-center">{errors.general}</p>
+            )}
 
-              <div className="space-y-2">
-                <label className="text-[14px] font-medium text-white/90">Password Baru</label>
-                <DarkPwdInput
-                  value={password}
-                  placeholder="Masukkan password baru"
-                  show={showPass}
-                  onToggle={() => setShowPass(v => !v)}
-                  error={errors.password}
-                  onFocus={() => setPasswordFocused(true)}
-                  onBlur={() => setPasswordFocused(false)}
-                  onChange={e => { setPassword(e.target.value); clearFieldError('password') }}
-                />
-                {errors.password && <p className="text-xs text-[#FFB43C]">{errors.password}</p>}
-              </div>
-
-              {/* Ketentuan password — hanya saat field password fokus (blur begitu
-                  pindah ke konfirmasi → checklist ikut hilang). */}
-              {passwordFocused && (
-                <ul className="space-y-3 py-1 !mt-3">
-                  <p className="text-[12px] font-regular text-white/70"> Password harus memiliki:</p>
-                  {passwordRules.map(rule => (
-                    <li
-                      key={rule.label}
-                      className={cn(
-                        'flex items-center gap-2 text-[12px] leading-[140%]transition-colors',
-                        rule.ok ? 'text-[#2BDE6D]' : 'text-white/90'
-                      )}
-                    >
-                      {rule.ok ? (
-                        <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#2BDE6D] text-[#000000]/90 shrink-0">
-                          <Check size={10} strokeWidth={4} />
-                        </span>
-                      ) : (
-                        <CircleDashed size={20} className="text-white/60 shrink-0" />
-                      )}
-                      {rule.label}
-                    </li>
-                  ))}
-                </ul>
-              )}
-
-              <div className="space-y-2">
-                <label className="text-[14px] font-medium text-white/90">Konfirmasi Password Baru</label>
-                <DarkPwdInput
-                  value={confirm}
-                  placeholder="Ulangi password baru"
-                  show={showConfirm}
-                  onToggle={() => setShowConfirm(v => !v)}
-                  error={errors.confirm}
-                  disabled={!password}
-                  onChange={e => { setConfirm(e.target.value); clearFieldError('confirm') }}
-                />
-                {!password && <p className="text-xs text-white/50">Isi Password Baru dulu untuk mengaktifkan kolom ini.</p>}
-                {errors.confirm && <p className="text-xs text-[#FFB43C]">{errors.confirm}</p>}
-              </div>
-
-              <button
-                onClick={handleReset}
-                disabled={loading || success || !password || !confirm}
-                className="w-full !mt-9 h-12 rounded-full font-semibold text-[14px] leading-[150%] bg-white text-[#030B1F] hover:bg-white/90 active:scale-[0.98] disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-all"
-              >
-                {loading ? <><Loader2 size={18} className="animate-spin" /> Memproses...</> : 'Ubah Password'}
-              </button>
-
-              <button
-                onClick={() => onNavigate('login')}
-                className="flex items-center gap-2 text-[14px] font-semibold text-white/90 hover:text-white transition-colors !mt-6 mx-auto pt-1"
-              >
-                <LogIn size={20} /> Kembali Ke Login
-              </button>
+            <div className="space-y-2">
+              <label className="text-[14px] font-medium text-white/90">Password Baru</label>
+              <DarkPwdInput
+                value={password}
+                placeholder="Masukkan password baru"
+                show={showPass}
+                onToggle={() => setShowPass(v => !v)}
+                error={errors.password}
+                onFocus={() => setPasswordFocused(true)}
+                onBlur={() => setPasswordFocused(false)}
+                onChange={e => { setPassword(e.target.value); clearFieldError('password') }}
+              />
+              {errors.password && <p className="text-xs text-[#FFB43C]">{errors.password}</p>}
             </div>
+
+            {/* Ketentuan password — hanya saat field password fokus (blur begitu
+                  pindah ke konfirmasi → checklist ikut hilang). */}
+            {passwordFocused && (
+              <ul className="space-y-3 py-1 !mt-3">
+                <p className="text-[12px] font-regular text-white/70"> Password harus memiliki:</p>
+                {passwordRules.map(rule => (
+                  <li
+                    key={rule.label}
+                    className={cn(
+                      'flex items-center gap-2 text-[12px] leading-[140%]transition-colors',
+                      rule.ok ? 'text-[#2BDE6D]' : 'text-white/90'
+                    )}
+                  >
+                    {rule.ok ? (
+                      <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#2BDE6D] text-[#000000]/90 shrink-0">
+                        <Check size={10} strokeWidth={4} />
+                      </span>
+                    ) : (
+                      <CircleDashed size={20} className="text-white/60 shrink-0" />
+                    )}
+                    {rule.label}
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            <div className="space-y-2">
+              <label className="text-[14px] font-medium text-white/90">Konfirmasi Password Baru</label>
+              <DarkPwdInput
+                value={confirm}
+                placeholder="Ulangi password baru"
+                show={showConfirm}
+                onToggle={() => setShowConfirm(v => !v)}
+                error={errors.confirm}
+                disabled={!password}
+                onChange={e => { setConfirm(e.target.value); clearFieldError('confirm') }}
+              />
+              {!password && <p className="text-xs text-white/50">Isi Password Baru dulu untuk mengaktifkan kolom ini.</p>}
+              {errors.confirm && <p className="text-xs text-[#FFB43C]">{errors.confirm}</p>}
+            </div>
+
+            <button
+              onClick={handleReset}
+              disabled={loading || success || !password || !confirm}
+              className="w-full !mt-9 h-12 rounded-full font-semibold text-[14px] leading-[150%] bg-white text-[#030B1F] hover:bg-white/90 active:scale-[0.98] disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-all"
+            >
+              {loading ? <><Loader2 size={18} className="animate-spin" /> Memproses...</> : 'Ubah Password'}
+            </button>
+
+            <button
+              onClick={() => onNavigate('login')}
+              className="flex items-center gap-2 text-[14px] font-semibold text-white/90 hover:text-white transition-colors !mt-6 mx-auto pt-1"
+            >
+              <LogIn size={20} /> Kembali Ke Login
+            </button>
           </div>
+        </div>
       </div>
 
       {/* ═══════════════════════════ DESKTOP (dark) ═══════════════════════════ */}

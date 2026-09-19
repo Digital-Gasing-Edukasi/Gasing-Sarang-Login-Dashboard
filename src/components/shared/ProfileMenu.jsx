@@ -59,9 +59,9 @@ export function ProfileMenu({ user, onSignOut, onContact, className }) {
         type="button"
         role="menuitem"
         onClick={handleContact}
-        className="flex w-full items-center gap-3 px-4 py-3 text-sm font-medium text-[#FFFFFF] hover:bg-white/5 transition-colors"
+        className="flex w-full items-center gap-3 px-4 py-3 text-sm font-medium text-black hover:bg-white/5 transition-colors"
       >
-        <Headphones size={18} className="text-[#FFFFFF]" />
+        <Headphones size={18} className="text-black/50" />
         Hubungi Kami
       </button>
       <div className="mx-3 border-t border-white/10" />
@@ -114,10 +114,10 @@ export function ProfileMenu({ user, onSignOut, onContact, className }) {
               />
               <div
                 role="menu"
-                className="absolute inset-x-0 bottom-0 flex h-[152px] flex-col rounded-t-3xl bg-[#030B1F] pb-[env(safe-area-inset-bottom)] text-left shadow-[0_-8px_30px_rgba(0,0,0,0.3)] animate-in slide-in-from-bottom duration-200"
+                className="absolute inset-x-0 bottom-0 flex h-[152px] flex-col rounded-t-3xl bg-white pb-[env(safe-area-inset-bottom)] text-left shadow-[0_-8px_30px_rgba(0,0,0,0.3)] animate-in slide-in-from-bottom duration-200"
               >
-                <div className="mx-auto mt-3 h-1.5 w-10 shrink-0 rounded-full bg-white/20" />
-                <div className="flex flex-1 flex-col justify-center py-1.5">
+                <div className="mx-auto mt-3 h-1.5 w-10 shrink-0 rounded-full bg-black/50" />
+                <div className="flex flex-1 flex-col justify-center pb-1.5">
                   {items}
                 </div>
               </div>
