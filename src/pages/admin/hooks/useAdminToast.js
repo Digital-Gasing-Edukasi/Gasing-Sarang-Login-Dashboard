@@ -1,4 +1,4 @@
-// Toast global + delayed-commit (undo-window 5s) + bulk-limit flash.
+// Toast global + delayed-commit (dismiss 5s, commit 1s setelahnya) + bulk-limit flash.
 // Dipindah dari AdminDashboardPage.jsx. Satu state toast untuk semua tab.
 //
 // Catatan: handleUndoToast SENGAJA tetap di page — undo menyentuh setter lintas
@@ -6,6 +6,10 @@
 // glue komposisi, seperti currentData/filteredUsers. Hook ini menyediakan
 // primitifnya: toast, scheduleAction, showUndoToast, flashLimit, apiErrMsg.
 import { useState, useRef } from 'react'
+
+// Jendela undo (toast tampil) + jeda commit setelah toast ditutup.
+const UNDO_WINDOW_MS = 5000
+const COMMIT_DELAY_AFTER_DISMISS = 1000
 
 export function useAdminToast() {
   const [toast, setToast]                   = useState(null)
@@ -20,24 +24,33 @@ export function useAdminToast() {
     limitTimeoutRef.current = setTimeout(() => setLimitHit(false), 2500)
   }
 
-  // Auto-dismiss toast (aksi tanpa API) setelah 5 detik; reset timer sebelumnya.
+  // Auto-dismiss toast (aksi tanpa API) setelah jendela undo; reset timer sebelumnya.
   const armToastDismiss = () => {
     if (toastTimeoutId) clearTimeout(toastTimeoutId)
-    const id = setTimeout(() => setToast(null), 5000)
+    const id = setTimeout(() => setToast(null), UNDO_WINDOW_MS)
     setToastTimeoutId(id)
   }
 
   const scheduleAction = (apiCall, onError) => {
     executeActionRef.current = true
     if (toastTimeoutId) clearTimeout(toastTimeoutId)
-    const id = setTimeout(async () => {
-      if (executeActionRef.current) {
-        try { await apiCall() }
-        catch (err) { onError(err) }
-      }
+    // T+5s: tutup toast dulu. Commit API jalan 1 detik SETELAH dismiss —
+    // jeda ini menutup race "Batalkan ditekan bersamaan action fire": dulu
+    // dismiss+fire terjadi dalam satu tick, sehingga klik undo yang masuk
+    // tepat di batas waktu tiba setelah request sudah in-flight (data sudah
+    // terkirim tapi UI di-rollback → error). Sekarang jendela undo tertutup
+    // rapi 1 detik sebelum commit berjalan.
+    const dismissId = setTimeout(() => {
       setToast(null)
-    }, 5000)
-    setToastTimeoutId(id)
+      const commitId = setTimeout(async () => {
+        if (executeActionRef.current) {
+          try { await apiCall() }
+          catch (err) { onError(err) }
+        }
+      }, COMMIT_DELAY_AFTER_DISMISS)
+      setToastTimeoutId(commitId)
+    }, UNDO_WINDOW_MS)
+    setToastTimeoutId(dismissId)
   }
 
   // Tempel pesan error asli dari API (kalau ada) ke belakang copy generik, biar

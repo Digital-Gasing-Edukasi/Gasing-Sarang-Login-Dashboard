@@ -74,9 +74,10 @@ async function triggerApproveToast(ue) {
   await screen.findByText((t) => t.includes('telah disetujui'))
 }
 
-// scheduleAction commit lewat setTimeout 5000ms REAL (bukan fake timers — RTL
-// findBy/waitFor internal juga pakai setTimeout, gampang deadlock kalau di-fake).
-const waitCommit = () => new Promise((r) => setTimeout(r, 5200))
+// scheduleAction commit lewat setTimeout REAL (dismiss 5s + commit 1s setelahnya;
+// bukan fake timers — RTL findBy/waitFor internal juga pakai setTimeout, gampang
+// deadlock kalau di-fake).
+const waitCommit = () => new Promise((r) => setTimeout(r, 6200))
 
 describe('AdminDashboardPage — toast clear saat ganti tab (fix DB-005 #10)', () => {
   beforeEach(() => {
@@ -97,10 +98,10 @@ describe('AdminDashboardPage — toast clear saat ganti tab (fix DB-005 #10)', (
   }, 10000)
 
   // Guard FE: handleTabChange SENGAJA cuma setToast(null) (tampilan), TIDAK
-  // clearTimeout(toastTimeoutId) — supaya scheduleAction (commit API delayed 5s,
-  // undo-window) tetap jalan di background walau tab udah pindah sebelum 5 detik.
-  // Kalau fix ini kebablasan ikut clearTimeout, verifyUser TIDAK akan pernah
-  // terpanggil setelah pindah tab -> guard ini nangkep regresi itu.
+  // clearTimeout(toastTimeoutId) — supaya scheduleAction (dismiss 5s + commit
+  // 1s setelahnya, undo-window) tetap jalan di background walau tab udah pindah
+  // sebelum waktunya. Kalau fix ini kebablasan ikut clearTimeout, verifyUser
+  // TIDAK akan pernah terpanggil setelah pindah tab -> guard ini nangkep regresi itu.
   it('scheduleAction TETAP commit API walau tab dipindah sebelum 5 detik (bukan ikut ke-cancel)', async () => {
     const ue = userEvent.setup()
     render(<AdminDashboardPage user={{}} onSignOut={() => {}} />)

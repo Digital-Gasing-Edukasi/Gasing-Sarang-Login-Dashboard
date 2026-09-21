@@ -78,9 +78,10 @@ async function openRowMenu(ue, name) {
   await ue.click(buttons[buttons.length - 1])
 }
 
-// scheduleAction commit lewat setTimeout 5000ms REAL (bukan fake timers — RTL
-// findBy/waitFor internal juga pakai setTimeout, gampang deadlock kalau di-fake).
-const waitCommit = () => new Promise((r) => setTimeout(r, 5200))
+// scheduleAction commit lewat setTimeout REAL (dismiss 5s + commit 1s setelahnya;
+// bukan fake timers — RTL findBy/waitFor internal juga pakai setTimeout, gampang
+// deadlock kalau di-fake).
+const waitCommit = () => new Promise((r) => setTimeout(r, 6200))
 
 describe('AdminDashboardPage — error handling (DB-002 #11)', () => {
   beforeEach(() => {
