@@ -92,7 +92,6 @@ export function ResetPasswordPage({ token, email, onNavigate }) {
   return (
     <>
       {success && <SuccessToast message="Berhasil mengubah password. Silahkan login kembali" />}
-      <SuccessToast message="Berhasil mengubah password. Silahkan login kembali" />
 
       {/* ═══════════════ MOBILE (tema gelap, sesuai reference) ═══════════════ */}
       <div

@@ -31,9 +31,26 @@ export function useAdminToast() {
     setToastTimeoutId(id)
   }
 
-  const scheduleAction = (apiCall, onError) => {
+  // Commit aksi admin ke API.
+  //   delayed=false (default): tanpa tombol Batalkan + eksekusi LANGSUNG.
+  //     Toast yang sudah dipasang caller dilucuti jadi info murni supaya
+  //     AdminToast tidak render tombol Batalkan.
+  //   delayed=true: implementasi lama — toast undo 5 detik, commit API
+  //     1 detik setelah dismiss (lihat catatan race di bawah).
+  const scheduleAction = (apiCall, onError, delayed = false) => {
     executeActionRef.current = true
     if (toastTimeoutId) clearTimeout(toastTimeoutId)
+    if (!delayed) {
+      setToast((prev) =>
+        prev && typeof prev === 'object' ? { message: prev.message } : prev
+      )
+      armToastDismiss()
+      ;(async () => {
+        try { await apiCall() }
+        catch (err) { onError(err) }
+      })()
+      return
+    }
     // T+5s: tutup toast dulu. Commit API jalan 1 detik SETELAH dismiss —
     // jeda ini menutup race "Batalkan ditekan bersamaan action fire": dulu
     // dismiss+fire terjadi dalam satu tick, sehingga klik undo yang masuk
