@@ -80,7 +80,7 @@ const SESSION_BLOCK_TITLES = {
 // onClose→ tutup / logout / dismiss: bersihkan sesi.
 // onRenew→ lanjut ke halaman langganan (skenario 'expired' & 'payment_rejected').
 // onRetry→ tutup modal untuk mencoba lagi (skenario 'error'; default onClose).
-export function LoginStatusModal({ type, meta = {}, onClose, onRenew, onRetry, onReupload, onReregister }) {
+export function LoginStatusModal({ type, meta = {}, onClose, onRenew, onRetry, onReupload, onReregister, onExplore }) {
   const [confirmLogout, setConfirmLogout] = useState(false)
 
   if (type === 'suspended') return <SuspendedModal meta={meta} onClose={onClose} />
@@ -107,8 +107,10 @@ export function LoginStatusModal({ type, meta = {}, onClose, onRenew, onRetry, o
   }
 
   // Sudah bayar, MENUNGGU verifikasi admin (langganan belum aktif). Ikon jam
-  // orange + satu tombol Log Out. Dipicu di App.handleLoginSuccess saat
-  // paymentPending — menggantikan handoff ke web app yang bikin loop.
+  // orange + tombol Jelajahi Sarang Gasing (handoff web app, pola sama
+  // TransferBankPage) + Log Out. Jelajahi HANYA dalam masa grace 24 jam
+  // (meta.canExplore dari isPaymentGraceActive) — lewat dari itu user basi
+  // tidak boleh masuk app. Dipicu di App.handleLoginSuccess saat paymentPending.
   // Branch tersendiri (bukan CONFIG) supaya jarak body→CTA presisi 2xl (24px)
   // sama rata desktop & mobile: teks+judul dibungkus 1 anak, tombol anak kedua,
   // Shell contentGap 'gap-6' (24px) yang mengatur jaraknya di mobile; desktop
@@ -117,7 +119,7 @@ export function LoginStatusModal({ type, meta = {}, onClose, onRenew, onRetry, o
     return (
       <Shell tone="orange" icon={Clock} sheetClass="min-h-[275px] lg:min-h-0" contentGap="gap-6 lg:gap-0">
         <div className="w-full">
-          <h2 className="text-2xl font-bold text-foreground mb-3">Pembayaran Sedang Kami Tinjau</h2>
+          <h2 className="text-2xl font-bold text-foreground mb-3" onClick={()=>console.log({meta})}>Pembayaran Sedang Kami Tinjau</h2>
           <p className="text-[15px] text-muted-foreground leading-relaxed text-center">
             Pembayaran kamu masih dalam proses verifikasi. Kami akan segera menginformasikan hasilnya dalam waktu{' '}
             <span className="font-semibold text-foreground">1x24 jam</span>.
@@ -126,7 +128,10 @@ export function LoginStatusModal({ type, meta = {}, onClose, onRenew, onRetry, o
         {/* CTA full-width (block) di desktop & mobile → jaraknya = padding Shell:
             desktop lg:px-8 (32px), mobile px-6 (24px) → tambah px-2 (8px) khusus
             mobile supaya sama-sama 32px kiri/kanan. Bawah sudah 32px via Shell pb-8. */}
-        <div className="w-full px-2 lg:px-0 lg:mt-6">
+        <div className="flex flex-col gap-3 w-full px-2 lg:px-0 lg:mt-6">
+          {meta.canExplore && (
+            <ActionButton label="Jelajahi Sarang Gasing" variant="primary" onClick={() => onExplore?.()} block />
+          )}
           <ActionButton label="Log Out" variant="outline" icon={LogOut} onClick={() => onClose?.()} block />
         </div>
       </Shell>

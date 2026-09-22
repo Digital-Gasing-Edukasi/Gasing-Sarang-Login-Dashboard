@@ -80,6 +80,7 @@ export default function App() {
           onRenew={auth.handleGateRenew}
           onReupload={auth.handleGateReupload}
           onReregister={auth.handleGateReregister}
+          onExplore={auth.handleGateExplore}
         />
       )}
     </>

@@ -254,6 +254,38 @@ describe('handleLoginSuccess routing matrix', () => {
     expect(screen.queryByTestId('gate-modal')).not.toBeInTheDocument()
   })
 
+  it('payment pending <24 jam -> modal payment_review DENGAN canExplore (tombol Jelajahi boleh tampil)', async () => {
+    subscriptionApi.getLatestPayment.mockResolvedValueOnce({
+      status: 'receipt_uploaded',
+      createdAt: new Date(Date.now() - 3600e3).toISOString(),
+    })
+    renderApp()
+    await login({ verifiedStatus: 'approved' })
+
+    await waitFor(() =>
+      expect(screen.getByTestId('gate-modal')).toBeInTheDocument(),
+    )
+    expect(screen.getByTestId('gate-modal')).toHaveAttribute('data-type', 'payment_review')
+    expect(screen.getByTestId('gate-modal').textContent).toContain('"canExplore":true')
+    expect(webAppApi.redirectWithTokens).not.toHaveBeenCalled()
+  })
+
+  it('payment pending >24 jam -> modal payment_review TANPA canExplore (user basi tidak bisa masuk)', async () => {
+    subscriptionApi.getLatestPayment.mockResolvedValueOnce({
+      status: 'receipt_uploaded',
+      createdAt: new Date(Date.now() - 48 * 3600e3).toISOString(),
+    })
+    renderApp()
+    await login({ verifiedStatus: 'approved' })
+
+    await waitFor(() =>
+      expect(screen.getByTestId('gate-modal')).toBeInTheDocument(),
+    )
+    expect(screen.getByTestId('gate-modal')).toHaveAttribute('data-type', 'payment_review')
+    expect(screen.getByTestId('gate-modal').textContent).toContain('"canExplore":false')
+    expect(webAppApi.redirectWithTokens).not.toHaveBeenCalled()
+  })
+
   it('session-status revision_required -> gate modal revision_required + fixData dari profil', async () => {
     authApi.sessionStatus.mockResolvedValueOnce({
       blocked: true,

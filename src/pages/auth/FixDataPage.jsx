@@ -344,7 +344,7 @@ export function FixDataPage({ fixData, reviseToken, onNavigate }) {
 
       {/* DESKTOP: header inline judul saja (audit #90 tanpa X, #91 tanpa subtitle). */}
       <div className="hidden lg:block animate-fade-in-up delay-100 relative mb-2">
-        <h1 className="text-[22px] font-bold text-foreground text-center mb-1.5" onClick={()=>console.log({fixData, reviseToken})}>Perbaikan Data</h1>
+        <h1 className="text-[22px] font-bold text-foreground text-center mb-1.5">Perbaikan Data</h1>
       </div>
 
       <div className="space-y-4 animate-fade-in-up delay-200">

@@ -100,25 +100,56 @@ export function isSubscriptionExpired(latestPayment) {
 // 24 jam tanpa verifikasi → akses dicabut (modal "Pembayaran Sedang Kami Tinjau").
 //
 // Return true HANYA bila payment 'pending' DAN umur < 24 jam. Dipakai di
-// App.handleLoginSuccess untuk memutuskan handoff web app vs modal tinjau.
+// App.handleLoginSuccess untuk gate canExplore modal tinjau.
 //
-// TODO(verify): nama field waktu bayar dari /subscription/payments/latest
-//   (createdAt | created_at | paidAt | paid_at). Tanpa timestamp valid → return
-//   false (aman: tahan di modal, JANGAN handoff ke web app — bisa memicu loop
-//   layar putih bila web app menolak lalu bounce ke /login).
+// Field waktu BE terkonfirmasi: createdAt/created_at/paidAt/paid_at dalam
+// bentuk objek { unix, utc:{raw|iso}, local:{raw|iso} } (di-unwrap dateFieldMs
+// di bawah). Tanpa timestamp valid → return false (aman: tombol Jelajahi
+// disembunyikan, user basi tidak bisa masuk app).
 const GRACE_MS = 24 * 60 * 60 * 1000;
 export function isPaymentGraceActive(payment) {
   const p = payment?.payment || payment?.data || payment || {}
+  console.log({p});
+  
   // Audit #60: manual transfer memakai 'receipt_uploaded' — perlakukan sama dgn 'pending'.
   const st = String(p.status || '').toLowerCase()
+  console.log({st});
   if (st !== 'pending' && st !== 'receipt_uploaded' && st !== 'waiting_verification' && st !== 'uploaded' && st !== 'waiting') return false
 
   const raw = p.createdAt || p.created_at || p.paidAt || p.paid_at || null
+  console.log({raw});
   if (!raw) return false
-  const t = new Date(typeof raw === 'string' ? raw.replace(' ', 'T') : raw).getTime()
-  if (Number.isNaN(t)) return false
+  // Bentuk waktu BE: objek { unix, utc:{raw|iso}, local:{raw|iso} } ATAU string
+  // "YYYY-MM-DD HH:mm:ss"/ISO ATAU epoch. Objek langsung di-new Date() → NaN,
+  // makanya grace selalu false — unwrap dulu (unix detik → ms diutamakan).
+  const t = dateFieldMs(raw)
+  console.log({t});
+  if (t == null) return false
 
   return Date.now() - t < GRACE_MS
+}
+
+// Normalisasi field waktu BE → epoch ms. Terima objek { unix, utc, local },
+// string ("YYYY-MM-DD HH:mm:ss" / ISO), epoch detik/ms, dan Date.
+// Return null bila tak bisa diparse (caller fail-safe).
+export function dateFieldMs(v) {
+  if (v == null) return null
+  if (typeof v === 'number') return v < 1e12 ? v * 1000 : v // epoch detik vs ms
+  if (v instanceof Date) {
+    const t = v.getTime()
+    return Number.isNaN(t) ? null : t
+  }
+  if (typeof v === 'object') {
+    if (typeof v.unix === 'number') return v.unix * 1000 // detik → ms
+    const s = v.utc?.raw || v.utc?.iso || v.local?.raw || v.local?.iso || null
+    if (s) return dateFieldMs(s)
+    return null
+  }
+  if (typeof v === 'string') {
+    const t = new Date(v.replace(' ', 'T')).getTime()
+    return Number.isNaN(t) ? null : t
+  }
+  return null
 }
 
 // Evaluasi payment terakhir (GET /subscription/payments/latest) untuk gate

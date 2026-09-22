@@ -221,12 +221,6 @@ export default function TransferBankPage({
       // 4. Lampirkan bukti → payment menunggu verifikasi admin.
       //    Field backend terkonfirmasi: { fileId, senderName, senderBankName,
       //    transferDate } (audit #53).
-      console.log("payload", {
-        senderName,
-        senderBankName,
-        transferDate,
-      });
-
       await subscriptionApi.uploadReceipt(paymentId, fileId, {
         senderName,
         senderBankName,

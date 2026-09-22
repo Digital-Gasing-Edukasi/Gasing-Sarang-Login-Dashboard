@@ -47,8 +47,7 @@ export function useAuthSession({ setIsRetry, setCheckoutPlan, setManualPayment, 
       // yang menghentikan login.
       try {
         const st = await authApi.sessionStatus();
-        console.log({sessionStatus});
-        
+
         // Bentuk BE: { blocked, reasonCode, message, data:{...} } di top-level.
         // Jangan asal ambil .data — itu payload revision, bukan wrapper respons.
         const raw = st || {};
@@ -102,6 +101,8 @@ export function useAuthSession({ setIsRetry, setCheckoutPlan, setManualPayment, 
         paymentPending = st === "pending" || st === "receipt_uploaded" || st === "waiting_verification" || st === "uploaded" || st === "waiting";
         // Akses sementara 24 jam sejak bayar (manual transfer) walau belum diverifikasi.
         graceActive = isPaymentGraceActive(p);
+        console.log({graceActive});
+        
         // Payment terakhir ditolak admin (failed/rejected) → gate "Pembayaran Ditolak".
         paymentRejected = evaluatePaymentGate(p);
       } catch {
@@ -180,26 +181,23 @@ export function useAuthSession({ setIsRetry, setCheckoutPlan, setManualPayment, 
         const isActive =
           sub?.hasActiveSubscription === true ||
           sub?.subscription?.status === "active";
-      // Boleh handoff ke web app bila: langganan aktif, ATAU masih dalam masa
-      // grace 24 jam sejak bayar manual (graceActive) walau belum diverifikasi.
-      // Payment 'pending' yang grace-nya HABIS (> 24 jam) TIDAK dilempar — web
-      // app pasti menolak lalu bounce ke /login → loop layar putih. Tahan di
-      // modal "Pembayaran Sedang Kami Tinjau" sampai admin verifikasi.
-      if (isActive || graceActive) {
+      // Langganan aktif → handoff web app. Payment pending → SELALU modal
+      // tinjau (tanpa auto-handoff): tombol Jelajahi hanya tampil dalam masa
+      // grace 24 jam (canExplore) supaya user basi tidak bisa masuk app —
+      // anti bounce-loop web app yang menolak lalu memantalkan ke /login.
+      if (isActive) {
         webAppApi.redirectWithTokens();
       } else if (paymentPending) {
-        setGate({ type: "payment_review", profile: user });
+        setGate({ type: "payment_review", profile: user, canExplore: graceActive });
         navigate("/login", { replace: true });
       } else {
         navigate("/login/subscription", { replace: true });
       }
       } catch {
-        // Gagal cek langganan → grace 24 jam masih lolos ke web app; pending yang
-        // grace-nya habis tampil modal tinjau; selain itu halaman langganan.
-        if (graceActive) {
-          webAppApi.redirectWithTokens();
-        } else if (paymentPending) {
-          setGate({ type: "payment_review", profile: user });
+        // Gagal cek langganan → pending tetap modal (grace menentukan tombol
+        // Jelajahi); selain itu halaman langganan. Grace TIDAK auto-handoff.
+        if (paymentPending) {
+          setGate({ type: "payment_review", profile: user, canExplore: graceActive });
           navigate("/login", { replace: true });
         } else {
           navigate("/login/subscription", { replace: true });
@@ -264,6 +262,12 @@ export function useAuthSession({ setIsRetry, setCheckoutPlan, setManualPayment, 
     navigate("/register/revise", { replace: true });
   }, [navigate, gate, setFixData]);
 
+  // "Jelajahi Sarang Gasing" (payment_review) → handoff ke web app dengan token
+  // sesi saat ini (pola sama TransferBankPage.handleRedirectDefault).
+  const handleGateExplore = useCallback(() => {
+    webAppApi.redirectWithTokens();
+  }, []);
+
   // "Upload Bukti Pembayaran" (payment ditolak varian receipt) → langsung
   // ke TransferBankPage dgn paket terakhir (skip pilih paket). Tanpa paket
   // terkenal → fallback ke halaman langganan. Selalu dari gate
@@ -301,5 +305,6 @@ export function useAuthSession({ setIsRetry, setCheckoutPlan, setManualPayment, 
     handleGateRenew,
     handleGateReupload,
     handleGateReregister,
+    handleGateExplore,
   };
 }
