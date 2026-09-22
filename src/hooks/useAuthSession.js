@@ -47,6 +47,8 @@ export function useAuthSession({ setIsRetry, setCheckoutPlan, setManualPayment, 
       // yang menghentikan login.
       try {
         const st = await authApi.sessionStatus();
+        console.log("sessionStatus", {st});
+        
 
         // Bentuk BE: { blocked, reasonCode, message, data:{...} } di top-level.
         // Jangan asal ambil .data — itu payload revision, bukan wrapper respons.
@@ -56,27 +58,52 @@ export function useAuthSession({ setIsRetry, setCheckoutPlan, setManualPayment, 
             ? raw
             : raw.data || raw;
         if (s.blocked === true) {
-          if (s.reasonCode === "revision_required") {
-            // Akun butuh registrasi ulang: modal daftar deskripsi per-field +
-            // tombol Daftar Ulang → FixDataPage (prefill dari profil + penanda).
-            const fields = Array.isArray(s.data?.fields) ? s.data.fields : [];
-            setGate({
-              type: "revision_required",
-              reasonCode: s.reasonCode,
-              message: s.message || null,
-              fields,
-              fixData: buildRevisionFixData(user, fields),
-              profile: user,
-            });
-          } else {
-            setGate({
-              type: "session_blocked",
-              reasonCode: s.reasonCode || null,
-              message: s.message || null,
-              profile: user,
-            });
+          // reasonCode menentukan modal mana yang tampil (switch-case, bukan
+          // if-else — varian baru tinggal tambah case). Default: session_blocked.
+          switch (s.reasonCode) {
+            case 'revision_required': {
+              // Akun butuh registrasi ulang: modal daftar deskripsi per-field +
+              // tombol Daftar Ulang → FixDataPage (prefill dari profil + penanda).
+              const fields = Array.isArray(s.data?.fields) ? s.data.fields : [];
+              setGate({
+                type: 'revision_required',
+                reasonCode: s.reasonCode,
+                message: s.message || null,
+                fields,
+                fixData: buildRevisionFixData(user, fields),
+                profile: user,
+              });
+              break;
+            }
+            case 'payment_rejected': {
+              // Ada modal khusus (varian receipt/amount/account + tombol
+              // Upload/Ulang). Detail diambil dari payment ter-embed di
+              // s.data via evaluatePaymentGate; bila tak berbentuk payment,
+              // fallback ke session_blocked supaya blokir tetap tampil.
+              const payGate = evaluatePaymentGate(s.data);
+              setGate(
+                payGate
+                  ? { ...payGate, profile: user }
+                  : {
+                      type: 'payment_rejected',
+                      reasonCode: s.reasonCode,
+                      message: s.message || null,
+                      profile: user,
+                    }
+              );
+              break;
+            }
+            default: {
+              setGate({
+                type: 'session_blocked',
+                reasonCode: s.reasonCode || null,
+                message: s.message || null,
+                profile: user,
+              });
+              break;
+            }
           }
-          navigate("/login", { replace: true });
+          navigate('/login', { replace: true });
           return;
         }
       } catch {

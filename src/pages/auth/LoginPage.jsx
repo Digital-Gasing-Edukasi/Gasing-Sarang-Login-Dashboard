@@ -57,6 +57,8 @@ export function LoginPage({ onNavigate, onLoginSuccess, isSsoMode = false }) {
       const data = await authApi.login(email, password)
       tokenStorage.setTokens(data.accessToken, data.refreshToken, remember)
       const profile = await profileApi.getMe()
+      console.log({profile});
+      
       // Guard status akun (pending/expired/suspended) ditangani terpusat di
       // App.handleLoginSuccess — berlaku juga saat restore sesi (reload).
       onLoginSuccess(profile)

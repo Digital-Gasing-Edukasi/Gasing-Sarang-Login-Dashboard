@@ -270,6 +270,46 @@ describe('handleLoginSuccess routing matrix', () => {
     expect(webAppApi.redirectWithTokens).not.toHaveBeenCalled()
   })
 
+  it('session-status payment_rejected -> gate modal payment_rejected (varian dari data sesi), stop sebelum payment', async () => {
+    authApi.sessionStatus.mockResolvedValueOnce({
+      blocked: true,
+      reasonCode: 'payment_rejected',
+      message: 'Pembayaran ditolak admin',
+      data: {
+        status: 'rejected',
+        notes: 'nominal pembayaran tidak sesuai tagihan',
+        amount: 396000,
+        package: { id: 'pkg-1', name: 'Yearly' },
+      },
+    })
+    renderApp()
+    await login({ verifiedStatus: 'approved' })
+
+    await waitFor(() =>
+      expect(screen.getByTestId('gate-modal')).toBeInTheDocument(),
+    )
+    expect(screen.getByTestId('gate-modal')).toHaveAttribute('data-type', 'payment_rejected')
+    expect(screen.getByTestId('gate-modal').textContent).toContain('"variant":"amount"')
+    expect(screen.getByText('DO_LOGIN')).toBeInTheDocument()
+    expect(subscriptionApi.getLatestPayment).not.toHaveBeenCalled()
+  })
+
+  it('session-status payment_rejected tanpa data payment -> tetap payment_rejected (varian default receipt)', async () => {
+    authApi.sessionStatus.mockResolvedValueOnce({
+      blocked: true,
+      reasonCode: 'payment_rejected',
+      message: 'Pembayaran bermasalah',
+    })
+    renderApp()
+    await login({ verifiedStatus: 'approved' })
+
+    await waitFor(() =>
+      expect(screen.getByTestId('gate-modal')).toBeInTheDocument(),
+    )
+    expect(screen.getByTestId('gate-modal')).toHaveAttribute('data-type', 'payment_rejected')
+    expect(screen.getByText('DO_LOGIN')).toBeInTheDocument()
+  })
+
   it('payment pending >24 jam -> modal payment_review TANPA canExplore (user basi tidak bisa masuk)', async () => {
     subscriptionApi.getLatestPayment.mockResolvedValueOnce({
       status: 'receipt_uploaded',
