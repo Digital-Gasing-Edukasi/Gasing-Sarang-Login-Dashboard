@@ -226,7 +226,7 @@ export default function TransferBankPage({
         senderBankName,
         transferDate,
       });
-      
+
       await subscriptionApi.uploadReceipt(paymentId, fileId, {
         senderName,
         senderBankName,
@@ -237,7 +237,7 @@ export default function TransferBankPage({
       setSubmitted(true);
     } catch (e) {
       console.error(e);
-      
+
       // Audit #53: pesan backend mentah → Indonesia, loading selalu pulih via finally.
       setError(translateApiError(e.message) || "Gagal mengirim bukti, coba lagi.");
     } finally {
@@ -288,305 +288,305 @@ export default function TransferBankPage({
 
       {/* ── CONTENT (scroll di tengah pada mobile app-shell) ── */}
       <div className="relative z-10 flex-1 min-h-0 overflow-y-auto lg:overflow-visible lg:flex-none">
-      {submitted ? (
-        <div className="relative z-10 max-w-xl mx-auto px-4 pt-[42px] lg:pt-6 pb-24 flex flex-col items-center text-center animate-fade-in-up">
-          {/* Ceklis hijau */}
-          <div className="w-[52px] h-[52px] rounded-full bg-[#2BDE6D] flex items-center justify-center mb-6 shadow-[0_0_40px_rgba(34,197,94,0.4)]">
-            <Check size={24} strokeWidth={4} className="text-[#210965]" />
-          </div>
-
-          <h1 className="text-[28px] font-bold tracking-tight mb-2">
-            Pembayaran Berhasil!
-          </h1>
-          <p className="text-white/80 text-[14px] leading-[150%]] max-w-md mb-9">
-            Terima kasih, pembayaran kamu telah kami terima dan sedang diproses.
-          </p>
-
-          {/* Rincian Transaksi */}
-          <div className="w-full rounded-3xl border border-white/10 bg-white/[0.03] p-6 text-left mb-6">
-            <div className="flex items-center justify-between mb-5">
-              <span className="text-sm font-semibold text-[#B5A3C7]">Rincian Transaksi</span>
-              <span className="text-sm text-white/90 text-right pl-2 ">
-                ID: {txnId || orderId}
-              </span>
+        {submitted ? (
+          <div className="relative z-10 max-w-xl mx-auto px-4 pt-[42px] lg:pt-6 pb-24 flex flex-col items-center text-center animate-fade-in-up">
+            {/* Ceklis hijau */}
+            <div className="w-[52px] h-[52px] rounded-full bg-[#2BDE6D] flex items-center justify-center mb-6 shadow-[0_0_40px_rgba(34,197,94,0.4)]">
+              <Check size={24} strokeWidth={4} className="text-[#210965]" />
             </div>
-            <div className="border-t border-white/10 mb-5" />
-            <SummaryRow label="Paket Langganan" value={packageLabel} valueClassName="font-semibold" />
-            <SummaryRow label="Durasi" value={`${durationMonths} Bulan`} />
-            <SummaryRow label="Metode Pembayaran" value="Transfer Bank" />
-            <div className="border-t border-white/10 mt-5 mb-5" />
-            <div className="flex items-center justify-between">
-              <span className="text-[15px] font-bold">Total Bayar</span>
-              <span className="text-2xl font-bold text-[#1DF5FF]">
-                Rp{formatRp(total)}
-              </span>
-            </div>
-          </div>
 
-          {/* Aksi — audit #57: container max 500px, tiap tombol h-12 (48px), gap 16px, fill responsive */}
-          <div className="flex flex-col sm:flex-row gap-4 w-full max-w-[500px] justify-center">
-            {isRetry ? (
-              <button
-                onClick={onSignOut}
-                className="flex md:flex-1 h-12 items-center justify-center gap-2 px-8 rounded-full bg-white text-[#0b0a1f] font-bold text-[15px] hover:bg-white/90 active:scale-[0.98] transition-all"
-              >
-                <LogOut size={18} />
-                Log Out
-              </button>
-            ) : (
-              <button
-                onClick={handleRedirectDefault}
-                className="flex md:flex-1 h-12 items-center justify-center px-8 rounded-full bg-white text-[#0b0a1f] font-bold text-[15px] hover:bg-white/90 active:scale-[0.98] transition-all"
-              >
-                Jelajahi Sarang Gasing
-              </button>
-            )}
-            {receiptFileId && (
-              <a
-                href={fileManagerApi.getDownloadUrl(receiptFileId)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex md:flex-1 h-12 items-center justify-center px-8 rounded-full border border-white/25 font-semibold text-[14px] hover:bg-white/10 active:scale-[0.98] transition-all"
-              >
-                Unduh Bukti
-              </a>
-            )}
-
-          </div>
-        </div>
-      ) : (
-        <div className="relative z-10 max-w-[1128px] mx-auto px-4 lg:px-10 pt-4 pb-6 lg:pb-24 grid lg:grid-cols-2 lg:gap-12 items-start animate-fade-in-up">
-          {/* ── KIRI ── */}
-          <div className="min-w-0">
-            {onBack && (
-              <button
-                onClick={onBack}
-                className="hidden lg:flex items-center gap-2 text-[14px] text-white/60 hover:text-white transition-colors mb-4"
-              >
-                <ChevronLeft size={18} />
-                Kembali ke Pilihan Paket
-              </button>
-            )}
-            <h1 className="text-[28px] font-bold leading-[140%] mb-1 lg:mb-2">
-              Transfer Pembayaran
+            <h1 className="text-[28px] font-bold tracking-tight mb-2">
+              Pembayaran Berhasil!
             </h1>
-            <p className="text-white/50 text-[15px] mb-5 lg:mb-4">
-              Mohon transfer ke rekening bank berikut:
+            <p className="text-white/80 text-[14px] leading-[150%]] max-w-md mb-9">
+              Terima kasih, pembayaran kamu telah kami terima dan sedang diproses.
             </p>
 
-            {/* Kartu rekening */}
-            <div className="relative rounded-3xl border border-[#3A67FF] bg-[#ffffff]/10 p-5 lg:p-5 mb-4 lg:mb-4 shadow-[0_0_40px_rgba(124,58,237,0.15)]">
-              <div className="flex items-center gap-2 mb-4 lg:mb-4">
-                <div className="h-8 w-15 bg-white rounded-md flex items-center justify-center overflow-hidden p-1">
-                  <img
-                    src={mandiriLogo}
-                    alt="Bank Mandiri"
-                    className="w-full h-full"
-                  />
-                </div>
-                <span className="text-lg font-bold">Bank Mandiri</span>
-              </div>
-              <p className="text-white/50 text-xs mb-[2px]">No. Rekening</p>
-              <div className="flex items-center justify-between gap-3">
-                <span className="min-w-0 break-all text-xl font-bold tracking-wide">
-                  {bank.accountNumber}
+            {/* Rincian Transaksi */}
+            <div className="w-full rounded-3xl border border-white/10 bg-white/[0.03] p-6 text-left mb-6">
+              <div className="flex items-center justify-between mb-5">
+                <span className="text-sm font-semibold text-[#B5A3C7]">Rincian Transaksi</span>
+                <span className="text-sm text-white/90 text-right pl-2 ">
+                  ID: {txnId || orderId}
                 </span>
-                <button
-                  onClick={handleCopy}
-                  className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-white/25 text-xs font-semibold hover:bg-white/10 transition-colors shrink-0"
-                >
-                  {copied ? <Check size={16} /> : <Copy size={16} />}
-                  {copied ? "Tersalin" : "Salin"}
-                </button>
               </div>
-              <p className="text-white/50 text-xs mt-4 lg:mt-2 mb-[2px]">Atas Nama</p>
-              <p className="text-sm font-semibold">{bank.accountName}</p>
-            </div>
-
-            {/* Cara Pembayaran — collapsible di mobile, selalu tampil di desktop */}
-            <div className="rounded-3xl border border-white/20 bg-white/[0.05] p-5 lg:p-5 mb-4 lg:mb-6">
-              <button
-                type="button"
-                onClick={() => setCaraOpen((o) => !o)}
-                className="flex w-full items-center justify-between text-[14px] lg:text-xs font-semibold lg:cursor-default"
-              >
-                <span>Cara Pembayaran:</span>
-                <ChevronDown
-                  size={20}
-                  className={cn(
-                    "lg:hidden text-white/60 transition-transform duration-200",
-                    caraOpen && "rotate-180"
-                  )}
-                />
-              </button>
-              <ol className={cn("space-y-3 mt-4", !caraOpen && "hidden lg:block")}>
-                {[
-                  "Salin nomor rekening di atas",
-                  'Transfer nominal sesuai "Total Bayar" ke rekening tersebut',
-                  "Cantumkan nama lengkap kamu di kolom keterangan transfer",
-                  "Simpan bukti transfer (screenshot/struk)",
-                  "Unggah bukti pembayaran",
-                ].map((step, i) => (
-                  <li
-                    key={i}
-                    className="flex gap-3 text-[12px] text-white/70 leading-relaxed"
-                  >
-                    <span className="text-[#22d3ee] font-semibold shrink-0">
-                      {i + 1}.
-                    </span>
-                    <span>{step}</span>
-                  </li>
-                ))}
-              </ol>
-            </div>
-          </div>
-
-          {/* ── KANAN ── */}
-          <div className="min-w-0 space-y-4 lg:space-y-5 lg:pt-10">
-            {/* Ringkasan */}
-            <div className="rounded-3xl border border-white/20 bg-white/[0.05] p-5 lg:p-6">
-              <p className="text-base font-semibold mb-2">Ringkasan Pesanan</p>
-              <SummaryRow label={packageLabel} value={`Rp${formatRp(total)}`} />
-              <SummaryRow
-                label="Durasi Subkripsi"
-                value={`${durationMonths} Bulan`}
-              />
-              <div className="border-t border-white/20 my-4" />
+              <div className="border-t border-white/10 mb-5" />
+              <SummaryRow label="Paket Langganan" value={packageLabel} valueClassName="font-semibold" />
+              <SummaryRow label="Durasi" value={`${durationMonths} Bulan`} />
+              <SummaryRow label="Metode Pembayaran" value="Transfer Bank" />
+              <div className="border-t border-white/10 mt-5 mb-5" />
               <div className="flex items-center justify-between">
-                <span className="text-base font-bold">Total Bayar</span>
-                <span className="text-lg font-bold text-[#1DF5FF]">
+                <span className="text-[15px] font-bold">Total Bayar</span>
+                <span className="text-2xl font-bold text-[#1DF5FF]">
                   Rp{formatRp(total)}
                 </span>
               </div>
             </div>
 
-            {/* Nama Pengirim */}
-            <div>
-              <label className="block text-[14px] lg:text-[12px] font-regular lg:font-medium text-white/70 lg:!mt-8 mb-1.5">
-                Nama Pengirim
-              </label>
-              <input
-                value={senderName}
-                onChange={(e) => setSenderName(e.target.value)}
-                placeholder="Contoh: Budi Santoso"
-                className={inputCls}
-              />
+            {/* Aksi — audit #57: container max 500px, tiap tombol h-12 (48px), gap 16px, fill responsive */}
+            <div className="flex flex-col sm:flex-row gap-4 w-full justify-center">
+              {receiptFileId && (
+                <a
+                  href={fileManagerApi.getDownloadUrl(receiptFileId)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex md:flex-1 h-12 items-center justify-center px-8 rounded-full border border-white/25 font-semibold text-[14px] hover:bg-white/10 active:scale-[0.98] transition-all"
+                >
+                  Unduh Bukti
+                </a>
+              )}
+
+              {isRetry ? (
+                <button
+                  onClick={onSignOut}
+                  className="flex md:flex-1 h-12 items-center justify-center gap-2 px-8 rounded-full bg-white text-[#0b0a1f] font-bold text-[15px] hover:bg-white/90 active:scale-[0.98] transition-all"
+                >
+                  <LogOut size={18} />
+                  Log Out
+                </button>
+              ) : (
+                <button
+                  onClick={handleRedirectDefault}
+                  className="flex md:flex-1 h-12 items-center justify-center px-8 rounded-full bg-white text-[#0b0a1f] font-bold text-[15px] hover:bg-white/90 active:scale-[0.98] transition-all"
+                >
+                  Jelajahi Sarang Gasing
+                </button>
+              )}
+            </div>
+          </div>
+        ) : (
+          <div className="relative z-10 max-w-[1128px] mx-auto px-4 lg:px-10 pt-4 pb-6 lg:pb-24 grid lg:grid-cols-2 lg:gap-12 items-start animate-fade-in-up">
+            {/* ── KIRI ── */}
+            <div className="min-w-0">
+              {onBack && (
+                <button
+                  onClick={onBack}
+                  className="hidden lg:flex items-center gap-2 text-[14px] text-white/60 hover:text-white transition-colors mb-4"
+                >
+                  <ChevronLeft size={18} />
+                  Kembali ke Pilihan Paket
+                </button>
+              )}
+              <h1 className="text-[28px] font-bold leading-[140%] mb-1 lg:mb-2">
+                Transfer Pembayaran
+              </h1>
+              <p className="text-white/50 text-[15px] mb-5 lg:mb-4">
+                Mohon transfer ke rekening bank berikut:
+              </p>
+
+              {/* Kartu rekening */}
+              <div className="relative rounded-3xl border border-[#3A67FF] bg-[#ffffff]/10 p-5 lg:p-5 mb-4 lg:mb-4 shadow-[0_0_40px_rgba(124,58,237,0.15)]">
+                <div className="flex items-center gap-2 mb-4 lg:mb-4">
+                  <div className="h-8 w-15 bg-white rounded-md flex items-center justify-center overflow-hidden p-1">
+                    <img
+                      src={mandiriLogo}
+                      alt="Bank Mandiri"
+                      className="w-full h-full"
+                    />
+                  </div>
+                  <span className="text-lg font-bold">Bank Mandiri</span>
+                </div>
+                <p className="text-white/50 text-xs mb-[2px]">No. Rekening</p>
+                <div className="flex items-center justify-between gap-3">
+                  <span className="min-w-0 break-all text-xl font-bold tracking-wide">
+                    {bank.accountNumber}
+                  </span>
+                  <button
+                    onClick={handleCopy}
+                    className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-white/25 text-xs font-semibold hover:bg-white/10 transition-colors shrink-0"
+                  >
+                    {copied ? <Check size={16} /> : <Copy size={16} />}
+                    {copied ? "Tersalin" : "Salin"}
+                  </button>
+                </div>
+                <p className="text-white/50 text-xs mt-4 lg:mt-2 mb-[2px]">Atas Nama</p>
+                <p className="text-sm font-semibold">{bank.accountName}</p>
+              </div>
+
+              {/* Cara Pembayaran — collapsible di mobile, selalu tampil di desktop */}
+              <div className="rounded-3xl border border-white/20 bg-white/[0.05] p-5 lg:p-5 mb-4 lg:mb-6">
+                <button
+                  type="button"
+                  onClick={() => setCaraOpen((o) => !o)}
+                  className="flex w-full items-center justify-between text-[14px] lg:text-xs font-semibold lg:cursor-default"
+                >
+                  <span>Cara Pembayaran:</span>
+                  <ChevronDown
+                    size={20}
+                    className={cn(
+                      "lg:hidden text-white/60 transition-transform duration-200",
+                      caraOpen && "rotate-180"
+                    )}
+                  />
+                </button>
+                <ol className={cn("space-y-3 mt-4", !caraOpen && "hidden lg:block")}>
+                  {[
+                    "Salin nomor rekening di atas",
+                    'Transfer nominal sesuai "Total Bayar" ke rekening tersebut',
+                    "Cantumkan nama lengkap kamu di kolom keterangan transfer",
+                    "Simpan bukti transfer (screenshot/struk)",
+                    "Unggah bukti pembayaran",
+                  ].map((step, i) => (
+                    <li
+                      key={i}
+                      className="flex gap-3 text-[12px] text-white/70 leading-relaxed"
+                    >
+                      <span className="text-[#22d3ee] font-semibold shrink-0">
+                        {i + 1}.
+                      </span>
+                      <span>{step}</span>
+                    </li>
+                  ))}
+                </ol>
+              </div>
             </div>
 
-            {/* Bank Asal + Tanggal */}
-            <div className="grid grid-cols-2 gap-3">
+            {/* ── KANAN ── */}
+            <div className="min-w-0 space-y-4 lg:space-y-5 lg:pt-10">
+              {/* Ringkasan */}
+              <div className="rounded-3xl border border-white/20 bg-white/[0.05] p-5 lg:p-6">
+                <p className="text-base font-semibold mb-2">Ringkasan Pesanan</p>
+                <SummaryRow label={packageLabel} value={`Rp${formatRp(total)}`} />
+                <SummaryRow
+                  label="Durasi Subkripsi"
+                  value={`${durationMonths} Bulan`}
+                />
+                <div className="border-t border-white/20 my-4" />
+                <div className="flex items-center justify-between">
+                  <span className="text-base font-bold">Total Bayar</span>
+                  <span className="text-lg font-bold text-[#1DF5FF]">
+                    Rp{formatRp(total)}
+                  </span>
+                </div>
+              </div>
+
+              {/* Nama Pengirim */}
               <div>
-                <label className="block text-[14px] lg:text-[12px] font-regular lg:font-medium text-white/70 mb-1.5">
-                  Bank Asal
+                <label className="block text-[14px] lg:text-[12px] font-regular lg:font-medium text-white/70 lg:!mt-8 mb-1.5">
+                  Nama Pengirim
                 </label>
                 <input
-                  value={senderBankName}
-                  onChange={(e) => setSenderBankName(e.target.value)}
-                  placeholder="BCA / Mandiri / dll"
+                  value={senderName}
+                  onChange={(e) => setSenderName(e.target.value)}
+                  placeholder="Contoh: Budi Santoso"
                   className={inputCls}
                 />
               </div>
-              <div>
-                <label className="block text-[14px] lg:text-[12px] font-regular lg:font-medium text-white/70 mb-1.5">
-                  Tanggal Transfer
-                </label>
-                <DateField
-                  value={transferDate}
-                  onChange={(e) => setTransferDate(e.target.value)}
-                  maxDate={DATE_MAX.today}
-                  defaultDraft={{
-                    y: new Date().getFullYear(),
-                    m: new Date().getMonth(),
-                    d: new Date().getDate(),
-                  }}
-                  dialogLabel="Pilih tanggal transfer"
-                  className="!h-[47px] !rounded-full !bg-white/[0.05] !border-white/20 !px-4 !text-[14px] !text-white hover:!border-white/20 transition-colors [&.border-primary]:!border-[#22d3ee]/60 [&.ring-2]:!ring-0"
-                />
-              </div>
-            </div>
 
-            {/* Bukti transfer: dropzone saat kosong, baris ringkas saat sudah ada */}
-            {file ? (
-              <div className="flex items-center gap-3 rounded-3xl bg-white/[0.04] border border-white/20 px-4 py-3 lg:h-[76px]">
-                <div className="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center shrink-0">
-                  <FileText size={20} className="text-[#22d3ee]" />
+              {/* Bank Asal + Tanggal */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[14px] lg:text-[12px] font-regular lg:font-medium text-white/70 mb-1.5">
+                    Bank Asal
+                  </label>
+                  <input
+                    value={senderBankName}
+                    onChange={(e) => setSenderBankName(e.target.value)}
+                    placeholder="BCA / Mandiri / dll"
+                    className={inputCls}
+                  />
                 </div>
-                <div className="min-w-0 flex-1">
-                  <p className="font-medium text-[14px] truncate">{file.name}</p>
-                  <p className="text-white/40 text-[12px]">
-                    {formatFileSize(file.size)}
-                  </p>
+                <div>
+                  <label className="block text-[14px] lg:text-[12px] font-regular lg:font-medium text-white/70 mb-1.5">
+                    Tanggal Transfer
+                  </label>
+                  <DateField
+                    value={transferDate}
+                    onChange={(e) => setTransferDate(e.target.value)}
+                    maxDate={DATE_MAX.today}
+                    defaultDraft={{
+                      y: new Date().getFullYear(),
+                      m: new Date().getMonth(),
+                      d: new Date().getDate(),
+                    }}
+                    dialogLabel="Pilih tanggal transfer"
+                    className="!h-[47px] !rounded-full !bg-white/[0.05] !border-white/20 !px-4 !text-[14px] !text-white hover:!border-white/20 transition-colors [&.border-primary]:!border-[#22d3ee]/60 [&.ring-2]:!ring-0"
+                  />
                 </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setFile(null);
-                    setError("");
-                    if (fileInputRef.current) fileInputRef.current.value = "";
+              </div>
+
+              {/* Bukti transfer: dropzone saat kosong, baris ringkas saat sudah ada */}
+              {file ? (
+                <div className="flex items-center gap-3 rounded-3xl bg-white/[0.04] border border-white/20 px-4 py-3 lg:h-[76px]">
+                  <div className="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center shrink-0">
+                    <FileText size={20} className="text-[#22d3ee]" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium text-[14px] truncate">{file.name}</p>
+                    <p className="text-white/40 text-[12px]">
+                      {formatFileSize(file.size)}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFile(null);
+                      setError("");
+                      if (fileInputRef.current) fileInputRef.current.value = "";
+                    }}
+                    aria-label="Hapus bukti pembayaran"
+                    className="w-10 h-10 rounded-full flex items-center justify-center text-white/50 hover:text-red-400 hover:bg-red-500/10 transition-colors shrink-0"
+                  >
+                    <div className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center shrink-0">
+                      <Trash2 size={20} className="text-white" />
+                    </div>
+                  </button>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".jpg,.jpeg,.png,.pdf"
+                    className="hidden"
+                    onChange={(e) => handleFile(e.target.files?.[0])}
+                  />
+                </div>
+              ) : (
+                <div
+                  onClick={() => fileInputRef.current?.click()}
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    handleFile(e.dataTransfer.files?.[0]);
                   }}
-                  aria-label="Hapus bukti pembayaran"
-                  className="w-10 h-10 rounded-full flex items-center justify-center text-white/50 hover:text-red-400 hover:bg-red-500/10 transition-colors shrink-0"
+                  className="rounded-3xl border border-dashed border-white/20 bg-white/[0.05] px-4 py-5 flex flex-row items-center gap-4 cursor-pointer hover:border-[#22d3ee]/50 hover:bg-white/[0.05] transition-colors lg:h-[76px] lg:py-0"
                 >
-                <div className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center shrink-0">
-                  <Trash2 size={20} className="text-white" />
+                  <div className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center shrink-0">
+                    <Upload size={20} className="text-white" />
+                  </div>
+                  <div className="text-left">
+                    <p className="font-medium text-[14px] text-white">Unggah Bukti Transfer</p>
+                    <p className="text-white/40 text-[12px] mt-0.5">
+                      {`JPG, PNG, atau PDF (maks. ${MAX_FILE_MB}MB)`}
+                    </p>
+                  </div>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".jpg,.jpeg,.png,.pdf"
+                    className="hidden"
+                    onChange={(e) => handleFile(e.target.files?.[0])}
+                  />
                 </div>
-                </button>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept=".jpg,.jpeg,.png,.pdf"
-                  className="hidden"
-                  onChange={(e) => handleFile(e.target.files?.[0])}
-                />
-              </div>
-            ) : (
-              <div
-                onClick={() => fileInputRef.current?.click()}
-                onDragOver={(e) => e.preventDefault()}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  handleFile(e.dataTransfer.files?.[0]);
-                }}
-                className="rounded-3xl border border-dashed border-white/20 bg-white/[0.05] px-4 py-5 flex flex-row items-center gap-4 cursor-pointer hover:border-[#22d3ee]/50 hover:bg-white/[0.05] transition-colors lg:h-[76px] lg:py-0"
-              >
-                <div className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center shrink-0">
-                  <Upload size={20} className="text-white" />
-                </div>
-                <div className="text-left">
-                  <p className="font-medium text-[14px] text-white">Unggah Bukti Transfer</p>
-                  <p className="text-white/40 text-[12px] mt-0.5">
-                    {`JPG, PNG, atau PDF (maks. ${MAX_FILE_MB}MB)`}
-                  </p>
-                </div>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept=".jpg,.jpeg,.png,.pdf"
-                  className="hidden"
-                  onChange={(e) => handleFile(e.target.files?.[0])}
-                />
-              </div>
-            )}
+              )}
 
-            {/* Error */}
-            {error && (
-              <div className="flex items-start gap-2 rounded-xl bg-red-500/10 border border-red-500/30 px-4 py-3 text-sm text-red-300">
-                <AlertCircle size={16} className="mt-0.5 shrink-0" />
-                <span>{error}</span>
-              </div>
-            )}
+              {/* Error */}
+              {error && (
+                <div className="flex items-start gap-2 rounded-xl bg-red-500/10 border border-red-500/30 px-4 py-3 text-sm text-red-300">
+                  <AlertCircle size={16} className="mt-0.5 shrink-0" />
+                  <span>{error}</span>
+                </div>
+              )}
 
-            {/* CTA — desktop inline; mobile dipindah ke footer sticky. */}
-            <div className="hidden lg:block">{cta}</div>
+              {/* CTA — desktop inline; mobile dipindah ke footer sticky. */}
+              <div className="hidden lg:block">{cta}</div>
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      <footer className="hidden lg:block relative z-10 pb-8 text-center">
-        <p className="text-[13px] text-white/30">
-          ©2026 Gasing Academy. All rights reserved.
-        </p>
-      </footer>
+        <footer className="hidden lg:block relative z-10 pb-8 text-center">
+          <p className="text-[13px] text-white/30">
+            ©2026 Gasing Academy. All rights reserved.
+          </p>
+        </footer>
       </div>
 
       {/* CTA nempel bawah — khusus mobile (form). Desktop pakai tombol inline. */}

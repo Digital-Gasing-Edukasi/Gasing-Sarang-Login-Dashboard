@@ -253,4 +253,33 @@ describe('handleLoginSuccess routing matrix', () => {
     )
     expect(screen.queryByTestId('gate-modal')).not.toBeInTheDocument()
   })
+
+  it('session-status revision_required -> gate modal revision_required + fixData dari profil', async () => {
+    authApi.sessionStatus.mockResolvedValueOnce({
+      blocked: true,
+      reasonCode: 'revision_required',
+      message: 'Your account verification requires revisions',
+      data: {
+        reason: 'Tanggal Lahir',
+        fields: [
+          {
+            field: 'tanggalLahir',
+            title: 'Tanggal Lahir Tidak Sesuai',
+            description: 'Pastikan tanggal lahir sesuai data diri kamu.',
+          },
+        ],
+      },
+    })
+    renderApp()
+    await login({ id: 'u-1', verifiedStatus: 'revise', email: 'getex22067@aganseo.com' })
+
+    await waitFor(() =>
+      expect(screen.getByTestId('gate-modal')).toBeInTheDocument(),
+    )
+    expect(screen.getByTestId('gate-modal')).toHaveAttribute('data-type', 'revision_required')
+    // fixData ikut di meta gate (dipakai tombol Daftar Ulang → FixDataPage).
+    expect(screen.getByTestId('gate-modal').textContent).toContain('tanggalLahir')
+    expect(screen.getByText('DO_LOGIN')).toBeInTheDocument()
+    expect(subscriptionApi.getLatestPayment).not.toHaveBeenCalled()
+  })
 })

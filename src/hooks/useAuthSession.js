@@ -13,13 +13,14 @@ import {
   isPaymentGraceActive,
   isSubscriptionExpired,
 } from "@/lib/loginGate";
+import { buildRevisionFixData } from "@/lib/revisionFixData";
 
 // Sesi auth + gate akun. Pure state + routing pasca-login; tidak tahu soal
 // boot URL-params (itu urusan useAppBoot).
 //
 // `deps` menjembatani state milik useCheckoutFlow yang ikut berubah dari aksi
 // modal gate: onRenew (retry) dan onReupload (langsung ke Transfer Bank).
-export function useAuthSession({ setIsRetry, setCheckoutPlan, setManualPayment } = {}) {
+export function useAuthSession({ setIsRetry, setCheckoutPlan, setManualPayment, setFixData } = {}) {
   const navigate = useNavigate();
 
   const [currentUser, setCurrentUser] = useState(null);
@@ -46,14 +47,36 @@ export function useAuthSession({ setIsRetry, setCheckoutPlan, setManualPayment }
       // yang menghentikan login.
       try {
         const st = await authApi.sessionStatus();
-        const s = st?.data || st || {};
+        console.log({sessionStatus});
+        
+        // Bentuk BE: { blocked, reasonCode, message, data:{...} } di top-level.
+        // Jangan asal ambil .data — itu payload revision, bukan wrapper respons.
+        const raw = st || {};
+        const s =
+          raw.blocked !== undefined || raw.reasonCode !== undefined || raw.message !== undefined
+            ? raw
+            : raw.data || raw;
         if (s.blocked === true) {
-          setGate({
-            type: "session_blocked",
-            reasonCode: s.reasonCode || null,
-            message: s.message || null,
-            profile: user,
-          });
+          if (s.reasonCode === "revision_required") {
+            // Akun butuh registrasi ulang: modal daftar deskripsi per-field +
+            // tombol Daftar Ulang → FixDataPage (prefill dari profil + penanda).
+            const fields = Array.isArray(s.data?.fields) ? s.data.fields : [];
+            setGate({
+              type: "revision_required",
+              reasonCode: s.reasonCode,
+              message: s.message || null,
+              fields,
+              fixData: buildRevisionFixData(user, fields),
+              profile: user,
+            });
+          } else {
+            setGate({
+              type: "session_blocked",
+              reasonCode: s.reasonCode || null,
+              message: s.message || null,
+              profile: user,
+            });
+          }
           navigate("/login", { replace: true });
           return;
         }
@@ -230,6 +253,17 @@ export function useAuthSession({ setIsRetry, setCheckoutPlan, setManualPayment }
     navigate("/login/subscription", { replace: true });
   }, [navigate, gate, setIsRetry]);
 
+  // "Daftar Ulang" (revision_required) → FixDataPage dengan prefill + penanda
+  // error dari session-status. fixData milik App (dipakai route /register/revise).
+  const handleGateReregister = useCallback(() => {
+    const fix = gate?.fixData || null;
+    const p = gate?.profile;
+    setGate(null);
+    if (p) setCurrentUser(p);
+    if (fix) setFixData?.(fix);
+    navigate("/register/revise", { replace: true });
+  }, [navigate, gate, setFixData]);
+
   // "Upload Bukti Pembayaran" (payment ditolak varian receipt) → langsung
   // ke TransferBankPage dgn paket terakhir (skip pilih paket). Tanpa paket
   // terkenal → fallback ke halaman langganan. Selalu dari gate
@@ -266,5 +300,6 @@ export function useAuthSession({ setIsRetry, setCheckoutPlan, setManualPayment }
     handleGateClose,
     handleGateRenew,
     handleGateReupload,
+    handleGateReregister,
   };
 }

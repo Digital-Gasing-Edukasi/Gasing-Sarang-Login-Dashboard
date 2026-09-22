@@ -56,7 +56,7 @@ export function RejectModal({ candidate, onConfirm, onCancel }) {
           </p>
 
           <hr className="border-gray-100 mb-4" />
-          
+
           <p className="text-gray-500 text-sm mb-2">
             Data tidak sesuai:
           </p>
@@ -218,17 +218,15 @@ export function ApproveModal({ candidate, discourseGroups = [], trainingSessions
           </button>
         </div>
 
-        <div className="flex items-start gap-5">
+        <div className="flex flex-col items-stretch gap-5">
           <span className="font-bold text-[#0A1128] pt-2.5 shrink-0">{candidate.name}</span>
-          <div className="flex-1 space-y-3">
-            <RoleSelect value={role} onChange={setRole} options={roleOptions} placeholder="Role" />
-            <Dropdown
-              value={session}
-              onChange={setSession}
-              options={sessionOptions}
-              placeholder="Nama Pelatihan Pertama"
-            />
-          </div>
+          <RoleSelect value={role} onChange={setRole} options={roleOptions} placeholder="Role" />
+          <Dropdown
+            value={session}
+            onChange={setSession}
+            options={sessionOptions}
+            placeholder="Nama Pelatihan Pertama"
+          />
         </div>
 
         <button

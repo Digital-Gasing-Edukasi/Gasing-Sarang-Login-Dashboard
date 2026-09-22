@@ -8,14 +8,9 @@ import { useState } from "react";
 
 export default function App() {
   const { go } = useAppNavigation();
-  const checkout = useCheckoutFlow();
-  const auth = useAuthSession({
-    setIsRetry: checkout.setIsRetry,
-    setCheckoutPlan: checkout.setCheckoutPlan,
-    setManualPayment: checkout.setManualPayment,
-  });
-
   // Boot/deep-link transient state (diisi useAppBoot dari URL, dikonsumsi Routes).
+  // Dideklarasikan di atas hook agar setter-nya bisa dioper sebagai dep
+  // (mis. setFixData → useAuthSession untuk alur Daftar Ulang).
   const [ssoParams, setSsoParams] = useState(null);
   const [fixData, setFixData] = useState(null);
   const [reviseData, setReviseData] = useState(null);
@@ -23,6 +18,14 @@ export default function App() {
   const [confirmEmailToken, setConfirmEmailToken] = useState("");
   const [resetToken, setResetToken] = useState("");
   const [resetEmail, setResetEmail] = useState("");
+
+  const checkout = useCheckoutFlow();
+  const auth = useAuthSession({
+    setIsRetry: checkout.setIsRetry,
+    setCheckoutPlan: checkout.setCheckoutPlan,
+    setManualPayment: checkout.setManualPayment,
+    setFixData,
+  });
 
   const { sessionChecked } = useAppBoot({
     onLoginSuccess: auth.handleLoginSuccess,
@@ -76,6 +79,7 @@ export default function App() {
           onClose={auth.handleGateClose}
           onRenew={auth.handleGateRenew}
           onReupload={auth.handleGateReupload}
+          onReregister={auth.handleGateReregister}
         />
       )}
     </>

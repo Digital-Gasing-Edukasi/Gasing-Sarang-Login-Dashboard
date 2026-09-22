@@ -74,6 +74,9 @@ const SESSION_BLOCK_TITLES = {
 //          'receipt' | 'amount' | 'account', lihat evaluatePaymentGate)
 //        | 'payment_review' (sudah bayar, menunggu verifikasi admin — ikon jam,
 //          satu tombol Log Out)
+//        | 'session_blocked' (session-status blocked umum — message + Log Out)
+//        | 'revision_required' (session-status revision_required — daftar
+//          descriptions + Log Out / Daftar Ulang → FixDataPage)
 // onClose→ tutup / logout / dismiss: bersihkan sesi.
 // onRenew→ lanjut ke halaman langganan (skenario 'expired' & 'payment_rejected').
 // onRetry→ tutup modal untuk mencoba lagi (skenario 'error'; default onClose).
@@ -83,6 +86,7 @@ export function LoginStatusModal({ type, meta = {}, onClose, onRenew, onRetry, o
   if (type === 'suspended') return <SuspendedModal meta={meta} onClose={onClose} />
   if (type === 'rejected') return <RejectedModal meta={meta} onClose={onClose} onReregister={onReregister} />
   if (type === 'payment_rejected') return <PaymentRejectedModal meta={meta} onClose={onClose} onRenew={onRenew} onReupload={onReupload} />
+  if (type === 'revision_required') return <RevisionRequiredModal meta={meta} onClose={onClose} onReregister={onReregister} />
 
   // Akun diblokir menurut BE (GET /auth/session-status → { blocked:true,
   // reasonCode, message }). Judul per-reasonCode menyusul; untuk sekarang
@@ -376,6 +380,66 @@ function PaymentRejectedModal({ meta = {}, onClose, onRenew, onReupload }) {
   )
 }
 
+// Tulang bersama RejectedModal & RevisionRequiredModal (gaya sama, isi beda
+// via props): Shell merah + judul + intro + kotak list + footer + actions.
+function DecisionModal({ icon, title, intro, listHeading, items, footer, actions }) {
+  return (
+    <Shell tone="red" icon={icon}>
+      <h2 className="text-2xl font-bold text-foreground lg:mb-3">{title}</h2>
+      {intro}
+      {items?.length > 0 && (
+        <div className="w-full text-left rounded-2xl border border-[#e2e8f0] bg-[#f8fafc] px-3 py-3 lg:mb-6">
+          {listHeading && (
+            <p className="text-xs font-semibold text-foreground mb-3">{listHeading}</p>
+          )}
+          <ul className="space-y-2">
+            {items.map((item, i) => (
+              <li key={item.key ?? i} className="flex items-center gap-2 text-sm font-medium text-[#424857]">
+                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-red-100 shrink-0">
+                  <AlertCircle size={13} className="text-red-500" />
+                </span>
+                {item.text}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+      {footer}
+      {actions}
+    </Shell>
+  )
+}
+
+// Modal "Data Perlu Diperbaiki" — session-status revision_required: akun butuh
+// registrasi ulang. meta.fields = [{ field, title, description }] → titles
+// sebagai list. Tombol: Log Out + Daftar Ulang (→ FixDataPage).
+function RevisionRequiredModal({ meta = {}, onClose, onReregister }) {
+  const fields = Array.isArray(meta.fields) ? meta.fields : []
+
+  return (
+    <DecisionModal
+      icon={AlertCircle}
+      title="Akun Belum Dapat Disetujui"
+      intro={
+        <p className="text-[14px] text-muted-foreground leading-relaxed text-center lg:mb-6">
+          Tim kami telah selesai memeriksa data kamu. Mohon maaf, pendaftaran akun kamu saat ini belum dapat kami setujui karena belum memenuhi{' '}
+          <a href={TERMS_URL} target="_blank" rel="noopener noreferrer" className="font-medium text-[#0033EC] underline hover:opacity-80">syarat</a>{' '}
+          dan{' '}
+          <a href={COMMUNITY_URL} target="_blank" rel="noopener noreferrer" className="font-medium text-[#0033EC] underline hover:opacity-80">ketentuan komunitas</a>.
+        </p>
+      }
+      listHeading="Alasan penolakan:"
+      items={fields.map((f) => ({ key: f.field, text: f.title || f.description || f.field }))}
+      actions={
+        <div className="flex flex-col gap-3 w-full lg:flex-row-reverse lg:items-center lg:gap-4">
+          <ActionButton label="Daftar Ulang" variant="primary" onClick={() => onReregister?.()} />
+          <ActionButton label="Log Out" variant="outline" onClick={() => onClose?.()} />
+        </div>
+      }
+    />
+  )
+}
+
 // Baris kartu rekening.
 //  Mobile (Figma): bertumpuk — label kecil abu di atas, value bold 16px di bawah.
 //  Desktop: 1-baris (label kiri, value kanan) seperti AccountRow lama.
@@ -424,44 +488,38 @@ function RejectedModal({ meta = {}, onClose }) {
   const reasons = Array.isArray(meta.reasons) && meta.reasons.length ? meta.reasons : DEFAULT_REJECT_REASONS
 
   return (
-    <Shell tone="red" icon={UserX}>
-      <h2 className="text-2xl font-bold text-foreground lg:mb-3">Akun Belum Dapat Disetujui</h2>
-      <p className="text-[14px] text-muted-foreground leading-relaxed text-center lg:mb-6">
-        Tim kami telah selesai memeriksa data kamu. Mohon maaf, pendaftaran akun kamu saat ini belum dapat kami setujui karena belum memenuhi{' '}
-        <a href={TERMS_URL} target="_blank" rel="noopener noreferrer" className="font-medium text-[#0033EC] underline hover:opacity-80">syarat</a>{' '}
-        dan{' '}
-        <a href={COMMUNITY_URL} target="_blank" rel="noopener noreferrer" className="font-medium text-[#0033EC] underline hover:opacity-80">ketentuan komunitas</a>.
-      </p>
+    <DecisionModal
+      icon={UserX}
+      title="Akun Belum Dapat Disetujui"
+      intro={
+        <p className="text-[14px] text-muted-foreground leading-relaxed text-center lg:mb-6">
+          Tim kami telah selesai memeriksa data kamu. Mohon maaf, pendaftaran akun kamu saat ini belum dapat kami setujui karena belum memenuhi{' '}
+          <a href={TERMS_URL} target="_blank" rel="noopener noreferrer" className="font-medium text-[#0033EC] underline hover:opacity-80">syarat</a>{' '}
+          dan{' '}
+          <a href={COMMUNITY_URL} target="_blank" rel="noopener noreferrer" className="font-medium text-[#0033EC] underline hover:opacity-80">ketentuan komunitas</a>.
+        </p>
+      }
+      listHeading="Alasan Penolakan:"
+      items={reasons.map((r) => ({ key: r, text: r }))}
+      footer={
+        <>
+          <p className="text-xs text-muted-foreground text-center leading-relaxed opacity-80 lg:mb-4">
+            Jika kamu merasa ini adalah kesalahan, silakan{' '}
+            <a href={WA_URL} target="_blank" rel="noopener noreferrer" className="font-semibold text-[#0033EC] underline hover:opacity-80">Hubungi Kami</a>{' '}
+            untuk bantuan lebih lanjut.
+          </p>
 
-      <div className="w-full text-left rounded-2xl border border-[#e2e8f0] bg-[#f8fafc] px-3 py-3 lg:mb-6">
-        <p className="text-xs font-semibold text-foreground mb-3">Alasan Penolakan:</p>
-        <ul className="space-y-2">
-          {reasons.map((r) => (
-            <li key={r} className="flex items-center gap-2 text-sm font-medium text-[#424857]">
-              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-red-100 shrink-0">
-                <AlertCircle size={13} className="text-red-500" />
-              </span>
-              {r}
-            </li>
-          ))}
-        </ul>
-      </div>
-
-      <p className="text-xs text-muted-foreground text-center leading-relaxed opacity-80 lg:mb-4">
-        Jika kamu merasa ini adalah kesalahan, silakan{' '}
-        <a href={WA_URL} target="_blank" rel="noopener noreferrer" className="font-semibold text-[#0033EC] underline hover:opacity-80">Hubungi Kami</a>{' '}
-        untuk bantuan lebih lanjut.
-      </p>
-
-      <p className="text-sm font-semibold text-red-500 text-center leading-relaxed lg:mb-6">
-        * Cek email anda untuk daftar ulang.
-      </p>
-
-      {/* Action button: Log Out primary */}
-      <div className="w-full px-2 lg:px-0">
-        <ActionButton label="Log Out" variant="primary" onClick={() => onClose?.()} block />
-      </div>
-    </Shell>
+          <p className="text-sm font-semibold text-red-500 text-center leading-relaxed lg:mb-6">
+            * Cek email anda untuk daftar ulang.
+          </p>
+        </>
+      }
+      actions={
+        <div className="w-full px-2 lg:px-0">
+          <ActionButton label="Log Out" variant="primary" onClick={() => onClose?.()} block />
+        </div>
+      }
+    />
   )
 }
 

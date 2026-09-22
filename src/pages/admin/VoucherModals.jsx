@@ -75,7 +75,7 @@ export function KonfirmasiVoucherModal({ candidate, onConfirm, onCancel }) {
         <hr className="border-gray-100" />
 
         <div className="px-7 py-7">
-          <div className="flex items-center gap-5">
+          <div className="flex flex-col items-stretch gap-4">
             <span className="text-sm font-bold text-[#0A1128] flex-1 min-w-0">{candidate.name}</span>
             <VoucherCode code={candidate.voucherCode} />
             <CopyPill code={candidate.voucherCode} onCopied={handleCopied} />

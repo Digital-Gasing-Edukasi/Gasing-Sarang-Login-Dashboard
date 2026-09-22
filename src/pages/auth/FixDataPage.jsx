@@ -128,17 +128,17 @@ export function FixDataPage({ fixData, reviseToken, onNavigate }) {
 
   // Prefill kab/kota kalau provinsi sudah diketahui dari payload.
   // Audit #93: payload kadang hanya bawa regionId tanpa provinceId → resolve
-  // parent via daftar regency (cari yang id-nya cocok) lalu set provinceId.
+  // induk via detail region (regionsApi.get, pola sama fetchRevisePrefill),
+  // bukan bulk-list.
   useEffect(() => {
     if (provinceId || !regionId) return;
     let cancelled = false;
     regionsApi
-      .list({ type: "REGENCY" })
+      .get(regionId)
       .then((d) => {
         if (cancelled) return;
-        const list = asList(d);
-        const hit = list.find((r) => String(r.id) === String(regionId));
-        const parent = hit?.parentId || hit?.parent?.id || hit?.provinceId || null;
+        const r = d?.data || d || {};
+        const parent = r.parentId || r.parent?.id || null;
         if (parent) setProvinceId(String(parent));
       })
       .catch(() => {});
@@ -158,6 +158,23 @@ export function FixDataPage({ fixData, reviseToken, onNavigate }) {
       .catch(() => setRegencies([]))
       .finally(() => setRegencyLoading(false));
   }, [provinceId]);
+
+  // Auto-cocokkan sesi "Dimana" dari tahun + region pelatihan asal (aliran
+  // Daftar Ulang: profil tak membawa session id, hanya firstTrainingYear/
+  // Month/RegionId). Hanya saat sesi selesai load dan user belum pilih manual.
+  useEffect(() => {
+    if (lastTrainingSessionId || !kapanYear || !fixData?.firstTrainingRegionId || sessionsLoading) return;
+    const hit = sessions.find((s) => {
+      if (sessionYear(s) !== String(kapanYear)) return false;
+      const rid = s.regionId ?? s.region?.id ?? null;
+      return rid != null && String(rid) === String(fixData.firstTrainingRegionId);
+    });
+    if (hit) {
+      setLastTrainingSessionId(hit.id);
+      clearErr("riwayatPelatihan");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionsLoading]);
 
   const handleProvinceChange = (v) => {
     setProvinceId(v);
@@ -317,8 +334,9 @@ export function FixDataPage({ fixData, reviseToken, onNavigate }) {
     </div>
   );
 
+  // DESKTOP: tombol inline saja. MOBILE: hanya footer sticky (anti dobel).
   return (
-    <RightPanel stickyFooter={cta}>
+    <RightPanel stickyFooter={cta} footerWrapClassName="lg:hidden">
       {/* MOBILE: header tanpa tombol close (audit #90) — hanya judul. */}
       <div className="lg:hidden sticky top-0 z-20 -mx-6 -mt-4 mb-4 bg-background/95 px-6 pt-4 pb-4 backdrop-blur">
         <StepBar title="Perbaikan Data" />
@@ -326,7 +344,7 @@ export function FixDataPage({ fixData, reviseToken, onNavigate }) {
 
       {/* DESKTOP: header inline judul saja (audit #90 tanpa X, #91 tanpa subtitle). */}
       <div className="hidden lg:block animate-fade-in-up delay-100 relative mb-2">
-        <h1 className="text-[22px] font-bold text-foreground text-center mb-1.5">Perbaikan Data</h1>
+        <h1 className="text-[22px] font-bold text-foreground text-center mb-1.5" onClick={()=>console.log({fixData, reviseToken})}>Perbaikan Data</h1>
       </div>
 
       <div className="space-y-4 animate-fade-in-up delay-200">

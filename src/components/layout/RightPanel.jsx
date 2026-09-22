@@ -7,7 +7,7 @@ export const APP_VERSION = import.meta.env.VITE_APP_VERSION;
 // tak berpengaruh di layar sempit), lg → base 1366 (380px), fhd → base 1920 (480px).
 // lockDesktop: diterima biar call-site lama gak error, tapi layout sekarang pakai
 // document scroll (header sticky-top + CTA sticky-bottom) di mobile & desktop.
-export function RightPanel({ children, mobileHero = null, topBar = null, stickyFooter = null, progress = null, maxWidth = 'max-w-md lg:max-w-[380px] fhd:max-w-[480px]', padX = '1', lockDesktop = false }) {
+export function RightPanel({ children, mobileHero = null, topBar = null, stickyFooter = null, footerWrapClassName = '', progress = null, maxWidth = 'max-w-md lg:max-w-[380px] fhd:max-w-[480px]', padX = '1', lockDesktop = false }) {
   // Kartu putih jadi "popup sheet" (rounded-top, naik menutupi hero) HANYA saat
   // ada hero ungu di atasnya. Halaman tanpa hero (signup/perbaikan) tampil polos.
   const sheet = !!mobileHero
@@ -96,6 +96,7 @@ export function RightPanel({ children, mobileHero = null, topBar = null, stickyF
           className={cn(
             "sticky bottom-0 z-20 w-full mx-auto bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 lg:border-t-0",
             maxWidth,
+            footerWrapClassName,
           )}
         >
           {/* Strip blur konten yang lewat di atas footer. Mati saat mentok bawah. */}
