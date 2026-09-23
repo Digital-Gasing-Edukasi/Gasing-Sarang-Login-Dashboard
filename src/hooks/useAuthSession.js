@@ -40,6 +40,13 @@ export function useAuthSession({ setIsRetry, setCheckoutPlan, setManualPayment, 
   //   - User biasa         → /login/choice bila langganan aktif, else /login/subscription
   const handleLoginSuccess = useCallback(
     async (user) => {
+      // Login baru = sesi attempt baru: reset penanda retry. Tanpa ini, flag
+      // true dari gate payment_rejected di login sebelumnya (sesi SPA sama,
+      // tanpa reload) bocor ke checkout fresh → halaman sukses salah tampil
+      // Log Out padahal ini pembayaran pertama. Gate di bawah meng-arm ulang
+      // ke true bila login kali ini memang retry.
+      setIsRetry?.(false);
+
       // Sesi diblokir BE (akun rejected / tidak aktif / email dsb):
       // GET /auth/session-status → { blocked, reasonCode, message }.
       // Dicek PALING DULU, sebelum payment. blocked:true → modal + stop.
@@ -81,6 +88,8 @@ export function useAuthSession({ setIsRetry, setCheckoutPlan, setManualPayment, 
               // s.data via evaluatePaymentGate; bila tak berbentuk payment,
               // fallback ke session_blocked supaya blokir tetap tampil.
               const payGate = evaluatePaymentGate(s.data);
+              console.log({payGate});
+              
               setGate(
                 payGate
                   ? { ...payGate, profile: user }
@@ -231,7 +240,7 @@ export function useAuthSession({ setIsRetry, setCheckoutPlan, setManualPayment, 
         }
       }
     },
-    [navigate],
+    [navigate, setIsRetry],
   );
 
   const handleSignOut = useCallback(() => {
@@ -302,6 +311,8 @@ export function useAuthSession({ setIsRetry, setCheckoutPlan, setManualPayment, 
   const handleGateReupload = useCallback(() => {
     const p = gate?.profile;
     const plan = gate?.plan;
+    console.log({gate, p, plan});
+    
     setIsRetry?.(true);
     setGate(null);
     if (p) setCurrentUser(p);
