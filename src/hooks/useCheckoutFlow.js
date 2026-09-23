@@ -14,8 +14,8 @@ export function useCheckoutFlow() {
   // isRetry: penanda "ini Payment Attempt ke-2+" (bukan attempt pertama).
   // TIDAK ADA counter dari backend (getLatestPayment cuma 1 record, tanpa
   // attemptNumber/retryCount) — jadi ditandai di FE saat user masuk ulang ke
-  // Transfer Bank LEWAT gate "Pembayaran Ditolak" (tombol "Ulang Pembayaran" /
-  // "Upload Bukti Pembayaran" di LoginStatusModal → onRenew/onReupload).
+  // Transfer Bank LEWAT gate "Pembayaran Ditolak" (tombol "Ulangi pembayaran" /
+  // "Upload bukti pembayaran" di LoginStatusModal → onRenew/onReupload).
   // Default false = attempt pertama (checkout normal dari SubscriptionPage,
   // tanpa lewat gate). Reset otomatis tiap sesi baru (full reload) — tidak perlu
   // di-reset manual karena redirectWithTokens() = full page nav (state SPA hilang).

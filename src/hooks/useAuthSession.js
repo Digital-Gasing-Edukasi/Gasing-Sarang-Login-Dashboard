@@ -84,12 +84,10 @@ export function useAuthSession({ setIsRetry, setCheckoutPlan, setManualPayment, 
             }
             case 'payment_rejected': {
               // Ada modal khusus (varian receipt/amount/account + tombol
-              // Upload/Ulang). Detail diambil dari payment ter-embed di
-              // s.data via evaluatePaymentGate; bila tak berbentuk payment,
-              // fallback ke session_blocked supaya blokir tetap tampil.
+              // Upload/Ulang dari rejectionReason). Detail diambil dari payment
+              // ter-embed di s.data via evaluatePaymentGate; bila tak berbentuk
+              // payment, tipe tetap payment_rejected (varian default receipt).
               const payGate = evaluatePaymentGate(s.data);
-              console.log({payGate});
-              
               setGate(
                 payGate
                   ? { ...payGate, profile: user }
@@ -274,7 +272,7 @@ export function useAuthSession({ setIsRetry, setCheckoutPlan, setManualPayment, 
     navigate("/login", { replace: true });
   }, [navigate]);
 
-  // "Perbarui Langganan" (expired) / "Ulang Pembayaran" (payment ditolak
+  // "Perbarui Langganan" (expired) / "Ulangi pembayaran" (payment ditolak
   // varian amount/account) → pilih paket di halaman langganan.
   const handleGateRenew = useCallback(() => {
     // Retry hanya bila gate ini "Pembayaran Ditolak" (Attempt sebelumnya
@@ -304,21 +302,25 @@ export function useAuthSession({ setIsRetry, setCheckoutPlan, setManualPayment, 
     webAppApi.redirectWithTokens();
   }, []);
 
-  // "Upload Bukti Pembayaran" (payment ditolak varian receipt) → langsung
-  // ke TransferBankPage dgn paket terakhir (skip pilih paket). Tanpa paket
-  // terkenal → fallback ke halaman langganan. Selalu dari gate
+  // "Upload bukti pembayaran" (payment ditolak varian receipt) → langsung
+  // ke TransferBankPage. Dgn paket terakhir bila ada (skip pilih paket);
+  // tanpa paket (aliran session-status: hanya paymentId/invoice) → transfer
+  // dengan payment ref, TransferBankPage resolve via latest. Selalu dari gate
   // payment_rejected → selalu retry (Attempt ke-2+).
   const handleGateReupload = useCallback(() => {
     const p = gate?.profile;
     const plan = gate?.plan;
-    console.log({gate, p, plan});
-    
+    const ref = gate?.paymentRef;
     setIsRetry?.(true);
     setGate(null);
     if (p) setCurrentUser(p);
     if (plan?.id) {
       setCheckoutPlan?.(plan);
       setManualPayment?.(null);
+      navigate("/login/subscription/transfer", { replace: true });
+    } else if (ref?.id) {
+      setCheckoutPlan?.(null);
+      setManualPayment?.({ id: ref.id, orderId: ref.orderId });
       navigate("/login/subscription/transfer", { replace: true });
     } else {
       navigate("/login/subscription", { replace: true });

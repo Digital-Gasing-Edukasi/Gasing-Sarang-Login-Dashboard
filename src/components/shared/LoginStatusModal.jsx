@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Clock, UserSearch, UserX, ShieldAlert, LogOut, AlertCircle, ServerCrash, Copy, Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { WA_URL } from '@/components/shared/PaymentStatusLayout'
+import { DEFAULT_BANK } from '@/lib/bankAccount'
 
 // "panduan komunitas" / "ketentuan komunitas" → halaman Ketentuan Layanan (TOS).
 // "syarat" → halaman Kebijakan Privasi. Dibuka di tab baru, sama seperti tautan
@@ -263,12 +264,13 @@ function SuspendedModal({ meta, onClose }) {
   )
 }
 
-// Rekening resmi Sarang Gasing (varian 'account'). Sumber tunggal juga di
-// TransferBankPage (DEFAULT_BANK) — backend belum kembalikan detail rekening.
+// Rekening resmi Sarang Gasing — sumber tunggal di lib/bankAccount (dipakai
+// juga TransferBankPage via fetchBankAccount; backend belum kembalikan detail
+// rekening di respons payment).
 const RECEIVER_BANK = {
-  bank: 'Bank Mandiri',
-  accountNumber: '1760007700071',
-  accountName: 'Yayasan Teknologi Indonesia Jaya',
+  bank: DEFAULT_BANK.bankName,
+  accountNumber: DEFAULT_BANK.accountNumber,
+  accountName: DEFAULT_BANK.accountName,
 }
 
 // "Rp 1.500.000". Angka non-valid → "Rp 0".
@@ -292,8 +294,8 @@ function PaymentRejectedModal({ meta = {}, onClose, onRenew, onReupload }) {
   const variant = meta.variant || 'receipt'
 
   // Rekening dari backend (meta.bank via evaluatePaymentGate) menimpa fallback
-  // RECEIVER_BANK. Hanya nilai terdefinisi yang menimpa (spread membuang
-  // undefined otomatis? tidak — saring dulu).
+  // RECEIVER_BANK (dari DEFAULT_BANK). Disaring dulu: spread TIDAK membuang
+  // undefined otomatis.
   const bankOverride = Object.fromEntries(
     Object.entries(meta.bank || {}).filter(([, v]) => v != null && v !== '')
   )
@@ -302,7 +304,7 @@ function PaymentRejectedModal({ meta = {}, onClose, onRenew, onReupload }) {
   const V = {
     receipt: {
       body: 'Bukti pembayaran yang kamu unggah tidak dapat terbaca dengan jelas (buram, gelap, atau terpotong). Silakan unggah kembali foto struk pembayaran yang lebih jelas.',
-      primaryLabel: 'Upload Bukti Pembayaran',
+      primaryLabel: 'Upload bukti pembayaran',
       // Unggah ulang bukti → langsung ke halaman pembayaran (paket terakhir),
       // bukan pilih paket lagi.
       onPrimary: onReupload,
@@ -322,7 +324,7 @@ function PaymentRejectedModal({ meta = {}, onClose, onRenew, onReupload }) {
     },
     amount: {
       body: 'Nominal pembayaran yang kamu transfer tidak sesuai dengan jumlah tagihan. Mohon lakukan pembayaran ulang sesuai dengan rincian berikut.',
-      primaryLabel: 'Ulang Pembayaran',
+      primaryLabel: 'Ulangi pembayaran',
       content: (
         <div className="w-full">
           <div className="flex items-center justify-between gap-4 bg-gray-50 rounded-xl px-4 py-4">
@@ -343,7 +345,7 @@ function PaymentRejectedModal({ meta = {}, onClose, onRenew, onReupload }) {
           <span className="hidden lg:inline">Tujuan rekening pembayaran yang kamu gunakan salah. Dana tidak masuk ke rekening resmi Sarang Gasing. Silakan gunakan detail rekening di bawah ini.</span>
         </>
       ),
-      primaryLabel: 'Ulang Pembayaran',
+      primaryLabel: 'Ulangi pembayaran',
       content: (
         <div className="w-full">
           {/* Kartu rekening: mobile = stacked 2-baris + copy (Figma); desktop = 1-baris (look lama). */}
@@ -357,12 +359,9 @@ function PaymentRejectedModal({ meta = {}, onClose, onRenew, onReupload }) {
             <StackedRow label="Atas Nama (a.n)" value={bank.accountName} />
           </div>
           <p className="text-xs text-muted-foreground text-center mt-4 leading-relaxed opacity-80 lg:opacity-100">
-            <span className="lg:hidden">
+            <span className="">
               Ada pertanyaan soal pembayaran yang ditolak?{' '}
               <a href={WA_URL} target="_blank" rel="noopener noreferrer" className="font-semibold text-[#0033EC] underline hover:opacity-80">Hubungi admin</a>
-            </span>
-            <span className="hidden lg:inline">
-              Jika kamu memiliki pertanyaan lebih lanjut terkait pembayaran yang ditolak, silakan hubungi admin kami untuk mendapatkan bantuan.
             </span>
           </p>
         </div>
@@ -372,7 +371,7 @@ function PaymentRejectedModal({ meta = {}, onClose, onRenew, onReupload }) {
 
   return (
     <Shell tone="red" icon={AlertCircle}>
-      <h2 className="text-2xl font-bold text-foreground lg:mb-3">Pembayaran Ditolak</h2>
+      <h2 className="text-2xl font-bold text-foreground lg:mb-3" onClick={()=>console.log({variant})}>Pembayaran Ditolak</h2>
       <p className="text-[14px] text-muted-foreground leading-relaxed text-center lg:mb-6">{V.body}</p>
       <div className="w-full lg:mb-8">{V.content}</div>
       {/* Mobile (Figma): tumpuk vertikal (primary atas). Desktop: baris berdampingan

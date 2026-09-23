@@ -116,10 +116,6 @@ export function RightPanel({ children, mobileHero = null, topBar = null, stickyF
         <p className="text-xs text-muted-foreground text-center">
           ©2026 Gasing Academy. All rights reserved.
         </p>
-        <p className="mt-1 text-[11px] text-muted-foreground/60 text-center select-all">
-          v{" "}
-          {APP_VERSION}
-        </p>
       </div>
     </div>
   );

@@ -165,9 +165,11 @@ export function AppRoutes({
       <Route
         path="/login/subscription/transfer"
         element={requireAuth(
-          // Halaman ini butuh paket + payment dari langkah checkout. Deep-link
-          // langsung (state kosong) → balik ke halaman langganan.
-          checkoutPlan ? (
+          // Halaman ini butuh paket ATAU payment ref dari langkah sebelumnya.
+          // Upload-ulang via gate (tanpa paket, hanya paymentId) tetap lolos —
+          // TransferBankPage resolve paymentId via latest. Deep-link kosong
+          // (keduanya null) → balik ke halaman langganan.
+          checkoutPlan || manualPayment ? (
             <TransferBankPage
               user={currentUser}
               plan={checkoutPlan}

@@ -98,7 +98,7 @@ export function ProfileMenu({ user, onSignOut, onContact, className }) {
           {/* Desktop: dropdown kanan-atas */}
           <div
             role="menu"
-            className="absolute right-0 top-full mt-3 hidden w-[220px] rounded-2xl border border-[#334D80]/30 bg-[#030B1F] py-1.5 text-left shadow-xl shadow-black/30 animate-fade-in-up z-50 lg:block"
+            className="absolute right-0 top-full mt-3 hidden w-[220px] rounded-2xl border border-[#334D80]/30 bg-white py-1.5 text-left shadow-xl shadow-black/30 animate-fade-in-up z-50 lg:block"
           >
             {items}
           </div>

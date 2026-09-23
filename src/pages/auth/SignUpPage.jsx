@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
-import { LogIn, Loader2, Check } from "lucide-react";
+import { Loader2, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -28,9 +28,9 @@ import Filter from 'bad-words';
 
 const filter = new Filter();
 const indonesianBadWords = [
-  "anjing", "njing", "anying", "asu", "babi", "celeng", "monyet", "kunyuk", 
-  "kampret", "bajingan", "bangsat", "keparat", "ngepet", 
-  "goblok", "tolol", "bego", "dongo", "idiot", "geblek", "oranggila", "sinting", "sarap", "udik", 
+  "anjing", "njing", "anying", "asu", "babi", "celeng", "monyet", "kunyuk",
+  "kampret", "bajingan", "bangsat", "keparat", "ngepet",
+  "goblok", "tolol", "bego", "dongo", "idiot", "geblek", "oranggila", "sinting", "sarap", "udik",
   "ngentot", "ngewe", "memek", "kontol", "peler", "jembut", "bawok", "sange", "bokep", "porno", "bugil", "cipok",
   "lonte", "pelacur", "perek", "sundal", "kimpek", "jablay", "banci",
   "tai", "berak", "telek", "sampah", "jahanam",
@@ -386,7 +386,6 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
         className={`hidden lg:block ${step !== 1 ? "invisible" : ""}`}
         aria-hidden={step !== 1}
       >
-        {loginLink}
       </div>
     </div>
   );
@@ -526,9 +525,8 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
                     {passwordRules.map((rule) => (
                       <li
                         key={rule.label}
-                        className={`flex items-center gap-2 text-[12px] transition-colors ${
-                          rule.ok ? "text-green-600" : "text-muted-foreground"
-                        }`}
+                        className={`flex items-center gap-2 text-[12px] transition-colors ${rule.ok ? "text-green-600" : "text-muted-foreground"
+                          }`}
                       >
                         {rule.ok ? (
                           <span className="flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-full bg-green-600 text-white">
@@ -617,12 +615,6 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
             </div>
           </div>
           {gapBottom}
-
-          {/* CTA & Log In pindah ke footer sticky (mobile + desktop app-shell).
-              Link ini versi MOBILE saja; desktop menaruhnya di footer. */}
-          <div className="lg:hidden mt-6 animate-fade-in-up delay-300">
-            {loginLink}
-          </div>
         </>
       ) : (
         <>
@@ -687,9 +679,8 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
                   disabled={!provinceId || regencyLoading}
                 >
                   <SelectTrigger
-                    className={`${errors.regionId ? ERR_INPUT : ""} ${
-                      provinceId && !regionId ? PLACEHOLDER_HINT : ""
-                    }`}
+                    className={`${errors.regionId ? ERR_INPUT : ""} ${provinceId && !regionId ? PLACEHOLDER_HINT : ""
+                      }`}
                   >
                     <SelectValue
                       placeholder={

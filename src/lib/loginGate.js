@@ -152,31 +152,50 @@ export function dateFieldMs(v) {
   return null
 }
 
-// Evaluasi payment terakhir (GET /subscription/payments/latest) untuk gate
-// "Pembayaran Ditolak". Return null bila payment TIDAK ditolak.
+// Angka positif dari nilai bebas (mis. adminNotes "50000" = total tagihan).
+// Teks bebas ("ga ada") → null. Dipakai agar adminNotes non-angka tak bocor
+// ke tampilan tagihan.
+function toPositiveNumber(v) {
+  if (v === undefined || v === null || v === '') return null
+  const n = Number(v)
+  return Number.isFinite(n) && n > 0 ? n : null
+}
+
+// Evaluasi payment terakhir (GET /subscription/payments/latest) ATAU data sesi
+// (session-status payment_rejected: { rejectionReason, adminNotes, ... } tanpa
+// status payment) untuk gate "Pembayaran Ditolak". Return null bila payment
+// TIDAK ditolak.
 //
-// Status ditolak: 'failed' | 'rejected'. Varian modal ditentukan dari alasan
-// tolak admin (notes/reason) — cocokkan ke 3 kategori TOLAK_REASONS
-// (lihat src/pages/admin/PembayaranModals.jsx). Admin mengirim LABEL sbg `notes`,
-// jadi cocokkan value-code MAUPUN kata kunci label:
-//   receipt_unreadable / "bukti"/"terbaca" → 'receipt' (unggah ulang bukti)
-//   wrong_amount        / "nominal"        → 'amount'  (tampilkan total tagihan)
-//   wrong_account       / "rekening"       → 'account' (tampilkan rekening resmi)
+// Status ditolak: 'failed' | 'rejected', ATAU salah satu code dikenal (bentuk
+// sesi tak membawa status). Varian modal ditentukan dari alasan tolak admin:
+//   unsuficient_transfer [sic BE] / insufficient_transfer / wrong_amount / "nominal"
+//     → 'amount'  (tampilkan total tagihan; angka dari adminNotes bila numerik)
+//   fund_not_retrieved / wrong_account / "rekening"
+//     → 'account' (tampilkan rekening resmi)
+//   payment_receipt_unclear / receipt_unreadable / "bukti" / "terbaca"
+//     → 'receipt' (unggah ulang bukti)
 // Default (alasan tak dikenal) → 'receipt' (paling aman: minta unggah ulang).
+const REJECT_CODES = [
+  'unsuficient_transfer', 'insufficient_transfer', 'wrong_amount', 'nominal',
+  'fund_not_retrieved', 'wrong_account', 'rekening',
+  'payment_receipt_unclear', 'receipt_unreadable', 'bukti', 'terbaca',
+];
 export function evaluatePaymentGate(payment) {
   const p = payment?.payment || payment?.data || payment || {}
   const status = String(p.status || '').toLowerCase()
-  if (status !== 'failed' && status !== 'rejected') return null
 
   const raw = String(
     p.rejectionReason || p.rejectReason || p.reason || p.notes || ''
   ).toLowerCase()
 
-  let variant = 'receipt'
-  if (raw.includes('wrong_amount') || raw.includes('nominal')) variant = 'amount'
-  else if (raw.includes('wrong_account') || raw.includes('rekening')) variant = 'account'
+  const statusRejected = status === 'failed' || status === 'rejected';
+  if (!statusRejected && !REJECT_CODES.some((c) => raw.includes(c))) return null
 
-  const amount = p.amount ?? p.total ?? p.grossAmount ?? null
+  let variant = 'receipt'
+  if (raw.includes('unsuficient_transfer') || raw.includes('insufficient_transfer') || raw.includes('wrong_amount') || raw.includes('nominal')) variant = 'amount'
+  else if (raw.includes('fund_not_retrieved') || raw.includes('wrong_account') || raw.includes('rekening')) variant = 'account'
+
+  const amount = p.amount ?? p.total ?? p.grossAmount ?? toPositiveNumber(p.adminNotes) ?? null
 
   // Rekening tujuan resmi dari respons payment (varian 'account'). Nama field
   // belum final (samakan dgn TransferBankPage `pick`). Hanya sertakan nilai
@@ -210,5 +229,12 @@ export function evaluatePaymentGate(payment) {
       }
     : null
 
-  return { type: 'payment_rejected', variant, amount, plan, bank }
+  // Referensi payment untuk unggah-ulang langsung (varian 'receipt' tanpa plan:
+  // bentuk sesi memakai paymentId/invoiceNumber, bukan id/orderId).
+  const paymentRef = {
+    id: p.id ?? p.paymentId ?? p.payment_id ?? null,
+    orderId: p.orderId ?? p.orderNumber ?? p.invoiceNumber ?? p.invoice_number ?? null,
+  };
+
+  return { type: 'payment_rejected', variant, amount, plan, bank, paymentRef }
 }
