@@ -67,6 +67,7 @@ export default function App() {
         onLoginSuccess={auth.handleLoginSuccess}
         onSignOut={auth.handleSignOut}
         onOtpToken={auth.handleOtpToken}
+        onOtpVerified={auth.clearOtpToken}
         onEmailSent={auth.handleEmailSent}
         onPaymentSuccess={checkout.handlePaymentSuccess}
         onCheckoutManual={checkout.handleCheckoutManual}

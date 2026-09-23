@@ -15,6 +15,33 @@ import {
 } from "@/lib/loginGate";
 import { buildRevisionFixData } from "@/lib/revisionFixData";
 
+// Sesi OTP registrasi (token + email) — in-memory useState hilang saat reload
+// (sering di mobile RAM kecil), jadi di-backup ke sessionStorage: selamat dari
+// reload, ikut hilang saat tab ditutup. Sekali pakai: dihapus saat terverifikasi.
+const OTP_SESSION_KEY = "otp-session";
+function readOtpSession() {
+  try {
+    const raw = JSON.parse(sessionStorage.getItem(OTP_SESSION_KEY) || "{}");
+    return { token: raw.token || "", email: raw.email || "" };
+  } catch {
+    return { token: "", email: "" };
+  }
+}
+function writeOtpSession(token, email) {
+  try {
+    sessionStorage.setItem(OTP_SESSION_KEY, JSON.stringify({ token, email }));
+  } catch {
+    /* storage nonaktif/penuh — halaman tetap jalan dari state */
+  }
+}
+function clearOtpSession() {
+  try {
+    sessionStorage.removeItem(OTP_SESSION_KEY);
+  } catch {
+    /* noop */
+  }
+}
+
 // Sesi auth + gate akun. Pure state + routing pasca-login; tidak tahu soal
 // boot URL-params (itu urusan useAppBoot).
 //
@@ -29,8 +56,8 @@ export function useAuthSession({ setIsRetry, setCheckoutPlan, setManualPayment, 
   const [gate, setGate] = useState(null);
   // DEV: ?admin=true membuka dashboard admin tanpa sesi (preview UI tanpa backend).
   const [devAdmin, setDevAdmin] = useState(false);
-  const [otpToken, setOtpToken] = useState("");
-  const [regEmail, setRegEmail] = useState("");
+  const [otpToken, setOtpToken] = useState(() => readOtpSession().token);
+  const [regEmail, setRegEmail] = useState(() => readOtpSession().email);
   const [fpEmail, setFpEmail] = useState("");
 
   // Tentukan halaman tujuan setelah login berdasarkan peran user.
@@ -254,6 +281,14 @@ export function useAuthSession({ setIsRetry, setCheckoutPlan, setManualPayment, 
   const handleOtpToken = useCallback((token, email) => {
     setOtpToken(token);
     setRegEmail(email);
+    writeOtpSession(token, email);
+  }, []);
+
+  // OTP terverifikasi → sesi sekali-pakai dihapus (tidak tertinggal di tab).
+  const clearOtpToken = useCallback(() => {
+    setOtpToken("");
+    setRegEmail("");
+    clearOtpSession();
   }, []);
 
   const handleEmailSent = useCallback(
@@ -340,6 +375,7 @@ export function useAuthSession({ setIsRetry, setCheckoutPlan, setManualPayment, 
     handleLoginSuccess,
     handleSignOut,
     handleOtpToken,
+    clearOtpToken,
     handleEmailSent,
     handleGateClose,
     handleGateRenew,

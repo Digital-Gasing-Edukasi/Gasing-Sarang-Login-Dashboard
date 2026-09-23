@@ -15,9 +15,11 @@ const RESEND_COOLDOWN = 120
 // Satu wording untuk semua kegagalan verifikasi kode (salah/kedaluwarsa/dicabut).
 const OTP_INVALID_MSG = 'Kode OTP tidak valid. Coba lagi.'
 
-export function SignUpOtpPage({ onNavigate, otpToken, email, onOtpToken }) {
+export function SignUpOtpPage({ onNavigate, otpToken, email, onOtpToken, onVerified }) {
   // Setiap resend mencabut token lama & memberi token baru; simpan lokal supaya
   // confirmEmail/resend berikutnya selalu memakai token TERAKHIR, bukan prop awal.
+  // otpToken/email juga di-backup ke sessionStorage (useAuthSession) sehingga
+  // reload di tengah jalan (umum di mobile) tidak kehilangan keduanya.
   const [token, setToken] = useState(otpToken)
   const { display, expired, reset } = useCountdown(RESEND_COOLDOWN)
   const [otpCode, setOtpCode] = useState('')
@@ -33,6 +35,7 @@ export function SignUpOtpPage({ onNavigate, otpToken, email, onOtpToken }) {
     setError(''); setInfo(''); setLoading(true)
     try {
       await authApi.confirmEmail(token, otpCode)
+      onVerified?.() // sesi OTP sekali-pakai: hapus backup agar tak tertinggal
       onNavigate('signup-review')
     } catch (e) {
       // Kode salah/kedaluwarsa (400/401/422) → wording seragam, jangan bocorkan

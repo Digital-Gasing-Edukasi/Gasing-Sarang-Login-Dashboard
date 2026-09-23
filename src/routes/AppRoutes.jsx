@@ -54,6 +54,7 @@ export function AppRoutes({
   onLoginSuccess,
   onSignOut,
   onOtpToken,
+  onOtpVerified,
   onEmailSent,
   onPaymentSuccess,
   onCheckoutManual,
@@ -202,6 +203,7 @@ export function AppRoutes({
               otpToken={otpToken}
               email={regEmail}
               onOtpToken={onOtpToken}
+              onVerified={onOtpVerified}
             />
           </SplitLayout>
         }
