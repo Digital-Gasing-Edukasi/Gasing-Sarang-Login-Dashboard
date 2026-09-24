@@ -179,7 +179,7 @@ export function parseWaitSecs(additionalInfo) {
 // Status ditolak: 'failed' | 'rejected', ATAU salah satu code dikenal (bentuk
 // sesi tak membawa status). Varian modal ditentukan dari alasan tolak admin:
 //   unsuficient_transfer [sic BE] / insufficient_transfer / wrong_amount / "nominal"
-//     → 'amount'  (tampilkan total tagihan; angka dari adminNotes bila numerik)
+//     → 'amount'  (total tagihan: package.price, fallback adminNotes numerik)
 //   fund_not_retrieved / wrong_account / "rekening"
 //     → 'account' (tampilkan rekening resmi)
 //   payment_receipt_unclear / receipt_unreadable / "bukti" / "terbaca"
@@ -205,8 +205,6 @@ export function evaluatePaymentGate(payment) {
   if (raw.includes('unsuficient_transfer') || raw.includes('insufficient_transfer') || raw.includes('wrong_amount') || raw.includes('nominal')) variant = 'amount'
   else if (raw.includes('fund_not_retrieved') || raw.includes('wrong_account') || raw.includes('rekening')) variant = 'account'
 
-  const amount = p.amount ?? p.total ?? p.grossAmount ?? toPositiveNumber(p.adminNotes) ?? null
-
   // Rekening tujuan resmi dari respons payment (varian 'account'). Nama field
   // belum final (samakan dgn TransferBankPage `pick`). Hanya sertakan nilai
   // yang terdefinisi — sisanya di-fallback ke RECEIVER_BANK di LoginStatusModal.
@@ -229,6 +227,11 @@ export function evaluatePaymentGate(payment) {
   // dibuat kompatibel dgn prop `plan` TransferBankPage (id/name/priceTotal/...).
   const pkg = p.package || p.packageDetail || {}
   const planId = pkg.id ?? p.packageId ?? p.package_id ?? null
+
+  // Total tagihan: harga paket resmi (data.package.price) diutamakan;
+  // adminNotes numerik hanya fallback bila paket tak ada (bentuk sesi lama).
+  const amount = p.amount ?? p.total ?? p.grossAmount
+    ?? toPositiveNumber(pkg.price) ?? toPositiveNumber(p.adminNotes) ?? null
   const plan = planId
     ? {
         id: planId,

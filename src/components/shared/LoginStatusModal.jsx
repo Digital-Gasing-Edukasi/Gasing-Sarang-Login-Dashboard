@@ -81,6 +81,8 @@ const SESSION_BLOCK_TITLES = {
 //          descriptions + Log Out / Daftar Ulang → FixDataPage)
 //        | 'email_unconfirmed' (email belum verifikasi — countdown proteksi +
 //          Log Out / Verifikasi Email → re-login atau langsung OTP)
+//        | 'payment_pending_timeout' (manual transfer tak direview 1x24 jam —
+//          Log Out / Hubungi Admin mailto)
 // onClose→ tutup / logout / dismiss: bersihkan sesi.
 // onRenew→ lanjut ke halaman langganan (skenario 'expired' & 'payment_rejected').
 // onRetry→ tutup modal untuk mencoba lagi (skenario 'error'; default onClose).
@@ -91,6 +93,7 @@ export function LoginStatusModal({ type, meta = {}, onClose, onRenew, onRetry, o
   if (type === 'rejected') return <RejectedModal meta={meta} onClose={onClose} onReregister={onReregister} />
   if (type === 'payment_rejected') return <PaymentRejectedModal meta={meta} onClose={onClose} onRenew={onRenew} onReupload={onReupload} />
   if (type === 'revision_required') return <RevisionRequiredModal meta={meta} onClose={onClose} onReregister={onReregister} />
+  if (type === 'payment_pending_timeout') return <PaymentPendingTimeoutModal meta={meta} onClose={onClose} />
   if (type === 'email_unconfirmed') return <EmailUnconfirmedModal meta={meta} onClose={onClose} onVerify={onVerifyEmail} verifying={verifying} />
 
   // Akun diblokir menurut BE (GET /auth/session-status → { blocked:true,
@@ -426,6 +429,26 @@ function EmailUnconfirmedModal({ meta = {}, onClose, onVerify, verifying }) {
   )
 }
 
+// Modal "Pembayaran Belum Diverifikasi" — session-status payment_pending_timeout:
+// pembayaran manual tak direview dalam 1x24 jam. Tombol: Log Out + Hubungi Admin
+// (mailto VITE_CONTACT_ADMIN, pola sama PaymentSuccessPage).
+function PaymentPendingTimeoutModal({ meta = {}, onClose }) {
+  return (
+    <Shell tone="orange" icon={Clock}>
+      <h2 className="text-2xl font-bold text-foreground lg:mb-3">Pembayaran Belum Diverifikasi</h2>
+      <p className="text-[15px] text-muted-foreground leading-relaxed text-center lg:mb-8">
+        Pembayaran kamu belum diverifikasi oleh admin dalam{' '}
+        <span className="font-semibold text-foreground">1x24 jam</span>.
+        Silakan hubungi admin kami untuk mempercepat proses verifikasi.
+      </p>
+      <div className="flex flex-col gap-3 w-full lg:flex-row-reverse lg:items-center lg:gap-4">
+        <ActionButton label="Hubungi Admin" variant="primary" href={WA_URL} />
+        <ActionButton label="Log Out" variant="outline" icon={LogOut} onClick={() => onClose?.()} />
+      </div>
+    </Shell>
+  )
+}
+
 // Tulang bersama RejectedModal & RevisionRequiredModal (gaya sama, isi beda
 // via props): Shell merah + judul + intro + kotak list + footer + actions.
 function DecisionModal({ icon, title, intro, listHeading, items, footer, actions }) {
@@ -550,19 +573,14 @@ function RejectedModal({ meta = {}, onClose }) {
       footer={
         <>
           <p className="text-xs text-muted-foreground text-center leading-relaxed opacity-80 lg:mb-4">
-            Jika kamu merasa ini adalah kesalahan, silakan{' '}
-            <a href={WA_URL} target="_blank" rel="noopener noreferrer" className="font-semibold text-[#0033EC] underline hover:opacity-80">Hubungi Kami</a>{' '}
-            untuk bantuan lebih lanjut.
-          </p>
-
-          <p className="text-sm font-semibold text-red-500 text-center leading-relaxed lg:mb-6">
-            * Cek email anda untuk daftar ulang.
+            Jika Anda merasa ini adalah kesalahan, silakan hubungi tim dukungan kami untuk bantuan lebih lanjut.
           </p>
         </>
       }
       actions={
-        <div className="w-full px-2 lg:px-0">
-          <ActionButton label="Log Out" variant="primary" onClick={() => onClose?.()} block />
+        <div className="flex flex-col gap-3 w-full lg:flex-row-reverse lg:items-center lg:gap-4">
+          <ActionButton label="Hubungi Admin" variant="primary" href={WA_URL} />
+          <ActionButton label="Log Out" variant="outline" icon={LogOut} onClick={() => onClose?.()} />
         </div>
       }
     />
@@ -627,23 +645,33 @@ function Shell({ tone, icon: Icon, showMobileIcon = true, children, variant = 's
 
 // block=true → tombol full-width tanpa batas lebar desktop (dipakai CTA tunggal
 // yang harus penuh, mis. modal payment_review). Default: dibatasi 173–368px.
-function ActionButton({ label, variant, icon: Icon, onClick, block = false, disabled = false }) {
+function ActionButton({ label, variant, icon: Icon, onClick, block = false, disabled = false, href }) {
+  const cls = cn(
+    // Desktop: lebar tombol CTA dibatasi — min 173px (kasus 2 tombol),
+    // maks 368px (kasus 1 tombol). Mobile tetap full-width.
+    'flex items-center justify-center gap-2 font-semibold px-6 py-3.5 rounded-full transition-colors whitespace-nowrap',
+    block ? 'w-full' : 'flex-1 lg:min-w-[173px] lg:max-w-[368px]',
+    variant === 'primary'
+      ? 'bg-[#0033EC] text-white hover:bg-[#0029BD]'
+      : variant === 'danger'
+      ? 'bg-red-500 text-white hover:bg-red-600'
+      : 'border border-[#D1D3DA] bg-white text-[#030B1F] hover:bg-gray-50',
+    disabled && 'opacity-40 cursor-not-allowed',
+  )
+  // href → link (mis. mailto Hubungi Admin); selain itu button biasa.
+  if (href) {
+    return (
+      <a href={href} target="_blank" rel="noopener noreferrer" className={cls}>
+        {Icon && <Icon size={18} />}
+        {label}
+      </a>
+    )
+  }
   return (
     <button
       onClick={onClick}
       disabled={disabled}
-      className={cn(
-        // Desktop: lebar tombol CTA dibatasi — min 173px (kasus 2 tombol),
-        // maks 368px (kasus 1 tombol). Mobile tetap full-width.
-        'flex items-center justify-center gap-2 font-semibold px-6 py-3.5 rounded-full transition-colors whitespace-nowrap',
-        block ? 'w-full' : 'flex-1 lg:min-w-[173px] lg:max-w-[368px]',
-        variant === 'primary'
-          ? 'bg-[#0033EC] text-white hover:bg-[#0029BD]'
-          : variant === 'danger'
-          ? 'bg-red-500 text-white hover:bg-red-600'
-          : 'border border-[#D1D3DA] bg-white text-[#030B1F] hover:bg-gray-50',
-        disabled && 'opacity-40 cursor-not-allowed',
-      )}
+      className={cls}
     >
       {Icon && <Icon size={18} />}
       {label}

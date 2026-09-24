@@ -139,6 +139,16 @@ export function useAuthSession({ setIsRetry, setCheckoutPlan, setManualPayment, 
               );
               break;
             }
+            case 'payment_pending_timeout': {
+              // Manual transfer tak direview 1x24 jam → dialog Hubungi Admin.
+              setGate({
+                type: 'payment_pending_timeout',
+                reasonCode: s.reasonCode,
+                message: s.message || null,
+                profile: null,
+              });
+              break;
+            }
             default: {
               setGate({
                 type: 'session_blocked',
@@ -217,6 +227,16 @@ export function useAuthSession({ setIsRetry, setCheckoutPlan, setManualPayment, 
                       profile: user,
                     }
               );
+              break;
+            }
+            case 'payment_pending_timeout': {
+              // Manual transfer tak direview 1x24 jam → dialog Hubungi Admin.
+              setGate({
+                type: 'payment_pending_timeout',
+                reasonCode: s.reasonCode,
+                message: s.message || null,
+                profile: user,
+              });
               break;
             }
             default: {

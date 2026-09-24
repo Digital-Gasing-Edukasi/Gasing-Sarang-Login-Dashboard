@@ -5,7 +5,7 @@ import { evaluatePaymentGate } from "../loginGate";
 // payment) → varian modal yang benar. Lihat contoh payload dari user.
 
 describe("evaluatePaymentGate — session rejectionReason codes", () => {
-  it("unsuficient_transfer [sic BE] → amount, tagihan dari adminNotes", () => {
+  it("unsuficient_transfer [sic BE] → amount, tagihan dari adminNotes bila tanpa package", () => {
     const out = evaluatePaymentGate({
       paymentId: "01a0cbd2",
       invoiceNumber: "0021SGINVGA-IX2026",
@@ -16,6 +16,24 @@ describe("evaluatePaymentGate — session rejectionReason codes", () => {
     expect(out.variant).toBe("amount");
     expect(out.amount).toBe(50000);
     expect(out.paymentRef).toEqual({ id: "01a0cbd2", orderId: "0021SGINVGA-IX2026" });
+  });
+
+  it("package.price mengalahkan adminNotes (harga paket resmi)", () => {
+    const out = evaluatePaymentGate({
+      paymentId: "01a0cbd2",
+      invoiceNumber: "0021SGINVGA-IX2026",
+      rejectionReason: "unsuficient_transfer",
+      adminNotes: "50000",
+      package: {
+        id: "019e163b-6bfd-706e-9174-10926e620046",
+        name: "Monthly",
+        price: 39900,
+        duration: 1,
+        durationUnit: "month",
+      },
+    });
+    expect(out.variant).toBe("amount");
+    expect(out.amount).toBe(39900);
   });
 
   it("insufficient_transfer (ejaan benar) → amount juga", () => {

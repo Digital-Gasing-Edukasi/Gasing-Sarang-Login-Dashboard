@@ -310,6 +310,27 @@ describe('handleLoginSuccess routing matrix', () => {
     expect(screen.getByText('DO_LOGIN')).toBeInTheDocument()
   })
 
+  it('session-status payment_pending_timeout -> gate modal payment_pending_timeout', async () => {
+    authApi.sessionStatus.mockResolvedValueOnce({
+      blocked: true,
+      reasonCode: 'payment_pending_timeout',
+      message: 'Your manual transfer payment has not been reviewed within the allowed time',
+      data: {
+        paymentId: '01a0ca3f-694e-7054-892d-5f4c2f69d7d8',
+        invoiceNumber: '0020SGINVGA-IX2026',
+      },
+    })
+    renderApp()
+    await login({ verifiedStatus: 'approved' })
+
+    await waitFor(() =>
+      expect(screen.getByTestId('gate-modal')).toBeInTheDocument(),
+    )
+    expect(screen.getByTestId('gate-modal')).toHaveAttribute('data-type', 'payment_pending_timeout')
+    expect(screen.getByText('DO_LOGIN')).toBeInTheDocument()
+    expect(subscriptionApi.getLatestPayment).not.toHaveBeenCalled()
+  })
+
   it('payment pending >24 jam -> modal payment_review TANPA canExplore (user basi tidak bisa masuk)', async () => {
     subscriptionApi.getLatestPayment.mockResolvedValueOnce({
       status: 'receipt_uploaded',
