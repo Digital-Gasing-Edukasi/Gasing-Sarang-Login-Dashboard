@@ -75,6 +75,7 @@ export default function App() {
 
       {auth.gate && (
         <LoginStatusModal
+          key={`gate-${auth.gate.type}-${auth.gate.waitSecs ?? 0}-${auth.gate.reasonCode ?? ''}`}
           type={auth.gate.type}
           meta={auth.gate}
           onClose={auth.handleGateClose}
@@ -82,6 +83,8 @@ export default function App() {
           onReupload={auth.handleGateReupload}
           onReregister={auth.handleGateReregister}
           onExplore={auth.handleGateExplore}
+          onVerifyEmail={auth.handleGateVerifyEmail}
+          verifying={auth.gateBusy}
         />
       )}
     </>

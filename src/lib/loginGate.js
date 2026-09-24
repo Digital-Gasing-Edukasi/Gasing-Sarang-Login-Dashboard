@@ -161,6 +161,16 @@ function toPositiveNumber(v) {
   return Number.isFinite(n) && n > 0 ? n : null
 }
 
+// Proteksi kirim-ulang OTP (detik) bila additionalInfo tak menyebut angka.
+export const PROVISIONAL_FALLBACK_SECS = 180
+
+// "…please wait for 161 secs" → 161. Tak ada angka → fallback 180.
+export function parseWaitSecs(additionalInfo) {
+  const m = String(additionalInfo || '').match(/(\d+)\s*secs?/i)
+  const n = m ? Number(m[1]) : NaN
+  return Number.isFinite(n) && n > 0 ? Math.floor(n) : PROVISIONAL_FALLBACK_SECS
+}
+
 // Evaluasi payment terakhir (GET /subscription/payments/latest) ATAU data sesi
 // (session-status payment_rejected: { rejectionReason, adminNotes, ... } tanpa
 // status payment) untuk gate "Pembayaran Ditolak". Return null bila payment

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { isPaymentGraceActive, dateFieldMs } from "../loginGate";
+import { isPaymentGraceActive, dateFieldMs, parseWaitSecs, PROVISIONAL_FALLBACK_SECS } from "../loginGate";
 
 // Bentuk waktu BE asli (objek { unix, utc, local }) — dulu di-new Date()
 // langsung → NaN → grace selalu false.
@@ -45,6 +45,17 @@ describe("dateFieldMs", () => {
     expect(dateFieldMs(null)).toBeNull();
     expect(dateFieldMs({})).toBeNull();
     expect(dateFieldMs("bukan-tanggal")).toBeNull();
+  });
+});
+
+describe("parseWaitSecs", () => {
+  it('"wait for 161 secs" → 161', () => {
+    expect(parseWaitSecs("please wait for 161 secs")).toBe(161);
+  });
+
+  it("tanpa angka / null → fallback 180", () => {
+    expect(parseWaitSecs(null)).toBe(PROVISIONAL_FALLBACK_SECS);
+    expect(parseWaitSecs("coba lagi nanti")).toBe(PROVISIONAL_FALLBACK_SECS);
   });
 });
 

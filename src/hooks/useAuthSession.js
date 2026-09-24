@@ -4,6 +4,7 @@ import {
   tokenStorage,
   subscriptionApi,
   authApi,
+  profileApi,
   webAppApi,
 } from "@/lib/api";
 import { canAccessDiscourse, isSsoDisabled, isSuperAdmin } from "@/lib/roles";
@@ -12,6 +13,8 @@ import {
   evaluatePaymentGate,
   isPaymentGraceActive,
   isSubscriptionExpired,
+  parseWaitSecs,
+  PROVISIONAL_FALLBACK_SECS,
 } from "@/lib/loginGate";
 import { buildRevisionFixData } from "@/lib/revisionFixData";
 
@@ -59,20 +62,111 @@ export function useAuthSession({ setIsRetry, setCheckoutPlan, setManualPayment, 
   const [otpToken, setOtpToken] = useState(() => readOtpSession().token);
   const [regEmail, setRegEmail] = useState(() => readOtpSession().email);
   const [fpEmail, setFpEmail] = useState("");
+  // Spinner tombol Verifikasi di modal email_unconfirmed.
+  const [gateBusy, setGateBusy] = useState(false);
 
-  // Tentukan halaman tujuan setelah login berdasarkan peran user.
-  // Aturan peran ada di src/lib/roles.js (sumber kebenaran tunggal).
-  //   - Admin operasional  → /dashboard-admin
-  //   - Superadmin         → /login/choice
-  //   - User biasa         → /login/choice bila langganan aktif, else /login/subscription
-  const handleLoginSuccess = useCallback(
+  // Login provisional/email_confirmation (tanpa profil).
+  // opts: { pendingCreds?: {email,password}, waitSecs?,
+  //         emailConfirmation?: {token,email} }.
+  const handlePendingSession = useCallback(
+    async (opts = {}) => {
+      // Token konfirmasi sudah di tangan → dialog email aktif tanpa timer.
+      if (opts.emailConfirmation?.token && opts.emailConfirmation?.email) {
+        setGate({
+          type: 'email_unconfirmed',
+          otpToken: opts.emailConfirmation.token,
+          email: opts.emailConfirmation.email,
+          waitSecs: 0,
+          profile: null,
+        });
+        navigate('/login', { replace: true });
+        return;
+      }
+      // Provisional: baca session-status dengan token sementaranya.
+      try {
+        const st = await authApi.sessionStatus();
+        console.log("authApi.sessionStatus", st);
+        
+        const raw = st || {};
+        const s =
+          raw.blocked !== undefined || raw.reasonCode !== undefined || raw.message !== undefined
+            ? raw
+            : raw.data || raw;
+        if (s.blocked === true) {
+          switch (s.reasonCode) {
+            case 'email_unconfirmed': {
+              setGate({
+                type: 'email_unconfirmed',
+                creds: opts.pendingCreds || null,
+                waitSecs: opts.waitSecs ?? PROVISIONAL_FALLBACK_SECS,
+                message: s.message || null,
+                profile: null,
+              });
+              break;
+            }
+            case 'revision_required': {
+              const fields = Array.isArray(s.data?.fields) ? s.data.fields : [];
+              // Prefill best-effort: coba getMe dengan token sementara (bisa
+              // 401 → fallback null, user isi manual). Dulu prefill datang dari
+              // profil sesi penuh; jalur provisional tak punya itu.
+              let pendingProfile = null;
+              try {
+                pendingProfile = await profileApi.getMe();
+              } catch {
+                pendingProfile = null;
+              }
+              setGate({
+                type: 'revision_required',
+                reasonCode: s.reasonCode,
+                message: s.message || null,
+                fields,
+                fixData: buildRevisionFixData(pendingProfile, fields),
+                profile: pendingProfile,
+              });
+              break;
+            }
+            case 'payment_rejected': {
+              const payGate = evaluatePaymentGate(s.data);
+              setGate(
+                payGate
+                  ? { ...payGate, profile: null }
+                  : {
+                      type: 'payment_rejected',
+                      reasonCode: s.reasonCode,
+                      message: s.message || null,
+                      profile: null,
+                    }
+              );
+              break;
+            }
+            default: {
+              setGate({
+                type: 'session_blocked',
+                reasonCode: s.reasonCode || null,
+                message: s.message || null,
+                profile: null,
+              });
+              break;
+            }
+          }
+          navigate('/login', { replace: true });
+          return;
+        }
+        // Tak diblokir tapi tanpa profil → peran tak bisa ditentukan; fallback
+        // halaman langganan (jalur user biasa; admin edge navigasi manual).
+        navigate('/login/subscription', { replace: true });
+      } catch {
+        // Status tak terbaca + tanpa profil → tak ada flow normal untuk
+        // dilanjut; tahan di login dengan modal generik (fail-closed).
+        setGate({ type: 'session_blocked', reasonCode: null, message: null, profile: null });
+        navigate('/login', { replace: true });
+      }
+    },
+    [navigate],
+  );
+
+  const handleFullSession = useCallback(
     async (user) => {
-      // Login baru = sesi attempt baru: reset penanda retry. Tanpa ini, flag
-      // true dari gate payment_rejected di login sebelumnya (sesi SPA sama,
-      // tanpa reload) bocor ke checkout fresh → halaman sukses salah tampil
-      // Log Out padahal ini pembayaran pertama. Gate di bawah meng-arm ulang
-      // ke true bila login kali ini memang retry.
-      setIsRetry?.(false);
 
       // Sesi diblokir BE (akun rejected / tidak aktif / email dsb):
       // GET /auth/session-status → { blocked, reasonCode, message }.
@@ -81,8 +175,6 @@ export function useAuthSession({ setIsRetry, setCheckoutPlan, setManualPayment, 
       // yang menghentikan login.
       try {
         const st = await authApi.sessionStatus();
-        console.log("sessionStatus", {st});
-        
 
         // Bentuk BE: { blocked, reasonCode, message, data:{...} } di top-level.
         // Jangan asal ambil .data — itu payload revision, bukan wrapper respons.
@@ -265,7 +357,42 @@ export function useAuthSession({ setIsRetry, setCheckoutPlan, setManualPayment, 
         }
       }
     },
-    [navigate, setIsRetry],
+    [navigate],
+  );
+
+  // Tentukan halaman tujuan setelah login berdasarkan peran user.
+  // Aturan peran ada di src/lib/roles.js (sumber kebenaran tunggal).
+  //   - Admin operasional  → /dashboard-admin
+  //   - Superadmin         → /login/choice
+  //   - User biasa         → /login/choice bila langganan aktif, else /login/subscription
+  //
+  // Dua pintu masuk: sesi penuh (profil ada, dari getMe) dan sesi sementara
+  // (user null — token provisional/email_confirmation tak bisa getMe).
+  // sessionType JWT saja TAK cukup menentukan dialog (provisional bisa berarti
+  // email_unconfirmed, revision_required, dsb — terbukti di lapangan), jadi
+  // keduanya bermuara ke session-status sebagai penentu tunggal.
+  // Dideklarasikan SETELAH handlePendingSession/handleFullSession (aturan
+  // TDZ: deps array dibaca saat deklarasi).
+  const handleLoginSuccess = useCallback(
+    async (user, opts = {}) => {
+      console.log({user, opts});
+      
+      // Login baru = sesi attempt baru: reset penanda retry. Tanpa ini, flag
+      // true dari gate payment_rejected di login sebelumnya (sesi SPA sama,
+      // tanpa reload) bocor ke checkout fresh → halaman sukses salah tampil
+      // Log Out padahal ini pembayaran pertama. Gate di bawah meng-arm ulang
+      // ke true bila login kali ini memang retry.
+      setIsRetry?.(false);
+
+      // Sesi sementara (login provisional / email_confirmation): belum ada
+      // profil → penentu dialog = session-status.
+      if (!user) {
+        await handlePendingSession(opts);
+        return;
+      }
+      await handleFullSession(user);
+    },
+    [handleFullSession, handlePendingSession, setIsRetry],
   );
 
   const handleSignOut = useCallback(() => {
@@ -331,6 +458,52 @@ export function useAuthSession({ setIsRetry, setCheckoutPlan, setManualPayment, 
     navigate("/register/revise", { replace: true });
   }, [navigate, gate, setFixData]);
 
+  // "Verifikasi Email" (modal email_unconfirmed). Dua mode:
+  //   - sudah pegang token konfirmasi (login email_confirmation) → langsung
+  //     halaman OTP, tanpa login ulang;
+  //   - masih provisional (ada creds + timer habis) → login ulang. Hasil
+  //     email_confirmation → OTP; provisional lagi → dialog dibuka ulang
+  //     dengan timer baru; sesi penuh tak terduga → lanjut flow normal.
+  const handleGateVerifyEmail = useCallback(async () => {
+    const g = gate;
+    if (!g || g.type !== 'email_unconfirmed' || gateBusy) return;
+    if (g.otpToken && g.email) {
+      handleOtpToken(g.otpToken, g.email);
+      setGate(null);
+      navigate('/register/otp', { replace: true });
+      return;
+    }
+    const { email, password } = g.creds || {};
+    if (!email || !password) return;
+    setGateBusy(true);
+    try {
+      const data = await authApi.login(email, password);
+      if (data?.sessionType === 'email_confirmation' && data?.accessToken) {
+        handleOtpToken(data.accessToken, email);
+        setGate(null);
+        navigate('/register/otp', { replace: true });
+      } else if (data?.sessionType === 'provisional') {
+        setGate({
+          type: 'email_unconfirmed',
+          creds: { email, password },
+          waitSecs: parseWaitSecs(data?.additionalInfo),
+          message: null,
+          profile: null,
+        });
+      } else {
+        setGate(null);
+        tokenStorage.setTokens(data.accessToken, data.refreshToken, false);
+        const profile = await profileApi.getMe();
+        await handleFullSession(profile);
+      }
+    } catch {
+      // Login ulang gagal → tutup dialog, kembali ke login polos.
+      setGate(null);
+    } finally {
+      setGateBusy(false);
+    }
+  }, [navigate, gate, gateBusy, handleOtpToken, handleFullSession]);
+
   // "Jelajahi Sarang Gasing" (payment_review) → handoff ke web app dengan token
   // sesi saat ini (pola sama TransferBankPage.handleRedirectDefault).
   const handleGateExplore = useCallback(() => {
@@ -367,6 +540,7 @@ export function useAuthSession({ setIsRetry, setCheckoutPlan, setManualPayment, 
     setCurrentUser,
     gate,
     setGate,
+    gateBusy,
     devAdmin,
     setDevAdmin,
     otpToken,
@@ -382,5 +556,6 @@ export function useAuthSession({ setIsRetry, setCheckoutPlan, setManualPayment, 
     handleGateReupload,
     handleGateReregister,
     handleGateExplore,
+    handleGateVerifyEmail,
   };
 }

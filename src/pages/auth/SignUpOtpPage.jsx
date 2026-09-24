@@ -1,16 +1,16 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { RightPanel } from '@/components/layout/RightPanel'
 import { StepBar, StepProgress, StepHeader } from '@/components/layout/StepIndicator'
 import { OtpInput }     from '@/components/shared/OtpInput'
 import { useCountdown } from '@/hooks/useCountdown'
-import { authApi }      from '@/lib/api'
+import { authApi, tokenStorage } from '@/lib/api'
 import { translateApiError } from '@/lib/errorMessages'
 
 // Jeda antar-kirim-ulang OTP (detik). Backend tidak mengembalikan cooldown/retryAfter,
 // hanya melindungi diri dengan rate-limit (429). Jadi gerbang UX ini murni sisi klien.
-const RESEND_COOLDOWN = 120
+const RESEND_COOLDOWN = 180
 
 // Satu wording untuk semua kegagalan verifikasi kode (salah/kedaluwarsa/dicabut).
 const OTP_INVALID_MSG = 'Kode OTP tidak valid. Coba lagi.'
@@ -27,6 +27,18 @@ export function SignUpOtpPage({ onNavigate, otpToken, email, onOtpToken, onVerif
   const [resending, setResending] = useState(false)
   const [error, setError]     = useState('')
   const [info, setInfo]       = useState('')
+
+  // Tanpa otpToken (deep-link langsung / sesi hilang total) halaman tak bisa
+  // berfungsi — verify/resend pasti error. Paksa logout + balik ke login
+  // daripada menampilkan form rusak.
+  useEffect(() => {
+    if (!otpToken) {
+      tokenStorage.clear()
+      onNavigate('login')
+    }
+  }, [otpToken, onNavigate])
+
+  if (!otpToken) return null
 
   const maskedEmail = email ? email.replace(/(.{3}).*(@.*)/, '$1*****$2') : 'email Anda'
 

@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, waitFor, fireEvent } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { SignUpOtpPage } from '../SignUpOtpPage'
-import { authApi } from '@/lib/api'
+import { authApi, tokenStorage } from '@/lib/api'
 
 // Regresi: SignUpOtpPage — jalur gagal verify-OTP (status generik, bukan
 // 400/401/422) DAN jalur gagal resend-OTP (bukan 429) harus tampilkan teks
@@ -10,6 +10,7 @@ import { authApi } from '@/lib/api'
 
 vi.mock('@/lib/api', () => ({
   authApi: { confirmEmail: vi.fn(), resendOtp: vi.fn() },
+  tokenStorage: { clear: vi.fn() },
 }))
 
 // useCountdown real (120s) bikin tombol "Kirim ulang kode" baru muncul setelah
@@ -83,5 +84,31 @@ describe('SignUpOtpPage — error translation', () => {
       expect(alertEl).toBeInTheDocument()
     })
     expect(screen.queryByText('expired session token')).not.toBeInTheDocument()
+  })
+
+  it('tanpa otpToken (deep-link langsung) → paksa logout + redirect login, form tak dirender', async () => {
+    const onNavigate = vi.fn()
+
+    const { container } = render(
+      <SignUpOtpPage onNavigate={onNavigate} otpToken="" email="" onOtpToken={() => {}} />
+    )
+
+    await waitFor(() => expect(tokenStorage.clear).toHaveBeenCalled())
+    expect(onNavigate).toHaveBeenCalledWith('login')
+    expect(container.firstChild).toBeNull()
+    expect(authApi.confirmEmail).not.toHaveBeenCalled()
+  })
+
+  it('dengan otpToken → guard diam, form normal', () => {
+    const onNavigate = vi.fn()
+
+    const { container } = render(
+      <SignUpOtpPage onNavigate={onNavigate} otpToken="tok-1" email="user@test.com" onOtpToken={() => {}} />
+    )
+
+    expect(tokenStorage.clear).not.toHaveBeenCalled()
+    expect(onNavigate).not.toHaveBeenCalled()
+    // Form OTP normal: 6 kotak input.
+    expect(container.querySelectorAll('input')).toHaveLength(6)
   })
 })

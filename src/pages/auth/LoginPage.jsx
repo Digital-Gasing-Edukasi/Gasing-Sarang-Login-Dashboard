@@ -11,6 +11,7 @@ import { NoConnectionBanner } from '@/components/shared/NoConnectionBanner'
 import { RateLimitBanner } from '@/components/shared/RateLimitBanner'
 import { LoginFailedToast } from '@/components/shared/LoginFailedToast'
 import { authApi, profileApi, tokenStorage } from '@/lib/api'
+import { parseWaitSecs } from '@/lib/loginGate'
 import { Logo } from '@/components/shared/Logo'
 
 const ERR_INPUT = '!border-red-500 focus-visible:!border-red-500 focus-visible:ring-red-200'
@@ -43,6 +44,74 @@ export function LoginPage({ onNavigate, onLoginSuccess, isSsoMode = false }) {
   const clearFieldError = (field) =>
     setErrors(prev => ({ ...prev, [field]: '' }))
 
+  // Pemetaan error login → UI (dipakai login awal & login ulang verifikasi).
+  const handleLoginError = (e) => {
+    if (isNetworkError(e)) {
+      setNoConn(true)                    // flow 5 — tidak ada koneksi
+    } else if (e?.status === 429) {
+      // Rate limit backend (ThrottlerException). Banner merah + hitung mundur;
+      // tombol Login ikut terkunci sampai cooldown habis.
+      setRateLimit(e.retryAfter || 60)
+    } else if (e?.status === 403 && /rejected|ditolak/i.test(e?.message || '')) {
+      // Backend tolak login akun ditolak (mis. "Your account verification was rejected: ...").
+      const msg = e?.message || ''
+      const match = msg.match(/rejected:\s*(.+)$/i)
+      let reasons = undefined
+      if (match) {
+        const rawReason = match[1].trim()
+        if (rawReason && rawReason !== 'null') {
+          reasons = rawReason.split(',').map(r => r.trim()).filter(Boolean)
+        }
+      }
+      setGate({
+        type: 'rejected',
+        reasons: reasons,
+      })
+    } else if (/suspend|ditangguhkan/i.test(e?.message || '')) {
+      // Backend tolak login akun ditangguhkan (mis. "Account is suspended").
+      const d = e?.data || {}
+      setGate({
+        type: 'suspended',
+        until: d.suspendedUntil || d.until || d.suspended?.until || null,
+        reason: d.suspendReason || d.reason || d.suspended?.reason || 'Melanggar panduan komunitas',
+      })
+    } else if (e?.status >= 500) {
+      setGate({ type: 'error' })         // flow 4 — server bermasalah
+    } else {
+      // 401 Invalid credentials (desain Figma 9047): toast merah "Login gagal" di
+      // pojok atas tengah — bukan inline error. Tidak membocorkan field mana yang
+      // salah (email/password) demi keamanan.
+      setLoginFailed(true)
+    }
+  }
+
+  // Cabang sessionType dari respons /auth/login (aliran verifikasi email).
+  // Provisional/email_confirmation tidak punya profil penuh (getMe tak jalan)
+  // → penentu dialog = handleLoginSuccess via session-status. Return true bila
+  // sudah ditangani (jangan lanjut ke getMe).
+  const handleSessionType = (data, creds) => {
+    if (data?.sessionType === 'provisional') {
+      // Token sementara disimpan agar session-status bisa dibaca; penentu
+      // dialog (email_unconfirmed/revision/payment/dll) ada di gate terpusat.
+      // Kredensial ikut diteruskan HANYA untuk login ulang verifikasi email —
+      // dibersihkan begitu gate ditutup / alur selesai.
+      tokenStorage.setTokens(data.accessToken, null, remember)
+      onLoginSuccess(null, {
+        pendingCreds: { email: creds.email, password: creds.password },
+        waitSecs: parseWaitSecs(data?.additionalInfo),
+      })
+      return true
+    }
+    if (data?.sessionType === 'email_confirmation' && data?.accessToken) {
+      // Token konfirmasi langsung → dialog email aktif via gate (tanpa timer).
+      onLoginSuccess(null, {
+        emailConfirmation: { token: data.accessToken, email: creds.email },
+      })
+      return true
+    }
+    return false
+  }
+
   const handleLogin = async () => {
     const next = {}
     if (!email)                 next.email    = 'Pastikan email tidak kosong.'
@@ -55,51 +124,16 @@ export function LoginPage({ onNavigate, onLoginSuccess, isSsoMode = false }) {
     setErrors({}); setNoConn(false); setLoginFailed(false); setLoading(true)
     try {
       const data = await authApi.login(email, password)
+      console.log("authApi.login", {data});
+      
+      if (handleSessionType(data, { email, password })) return
       tokenStorage.setTokens(data.accessToken, data.refreshToken, remember)
       const profile = await profileApi.getMe()
-      console.log({profile});
-      
       // Guard status akun (pending/expired/suspended) ditangani terpusat di
       // App.handleLoginSuccess — berlaku juga saat restore sesi (reload).
       onLoginSuccess(profile)
     } catch (e) {
-      if (isNetworkError(e)) {
-        setNoConn(true)                    // flow 5 — tidak ada koneksi
-      } else if (e?.status === 429) {
-        // Rate limit backend (ThrottlerException). Banner merah + hitung mundur;
-        // tombol Login ikut terkunci sampai cooldown habis.
-        setRateLimit(e.retryAfter || 60)
-      } else if (e?.status === 403 && /rejected|ditolak/i.test(e?.message || '')) {
-        // Backend tolak login akun ditolak (mis. "Your account verification was rejected: ...").
-        const msg = e?.message || ''
-        const match = msg.match(/rejected:\s*(.+)$/i)
-        let reasons = undefined
-        if (match) {
-          const rawReason = match[1].trim()
-          if (rawReason && rawReason !== 'null') {
-            reasons = rawReason.split(',').map(r => r.trim()).filter(Boolean)
-          }
-        }
-        setGate({
-          type: 'rejected',
-          reasons: reasons,
-        })
-      } else if (/suspend|ditangguhkan/i.test(e?.message || '')) {
-        // Backend tolak login akun ditangguhkan (mis. "Account is suspended").
-        const d = e?.data || {}
-        setGate({
-          type: 'suspended',
-          until: d.suspendedUntil || d.until || d.suspended?.until || null,
-          reason: d.suspendReason || d.reason || d.suspended?.reason || 'Melanggar panduan komunitas',
-        })
-      } else if (e?.status >= 500) {
-        setGate({ type: 'error' })         // flow 4 — server bermasalah
-      } else {
-        // 401 Invalid credentials (desain Figma 9047): toast merah "Login gagal" di
-        // pojok atas tengah — bukan inline error. Tidak membocorkan field mana yang
-        // salah (email/password) demi keamanan.
-        setLoginFailed(true)
-      }
+      handleLoginError(e)
     } finally {
       setLoading(false)
     }

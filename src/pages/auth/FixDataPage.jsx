@@ -17,7 +17,7 @@ import { DateField, DATE_MAX } from "@/components/shared/DateField";
 import { ErrorAlert } from "@/components/shared/ErrorAlert";
 import { cn } from "@/lib/utils";
 import { abbrevRegion } from "@/lib/format";
-import { authApi, regionsApi, trainingSessionsApi } from "@/lib/api";
+import { authApi, regionsApi, trainingSessionsApi, tokenStorage } from "@/lib/api";
 
 const asList = (data) =>
   Array.isArray(data) ? data : data?.data || data?.items || [];
@@ -240,14 +240,11 @@ export function FixDataPage({ fixData, reviseToken, onNavigate }) {
         lastTrainingSessionId,
         schoolName,
       };
+      // Token revise (JWT dari email) diutamakan; aliran Daftar Ulang tak punya
+      // itu (null/'') → pakai accessToken sesi saat ini (provisional login).
+      const submitToken = reviseToken || tokenStorage.getAccess() || null;
+      await authApi.submitRevise({ token: submitToken, ...payload });
 
-      if (reviseToken) {
-        // Alur baru (token JWT dari email): auth via token, bukan uid.
-        await authApi.submitRevise({ token: reviseToken, ...payload });
-      } else {
-        // Legacy (?fix= self-contained) — dihapus setelah backend stabil (ADR-0003).
-        await authApi.submitCorrection({ uid: fixData?.uid, ...payload });
-      }
       setSubmitted(true);
     } catch (e) {
       setError(e.message || "Gagal mengirim perbaikan data. Coba lagi.");
@@ -337,6 +334,7 @@ export function FixDataPage({ fixData, reviseToken, onNavigate }) {
   // DESKTOP: tombol inline saja. MOBILE: hanya footer sticky (anti dobel).
   return (
     <RightPanel stickyFooter={cta} footerWrapClassName="lg:hidden">
+      <button onClick={()=>console.log({reviseToken})}>log</button>
       {/* MOBILE: header tanpa tombol close (audit #90) — hanya judul. */}
       <div className="lg:hidden sticky top-0 z-20 -mx-6 -mt-4 mb-4 bg-background/95 px-6 pt-4 pb-4 backdrop-blur">
         <StepBar title="Perbaikan Data" />

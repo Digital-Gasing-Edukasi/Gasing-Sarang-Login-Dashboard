@@ -1,8 +1,9 @@
 import { useState } from 'react'
-import { Clock, UserSearch, UserX, ShieldAlert, LogOut, AlertCircle, ServerCrash, Copy, Check } from 'lucide-react'
+import { Clock, UserSearch, UserX, ShieldAlert, LogOut, AlertCircle, ServerCrash, Copy, Check, MailCheck, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { WA_URL } from '@/components/shared/PaymentStatusLayout'
 import { DEFAULT_BANK } from '@/lib/bankAccount'
+import { useCountdown } from '@/hooks/useCountdown'
 
 // "panduan komunitas" / "ketentuan komunitas" → halaman Ketentuan Layanan (TOS).
 // "syarat" → halaman Kebijakan Privasi. Dibuka di tab baru, sama seperti tautan
@@ -78,16 +79,19 @@ const SESSION_BLOCK_TITLES = {
 //        | 'session_blocked' (session-status blocked umum — message + Log Out)
 //        | 'revision_required' (session-status revision_required — daftar
 //          descriptions + Log Out / Daftar Ulang → FixDataPage)
+//        | 'email_unconfirmed' (email belum verifikasi — countdown proteksi +
+//          Log Out / Verifikasi Email → re-login atau langsung OTP)
 // onClose→ tutup / logout / dismiss: bersihkan sesi.
 // onRenew→ lanjut ke halaman langganan (skenario 'expired' & 'payment_rejected').
 // onRetry→ tutup modal untuk mencoba lagi (skenario 'error'; default onClose).
-export function LoginStatusModal({ type, meta = {}, onClose, onRenew, onRetry, onReupload, onReregister, onExplore }) {
+export function LoginStatusModal({ type, meta = {}, onClose, onRenew, onRetry, onReupload, onReregister, onExplore, onVerifyEmail, verifying }) {
   const [confirmLogout, setConfirmLogout] = useState(false)
 
   if (type === 'suspended') return <SuspendedModal meta={meta} onClose={onClose} />
   if (type === 'rejected') return <RejectedModal meta={meta} onClose={onClose} onReregister={onReregister} />
   if (type === 'payment_rejected') return <PaymentRejectedModal meta={meta} onClose={onClose} onRenew={onRenew} onReupload={onReupload} />
   if (type === 'revision_required') return <RevisionRequiredModal meta={meta} onClose={onClose} onReregister={onReregister} />
+  if (type === 'email_unconfirmed') return <EmailUnconfirmedModal meta={meta} onClose={onClose} onVerify={onVerifyEmail} verifying={verifying} />
 
   // Akun diblokir menurut BE (GET /auth/session-status → { blocked:true,
   // reasonCode, message }). Judul per-reasonCode menyusul; untuk sekarang
@@ -384,6 +388,44 @@ function PaymentRejectedModal({ meta = {}, onClose, onRenew, onReupload }) {
   )
 }
 
+// Modal "Selesaikan Verifikasi Email" — session email_unconfirmed: akun belum
+// verifikasi email. meta.waitSecs > 0 (proteksi BE) → tombol Verifikasi
+// disabled dengan countdown; 0/absen → langsung aktif. onVerify = re-login
+// (provisional) atau langsung OTP (sudah pegang token) — lihat
+// useAuthSession.handleGateVerifyEmail.
+function EmailUnconfirmedModal({ meta = {}, onClose, onVerify, verifying }) {
+  const waitSecs = Number(meta.waitSecs) > 0 ? Math.floor(meta.waitSecs) : 0
+  const { display, expired } = useCountdown(waitSecs)
+  const active = waitSecs <= 0 || expired
+
+  return (
+    <Shell tone="orange" icon={MailCheck}>
+      <h2 className="text-2xl font-bold text-foreground lg:mb-3">Selesaikan Verifikasi Email</h2>
+      <p className="text-[15px] text-muted-foreground leading-relaxed text-center lg:mb-8">
+        Kamu belum menyelesaikan proses verifikasi email. Harap verifikasi email terlebih dahulu untuk mengakses komunitas Sarang Gasing.
+      </p>
+      <div className="flex flex-col gap-3 w-full">
+        <ActionButton
+          label={
+            verifying ? (
+              <span className="flex items-center gap-2"><Loader2 size={18} className="animate-spin" /> Memverifikasi...</span>
+            ) : active ? (
+              'Verifikasi Email'
+            ) : (
+              `Verifikasi Email (${display})`
+            )
+          }
+          variant="primary"
+          disabled={!active || verifying}
+          onClick={() => onVerify?.()}
+          block
+        />
+        <ActionButton label="Log Out" variant="outline" icon={LogOut} onClick={() => onClose?.()} block />
+      </div>
+    </Shell>
+  )
+}
+
 // Tulang bersama RejectedModal & RevisionRequiredModal (gaya sama, isi beda
 // via props): Shell merah + judul + intro + kotak list + footer + actions.
 function DecisionModal({ icon, title, intro, listHeading, items, footer, actions }) {
@@ -585,20 +627,22 @@ function Shell({ tone, icon: Icon, showMobileIcon = true, children, variant = 's
 
 // block=true → tombol full-width tanpa batas lebar desktop (dipakai CTA tunggal
 // yang harus penuh, mis. modal payment_review). Default: dibatasi 173–368px.
-function ActionButton({ label, variant, icon: Icon, onClick, block = false }) {
+function ActionButton({ label, variant, icon: Icon, onClick, block = false, disabled = false }) {
   return (
     <button
       onClick={onClick}
+      disabled={disabled}
       className={cn(
         // Desktop: lebar tombol CTA dibatasi — min 173px (kasus 2 tombol),
         // maks 368px (kasus 1 tombol). Mobile tetap full-width.
-        'flex items-center justify-center gap-2 text-sm font-semibold px-6 h-12 rounded-full transition-colors whitespace-nowrap',
-        block ? 'w-full' : 'md:flex-1 lg:min-w-[173px] lg:max-w-[368px]',
+        'flex items-center justify-center gap-2 font-semibold px-6 py-3.5 rounded-full transition-colors whitespace-nowrap',
+        block ? 'w-full' : 'flex-1 lg:min-w-[173px] lg:max-w-[368px]',
         variant === 'primary'
           ? 'bg-[#0033EC] text-white hover:bg-[#0029BD]'
           : variant === 'danger'
-            ? 'bg-red-500 text-white hover:bg-red-600'
-            : 'border border-[#D1D3DA] bg-white text-[#030B1F] hover:bg-gray-50'
+          ? 'bg-red-500 text-white hover:bg-red-600'
+          : 'border border-[#D1D3DA] bg-white text-[#030B1F] hover:bg-gray-50',
+        disabled && 'opacity-40 cursor-not-allowed',
       )}
     >
       {Icon && <Icon size={18} />}
