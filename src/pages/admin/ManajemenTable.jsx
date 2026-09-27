@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
-import { ArrowDownUp, MoreHorizontal, Edit, Trash2, Clock, CheckCircle2, History, SearchX } from 'lucide-react'
+import { ArrowDownUp, MoreHorizontal, Edit, Trash2, Clock, RefreshCcw, History, SearchX } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { abbrevRegion } from '@/lib/format'
 import { TableShell, FreezeBlurLeft, FreezeBlurRight } from './TableShell'
@@ -15,7 +15,7 @@ const MENU_BY_TAB = {
     { type: 'hapus-akun',      label: 'Hapus Akun',      Icon: Trash2,       danger: true },
   ],
   'Ditolak': [
-    { type: 'setujui-akun',    label: 'Setujui Akun',    Icon: CheckCircle2, danger: false },
+    { type: 'setujui-akun',    label: 'Verifikasi Ulang',    Icon: RefreshCcw, danger: false },
     { type: 'hapus-akun',      label: 'Hapus Akun',      Icon: Trash2,       danger: true },
   ],
   'Ditangguhkan': [
@@ -39,9 +39,12 @@ function isReviseRow(user) {
 }
 
 function ditolakMenuItems(user) {
+  return MENU_BY_TAB['Ditolak'];
+  /* Kalau ditolak, bisa verifikasi ulang
   return isReviseRow(user)
     ? MENU_BY_TAB['Ditolak'].filter(i => i.type !== 'setujui-akun')
     : MENU_BY_TAB['Ditolak']
+  */
 }
 
 const MENU_W = 208
