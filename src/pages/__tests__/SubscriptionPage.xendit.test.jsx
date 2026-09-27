@@ -74,7 +74,15 @@ describe('SubscriptionPage — Xendit one-time', () => {
     fireEvent.click(btn)
 
     await vi.waitFor(() => expect(subscriptionApi.checkoutXendit).toHaveBeenCalledWith('pkg-1'))
-    expect(window.open).toHaveBeenCalledWith('about:blank', '_blank', 'noopener,noreferrer')
+    // Tab dibuka SETELAH redirectUrl tiba (bukan tab kosong dulu).
+    await vi.waitFor(() =>
+      expect(window.open).toHaveBeenCalledWith(
+        'https://dev.xen.to/AbCdEf12',
+        '_blank',
+        'noopener,noreferrer'
+      )
+    )
+    expect(window.open).not.toHaveBeenCalledWith('about:blank', expect.anything(), expect.anything())
     await vi.waitFor(() => expect(subscriptionApi.getPayment).toHaveBeenCalledWith('pay-1'))
     await vi.waitFor(() => expect(onPaymentSuccess).toHaveBeenCalledWith('Bulanan'))
   })

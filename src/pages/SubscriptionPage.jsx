@@ -1,16 +1,10 @@
 // src/pages/SubscriptionPage.jsx
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { Loader2, AlertCircle, Users, Video, BookOpen, ExternalLink, RotateCcw, Clock3 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { subscriptionApi, tokenStorage } from "@/lib/api";
 import { formatRp, localizePlanName } from "@/lib/format";
-import {
-  interpretXenditStatus,
-  normalizeXenditCheckout,
-  normalizeXenditConflict,
-  XENDIT_POLL_INTERVAL_MS,
-  XENDIT_MAX_POLLS,
-} from "@/lib/xendit";
+import { useXenditCheckout } from "@/hooks/useXenditCheckout";
 
 import bgDark from "@/assets/dark-mode/Background.png";
 import bgDesktop from "@/assets/dark-mode/Background-Desktop.png";
@@ -402,16 +396,19 @@ export default function SubscriptionPage({ user, onSignOut, onPaymentSuccess, on
   const [loadingPlans, setLoadingPlans] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  // Xendit one-time: null | waiting | conflict | declined | expired | not-found | timeout.
-  const [xenditLoading, setXenditLoading] = useState(false);
-  const [xendit, setXendit] = useState(null);
-  const pollRef = useRef({ timer: null, attempts: 0, paymentId: null });
-
-  // Bersihkan timer poll saat halaman ditinggal.
-  useEffect(() => () => {
-    if (pollRef.current.timer) clearTimeout(pollRef.current.timer);
-    pollRef.current = { timer: null, attempts: 0, paymentId: null };
-  }, []);
+  // Alur Xendit one-time (state + network di hook biar file ramping).
+  const {
+    xenditLoading,
+    xendit,
+    xenditBusy,
+    handleXendit,
+    handleXenditRetry,
+    handleXenditRecheck,
+  } = useXenditCheckout({
+    getSelectedPlan: () => plans.find((p) => p.id === selectedPlan) || null,
+    onPaymentSuccess,
+    onError: setError,
+  });
 
   useEffect(() => {
     subscriptionApi.getPlans()
@@ -461,143 +458,6 @@ export default function SubscriptionPage({ user, onSignOut, onPaymentSuccess, on
       setLoading(false);
     }
   };
-
-  const stopXenditPoll = () => {
-    if (pollRef.current.timer) clearTimeout(pollRef.current.timer);
-    pollRef.current = { timer: null, attempts: 0, paymentId: null };
-  };
-
-  // Poll GET /subscription/payments/:paymentId sampai terminal (paid/expired/
-  // declined/not-found) atau batas MAX_POLLS. Interval > TTL GET-cache (4s)
-  // supaya tiap poll benar-benar nembak backend.
-  // showWaiting=false (kasus 409): kartu resume dipertahankan selama polling
-  // latar, hanya hasil terminal yang menimpanya.
-  const startXenditPoll = (paymentId, redirectUrl, plan, showWaiting = true) => {
-    stopXenditPoll();
-    pollRef.current.paymentId = paymentId;
-    const tick = async () => {
-      const cur = pollRef.current;
-      if (!cur.paymentId || cur.paymentId !== paymentId) return; // dihentikan/diganti
-      try {
-        const res = await subscriptionApi.getPayment(cur.paymentId);
-        if (pollRef.current.paymentId !== paymentId) return;
-        const { outcome, payment } = interpretXenditStatus(res);
-        if (outcome === 'paid') {
-          stopXenditPoll();
-          onPaymentSuccess?.(plan?.name);
-          return;
-        }
-        if (outcome === 'expired') {
-          stopXenditPoll();
-          setXendit({ status: 'expired', paymentId });
-          return;
-        }
-        if (outcome === 'declined') {
-          stopXenditPoll();
-          setXendit({ status: 'declined', paymentId, failureReason: payment.failureReason, redirectUrl });
-          return;
-        }
-        // pending → lanjut (atau timeout bila cap tercapai).
-        cur.attempts += 1;
-        if (cur.attempts >= XENDIT_MAX_POLLS) {
-          stopXenditPoll();
-          setXendit({ status: 'timeout', paymentId, redirectUrl });
-          return;
-        }
-        cur.timer = setTimeout(tick, XENDIT_POLL_INTERVAL_MS);
-      } catch (e) {
-        if (pollRef.current.paymentId !== paymentId) return;
-        // 404 = payment tak ada → stop + retry. Error lain (jaringan/5xx)
-        // dianggap transient → poll lagi sampai cap.
-        if (e?.status === 404) {
-          stopXenditPoll();
-          setXendit({ status: 'not-found', paymentId });
-          return;
-        }
-        cur.attempts += 1;
-        if (cur.attempts >= XENDIT_MAX_POLLS) {
-          stopXenditPoll();
-          setXendit({ status: 'timeout', paymentId, redirectUrl });
-          return;
-        }
-        cur.timer = setTimeout(tick, XENDIT_POLL_INTERVAL_MS);
-      }
-    };
-    if (showWaiting) setXendit({ status: 'waiting', paymentId, redirectUrl });
-    tick(); // poll pertama langsung (tangkap sukses instan)
-  };
-
-  // Checkout Xendit: POST payment → buka redirectUrl di tab baru → poll status.
-  // 409 (masih ada pending lama) → tampilkan resume + poll payment itu.
-  const handleXendit = async () => {
-    const plan = plans.find((p) => p.id === selectedPlan) || null;
-    if (!plan) {
-      setError("Pilih paket langganan terlebih dahulu.");
-      return;
-    }
-    if (String(plan.id).startsWith("dummy-")) {
-      setError("Paket tidak tersedia dari server. Coba lagi nanti.");
-      return;
-    }
-    stopXenditPoll();
-    setError("");
-    setXendit(null);
-    setXenditLoading(true);
-    // Buka tab DULU (sinkron, anti popup-blocker); URL diisi setelah 201.
-    // Bila popup diblokir (null), user tetap bisa lewat tombol di status box.
-    const tab = openXenditTab("about:blank");
-    try {
-      const checkout = normalizeXenditCheckout(await subscriptionApi.checkoutXendit(plan.id));
-      if (!checkout) throw new Error("Respons checkout tak lengkap, coba lagi.");
-      if (tab) tab.location.href = checkout.redirectUrl;
-      startXenditPoll(checkout.paymentId, checkout.redirectUrl, plan);
-    } catch (e) {
-      if (tab) tab.close();
-      if (e?.status === 409) {
-        const pp = normalizeXenditConflict(e?.data);
-        if (pp) {
-          setXendit({
-            status: 'conflict',
-            message: e.message,
-            paymentId: pp.paymentId,
-            invoiceNumber: pp.invoiceNumber,
-            amount: pp.amount,
-            redirectUrl: pp.redirectUrl,
-          });
-          startXenditPoll(pp.paymentId, pp.redirectUrl, plan, false);
-          return;
-        }
-      }
-      setError(e.message || "Gagal memproses pembayaran Xendit, coba lagi");
-    } finally {
-      setXenditLoading(false);
-    }
-  };
-
-  const openXenditTab = (url) => {
-    try {
-      return window.open(url, "_blank", "noopener,noreferrer");
-    } catch {
-      return null;
-    }
-  };
-
-  // Retry terminal (expired/not-found/timeout): reset → user checkout ulang.
-  const handleXenditRetry = () => {
-    stopXenditPoll();
-    setXendit(null);
-    setError("");
-  };
-
-  // Cek ulang manual (declined/timeout): poll lagi payment yang sama.
-  const handleXenditRecheck = () => {
-    if (!xendit?.paymentId) return;
-    const plan = plans.find((p) => p.id === selectedPlan) || null;
-    startXenditPoll(xendit.paymentId, xendit.redirectUrl, plan);
-  };
-
-  const xenditBusy =
-    xenditLoading || xendit?.status === 'waiting' || xendit?.status === 'conflict';
 
   return (
     <div className="min-h-screen relative overflow-hidden font-sans z-0">
