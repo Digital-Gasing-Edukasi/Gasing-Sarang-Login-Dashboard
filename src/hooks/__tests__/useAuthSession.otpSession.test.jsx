@@ -44,6 +44,8 @@ describe('useAuthSession — sesi OTP (reload-safe)', () => {
     expect(JSON.parse(sessionStorage.getItem('otp-session'))).toEqual({
       token: 'tok-123',
       email: 'user@test.com',
+      cooldownSecs: null,
+      origin: 'register',
     })
   })
 
@@ -72,5 +74,33 @@ describe('useAuthSession — sesi OTP (reload-safe)', () => {
     expect(result.current.otpToken).toBe('')
     expect(result.current.regEmail).toBe('')
     expect(sessionStorage.getItem('otp-session')).toBeNull()
+  })
+
+  it('origin login dipertahankan saat resend (tanpa arg origin)', () => {
+    const { result } = setup()
+
+    act(() => {
+      result.current.handleOtpToken('tok-1', 'a@test.com', 8, 'login')
+    })
+    act(() => {
+      result.current.handleOtpToken('tok-2', 'a@test.com')
+    })
+
+    expect(JSON.parse(sessionStorage.getItem('otp-session'))).toEqual({
+      token: 'tok-2',
+      email: 'a@test.com',
+      cooldownSecs: null,
+      origin: 'login',
+    })
+  })
+
+  it('aliran register menandai origin register eksplisit', () => {
+    const { result } = setup()
+
+    act(() => {
+      result.current.handleOtpToken('tok-1', 'a@test.com', null, 'register')
+    })
+
+    expect(JSON.parse(sessionStorage.getItem('otp-session')).origin).toBe('register')
   })
 })

@@ -76,6 +76,27 @@ describe('useAuthSession — pending session (user null)', () => {
     expect(result.current.gate.waitSecs).toBe(161)
   })
 
+  it('otpDirect → sesi OTP + nav OTP, tanpa session-status/gate', async () => {
+    const { result } = setup()
+
+    await act(async () => {
+      await result.current.handleLoginSuccess(null, {
+        otpDirect: { token: 'otp-direct-tok', email: '', cooldownSecs: 8 },
+      })
+    })
+
+    expect(authApi.sessionStatus).not.toHaveBeenCalled()
+    expect(result.current.gate).toBeNull()
+    expect(result.current.otpToken).toBe('otp-direct-tok')
+    expect(result.current.regEmail).toBe('')
+    expect(JSON.parse(sessionStorage.getItem('otp-session'))).toEqual({
+      token: 'otp-direct-tok',
+      email: '',
+      cooldownSecs: 8,
+      origin: 'login',
+    })
+  })
+
   it('provisional + revision_required → revision gate (prefill kosong tanpa profil)', async () => {
     profileApi.getMe.mockRejectedValueOnce(new Error('401'))
     authApi.sessionStatus.mockResolvedValueOnce({
@@ -147,6 +168,8 @@ describe('useAuthSession — pending session (user null)', () => {
     expect(JSON.parse(sessionStorage.getItem('otp-session'))).toEqual({
       token: 'otp-tok',
       email: 'user@test.com',
+      cooldownSecs: null,
+      origin: 'login',
     })
   })
 

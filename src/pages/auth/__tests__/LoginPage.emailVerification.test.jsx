@@ -76,6 +76,30 @@ describe('LoginPage — sessionType delegation', () => {
     expect(profileApi.getMe).not.toHaveBeenCalled()
   })
 
+  it('provisional + otpToken → langsung OTP (otpDirect), tanpa dialog/session-status', async () => {
+    const ue = userEvent.setup()
+    authApi.login.mockResolvedValue({
+      accessToken: 'provisional-tok',
+      tokenType: 'Bearer',
+      expiresIn: '20m',
+      sessionType: 'provisional',
+      additionalInfo: 'please wait for 8 secs',
+      otpToken: 'otp-direct-tok',
+    })
+    const onLoginSuccess = vi.fn()
+
+    render(<LoginPage onNavigate={() => {}} onLoginSuccess={onLoginSuccess} />)
+    await fillAndSubmit(ue)
+
+    await waitFor(() => expect(onLoginSuccess).toHaveBeenCalledTimes(1))
+    expect(tokenStorage.setTokens).toHaveBeenCalledWith('provisional-tok', null, false)
+    expect(onLoginSuccess).toHaveBeenCalledWith(null, {
+      otpDirect: { token: 'otp-direct-tok', email: 'user@test.com', cooldownSecs: 8 },
+    })
+    expect(profileApi.getMe).not.toHaveBeenCalled()
+    expect(screen.queryByText('Selesaikan Verifikasi Email')).not.toBeInTheDocument()
+  })
+
   it('login normal (tanpa sessionType) → flow lama tidak berubah', async () => {
     const ue = userEvent.setup()
     authApi.login.mockResolvedValue({ accessToken: 'a', refreshToken: 'r' })

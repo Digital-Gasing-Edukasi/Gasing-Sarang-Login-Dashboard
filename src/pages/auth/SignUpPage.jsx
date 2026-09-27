@@ -307,7 +307,7 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
           selectedSession?.regionId ?? selectedSession?.region?.id ?? null,
         schoolName,
       });
-      onOtpToken(data.token, email);
+      onOtpToken(data.token, email, null, 'register');
       try {
         sessionStorage.removeItem('signup-draft');
       } catch {

@@ -15,6 +15,6 @@ export function useCountdown(initialSeconds) {
   return {
     display: `${mm}:${ss}`,
     expired: remaining === 0,
-    reset: () => setRemaining(initialSeconds),
+    reset: (secs) => setRemaining(secs ?? initialSeconds),
   }
 }

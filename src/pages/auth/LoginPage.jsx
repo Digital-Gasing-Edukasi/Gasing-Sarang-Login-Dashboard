@@ -95,7 +95,19 @@ export function LoginPage({ onNavigate, onLoginSuccess, isSsoMode = false }) {
       // dialog (email_unconfirmed/revision/payment/dll) ada di gate terpusat.
       // Kredensial ikut diteruskan HANYA untuk login ulang verifikasi email —
       // dibersihkan begitu gate ditutup / alur selesai.
+      // Kecuali: OTP baru saja dikirim (otpToken ada) → langsung halaman OTP,
+      // tanpa dialog/session-status. Timer proteksi ikut dari additionalInfo.
       tokenStorage.setTokens(data.accessToken, null, remember)
+      if (data?.otpToken) {
+        onLoginSuccess(null, {
+          otpDirect: {
+            token: data.otpToken,
+            email: creds.email,
+            cooldownSecs: parseWaitSecs(data?.additionalInfo),
+          },
+        });
+        return true
+      }
       onLoginSuccess(null, {
         pendingCreds: { email: creds.email, password: creds.password },
         waitSecs: parseWaitSecs(data?.additionalInfo),

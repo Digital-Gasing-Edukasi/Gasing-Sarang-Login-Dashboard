@@ -17,33 +17,12 @@ import {
   PROVISIONAL_FALLBACK_SECS,
 } from "@/lib/loginGate";
 import { buildRevisionFixData } from "@/lib/revisionFixData";
+import { readOtpSession, writeOtpSession, clearOtpSession } from "@/lib/otpSession";
 
 // Sesi OTP registrasi (token + email) — in-memory useState hilang saat reload
-// (sering di mobile RAM kecil), jadi di-backup ke sessionStorage: selamat dari
-// reload, ikut hilang saat tab ditutup. Sekali pakai: dihapus saat terverifikasi.
-const OTP_SESSION_KEY = "otp-session";
-function readOtpSession() {
-  try {
-    const raw = JSON.parse(sessionStorage.getItem(OTP_SESSION_KEY) || "{}");
-    return { token: raw.token || "", email: raw.email || "" };
-  } catch {
-    return { token: "", email: "" };
-  }
-}
-function writeOtpSession(token, email) {
-  try {
-    sessionStorage.setItem(OTP_SESSION_KEY, JSON.stringify({ token, email }));
-  } catch {
-    /* storage nonaktif/penuh — halaman tetap jalan dari state */
-  }
-}
-function clearOtpSession() {
-  try {
-    sessionStorage.removeItem(OTP_SESSION_KEY);
-  } catch {
-    /* noop */
-  }
-}
+// (sering di mobile RAM kecil), jadi di-backup ke sessionStorage via
+// lib/otpSession: selamat dari reload, ikut hilang saat tab ditutup.
+// Sekali pakai: dihapus saat terverifikasi.
 
 // Sesi auth + gate akun. Pure state + routing pasca-login; tidak tahu soal
 // boot URL-params (itu urusan useAppBoot).
@@ -65,11 +44,42 @@ export function useAuthSession({ setIsRetry, setCheckoutPlan, setManualPayment, 
   // Spinner tombol Verifikasi di modal email_unconfirmed.
   const [gateBusy, setGateBusy] = useState(false);
 
+  // Sesi OTP: ditulis tiap register/resend (termasuk cooldown awal bila ada).
+  // origin menandai asal aliran ('register' | 'login'); resend tanpa origin
+  // eksplisit MEMPERTAHANKAN yang tersimpan (jangan flip ke review/success).
+  // Dideklarasikan di atas pemakai (aturan TDZ: deps array dibaca saat deklarasi).
+  const handleOtpToken = useCallback((token, email, cooldownSecs = null, origin = null) => {
+    setOtpToken(token);
+    setRegEmail(email);
+    const prevOrigin = readOtpSession().origin;
+    writeOtpSession(token, email, cooldownSecs, origin ?? (prevOrigin || 'register'));
+  }, []);
+
+  // OTP terverifikasi → sesi sekali-pakai dihapus (tidak tertinggal di tab).
+  const clearOtpToken = useCallback(() => {
+    setOtpToken("");
+    setRegEmail("");
+    clearOtpSession();
+  }, []);
+
   // Login provisional/email_confirmation (tanpa profil).
   // opts: { pendingCreds?: {email,password}, waitSecs?,
-  //         emailConfirmation?: {token,email} }.
+  //         emailConfirmation?: {token,email}, otpDirect?: {token,email,cooldownSecs} }.
   const handlePendingSession = useCallback(
     async (opts = {}) => {
+      // OTP baru saja dikirim (login provisional + otpToken): langsung halaman
+      // OTP, tanpa dialog/session-status. Email mungkin belum dikenal.
+      if (opts.otpDirect?.token) {
+        handleOtpToken(
+          opts.otpDirect.token,
+          opts.otpDirect.email || '',
+          opts.otpDirect.cooldownSecs ?? null,
+          'login'
+        );
+        setGate(null);
+        navigate('/register/otp', { replace: true });
+        return;
+      }
       // Token konfirmasi sudah di tangan → dialog email aktif tanpa timer.
       if (opts.emailConfirmation?.token && opts.emailConfirmation?.email) {
         setGate({
@@ -172,7 +182,7 @@ export function useAuthSession({ setIsRetry, setCheckoutPlan, setManualPayment, 
         navigate('/login', { replace: true });
       }
     },
-    [navigate],
+    [navigate, handleOtpToken],
   );
 
   const handleFullSession = useCallback(
@@ -425,19 +435,6 @@ export function useAuthSession({ setIsRetry, setCheckoutPlan, setManualPayment, 
     navigate("/login", { replace: true });
   }, [navigate]);
 
-  const handleOtpToken = useCallback((token, email) => {
-    setOtpToken(token);
-    setRegEmail(email);
-    writeOtpSession(token, email);
-  }, []);
-
-  // OTP terverifikasi → sesi sekali-pakai dihapus (tidak tertinggal di tab).
-  const clearOtpToken = useCallback(() => {
-    setOtpToken("");
-    setRegEmail("");
-    clearOtpSession();
-  }, []);
-
   const handleEmailSent = useCallback(
     (email) => {
       setFpEmail(email);
@@ -488,7 +485,7 @@ export function useAuthSession({ setIsRetry, setCheckoutPlan, setManualPayment, 
     const g = gate;
     if (!g || g.type !== 'email_unconfirmed' || gateBusy) return;
     if (g.otpToken && g.email) {
-      handleOtpToken(g.otpToken, g.email);
+      handleOtpToken(g.otpToken, g.email, null, 'login');
       setGate(null);
       navigate('/register/otp', { replace: true });
       return;
@@ -499,7 +496,7 @@ export function useAuthSession({ setIsRetry, setCheckoutPlan, setManualPayment, 
     try {
       const data = await authApi.login(email, password);
       if (data?.sessionType === 'email_confirmation' && data?.accessToken) {
-        handleOtpToken(data.accessToken, email);
+        handleOtpToken(data.accessToken, email, null, 'login');
         setGate(null);
         navigate('/register/otp', { replace: true });
       } else if (data?.sessionType === 'provisional') {
