@@ -53,7 +53,7 @@ export const authApi = {
     request("/auth/revise", { method: "POST", body: { token }, headers: {}, noAuth: true }),
   // submitRevise: kirim data yang sudah diperbaiki. Token one-time (di-revoke server).
   submitRevise: (data) =>
-    request("/auth/revise/submit", { method: "POST", body: data, headers: {}, noAuth: true }),
+    request("/auth/revise/submit", { method: "POST", body: data, headers: {} }),
 
   // @deprecated — diganti getRevise/submitRevise (alur token-based backend).
   // Lihat ADR-0003. Dihapus setelah FixDataPage migrasi ke token.

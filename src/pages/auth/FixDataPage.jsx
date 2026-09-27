@@ -141,7 +141,7 @@ export function FixDataPage({ fixData, reviseToken, onNavigate }) {
         const parent = r.parentId || r.parent?.id || null;
         if (parent) setProvinceId(String(parent));
       })
-      .catch(() => {});
+      .catch(() => { });
     return () => {
       cancelled = true;
     };
@@ -270,35 +270,35 @@ export function FixDataPage({ fixData, reviseToken, onNavigate }) {
         </MobileReviewNotice>
 
         {/* DESKTOP — versi terang existing */}
-        <div className="hidden lg:block">
-      <RightPanel>
-        <div className="animate-fade-in-up text-center space-y-5 max-w-[380px] mx-auto">
-          <div className="mx-auto w-16 h-16 rounded-full bg-orange-50 border border-dashed border-orange-400 flex items-center justify-center">
-            <UserSearch className="text-orange-500" size={28} strokeWidth={1.5} />
-          </div>
-          <h1 className="text-[22px] font-bold text-foreground">Akunmu Sedang Ditinjau Kembali</h1>
-          <p className="text-[13px] text-muted-foreground px-2 leading-relaxed">
-            Terima kasih telah mengajukan perbaikan data diri. Tim kami akan segera
-            memeriksa informasi yang kamu kirimkan.{" "}
-            <span className="font-semibold text-foreground">
-              Proses peninjauan akan memakan waktu 24 - 48 jam.
-            </span>
-          </p>
-          <div className="flex items-start gap-2.5 text-left bg-blue-50 rounded-xl px-4 py-3">
-            <HelpCircle className="text-blue-500 shrink-0 mt-0.5" size={18} />
-            <p className="text-[13px] text-slate-600">
-              Mohon cek email secara berkala untuk melihat status akunmu.
-            </p>
-          </div>
-          <div className="border-t border-gray-100" />
-          <Button
-            className="rounded-full px-10 mx-auto"
-            onClick={() => onNavigate("login")}
-          >
-            <LogIn size={16} /> Kembali ke Log in
-          </Button>
-        </div>
-      </RightPanel>
+        <div className="hidden lg:block w-full">
+          <RightPanel>
+            <div className="animate-fade-in-up text-center space-y-5 max-w-[380px] mx-auto">
+              <div className="mx-auto w-16 h-16 rounded-full bg-orange-50 border border-dashed border-orange-400 flex items-center justify-center">
+                <UserSearch className="text-orange-500" size={28} strokeWidth={1.5} />
+              </div>
+              <h1 className="text-[22px] font-bold text-foreground">Akunmu Sedang Ditinjau Kembali</h1>
+              <p className="text-[13px] text-muted-foreground px-2 leading-relaxed">
+                Terima kasih telah mengajukan perbaikan data diri. Tim kami akan segera
+                memeriksa informasi yang kamu kirimkan.{" "}
+                <span className="font-semibold text-foreground">
+                  Proses peninjauan akan memakan waktu 24 - 48 jam.
+                </span>
+              </p>
+              <div className="flex items-start gap-2.5 text-left bg-blue-50 rounded-xl px-4 py-3">
+                <HelpCircle className="text-blue-500 shrink-0 mt-0.5" size={18} />
+                <p className="text-[13px] text-slate-600">
+                  Mohon cek email secara berkala untuk melihat status akunmu.
+                </p>
+              </div>
+              <div className="border-t border-gray-100" />
+              <Button
+                className="rounded-full px-10 mx-auto"
+                onClick={() => onNavigate("login")}
+              >
+                <LogIn size={16} /> Kembali ke Log in
+              </Button>
+            </div>
+          </RightPanel>
         </div>
       </>
     );
@@ -334,7 +334,6 @@ export function FixDataPage({ fixData, reviseToken, onNavigate }) {
   // DESKTOP: tombol inline saja. MOBILE: hanya footer sticky (anti dobel).
   return (
     <RightPanel stickyFooter={cta} footerWrapClassName="lg:hidden">
-      <button onClick={()=>console.log({reviseToken})}>log</button>
       {/* MOBILE: header tanpa tombol close (audit #90) — hanya judul. */}
       <div className="lg:hidden sticky top-0 z-20 -mx-6 -mt-4 mb-4 bg-background/95 px-6 pt-4 pb-4 backdrop-blur">
         <StepBar title="Perbaikan Data" />

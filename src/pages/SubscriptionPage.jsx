@@ -1,9 +1,16 @@
 // src/pages/SubscriptionPage.jsx
-import { useState, useEffect } from "react";
-import { Loader2, AlertCircle, Users, Video, BookOpen } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Loader2, AlertCircle, Users, Video, BookOpen, ExternalLink, RotateCcw, Clock3 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { subscriptionApi, tokenStorage } from "@/lib/api";
 import { formatRp, localizePlanName } from "@/lib/format";
+import {
+  interpretXenditStatus,
+  normalizeXenditCheckout,
+  normalizeXenditConflict,
+  XENDIT_POLL_INTERVAL_MS,
+  XENDIT_MAX_POLLS,
+} from "@/lib/xendit";
 
 import bgDark from "@/assets/dark-mode/Background.png";
 import bgDesktop from "@/assets/dark-mode/Background-Desktop.png";
@@ -307,6 +314,87 @@ function MobilePlanCard({ plan, selected, onSelect }) {
   );
 }
 
+// ─── XENDIT STATUS BOX (dark glass, dipakai mobile + desktop) ────────────────
+function XenditStatusBox({ state, onRetry, onRecheck, onOpenLink }) {
+  if (!state) return null;
+
+  const box = "rounded-3xl border border-white/20 bg-white/[0.05] p-5 text-left";
+  const linkBtn = "flex items-center justify-center gap-2 px-6 py-3 rounded-full border border-white/25 font-semibold text-[14px] hover:bg-white/10 active:scale-[0.98] transition-all";
+  const retryBtn = "flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-white text-[#0b0a1f] font-bold text-[14px] hover:bg-white/90 active:scale-[0.98] transition-all";
+
+  if (state.status === 'waiting' || state.status === 'conflict') {
+    return (
+      <div className={box}>
+        <div className="flex items-center gap-3 mb-2">
+          <Loader2 size={18} className="animate-spin text-[#22d3ee] shrink-0" />
+          <p className="text-sm font-semibold">
+            {state.status === 'conflict' ? 'Melanjutkan pembayaran tertunda…' : 'Menunggu pembayaran…'}
+          </p>
+        </div>
+        {state.status === 'conflict' && state.message && (
+          <p className="text-[13px] text-white/60 leading-relaxed mb-3">{state.message}</p>
+        )}
+        <p className="text-[12px] text-white/40 mb-4">
+          Selesaikan pembayaran di tab Xendit yang terbuka. Halaman ini mengecek status otomatis.
+        </p>
+        <div className="flex flex-col sm:flex-row gap-3">
+          <a href={state.redirectUrl} target="_blank" rel="noopener noreferrer" className={linkBtn}>
+            <ExternalLink size={16} /> Buka Laman Pembayaran
+          </a>
+        </div>
+      </div>
+    );
+  }
+
+  if (state.status === 'declined') {
+    return (
+      <div className={box}>
+        <div className="flex items-center gap-3 mb-2">
+          <AlertCircle size={18} className="text-[#FFB43C] shrink-0" />
+          <p className="text-sm font-semibold">Pembayaran ditolak</p>
+        </div>
+        {state.failureReason && (
+          <p className="text-[13px] text-white/60 leading-relaxed mb-4">{state.failureReason}</p>
+        )}
+        <div className="flex flex-col sm:flex-row gap-3">
+          <a href={state.redirectUrl} target="_blank" rel="noopener noreferrer" className={linkBtn}>
+            <ExternalLink size={16} /> Buka Laman Pembayaran
+          </a>
+          <button onClick={onRecheck} className={retryBtn}>
+            <RotateCcw size={16} /> Cek Status
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // expired | not-found | timeout → boleh retry (checkout baru).
+  const copy = {
+    expired: 'Masa pembayaran habis. Silakan buat pembayaran baru.',
+    'not-found': 'Data pembayaran tidak ditemukan. Silakan buat pembayaran baru.',
+    timeout: 'Status belum jelas. Silakan cek lagi atau buat pembayaran baru.',
+  }[state.status] || 'Pembayaran belum selesai. Silakan coba lagi.';
+  return (
+    <div className={box}>
+      <div className="flex items-center gap-3 mb-2">
+        <Clock3 size={18} className="text-white/60 shrink-0" />
+        <p className="text-sm font-semibold">Belum berhasil</p>
+      </div>
+      <p className="text-[13px] text-white/60 leading-relaxed mb-4">{copy}</p>
+      <div className="flex flex-col sm:flex-row gap-3">
+        {state.redirectUrl && (state.status === 'timeout') && (
+          <a href={state.redirectUrl} target="_blank" rel="noopener noreferrer" className={linkBtn}>
+            <ExternalLink size={16} /> Buka Laman Pembayaran
+          </a>
+        )}
+        <button onClick={onRetry} className={retryBtn}>
+          <RotateCcw size={16} /> Coba Lagi
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ─── MAIN PAGE ────────────────────────────────────────────────────────────────
 export default function SubscriptionPage({ user, onSignOut, onPaymentSuccess, onPaymentPending, onCheckoutManual }) {
   const [selectedPlan, setSelectedPlan] = useState(null);
@@ -314,6 +402,16 @@ export default function SubscriptionPage({ user, onSignOut, onPaymentSuccess, on
   const [loadingPlans, setLoadingPlans] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  // Xendit one-time: null | waiting | conflict | declined | expired | not-found | timeout.
+  const [xenditLoading, setXenditLoading] = useState(false);
+  const [xendit, setXendit] = useState(null);
+  const pollRef = useRef({ timer: null, attempts: 0, paymentId: null });
+
+  // Bersihkan timer poll saat halaman ditinggal.
+  useEffect(() => () => {
+    if (pollRef.current.timer) clearTimeout(pollRef.current.timer);
+    pollRef.current = { timer: null, attempts: 0, paymentId: null };
+  }, []);
 
   useEffect(() => {
     subscriptionApi.getPlans()
@@ -363,6 +461,143 @@ export default function SubscriptionPage({ user, onSignOut, onPaymentSuccess, on
       setLoading(false);
     }
   };
+
+  const stopXenditPoll = () => {
+    if (pollRef.current.timer) clearTimeout(pollRef.current.timer);
+    pollRef.current = { timer: null, attempts: 0, paymentId: null };
+  };
+
+  // Poll GET /subscription/payments/:paymentId sampai terminal (paid/expired/
+  // declined/not-found) atau batas MAX_POLLS. Interval > TTL GET-cache (4s)
+  // supaya tiap poll benar-benar nembak backend.
+  // showWaiting=false (kasus 409): kartu resume dipertahankan selama polling
+  // latar, hanya hasil terminal yang menimpanya.
+  const startXenditPoll = (paymentId, redirectUrl, plan, showWaiting = true) => {
+    stopXenditPoll();
+    pollRef.current.paymentId = paymentId;
+    const tick = async () => {
+      const cur = pollRef.current;
+      if (!cur.paymentId || cur.paymentId !== paymentId) return; // dihentikan/diganti
+      try {
+        const res = await subscriptionApi.getPayment(cur.paymentId);
+        if (pollRef.current.paymentId !== paymentId) return;
+        const { outcome, payment } = interpretXenditStatus(res);
+        if (outcome === 'paid') {
+          stopXenditPoll();
+          onPaymentSuccess?.(plan?.name);
+          return;
+        }
+        if (outcome === 'expired') {
+          stopXenditPoll();
+          setXendit({ status: 'expired', paymentId });
+          return;
+        }
+        if (outcome === 'declined') {
+          stopXenditPoll();
+          setXendit({ status: 'declined', paymentId, failureReason: payment.failureReason, redirectUrl });
+          return;
+        }
+        // pending → lanjut (atau timeout bila cap tercapai).
+        cur.attempts += 1;
+        if (cur.attempts >= XENDIT_MAX_POLLS) {
+          stopXenditPoll();
+          setXendit({ status: 'timeout', paymentId, redirectUrl });
+          return;
+        }
+        cur.timer = setTimeout(tick, XENDIT_POLL_INTERVAL_MS);
+      } catch (e) {
+        if (pollRef.current.paymentId !== paymentId) return;
+        // 404 = payment tak ada → stop + retry. Error lain (jaringan/5xx)
+        // dianggap transient → poll lagi sampai cap.
+        if (e?.status === 404) {
+          stopXenditPoll();
+          setXendit({ status: 'not-found', paymentId });
+          return;
+        }
+        cur.attempts += 1;
+        if (cur.attempts >= XENDIT_MAX_POLLS) {
+          stopXenditPoll();
+          setXendit({ status: 'timeout', paymentId, redirectUrl });
+          return;
+        }
+        cur.timer = setTimeout(tick, XENDIT_POLL_INTERVAL_MS);
+      }
+    };
+    if (showWaiting) setXendit({ status: 'waiting', paymentId, redirectUrl });
+    tick(); // poll pertama langsung (tangkap sukses instan)
+  };
+
+  // Checkout Xendit: POST payment → buka redirectUrl di tab baru → poll status.
+  // 409 (masih ada pending lama) → tampilkan resume + poll payment itu.
+  const handleXendit = async () => {
+    const plan = plans.find((p) => p.id === selectedPlan) || null;
+    if (!plan) {
+      setError("Pilih paket langganan terlebih dahulu.");
+      return;
+    }
+    if (String(plan.id).startsWith("dummy-")) {
+      setError("Paket tidak tersedia dari server. Coba lagi nanti.");
+      return;
+    }
+    stopXenditPoll();
+    setError("");
+    setXendit(null);
+    setXenditLoading(true);
+    // Buka tab DULU (sinkron, anti popup-blocker); URL diisi setelah 201.
+    // Bila popup diblokir (null), user tetap bisa lewat tombol di status box.
+    const tab = openXenditTab("about:blank");
+    try {
+      const checkout = normalizeXenditCheckout(await subscriptionApi.checkoutXendit(plan.id));
+      if (!checkout) throw new Error("Respons checkout tak lengkap, coba lagi.");
+      if (tab) tab.location.href = checkout.redirectUrl;
+      startXenditPoll(checkout.paymentId, checkout.redirectUrl, plan);
+    } catch (e) {
+      if (tab) tab.close();
+      if (e?.status === 409) {
+        const pp = normalizeXenditConflict(e?.data);
+        if (pp) {
+          setXendit({
+            status: 'conflict',
+            message: e.message,
+            paymentId: pp.paymentId,
+            invoiceNumber: pp.invoiceNumber,
+            amount: pp.amount,
+            redirectUrl: pp.redirectUrl,
+          });
+          startXenditPoll(pp.paymentId, pp.redirectUrl, plan, false);
+          return;
+        }
+      }
+      setError(e.message || "Gagal memproses pembayaran Xendit, coba lagi");
+    } finally {
+      setXenditLoading(false);
+    }
+  };
+
+  const openXenditTab = (url) => {
+    try {
+      return window.open(url, "_blank", "noopener,noreferrer");
+    } catch {
+      return null;
+    }
+  };
+
+  // Retry terminal (expired/not-found/timeout): reset → user checkout ulang.
+  const handleXenditRetry = () => {
+    stopXenditPoll();
+    setXendit(null);
+    setError("");
+  };
+
+  // Cek ulang manual (declined/timeout): poll lagi payment yang sama.
+  const handleXenditRecheck = () => {
+    if (!xendit?.paymentId) return;
+    const plan = plans.find((p) => p.id === selectedPlan) || null;
+    startXenditPoll(xendit.paymentId, xendit.redirectUrl, plan);
+  };
+
+  const xenditBusy =
+    xenditLoading || xendit?.status === 'waiting' || xendit?.status === 'conflict';
 
   return (
     <div className="min-h-screen relative overflow-hidden font-sans z-0">
@@ -424,6 +659,16 @@ export default function SubscriptionPage({ user, onSignOut, onPaymentSuccess, on
               <span>{error}</span>
             </div>
           )}
+
+          {xendit && (
+            <div className="mt-5">
+              <XenditStatusBox
+                state={xendit}
+                onRetry={handleXenditRetry}
+                onRecheck={handleXenditRecheck}
+              />
+            </div>
+          )}
         </div>
 
         <div className="sticky bottom-0 px-6 pb-6 pt-3 bg-gradient-to-t from-[#120833] via-[#120833]/95 to-transparent shrink-0">
@@ -443,6 +688,26 @@ export default function SubscriptionPage({ user, onSignOut, onPaymentSuccess, on
               </>
             ) : (
               "Mulai Berlangganan"
+            )}
+          </button>
+          <button
+            onClick={handleXendit}
+            disabled={xenditLoading || xenditBusy}
+            className={cn(
+              "mt-3 w-full py-4 rounded-full font-bold text-[15px] transition-all duration-200",
+              "border border-white/25 text-white hover:bg-white/10 active:scale-[0.98]",
+              "disabled:opacity-60 disabled:cursor-not-allowed",
+              "flex items-center justify-center gap-2",
+            )}
+          >
+            {xenditLoading ? (
+              <>
+                <Loader2 size={18} className="animate-spin" /> Memproses...
+              </>
+            ) : (
+              <>
+                <ExternalLink size={18} /> Bayar menggunakan Xendit
+              </>
             )}
           </button>
         </div>
@@ -521,6 +786,14 @@ export default function SubscriptionPage({ user, onSignOut, onPaymentSuccess, on
                 </div>
               )}
 
+              {xendit && (
+                <XenditStatusBox
+                  state={xendit}
+                  onRetry={handleXenditRetry}
+                  onRecheck={handleXenditRecheck}
+                />
+              )}
+
               <div className="pt-2">
                 <button
                   onClick={handleCheckout}
@@ -539,6 +812,27 @@ export default function SubscriptionPage({ user, onSignOut, onPaymentSuccess, on
                     </>
                   ) : (
                     "Mulai Berlangganan"
+                  )}
+                </button>
+                <button
+                  onClick={handleXendit}
+                  disabled={xenditLoading || xenditBusy}
+                  className={cn(
+                    "mt-3 w-full py-4 rounded-full font-bold text-white text-base transition-all duration-200",
+                    "border border-white/25 hover:bg-white/10 active:scale-[0.98]",
+                    "disabled:opacity-60 disabled:cursor-not-allowed",
+                    "flex items-center justify-center gap-2",
+                  )}
+                >
+                  {xenditLoading ? (
+                    <>
+                      <Loader2 size={18} className="animate-spin" />{" "}
+                      Memproses...
+                    </>
+                  ) : (
+                    <>
+                      <ExternalLink size={18} /> Bayar menggunakan Xendit
+                    </>
                   )}
                 </button>
               </div>

@@ -144,7 +144,7 @@ export default function PaymentSuccessPage({ user, onSignOut, activePlanName, is
             <button
               onClick={handleRedirectSso}
               className={cn(
-                'w-full flex items-center justify-between px-6 py-3.5 rounded-full',
+                'hidden w-full items-center justify-between px-6 py-3.5 rounded-full',
                 'font-bold text-[15px] text-white',
                 'border border-white/25 hover:bg-white/10 active:scale-[0.98] transition-all duration-200'
               )}

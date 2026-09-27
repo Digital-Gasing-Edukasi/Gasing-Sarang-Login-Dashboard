@@ -16,6 +16,14 @@ export const subscriptionApi = {
   checkout: (packageId) =>
     request("/subscription/checkout", { method: "POST", body: { packageId } }),
 
+  // ── Xendit one-time (pengganti Midtrans) ───────────────────────────────────
+  // checkoutXendit(packageId) → 201 { paymentId, orderId, invoiceNumber,
+  // redirectUrl, amount, package, token } ATAU 409 { message, pendingPayment }.
+  // Status satu payment (polling Xendit) pakai getPayment(paymentId) yang sudah
+  // ada di bawah: { status: paid | pending | expired, failureReason?, ... }.
+  checkoutXendit: (packageId) =>
+    request("/one-time/checkout/xendit", { method: "POST", body: { packageId } }),
+
   // ── Manual Transfer (dipakai sementara selama Midtrans belum siap) ──────────
   // Idempotent per user: bila sudah ada payment pending tanpa bukti, endpoint ini
   // meng-update payment yang sama (bukan bikin baru). Balik detail payment.
