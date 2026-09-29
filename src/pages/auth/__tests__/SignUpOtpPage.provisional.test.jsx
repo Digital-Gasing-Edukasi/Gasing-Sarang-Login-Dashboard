@@ -49,6 +49,28 @@ describe('SignUpOtpPage — provisional (tanpa email awal)', () => {
     expect(screen.getAllByText('01:40').length).toBeGreaterThan(0)
   })
 
+  it('verify sukses asal register → tetap ke review', async () => {
+    sessionStorage.setItem(
+      'otp-session',
+      JSON.stringify({ token: 'tok-1', email: 'user@test.com', cooldownSecs: null, origin: 'register' })
+    )
+    authApi.confirmEmail.mockResolvedValue({})
+    const onNavigate = vi.fn()
+
+    const { container } = render(
+      <SignUpOtpPage onNavigate={onNavigate} otpToken="tok-1" email="user@test.com" onOtpToken={() => {}} onVerified={() => {}} />
+    )
+    const inputs = container.querySelectorAll('input')
+    inputs.forEach((inp, i) => fireEvent.change(inp, { target: { value: String(i) } }))
+
+    // Dua CTA identik (mobile + desktop, CSS-hidden saja) — ambil yang pertama.
+    const [cta] = screen.getAllByRole('button', { name: 'Konfirmasi' })
+    fireEvent.click(cta)
+
+    await waitFor(() => expect(onNavigate).toHaveBeenCalledWith('signup-review'))
+    expect(screen.queryByText('Verifikasi Berhasil!')).not.toBeInTheDocument()
+  })
+
   it('resend memakai email dari respons BE', async () => {
     sessionStorage.setItem(
       'otp-session',
@@ -85,12 +107,11 @@ describe('SignUpOtpPage — provisional (tanpa email awal)', () => {
     expect(screen.getByText('Masukkan kode yang telah kami kirimkan ke email')).toBeInTheDocument()
   })
 
-  it('verify sukses asal login → dialog 1x24 jam (bukan review)', async () => {
+  it('verify sukses asal login → tetap ke review (sama seperti register)', async () => {
     sessionStorage.setItem(
       'otp-session',
       JSON.stringify({ token: 'tok-1', email: 'user@test.com', cooldownSecs: null, origin: 'login' })
     )
-    sessionStorage.setItem('signup-draft', JSON.stringify({ step: 2 }))
     authApi.confirmEmail.mockResolvedValue({})
     const onNavigate = vi.fn()
     const onVerified = vi.fn()
@@ -102,37 +123,64 @@ describe('SignUpOtpPage — provisional (tanpa email awal)', () => {
     inputs.forEach((inp, i) => fireEvent.change(inp, { target: { value: String(i) } }))
     fireEvent.click(screen.getByRole('button', { name: 'Konfirmasi' }))
 
-    await waitFor(() => expect(screen.getByText('Verifikasi Berhasil!')).toBeInTheDocument())
-    expect(onNavigate).not.toHaveBeenCalledWith('signup-review')
+    await waitFor(() => expect(onNavigate).toHaveBeenCalledWith('signup-review'))
     expect(onVerified).toHaveBeenCalled()
-
-    // Kembali ke Login → bersih total + nav login.
-    fireEvent.click(screen.getByRole('button', { name: 'Kembali ke Login' }))
-    expect(tokenStorage.clear).toHaveBeenCalled()
-    expect(sessionStorage.getItem('otp-session')).toBeNull()
-    expect(sessionStorage.getItem('signup-draft')).toBeNull()
-    expect(onNavigate).toHaveBeenCalledWith('login')
   })
 
-  it('verify sukses asal register → tetap ke review', async () => {
+  it('double-click Konfirmasi → confirmEmail sekali (anti double-submit)', async () => {
+    sessionStorage.setItem(
+      'otp-session',
+      JSON.stringify({ token: 'tok-1', email: 'user@test.com', cooldownSecs: null, origin: 'login' })
+    )
+    // Resolusi lambat agar dua klik jatuh dalam satu tick (lolos state loading).
+    authApi.confirmEmail.mockImplementation(
+      () => new Promise((resolve) => setTimeout(() => resolve({}), 50))
+    )
+
+    const { container } = render(
+      <SignUpOtpPage onNavigate={() => {}} otpToken="tok-1" email="user@test.com" onOtpToken={() => {}} onVerified={() => {}} />
+    )
+    const inputs = container.querySelectorAll('input')
+    inputs.forEach((inp, i) => fireEvent.change(inp, { target: { value: String(i) } }))
+    const [cta] = screen.getAllByRole('button', { name: 'Konfirmasi' })
+    fireEvent.click(cta)
+    fireEvent.click(cta)
+
+    await waitFor(() => expect(authApi.confirmEmail).toHaveBeenCalledTimes(1))
+  })
+
+  it('REGRESI: App mengosongkan otpToken sesudah sukses → guard diam (tidak logout/nav login)', async () => {
+    // Race nyata: onVerified (App clearOtpToken) + onNavigate review jalan
+    // beriringan; render peralihan ber-prop kosong sempat menendang ke login.
     sessionStorage.setItem(
       'otp-session',
       JSON.stringify({ token: 'tok-1', email: 'user@test.com', cooldownSecs: null, origin: 'register' })
     )
     authApi.confirmEmail.mockResolvedValue({})
     const onNavigate = vi.fn()
+    const props = (otpToken) => ({
+      onNavigate,
+      otpToken,
+      email: 'user@test.com',
+      onOtpToken: () => {},
+      onVerified: () => {},
+    })
 
-    const { container } = render(
-      <SignUpOtpPage onNavigate={onNavigate} otpToken="tok-1" email="user@test.com" onOtpToken={() => {}} onVerified={() => {}} />
-    )
+    const { container, rerender } = render(<SignUpOtpPage {...props('tok-1')} />)
     const inputs = container.querySelectorAll('input')
     inputs.forEach((inp, i) => fireEvent.change(inp, { target: { value: String(i) } }))
-
-    // Dua CTA identik (mobile + desktop, CSS-hidden saja) — ambil yang pertama.
     const [cta] = screen.getAllByRole('button', { name: 'Konfirmasi' })
     fireEvent.click(cta)
 
     await waitFor(() => expect(onNavigate).toHaveBeenCalledWith('signup-review'))
-    expect(screen.queryByText('Verifikasi Berhasil!')).not.toBeInTheDocument()
+
+    // Simulasi App membersihkan state OTP sesudah sukses (prop jadi kosong).
+    tokenStorage.clear.mockClear()
+    onNavigate.mockClear()
+    rerender(<SignUpOtpPage {...props('')} />)
+
+    // Guard mount-only: tidak ada logout paksa / redirect login susulan.
+    expect(tokenStorage.clear).not.toHaveBeenCalled()
+    expect(onNavigate).not.toHaveBeenCalledWith('login')
   })
 })

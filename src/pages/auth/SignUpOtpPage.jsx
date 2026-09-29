@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react'
-import { Loader2, Clock } from 'lucide-react'
+import { useState, useEffect, useRef } from 'react'
+import { Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { RightPanel } from '@/components/layout/RightPanel'
 import { StepBar, StepProgress, StepHeader } from '@/components/layout/StepIndicator'
@@ -31,40 +31,44 @@ export function SignUpOtpPage({ onNavigate, otpToken, email, onOtpToken, onVerif
   const [resending, setResending] = useState(false)
   const [error, setError]     = useState('')
   const [info, setInfo]       = useState('')
-  // Aliran login (tanpa sesi penuh): sukses verifikasi → dialog tunggu admin
-  // 1x24 jam, bukan halaman review pendaftaran.
-  const [showPendingDialog, setShowPendingDialog] = useState(false)
+  // Kunci sinkron anti double-submit: dua klik cepat dalam satu tick lolos dari
+  // state `loading` (belum re-render) → confirmEmail dobel → sukses dobel →
+  // dialog treatment berlapis. Ref (bukan state) karena harus berlaku SEBELUM
+  // render berikutnya. Sengaja TIDAK dibuka lagi saat sukses (komponen bisa
+  // tetap mounted dengan dialog tampil) — hanya dibuka saat gagal.
+  const verifyLock = useRef(false)
 
   // Tanpa otpToken (deep-link langsung / sesi hilang total) halaman tak bisa
   // berfungsi — verify/resend pasti error. Paksa logout + balik ke login
   // daripada menampilkan form rusak.
+  // PENTING: cek sekali saat mount saja. Sesudah verifikasi sukses, App
+  // mengosongkan otpToken (single-use) selagi halaman ini masih ter-mount —
+  // guard yang bereaksi pada perubahan itu akan menendang user ke login dan
+  // membatalkan navigasi sukses (race yang pernah kejadian).
+  const [hadTokenAtMount] = useState(() => !!otpToken)
   useEffect(() => {
-    if (!otpToken) {
+    if (!hadTokenAtMount) {
       tokenStorage.clear()
       onNavigate('login')
     }
-  }, [otpToken, onNavigate])
+  }, [hadTokenAtMount, onNavigate])
 
-  if (!otpToken) return null
+  if (!hadTokenAtMount) return null
 
   const maskedEmail = email ? email.replace(/(.{3}).*(@.*)/, '$1*****$2') : 'email Anda'
 
   const handleVerify = async () => {
     if (otpCode.length !== 6) { setError('Masukkan 6 digit OTP'); setInfo(''); return }
+    if (verifyLock.current) return
+    verifyLock.current = true
     setError(''); setInfo(''); setLoading(true)
     try {
       await authApi.confirmEmail(token, otpCode)
-      // Asal aliran dibaca SEBELUM backup dihapus onVerified.
-      const origin = readOtpSession().origin || 'register'
       onVerified?.() // sesi OTP sekali-pakai: hapus backup agar tak tertinggal
-      if (origin === 'login') {
-        // Tanpa sesi auth penuh tak ada halaman sukses yang valid → dialog
-        // tunggu verifikasi admin (tombolnya bersih-bersih + ke login).
-        setShowPendingDialog(true)
-        return
-      }
       onNavigate('signup-review')
     } catch (e) {
+      // Gagal → kunci dibuka, user boleh coba lagi.
+      verifyLock.current = false
       // Kode salah/kedaluwarsa (400/401/422) → wording seragam, jangan bocorkan
       // pesan mentah backend. 429 & error lain tetap apa adanya biar informatif.
       // Audit #45: error & sukses mutually exclusive — info selalu dibersihkan di sini.
@@ -98,46 +102,6 @@ export function SignUpOtpPage({ onNavigate, otpToken, email, onOtpToken, onVerif
     } finally {
       setResending(false)
     }
-  }
-
-  // Dialog pasca-verifikasi khusus aliran login (tanpa sesi auth penuh):
-// admin sedang memverifikasi, tunggu 1x24 jam. Satu aksi "Kembali ke Login"
-// yang bersih-bersih total dulu (token + draft + OTP) demi keamanan.
-function PendingVerificationDialog({ onBackToLogin }) {
-  return (
-    <div className="fixed inset-0 z-[120] flex items-center justify-center bg-[#030B1F]/30 backdrop-blur animate-fade-in p-4">
-      <div className="bg-white w-full max-w-[480px] rounded-[24px] shadow-2xl px-6 py-8 lg:px-8 text-center animate-fade-in-up">
-        <div className="mx-auto w-[68px] h-[68px] rounded-full border-2 border-dashed border-orange-300 flex items-center justify-center mb-6">
-          <div className="w-[52px] h-[52px] rounded-full bg-orange-100 flex items-center justify-center">
-            <Clock size={26} className="text-orange-500" />
-          </div>
-        </div>
-        <h2 className="text-2xl font-bold text-foreground mb-3">Verifikasi Berhasil!</h2>
-        <p className="text-[15px] text-muted-foreground leading-relaxed mb-8">
-          Email kamu berhasil diverifikasi. Admin sedang memverifikasi akunmu, mohon tunggu
-          maksimal <span className="font-semibold text-foreground">1x24 jam</span>. Cek email
-          secara berkala untuk info selanjutnya.
-        </p>
-        <Button className="w-full rounded-full" onClick={onBackToLogin}>
-          Kembali ke Login
-        </Button>
-      </div>
-    </div>
-  )
-}
-
-  // "Kembali ke Login" dari dialog verifikasi admin: bersih-bersih total
-  // (token sesi + draft pendaftaran + backup OTP) lalu ke login.
-  const handleBackToLogin = () => {
-    tokenStorage.clear()
-    try {
-      sessionStorage.removeItem('otp-session')
-      sessionStorage.removeItem('signup-draft')
-    } catch {
-      /* noop */
-    }
-    setShowPendingDialog(false)
-    onNavigate('login')
   }
 
   // Satu definisi CTA; dipakai di footer sticky (mobile + desktop app-shell).
@@ -230,9 +194,6 @@ function PendingVerificationDialog({ onBackToLogin }) {
         <div className="lg:hidden">{resendBlock}</div>
       </div>
       {gapBottom}
-      {showPendingDialog && (
-        <PendingVerificationDialog onBackToLogin={handleBackToLogin} />
-      )}
     </RightPanel>
   )
 }
