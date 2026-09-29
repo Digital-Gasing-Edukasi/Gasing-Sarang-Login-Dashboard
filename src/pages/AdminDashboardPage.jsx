@@ -562,10 +562,10 @@ export default function AdminDashboardPage({ user, onSignOut }) {
                   : riwayatPelatihanData;
                 // Kolom persis header tabel: tanpa "Status" (kolom itu tidak dirender).
                 const csv = [
-                  "Nama Pelatihan,Daerah Pelatihan,Tgl. Mulai,Nama Peserta,Last Updated",
+                  "Nama Pelatihan,Daerah Pelatihan,Tgl. Mulai,Last Updated",
                   ...rows.map(
                     (item) =>
-                      `"${item.nama}","${item.daerah}","${item.tglMulai}","${item.pesertaNama}","${item.lastUpdated}"`,
+                      `"${item.nama}","${item.daerah}","${item.tglMulai}","${item.lastUpdated}"`,
                   ),
                 ].join("\n");
                 downloadCsv("riwayat_pelatihan-Export data.csv", csv);
