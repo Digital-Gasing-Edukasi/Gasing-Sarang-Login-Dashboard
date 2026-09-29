@@ -91,6 +91,7 @@ export default function AdminDashboardPage({ user, onSignOut }) {
     handleDeleteRiwayat,
     handleUpdatePelatihan,
     handleDownloadRiwayat,
+    handleExportRiwayat,
   } = riwayat
 
   const pembayaran = usePembayaran({

@@ -5,7 +5,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { adminApi, trainingSessionsApi, trainingHistoriesApi, queueApi } from '@/lib/api'
 import { downloadCsv, fmtTimeAmPm } from '@/lib/format'
-import { mapToRiwayat } from '../mappers'
+import { mapToRiwayat, mapToSessionParticipant } from '../mappers'
 
 // Riwayat Pelatihan: jumlah baris per page (dikirim sbg `limit` ke GET /training-sessions).
 export const RIWAYAT_PAGE_SIZE = 100
@@ -159,12 +159,99 @@ export function useRiwayatPelatihan({ activeTab, searchQuery, setApiError, toast
     }
   }
 
-  const handleDownloadRiwayat = (item) => {
-    const csv = [
-      'Nama Pelatihan,Daerah Pelatihan,Tgl. Mulai,Status,Nama Peserta,Last Updated',
-      `"${item.nama}","${item.daerah}","${item.tglMulai}","${item.status}","${item.pesertaNama}","${item.lastUpdated}"`
-    ].join('\n')
-    downloadCsv(`${item.nama}-Export data.csv`, csv)
+  // CSV cell escape: bungkus kutip + gandakan kutip di dalam value.
+  const csvCell = (v) => `"${String(v ?? '-').replace(/"/g, '""')}"`
+
+  const handleDownloadRiwayat = async (item) => {
+    try {
+      // item SUDAH mapped (dari tabel: nama/daerah/tglMulai/lastUpdated).
+      // JANGAN mapToRiwayat lagi — itu untuk raw session & bikin field jadi '-'.
+      // Fetch participants for this session
+      const partRes = await trainingHistoriesApi.listSessionParticipants(item.id, { limit: 100 })
+      const participants = Array.isArray(partRes) ? partRes : (partRes?.data || partRes?.items || [])
+
+      const csvRows = [
+        'Nama Pelatihan,Daerah Pelatihan,Tgl. Mulai,Nama Peserta,Email Peserta,Langganan Peserta,Last Updated'
+      ]
+
+      if (participants.length === 0) {
+        csvRows.push(
+          [
+            csvCell(item.nama), csvCell(item.daerah), csvCell(item.tglMulai),
+            csvCell('-'), csvCell('-'), csvCell('-'), csvCell(item.lastUpdated),
+          ].join(',')
+        )
+      } else {
+        for (const p of participants) {
+          const participant = mapToSessionParticipant(p)
+          csvRows.push(
+            [
+              csvCell(item.nama), csvCell(item.daerah), csvCell(item.tglMulai),
+              csvCell(participant.name), csvCell(participant.email),
+              csvCell(participant.langganan), csvCell(item.lastUpdated),
+            ].join(',')
+          )
+        }
+      }
+
+      downloadCsv(`${item.nama}-Export data.csv`, csvRows.join('\n'))
+    } catch (err) {
+      setApiError(err.message || 'Gagal mengekspor data riwayat pelatihan.')
+    }
+  }
+
+  // Export semua riwayat pelatihan → 1 baris CSV per peserta (bukan per session).
+  // Pakai riwayatPelatihanData yang SUDAH tampil di tabel supaya kolom session
+  // (nama/daerah/tglMulai/lastUpdated) persis sama. Peserta diambil per session
+  // via trainingHistoriesApi.listSessionParticipants.
+  const handleExportRiwayat = async (searchQuery = '') => {
+    try {
+      const q = searchQuery.trim().toLowerCase()
+      const rows = q
+        ? riwayatPelatihanData.filter(
+            (item) =>
+              (item.nama || '').toLowerCase().includes(q) ||
+              (item.daerah || '').toLowerCase().includes(q) ||
+              (item.pesertaNama || '').toLowerCase().includes(q) ||
+              (item.pesertaEmail || '').toLowerCase().includes(q)
+          )
+        : riwayatPelatihanData
+
+      const csvRows = [
+        'Nama Pelatihan,Daerah Pelatihan,Tgl. Mulai,Nama Peserta,Email Peserta,Langganan Peserta,Last Updated'
+      ]
+
+      for (const item of rows) {
+        // Fetch peserta untuk session ini
+        const partRes = await trainingHistoriesApi.listSessionParticipants(item.id, { limit: 100 })
+        const participants = Array.isArray(partRes) ? partRes : (partRes?.data || partRes?.items || [])
+
+        if (participants.length === 0) {
+          // Session tanpa peserta → tetap tulis 1 baris info session
+          csvRows.push(
+            [
+              csvCell(item.nama), csvCell(item.daerah), csvCell(item.tglMulai),
+              csvCell('-'), csvCell('-'), csvCell('-'), csvCell(item.lastUpdated),
+            ].join(',')
+          )
+        } else {
+          for (const p of participants) {
+            const participant = mapToSessionParticipant(p)
+            csvRows.push(
+              [
+                csvCell(item.nama), csvCell(item.daerah), csvCell(item.tglMulai),
+                csvCell(participant.name), csvCell(participant.email),
+                csvCell(participant.langganan), csvCell(item.lastUpdated),
+              ].join(',')
+            )
+          }
+        }
+      }
+
+      downloadCsv('riwayat_pelatihan-Export data.csv', csvRows.join('\n'))
+    } catch (err) {
+      setApiError(err.message || 'Gagal mengekspor data riwayat pelatihan.')
+    }
   }
 
   return {
@@ -180,5 +267,6 @@ export function useRiwayatPelatihan({ activeTab, searchQuery, setApiError, toast
     handleDeleteRiwayat,
     handleUpdatePelatihan,
     handleDownloadRiwayat,
+    handleExportRiwayat,
   }
 }
