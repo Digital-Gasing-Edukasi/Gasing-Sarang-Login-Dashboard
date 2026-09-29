@@ -9,3 +9,4 @@ dist.zip*
 .DS_Store
 graphify-out/
 dev/
+/dev
