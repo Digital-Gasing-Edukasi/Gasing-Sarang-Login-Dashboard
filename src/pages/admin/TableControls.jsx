@@ -387,7 +387,7 @@ function FilterDrawer({
 // Aksi bulk per tab (mengikuti aksi baris masing-masing tab).
 const BULK_ACTIONS_BY_TAB = {
   'Disetujui':    [{ key: 'tangguhkan', label: 'Tangguhkan', tone: 'warn' }, { key: 'hapus', label: 'Hapus', tone: 'danger' }],
-  'Ditolak':      [{ key: 'setujui',    label: 'Setujui',    tone: 'ok' },   { key: 'hapus', label: 'Hapus', tone: 'danger' }],
+  'Ditolak':      [{ key: 'hapus', label: 'Hapus', tone: 'danger' }],
   'Ditangguhkan': [{ key: 'pulihkan',   label: 'Pulihkan',   tone: 'info' }, { key: 'hapus', label: 'Hapus', tone: 'danger' }],
   'Baru Dihapus': [{ key: 'pulihkan',   label: 'Pulihkan',   tone: 'info' }],
 }

@@ -33,9 +33,8 @@ import { PerbaruiRiwayatModal } from './admin/PerbaruiRiwayatModal'
 import { RiwayatDetailModal } from './admin/RiwayatDetailModal'
 import { DaftarPesertaModal } from './admin/DaftarPesertaModal'
 import { UbahRoleModal } from './admin/UbahRoleModal'
-import { HapusAkunModal, PulihkanAkunModal, HapusPermanenModal, TypedDeleteConfirmModal } from './admin/AccountActionModals'
+import { HapusAkunModal, PulihkanAkunModal, HapusPermanenModal, TypedDeleteConfirmModal, VerifikasiUlangModal } from './admin/AccountActionModals'
 import { SuspendModal } from './admin/SuspendModal'
-import { SetujuiAkunModal } from './admin/SetujuiAkunModal'
 import { KirimVoucherModal } from './admin/KirimVoucherModal'
 
 export default function AdminDashboardPage({ user, onSignOut }) {
@@ -261,7 +260,7 @@ export default function AdminDashboardPage({ user, onSignOut }) {
     handleConfirmHapusAkun,
     handleConfirmPulihkanAkun,
     handleConfirmHapusPermanen,
-    handleConfirmSetujuiAkun,
+    handleConfirmVerifikasiUlang,
     handleConfirmTangguhkanAkun,
     handleConfirmKirimVoucher,
     handleManajemenBulk,
@@ -791,16 +790,11 @@ export default function AdminDashboardPage({ user, onSignOut }) {
           onCancel={() => setActionModal({ type: null, user: null })}
         />
       )}
-      {actionModal.type === "setujui-akun" && (
-        <SetujuiAkunModal
+      {actionModal.type === "verifikasi-ulang" && (
+        <VerifikasiUlangModal
           user={actionModal.user}
-          discourseGroups={discourseGroups}
-          trainingSessions={trainingSessions}
-          onConfirm={handleConfirmSetujuiAkun}
+          onConfirm={handleConfirmVerifikasiUlang}
           onCancel={() => setActionModal({ type: null, user: null })}
-          onCopyVoucher={(code) =>
-            setToast({ message: <>Kode voucher {code} disalin</> })
-          }
         />
       )}
       {actionModal.type === "tangguhkan-akun" && (

@@ -10,41 +10,38 @@ import { VoucherCode } from './VoucherCode'
 // Menu aksi per tab. `type` dipetakan ke handler di AdminDashboardPage.
 const MENU_BY_TAB = {
   'Disetujui': [
-    { type: 'ubah-role',       label: 'Ubah Role',       Icon: Edit,         danger: false },
-    { type: 'tangguhkan-akun', label: 'Tangguhkan Akun', Icon: Clock,        danger: false },
-    { type: 'hapus-akun',      label: 'Hapus Akun',      Icon: Trash2,       danger: true },
+    { type: 'ubah-role', label: 'Ubah Role', Icon: Edit, danger: false },
+    { type: 'tangguhkan-akun', label: 'Tangguhkan Akun', Icon: Clock, danger: false },
+    { type: 'hapus-akun', label: 'Hapus Akun', Icon: Trash2, danger: true },
   ],
   'Ditolak': [
-    { type: 'setujui-akun',    label: 'Verifikasi Ulang',    Icon: RefreshCcw, danger: false },
-    { type: 'hapus-akun',      label: 'Hapus Akun',      Icon: Trash2,       danger: true },
+    { type: 'verifikasi-ulang', label: 'Verifikasi Ulang', Icon: History, danger: false },
+    { type: 'hapus-akun', label: 'Hapus Akun', Icon: Trash2, danger: true },
   ],
   'Ditangguhkan': [
-    { type: 'pulihkan-akun',   label: 'Pulihkan Akun',   Icon: History,      danger: false },
-    { type: 'hapus-akun',      label: 'Hapus Akun',      Icon: Trash2,       danger: true },
+    { type: 'pulihkan-akun', label: 'Pulihkan Akun', Icon: History, danger: false },
+    { type: 'hapus-akun', label: 'Hapus Akun', Icon: Trash2, danger: true },
   ],
   'Baru Dihapus': [
-    { type: 'pulihkan-akun',        label: 'Pulihkan Akun', Icon: History, danger: false },
-    { type: 'hapus-akun-permanen',  label: 'Hapus Akun',    Icon: Trash2,  danger: true  },
+    { type: 'pulihkan-akun', label: 'Pulihkan Akun', Icon: History, danger: false },
+    { type: 'hapus-akun-permanen', label: 'Hapus Akun', Icon: Trash2, danger: true },
   ],
 }
 
-// REVISE(2) tidak punya endpoint approve langsung di kontrak (cuma "unreject" yang
-// sah, dan itu cuma valid dari REJECTED(-1) — lihat komunitas-api.postman_collection
-// "Verify User (Unreject)"). Akun REVISE cuma resolve otomatis via user resubmit data
-// (/auth/revise/submit → reset ke WAITING), admin tidak bisa paksa approve dari sini.
-// Guard: sembunyikan "Setujui Akun" khusus baris REVISE, biar ga kirim request yang
-// pasti ditolak BE. Baris REJECTED tetap dapat tombolnya seperti biasa.
-function isReviseRow(user) {
-  return user?.verifiedStatus === 2 || user?.verifiedStatus === 'revise'
+// Tab Ditolak dihuni REJECTED(-1) + REVISE(2). Hanya REJECTED yang punya jalur
+// "Verifikasi Ulang" (PATCH /admin/users/:id/verify { status: 'unreject' }).
+// REVISE resolve via user resubmit (/auth/revise/submit), bukan aksi admin.
+function isRejectedRow(user) {
+  const vs = user?.verifiedStatus
+  if (Number(vs) === -1) return true
+  return String(vs || '').toLowerCase() === 'rejected'
 }
 
 function ditolakMenuItems(user) {
-  return MENU_BY_TAB['Ditolak'];
-  /* Kalau ditolak, bisa verifikasi ulang
-  return isReviseRow(user)
-    ? MENU_BY_TAB['Ditolak'].filter(i => i.type !== 'setujui-akun')
-    : MENU_BY_TAB['Ditolak']
-  */
+  // Hanya REJECTED(-1) dapat "Verifikasi Ulang"; baris lain cuma "Hapus Akun".
+  return isRejectedRow(user)
+    ? MENU_BY_TAB['Ditolak']
+    : MENU_BY_TAB['Ditolak'].filter(i => i.type !== 'verifikasi-ulang')
 }
 
 const MENU_W = 208
@@ -139,7 +136,7 @@ function SortableHeader({ label, sublabel, sortKey, sortConfig, onSort }) {
 }
 
 const STATUS_CLASSES = {
-  Pending:  'bg-orange-50 text-orange-500',
+  Pending: 'bg-orange-50 text-orange-500',
   Ditangguhkan: 'bg-orange-50 text-orange-500',
   Rejected: 'border border-pink-200 text-pink-500 bg-transparent',
   Ditolak: 'border border-pink-200 text-pink-500 bg-transparent',
@@ -163,10 +160,10 @@ const STATUS_LABELS = {
 }
 
 const SUBSCRIPTION_CLASSES = {
-  Active:     'text-green-500',
-  Aktif:     'text-green-500',
+  Active: 'text-green-500',
+  Aktif: 'text-green-500',
   'Not Active': 'text-gray-400',
-  Expired:    'text-red-500',
+  Expired: 'text-red-500',
 }
 
 export function ManajemenTable({
@@ -191,7 +188,7 @@ export function ManajemenTable({
             <th className="px-4 py-4 font-medium align-bottom w-[244px]">
               <SortableHeader label="Status Member" sortKey="accountStatus" sortConfig={sortConfig} onSort={onSort} />
             </th>
-            
+
             {!isReducedView && (
               <>
                 <th className="px-4 py-4 font-medium align-bottom w-[244px]">
@@ -244,7 +241,7 @@ export function ManajemenTable({
           {users.length > 0 ? users.map(user => {
             return (
               <tr key={user.id} className="group transition-colors hover:bg-[#F9FAFB]">
-                <td className="px-4 py-4 align-top sticky left-0 z-10 transition-colors bg-white group-hover:bg-[#F9FAFB] relative">
+                <td className="px-4 py-4 align-top sticky left-0 z-10 transition-colors bg-white group-hover:bg-[#F9FAFB]" onClick={() => console.log({ user })}>
                   <div className="flex items-start gap-2">
                     <span className="font-bold text-[#0A1128] whitespace-normal break-words line-clamp-2" title={user.name}>{user.name}</span>
                     {user.isNew && (

@@ -103,26 +103,22 @@ export function useManajemen({
     )
   }
 
-  // Setujui akun (tab Ditolak) → approve dgn role + pelatihan + voucher (dari modal).
-  const handleConfirmSetujuiAkun = ({ discourseGroupId, firstTrainingSessionId, voucherCode }) => {
+  // Verifikasi ulang akun (tab Ditolak, hanya REJECTED/-1) → PATCH
+  // /admin/users/:id/verify { status: 'unreject' }. Akun kembali ke antrean
+  // verifikasi (WAITING) → hilang dari tab Ditolak (optimistic remove + undo).
+  const handleConfirmVerifikasiUlang = () => {
     const target = actionModal.user
     if (!target) return
     setActionModal({ type: null, user: null })
-    const prevStatus = target.accountStatus
-    const roleName = roleNameFromId(discourseGroupId)
-    setManagementUsers(prev => prev.map(u => u.id === target.id
-      ? { ...u, accountStatus: 'Disetujui', role: roleName || u.role, voucher: voucherCode || u.voucher }
-      : u))
-    setToast({ message: `Akun ${target.name} telah disetujui`, statusUndo: { id: target.id, prevStatus } })
-
-    const isUnreject = prevStatus === 'Ditolak'
-    const payload = isUnreject
-      ? { status: 'unreject' }
-      : { status: 'approved', discourseGroupId, firstTrainingSessionId }
-
+    const snapshot = managementUsers
+    setManagementUsers(prev => prev.filter(u => u.id !== target.id))
+    setToast({
+      message: `Akun ${target.name} dikirim untuk verifikasi ulang`,
+      undo: () => setManagementUsers(snapshot),
+    })
     scheduleAction(
-      () => adminApi.verifyUser(target.id, payload),
-      (err) => { setManagementUsers(prev => prev.map(u => u.id === target.id ? { ...u, accountStatus: prevStatus } : u)); setApiError(apiErrMsg(err, 'Gagal menyetujui akun.')) }
+      () => adminApi.verifyUser(target.id, { status: 'unreject' }),
+      (err) => { setManagementUsers(snapshot); setApiError(apiErrMsg(err, 'Gagal memverifikasi ulang akun.')) }
     )
   }
 
@@ -189,17 +185,6 @@ export function useManajemen({
     } else if (key === 'pulihkan') {
       runBulkStatus(rows, 'Disetujui', `${rows.length} akun telah dipulihkan`,
         (id, prevStatus) => prevStatus === 'Baru Dihapus' ? adminApi.cancelUserDeletion(id) : adminApi.unsuspendUser(id))
-    } else if (key === 'setujui') {
-      // REVISE(2) ga punya endpoint approve langsung (lihat guard sama di
-      // ManajemenTable.jsx ditolakMenuItems) — keluarin dari batch biar ga ada
-      // request yang pasti ditolak BE. Sisanya (REJECTED) jalan seperti biasa.
-      const approvable = rows.filter(r => r.verifiedStatus !== 2 && r.verifiedStatus !== 'revise')
-      if (!approvable.length) {
-        setApiError('Akun revisi tidak bisa disetujui langsung — tunggu user kirim ulang data.')
-        return
-      }
-      runBulkStatus(approvable, 'Disetujui', `${approvable.length} akun telah disetujui`,
-        (id) => adminApi.verifyUser(id, { status: 'approved', discourseGroupId: rows.find(r => r.id === id)?.discourseGroupId }))
     } else if (key === 'tangguhkan') {
       setBulkSuspendOpen(true)
     }
@@ -221,7 +206,7 @@ export function useManajemen({
     handleConfirmHapusAkun,
     handleConfirmPulihkanAkun,
     handleConfirmHapusPermanen,
-    handleConfirmSetujuiAkun,
+    handleConfirmVerifikasiUlang,
     handleConfirmTangguhkanAkun,
     handleConfirmKirimVoucher,
     runBulkStatus,
