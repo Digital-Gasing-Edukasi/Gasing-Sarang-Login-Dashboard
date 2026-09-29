@@ -1,15 +1,14 @@
 // src/pages/SubscriptionPage.jsx
-import { useState, useEffect } from "react";
-import { Loader2, AlertCircle, Users, Video, BookOpen, ExternalLink, RotateCcw, Clock3 } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { subscriptionApi, tokenStorage } from "@/lib/api";
-import { formatRp, localizePlanName } from "@/lib/format";
-import { useXenditCheckout } from "@/hooks/useXenditCheckout";
-
-import bgDark from "@/assets/dark-mode/Background.png";
 import bgDesktop from "@/assets/dark-mode/Background-Desktop.png";
+import bgDark from "@/assets/dark-mode/Background.png";
 import { Logo } from "@/components/shared/Logo";
 import { ProfileMenu } from "@/components/shared/ProfileMenu";
+import { useXenditCheckout } from "@/hooks/useXenditCheckout";
+import { subscriptionApi, tokenStorage } from "@/lib/api";
+import { formatRp, localizePlanName } from "@/lib/format";
+import { cn } from "@/lib/utils";
+import { AlertCircle, BookOpen, Clock3, ExternalLink, Loader2, RotateCcw, Users, Video } from "lucide-react";
+import { useEffect, useState } from "react";
 // Ambil angka positif pertama dari beberapa kemungkinan field (nama field
 // diskon backend belum final — coba beberapa alias umum).
 function pickNumber(...vals) {
@@ -36,8 +35,8 @@ function transformPlan(pkg) {
     ? /year/.test(unit)
       ? (pkg.duration || 1) * 12
       : /month/.test(unit)
-      ? pkg.duration || 12
-      : 12
+        ? pkg.duration || 12
+        : 12
     : 1;
   // Paket tahunan minimal 12 bulan. Sebagian backend mengirim duration/unit
   // tak konsisten (mis. duration=1) sehingga harga per-bulan meleset jauh
@@ -181,8 +180,8 @@ function PlanCard({ plan, selected, onSelect }) {
         featured
           ? "border-[#8b7bff]/70 bg-gradient-to-b from-[#382274] to-[#180840]"
           : selected
-          ? "border-[#8b7bff]/70 bg-gradient-to-b from-[#382274] to-[#180840]"
-          : "border-[#D1D3DA]/30 bg-gradient-to-b from-[#382274] to-[#180840] hover:border-white/30"
+            ? "border-[#8b7bff]/70 bg-gradient-to-b from-[#382274] to-[#180840]"
+            : "border-[#D1D3DA]/30 bg-gradient-to-b from-[#382274] to-[#180840] hover:border-white/30"
       )}
     >
       {/* Gradient glow wrapper behind content */}
@@ -258,8 +257,8 @@ function MobilePlanCard({ plan, selected, onSelect }) {
         selected
           ? "border-[#8b7bff]/70 bg-gradient-to-b from-[#382274] to-[#180840] shadow-[0_0_30px_rgba(124,58,237,0.25)]"
           : featured
-          ? "border-[#D1D3DA]/50 bg-gradient-to-b from-[#382274] to-[#180840]"
-          : "border-[#D1D3DA]/30 bg-gradient-to-b from-[#382274] to-[#180840]"
+            ? "border-[#D1D3DA]/50 bg-gradient-to-b from-[#382274] to-[#180840]"
+            : "border-[#D1D3DA]/30 bg-gradient-to-b from-[#382274] to-[#180840]"
       )}
     >
       {/* Gradient glow wrapper behind content */}
@@ -391,6 +390,7 @@ function XenditStatusBox({ state, onRetry, onRecheck, onOpenLink }) {
 
 // ─── MAIN PAGE ────────────────────────────────────────────────────────────────
 export default function SubscriptionPage({ user, onSignOut, onPaymentSuccess, onPaymentPending, onCheckoutManual }) {
+  const isProduction = import.meta.env.VITE_ENV === "production";
   const [selectedPlan, setSelectedPlan] = useState(null);
   const [plans, setPlans] = useState([]);
   const [loadingPlans, setLoadingPlans] = useState(true);
@@ -552,12 +552,13 @@ export default function SubscriptionPage({ user, onSignOut, onPaymentSuccess, on
           </button>
           <button
             onClick={handleXendit}
-            disabled={xenditLoading || xenditBusy}
+            disabled={xenditLoading || xenditBusy || isProduction}
             className={cn(
               "mt-3 w-full py-4 rounded-full font-bold text-[15px] transition-all duration-200",
               "border border-white/25 text-white hover:bg-white/10 active:scale-[0.98]",
               "disabled:opacity-60 disabled:cursor-not-allowed",
               "flex items-center justify-center gap-2",
+              isProduction && "hidden"
             )}
           >
             {xenditLoading ? (
@@ -676,12 +677,13 @@ export default function SubscriptionPage({ user, onSignOut, onPaymentSuccess, on
                 </button>
                 <button
                   onClick={handleXendit}
-                  disabled={xenditLoading || xenditBusy}
+                  disabled={xenditLoading || xenditBusy || isProduction}
                   className={cn(
                     "mt-3 w-full py-4 rounded-full font-bold text-white text-base transition-all duration-200",
                     "border border-white/25 hover:bg-white/10 active:scale-[0.98]",
                     "disabled:opacity-60 disabled:cursor-not-allowed",
                     "flex items-center justify-center gap-2",
+                    isProduction && "hidden"
                   )}
                 >
                   {xenditLoading ? (

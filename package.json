@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite --mode staging",
+    "dev:production": "vite",
     "build": "vite build",
     "build:staging": "vite build --mode staging",
     "lint": "eslint .",

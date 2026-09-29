@@ -1,7 +1,5 @@
-import { useNavigate } from 'react-router-dom'
-import { ArrowRight } from 'lucide-react'
-import leftImg from '@/assets/dark-mode/placeholder-left.png'
-import { isStaging } from '@/lib/env'
+import leftImg from '@/assets/dark-mode/placeholder-left.png';
+import { useNavigate } from 'react-router-dom';
 export const APP_VERSION = import.meta.env.VITE_APP_VERSION;
 
 // Panel kiri (desktop, lg+) untuk semua halaman auth.
@@ -19,16 +17,6 @@ export function LeftPanel() {
         draggable="false"
         className="pointer-events-none absolute inset-0 h-full w-full select-none object-cover object-bottom"
       />
-
-      {/* Audit #7: icon button tamu — kiri atas image, desktop saja */}
-      <button
-        onClick={() => navigate('/komunitas/forum')}
-        aria-label="Lanjut Sebagai Tamu"
-        title="Lanjut Sebagai Tamu"
-        className="absolute left-6 top-6 z-20 flex h-11 w-11 items-center justify-center rounded-full border border-white/30 bg-white/10 text-white backdrop-blur transition-colors hover:bg-white/20"
-      >
-        <ArrowRight size={20} />
-      </button>
 
       {/* judul */}
       <div className="relative z-10 px-20 pt-20 lg:pt-16">
