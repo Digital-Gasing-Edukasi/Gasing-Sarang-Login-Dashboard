@@ -140,6 +140,8 @@ const STATUS_CLASSES = {
   Ditangguhkan: 'bg-orange-50 text-orange-500',
   Rejected: 'border border-pink-200 text-pink-500 bg-transparent',
   Ditolak: 'border border-pink-200 text-pink-500 bg-transparent',
+  'Ditolak - Registrasi Ulang': 'border border-pink-200 text-pink-500 bg-transparent',
+  'Ditolak - Permanen': 'border border-red-800 text-red-800 bg-red-50',
   Approved: 'bg-green-50 text-green-500',
   Disetujui: 'bg-green-50 text-green-500',
   Deleted: 'border border-red-200 text-red-500 bg-transparent',
@@ -157,6 +159,20 @@ const STATUS_LABELS = {
   Deleted: 'Baru Dihapus',
   Dihapus: 'Baru Dihapus',
   'Baru Dihapus': 'Baru Dihapus'
+}
+
+// Label status kolom "Status Member". Khusus tab Ditolak dibedakan by verifiedStatus:
+//   - verifiedStatus 2/'revise' → "Ditolak - Registrasi Ulang"
+//   - verifiedStatus -1/'rejected' → "Ditolak - Permanen"
+// Selain itu fallback ke STATUS_LABELS seperti biasa.
+function getStatusLabel(user) {
+  const isDitolak = user?.accountStatus === 'Ditolak' || user?.accountStatus === 'Rejected'
+  if (isDitolak) {
+    const vs = user?.verifiedStatus
+    if (Number(vs) === 2 || String(vs || '').toLowerCase() === 'revise') return 'Ditolak - Registrasi Ulang'
+    if (Number(vs) === -1 || String(vs || '').toLowerCase() === 'rejected') return 'Ditolak - Permanen'
+  }
+  return STATUS_LABELS[user?.accountStatus] || user?.accountStatus
 }
 
 const SUBSCRIPTION_CLASSES = {
@@ -253,8 +269,8 @@ export function ManajemenTable({
                 </td>
                 <td className="px-4 py-4 text-[#0A1128] font-medium whitespace-normal break-words line-clamp-2 align-top" title={user.email}>{user.email}</td>
                 <td className="px-4 py-4 align-top">
-                  <span className={cn('inline-flex items-center px-3 py-1 rounded-full text-xs font-bold', STATUS_CLASSES[user.accountStatus] || '')}>
-                    {STATUS_LABELS[user.accountStatus] || user.accountStatus}
+                  <span className={cn('inline-flex items-center px-3 py-1 rounded-full text-xs font-bold', STATUS_CLASSES[getStatusLabel(user)] || STATUS_CLASSES[user.accountStatus] || '')}>
+                    {getStatusLabel(user)}
                   </span>
                 </td>
 
