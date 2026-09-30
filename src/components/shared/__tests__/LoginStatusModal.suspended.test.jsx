@@ -54,4 +54,39 @@ describe('LoginStatusModal — SuspendedModal duration derivation', () => {
     expect(screen.getByText('Alasan:')).toBeInTheDocument()
     expect(screen.getByText('Ditangguhkan hingga:')).toBeInTheDocument()
   })
+
+  it('bentuk baru session-status (reasons[]/liftedAt/duration object) → judul alasan, durasi & tanggal tampil', () => {
+    const liftMs = Date.now() + 12 * 60 * 60 * 1000 + 59 * 60 * 1000 // ~12 jam 59 mnt lagi
+    render(
+      <LoginStatusModal
+        type="suspended"
+        meta={{
+          reasonCode: 'suspended',
+          reasons: [
+            {
+              code: 'divisive_action',
+              title: 'Tindakan yang berpotensi menciptakan perpecahan di dalam Komunitas',
+              desc: 'Akun kamu terdeteksi melakukan tindakan yang dapat memicu konflik.',
+            },
+          ],
+          remarks: 'Akun kamu terdeteksi melakukan tindakan yang dapat memicu konflik.',
+          liftedAt: {
+            unix: Math.floor(liftMs / 1000),
+            utc: { raw: new Date(liftMs).toISOString() },
+            local: { raw: new Date(liftMs).toISOString() },
+          },
+          duration: { year: 0, month: 0, day: 0, hour: 12, min: 59, sec: 0 },
+        }}
+        onClose={() => {}}
+      />
+    )
+
+    expect(
+      screen.getByText('Tindakan yang berpotensi menciptakan perpecahan di dalam Komunitas')
+    ).toBeInTheDocument()
+    const durLabel = screen.getByText('Durasi tangguhan:')
+    expect(durLabel.closest('div').querySelector('span:last-child').textContent).toMatch(/12 Jam 59 Menit/)
+    const untilLabel = screen.getByText('Ditangguhkan hingga:')
+    expect(untilLabel.closest('div').querySelector('span:last-child').textContent.trim()).not.toBe('-')
+  })
 })

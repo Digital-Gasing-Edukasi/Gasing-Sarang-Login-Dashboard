@@ -159,6 +159,24 @@ export function useAuthSession({ setIsRetry, setCheckoutPlan, setManualPayment, 
               });
               break;
             }
+            case 'suspended': {
+              // Akun disuspend — teruskan data BE apa adanya ke SuspendedModal
+              // (data.reasons[] {code,title,desc}, data.remarks,
+              // data.liftedAt {unix,utc,local}, data.duration {...}).
+              // LoginStatusModal menerima gate utuh sbg meta (lihat LoginPage).
+              const d = (s.data && typeof s.data === 'object') ? s.data : {};
+              setGate({
+                type: 'suspended',
+                reasonCode: s.reasonCode,
+                message: s.message || null,
+                reasons: Array.isArray(d.reasons) ? d.reasons : [],
+                remarks: d.remarks || null,
+                liftedAt: d.liftedAt || null,
+                duration: (d.duration && typeof d.duration === 'object') ? d.duration : null,
+                profile: null,
+              });
+              break;
+            }
             default: {
               setGate({
                 type: 'session_blocked',
@@ -245,6 +263,21 @@ export function useAuthSession({ setIsRetry, setCheckoutPlan, setManualPayment, 
                 type: 'payment_pending_timeout',
                 reasonCode: s.reasonCode,
                 message: s.message || null,
+                profile: user,
+              });
+              break;
+            }
+            case 'suspended': {
+              // Sama seperti jalur provisional di atas, tapi profil sudah ada.
+              const d = (s.data && typeof s.data === 'object') ? s.data : {};
+              setGate({
+                type: 'suspended',
+                reasonCode: s.reasonCode,
+                message: s.message || null,
+                reasons: Array.isArray(d.reasons) ? d.reasons : [],
+                remarks: d.remarks || null,
+                liftedAt: d.liftedAt || null,
+                duration: (d.duration && typeof d.duration === 'object') ? d.duration : null,
                 profile: user,
               });
               break;

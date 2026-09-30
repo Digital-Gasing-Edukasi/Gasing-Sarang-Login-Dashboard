@@ -50,12 +50,6 @@ export default defineConfig(({ mode }) => ({
         changeOrigin: true,
         secure: true,
       },
-      "/midtrans-api": {
-        target: "https://app.sandbox.midtrans.com",
-        changeOrigin: true,
-        secure: true,
-        rewrite: (path) => path.replace(/^\/midtrans-api/, "")
-      }
     },
   },
 }));

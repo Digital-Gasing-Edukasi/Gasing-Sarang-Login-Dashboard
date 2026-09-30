@@ -65,6 +65,24 @@ function deriveDurationFromUntil(until) {
   return duration
 }
 
+// liftedAt dari session-status suspended: object { unix, utc:{raw,iso},
+// local:{raw,iso} } — atau string/epoch lama (meta.until). Kembalikan input
+// yang dimengerti fmtDateID/deriveDurationFromUntil. Prioritas local (zona
+// user) → unix → utc.
+function liftedAtToDateInput(liftedAt) {
+  if (liftedAt == null) return null
+  if (typeof liftedAt === 'string' || typeof liftedAt === 'number') return liftedAt
+  if (typeof liftedAt === 'object') {
+    const unix = Number(liftedAt.unix)
+    if (Number.isFinite(unix) && unix > 0) return unix * 1000
+    return (
+      liftedAt.local?.raw || liftedAt.local?.iso ||
+      liftedAt.utc?.raw || liftedAt.utc?.iso || null
+    )
+  }
+  return null
+}
+
 // Judul modal session_blocked per reasonCode (tombol/aksi spesifik menyusul).
 const SESSION_BLOCK_TITLES = {
   email_unconfirmed: 'Email Belum Dikonfirmasi',
@@ -234,17 +252,28 @@ export function LoginStatusModal({ type, meta = {}, onClose, onRenew, onRetry, o
 }
 
 function SuspendedModal({ meta, onClose }) {
-  const untilStr = fmtDateID(meta.until)
-  const dur = durationLabel(meta.duration) || durationLabel(deriveDurationFromUntil(meta.until))
-  const reason = String(meta.reason || '') || 'Melanggar panduan komunitas'
+  const m = (meta && typeof meta === 'object') ? meta : {}
+  // Bentuk baru (session-status suspended): reasons[] {code,title,desc},
+  // remarks, liftedAt {unix,utc,local}, duration {...}. Fallback ke bentuk
+  // lama (until/reason/duration flat dari profil & ?gatetest).
+  const reasons = Array.isArray(m.reasons) ? m.reasons : []
+  const reasonTitles = reasons.map((r) => r?.title || r?.desc || '').filter(Boolean)
+  const reason =
+    reasonTitles.join('; ') ||
+    m.remarks ||
+    String(m.reason || '') ||
+    'Melanggar panduan komunitas'
+  const untilInput = liftedAtToDateInput(m.liftedAt ?? m.until)
+  const untilStr = fmtDateID(untilInput)
+  const dur = durationLabel(m.duration) || durationLabel(deriveDurationFromUntil(untilInput))
 
   return (
     <Shell tone="red" icon={ShieldAlert}>
-      <h2 className="text-2xl font-bold text-foreground lg:mb-2 lg:text-xl lg:font-semibold">
+      <h2 className="text-lg md:text-2xl font-bold text-foreground lg:mb-2 lg:text-xl lg:font-semibold">
         Akun Kamu Ditangguhkan
       </h2>
       {/* Kalimat generik (desain terbaru): alasan spesifik ada di baris "Alasan:". */}
-      <p className="text-[15px] text-[#424857] leading-relaxed lg:mb-8 lg:text-base">
+      <p className="text-xs md:text-[15px] text-[#424857] leading-relaxed lg:mb-8 lg:text-base">
         Akun kamu ditangguhkan karena melanggar panduan komunitas. Silakan baca{' '}
         <a href={COMMUNITY_URL} target="_blank" rel="noopener noreferrer" className="font-semibold text-[#0033EC] underline hover:opacity-80">panduan komunitas</a>{' '}
         kami untuk menghindari pelanggaran serupa.
@@ -256,12 +285,12 @@ function SuspendedModal({ meta, onClose }) {
         <DetailRow label="Ditangguhkan hingga:" value={untilStr} />
       </div>
 
-      <div className="flex items-center gap-4 w-full">
+      <div className="flex flex-col md:flex-row items-stretch md:items-center gap-4 w-full">
         <a
           href={WA_URL}
           target="_blank"
           rel="noopener noreferrer"
-          className="flex flex-1 items-center justify-center gap-2 font-semibold px-6 py-3.5 rounded-full transition-colors whitespace-nowrap border border-[#D1D3DA] bg-white text-[#030B1F] hover:bg-gray-50 lg:min-w-[173px] lg:max-w-[368px]"
+          className="flex flex-1 items-center justify-center gap-2 font-semibold text-sm md:text-base px-6 py-3 md:py-3.5 rounded-full transition-colors whitespace-nowrap border border-[#D1D3DA] bg-white text-[#030B1F] hover:bg-gray-50 lg:min-w-[173px] lg:max-w-[368px]"
         >
           Hubungi Kami
         </a>
@@ -649,7 +678,7 @@ function ActionButton({ label, variant, icon: Icon, onClick, block = false, disa
   const cls = cn(
     // Desktop: lebar tombol CTA dibatasi — min 173px (kasus 2 tombol),
     // maks 368px (kasus 1 tombol). Mobile tetap full-width.
-    'flex items-center justify-center gap-2 font-semibold px-6 py-3.5 rounded-full transition-colors whitespace-nowrap',
+    'flex items-center justify-center gap-2 font-semibold text-sm md:text-base px-6 py-3 md:py-3.5 rounded-full transition-colors whitespace-nowrap',
     block ? 'w-full' : 'flex-1 lg:min-w-[173px] lg:max-w-[368px]',
     variant === 'primary'
       ? 'bg-[#0033EC] text-white hover:bg-[#0029BD]'
