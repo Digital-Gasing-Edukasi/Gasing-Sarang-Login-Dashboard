@@ -120,7 +120,7 @@ export function SignUpOtpPage({ onNavigate, otpToken, email, onOtpToken, onVerif
       <button
         type="button"
         onClick={handleBackToLogin}
-        className="w-full text-center text-xs text-blue-700/80 font-medium underline underline-offset-2 transition-opacity hover:opacity-70"
+        className="w-full text-center text-xs font-semibold text-[#0033EC] underline underline-offset-2 transition-opacity hover:opacity-70"
       >
         kembali ke login
       </button>

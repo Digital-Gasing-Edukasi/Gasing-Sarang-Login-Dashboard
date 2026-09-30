@@ -116,7 +116,9 @@ export function RiwayatPelatihanTable({
                   )}
                 </div>
               </td>
-              <td className="px-4 py-4 align-top text-[#0A1128] font-medium" title={item.daerah}>{abbrevRegion(item.daerah)}</td>
+              <td className="px-4 py-4 align-top text-[#0A1128] font-medium" title={item.daerah}>
+                <span className="block whitespace-normal break-words leading-snug">{abbrevRegion(item.daerah)}</span>
+              </td>
               <td className="px-4 py-4 align-top text-[#0A1128] font-medium">{item.tglMulai}</td>
               <td className="px-4 py-4 align-top">
                 {item.pesertaNama && item.pesertaNama !== '-' ? (
