@@ -330,22 +330,33 @@ export default function TransferBankPage({
                 </a>
               )}
 
-              {isRetry ? (
-                <button
-                  onClick={onSignOut}
-                  className="flex md:flex-1 h-12 items-center justify-center gap-2 px-8 rounded-full bg-white text-[#0b0a1f] font-bold text-[15px] hover:bg-white/90 active:scale-[0.98] transition-all"
-                >
-                  <LogOut size={18} />
-                  Log Out
-                </button>
-              ) : (
-                <button
-                  onClick={handleRedirectDefault}
-                  className="flex md:flex-1 h-12 items-center justify-center px-8 rounded-full bg-white text-[#0b0a1f] font-bold text-[15px] hover:bg-white/90 active:scale-[0.98] transition-all"
-                >
-                  Jelajahi Sarang Gasing
-                </button>
-              )}
+
+              <button
+                onClick={handleRedirectDefault}
+                className="flex md:flex-1 h-12 items-center justify-center px-8 rounded-full bg-white text-[#0b0a1f] font-bold text-[15px] hover:bg-white/90 active:scale-[0.98] transition-all"
+              >
+                Jelajahi Sarang Gasing
+              </button>
+
+              {/* walau retry tetep boleh */}
+              {false && <>
+                {isRetry ? (
+                  <button
+                    onClick={onSignOut}
+                    className="flex md:flex-1 h-12 items-center justify-center gap-2 px-8 rounded-full bg-white text-[#0b0a1f] font-bold text-[15px] hover:bg-white/90 active:scale-[0.98] transition-all"
+                  >
+                    <LogOut size={18} />
+                    Log Out
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleRedirectDefault}
+                    className="flex md:flex-1 h-12 items-center justify-center px-8 rounded-full bg-white text-[#0b0a1f] font-bold text-[15px] hover:bg-white/90 active:scale-[0.98] transition-all"
+                  >
+                    Jelajahi Sarang Gasing
+                  </button>
+                )}
+              </>}
             </div>
           </div>
         ) : (

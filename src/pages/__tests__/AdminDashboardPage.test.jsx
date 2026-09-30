@@ -115,15 +115,15 @@ describe('AdminDashboardPage — error handling (DB-002 #11)', () => {
     await openRowMenu(ue, 'Budi Approved')
     await ue.click(screen.getByText('Tangguhkan Akun'))
 
-    // SuspendModal: pilih preset + centang alasan lalu submit.
+    // SuspendModal: pilih preset + alasan (dropdown) lalu submit.
     const selects = document.querySelectorAll('select')
     await ue.selectOptions(selects[0], '6h') // durasi
-    await ue.click(await screen.findByRole('checkbox', { name: /Terlalu banyak spam/i }))
+    await ue.selectOptions(selects[1], 'spam') // alasan
     await ue.click(screen.getByRole('button', { name: 'Tangguhkan' }))
 
     await waitCommit()
 
-    // Payload baru: reason = array code, remarks = gabungan desc (join '. ').
+    // Payload: reason = array 1 code, remarks = desc alasan terpilih.
     expect(adminApi.suspendUser).toHaveBeenCalledWith(101, {
       suspendedUntil: expect.any(String),
       reason: ['spam'],

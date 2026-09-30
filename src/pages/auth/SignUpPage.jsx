@@ -784,6 +784,7 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
                   clearFieldError("schoolName");
                 }}
               />
+              <p className="text-xs text-[#81858F] text-right">{schoolName.length}/100</p>
               {errors.schoolName && (
                 <p className="text-xs text-red-500">{errors.schoolName}</p>
               )}
