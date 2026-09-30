@@ -10,6 +10,7 @@ afterEach(() => {
 // sediakan fallback biar komponen yang baca konstanta build tidak meledak.
 globalThis.__BUILD_DATE__ = globalThis.__BUILD_DATE__ ?? "2026-01-01 00:00";
 globalThis.__APP_MODE__ = globalThis.__APP_MODE__ ?? "test";
+globalThis.__BUILD_ID__ = globalThis.__BUILD_ID__ ?? "test-build";
 
 if (!window.matchMedia) {
   window.matchMedia = (query) => ({

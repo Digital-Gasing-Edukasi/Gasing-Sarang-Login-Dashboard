@@ -1,6 +1,7 @@
 import { LoginStatusModal } from "@/components/shared/LoginStatusModal";
 import { useAppBoot } from "@/hooks/useAppBoot";
 import { useAppNavigation } from "@/hooks/useAppNavigation";
+import { useAppVersionCheck } from "@/hooks/useAppVersionCheck";
 import { useAuthSession } from "@/hooks/useAuthSession";
 import { useCheckoutFlow } from "@/hooks/useCheckoutFlow";
 import { AppRoutes } from "@/routes/AppRoutes";
@@ -8,6 +9,9 @@ import { useState } from "react";
 
 export default function App() {
   const { go } = useAppNavigation();
+  // Force-reload bila build baru terbit (poll version.json 10 mnt + saat tab
+  // kembali fokus). Jalan di semua route; nonaktif otomatis di DEV.
+  useAppVersionCheck();
   // Boot/deep-link transient state (diisi useAppBoot dari URL, dikonsumsi Routes).
   // Dideklarasikan di atas hook agar setter-nya bisa dioper sebagai dep
   // (mis. setFixData → useAuthSession untuk alur Daftar Ulang).

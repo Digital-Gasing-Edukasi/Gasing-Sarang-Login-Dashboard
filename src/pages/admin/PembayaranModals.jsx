@@ -104,7 +104,7 @@ export function KonfirmasiPembayaranModal({ candidate, onConfirm, onReject, onCa
 // dikonfirmasi dari komunitas-api.postman_collection (kontrak resmi BE).
 export const TOLAK_REASONS = [
   { value: 'unsuficient_transfer', label: 'Transfer tidak mencukupi' },
-  { value: 'fund_not_retrieved',    label: 'Dana tidak diterima' },
+  { value: 'fund_not_retrieved', label: 'Dana tidak diterima' },
   { value: 'payment_receipt_unclear', label: 'Bukti pembayaran tidak jelas' },
 ]
 

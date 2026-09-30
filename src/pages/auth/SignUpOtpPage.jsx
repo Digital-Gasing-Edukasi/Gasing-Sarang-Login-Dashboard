@@ -1,13 +1,13 @@
-import { useState, useEffect, useRef } from 'react'
-import { Loader2 } from 'lucide-react'
-import { Button } from '@/components/ui/button'
 import { RightPanel } from '@/components/layout/RightPanel'
-import { StepBar, StepProgress, StepHeader } from '@/components/layout/StepIndicator'
+import { StepBar, StepHeader, StepProgress } from '@/components/layout/StepIndicator'
 import { OtpInput } from '@/components/shared/OtpInput'
+import { Button } from '@/components/ui/button'
 import { useCountdown } from '@/hooks/useCountdown'
 import { authApi, tokenStorage } from '@/lib/api'
-import { readOtpSession, clearOtpSession } from '@/lib/otpSession'
 import { translateApiError } from '@/lib/errorMessages'
+import { clearOtpSession, readOtpSession } from '@/lib/otpSession'
+import { Loader2 } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
 
 // Jeda antar-kirim-ulang OTP (detik). Backend tidak mengembalikan cooldown/retryAfter,
 // hanya melindungi diri dengan rate-limit (429). Jadi gerbang UX ini murni sisi klien.

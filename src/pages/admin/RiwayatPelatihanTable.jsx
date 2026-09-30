@@ -1,7 +1,7 @@
-import { useState } from 'react'
-import { ArrowDownUp, Pencil, Download, ChevronLeft, ChevronRight } from 'lucide-react'
 import { abbrevRegion } from '@/lib/format'
-import { TableShell, FreezeBlurRight } from './TableShell'
+import { ArrowDownUp, ChevronLeft, ChevronRight, Download, Pencil } from 'lucide-react'
+import { useState } from 'react'
+import { FreezeBlurRight, TableShell } from './TableShell'
 
 const ID_MONTHS = {
   jan: 0, feb: 1, mar: 2, apr: 3, mei: 4, jun: 5,
@@ -59,19 +59,19 @@ export function RiwayatPelatihanTable({
 
   const sortedData = sortConfig.key
     ? [...filteredData].sort((a, b) => {
-        let valA = a[sortConfig.key] ?? ''
-        let valB = b[sortConfig.key] ?? ''
-        if (sortConfig.key === 'lastUpdated') {
-          valA = a.lastUpdatedMs ?? 0; valB = b.lastUpdatedMs ?? 0
-        } else if (sortConfig.key === 'tglMulai') {
-          valA = parseIdDate(valA); valB = parseIdDate(valB)
-        } else if (typeof valA === 'string') {
-          valA = valA.toLowerCase(); valB = valB.toLowerCase()
-        }
-        if (valA < valB) return sortConfig.direction === 'asc' ? -1 : 1
-        if (valA > valB) return sortConfig.direction === 'asc' ? 1 : -1
-        return 0
-      })
+      let valA = a[sortConfig.key] ?? ''
+      let valB = b[sortConfig.key] ?? ''
+      if (sortConfig.key === 'lastUpdated') {
+        valA = a.lastUpdatedMs ?? 0; valB = b.lastUpdatedMs ?? 0
+      } else if (sortConfig.key === 'tglMulai') {
+        valA = parseIdDate(valA); valB = parseIdDate(valB)
+      } else if (typeof valA === 'string') {
+        valA = valA.toLowerCase(); valB = valB.toLowerCase()
+      }
+      if (valA < valB) return sortConfig.direction === 'asc' ? -1 : 1
+      if (valA > valB) return sortConfig.direction === 'asc' ? 1 : -1
+      return 0
+    })
     : filteredData
 
   // Pagination di-drive server: `data` sudah berisi baris utk `page` aktif.
@@ -81,130 +81,130 @@ export function RiwayatPelatihanTable({
 
   return (
     <div>
-    <TableShell>
-    <table className="w-full table-fixed text-left text-sm whitespace-nowrap">
-      <thead className="bg-[#0A1128] text-white sticky top-0 z-20">
-        <tr>
-          <th className="px-4 py-4 font-medium align-bottom w-[244px]">
-            <SortableHeader label="Nama Pelatihan" sortKey="nama" sortConfig={sortConfig} onSort={handleSort} />
-          </th>
-          <th className="px-4 py-4 font-medium align-bottom w-[244px]">
-            <SortableHeader label="Daerah Pelatihan" sortKey="daerah" sortConfig={sortConfig} onSort={handleSort} />
-          </th>
-          <th className="px-4 py-4 font-medium align-bottom w-[244px]">
-            <SortableHeader label="Tgl. Mulai" sortKey="tglMulai" sortConfig={sortConfig} onSort={handleSort} />
-          </th>
-          <th className="px-4 py-4 font-medium align-bottom w-[244px]">
-            <SortableHeader label="Nama Peserta" sublabel="Peserta Guru Pelatihan" sortKey="pesertaNama" sortConfig={sortConfig} onSort={handleSort} />
-          </th>
-          <th className="px-4 py-4 font-medium align-bottom w-[244px]">
-            <SortableHeader label="Last Updated" sortKey="lastUpdated" sortConfig={sortConfig} onSort={handleSort} />
-          </th>
-          <th className="px-4 py-4 font-medium align-bottom w-[244px] text-center sticky right-0 z-30 bg-[#0A1128] relative">Action<FreezeBlurRight /></th>
-        </tr>
-      </thead>
-      <tbody className="divide-y divide-gray-100">
-        {pageData.length > 0 ? (
-          pageData.map(item => {
-            return (
-            <tr key={item.id} className="group transition-colors hover:bg-[#F9FAFB]">
-              <td className="px-4 py-4 align-top">
-                <div className="flex items-center gap-3">
-                  <span className="font-bold text-[#0A1128] whitespace-normal max-w-[244px]">{item.nama}</span>
-                  {item.isNew && (
-                    <span className="bg-blue-600 text-white text-[10px] px-2 py-0.5 rounded-full font-bold shrink-0">New</span>
-                  )}
-                </div>
-              </td>
-              <td className="px-4 py-4 align-top text-[#0A1128] font-medium" title={item.daerah}>
-                <span className="block whitespace-normal break-words leading-snug">{abbrevRegion(item.daerah)}</span>
-              </td>
-              <td className="px-4 py-4 align-top text-[#0A1128] font-medium">{item.tglMulai}</td>
-              <td className="px-4 py-4 align-top">
-                {item.pesertaNama && item.pesertaNama !== '-' ? (
-                  <button onClick={() => onViewPeserta && onViewPeserta(item)} className="text-left">
-                    <div className="font-medium text-[#0A1128] bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded inline-block">{item.pesertaNama}</div>
-                    {item.pesertaLainnya > 0 && (
-                      <span className="block mt-1 text-xs text-link underline">{item.pesertaLainnya} lainnya</span>
-                    )}
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => onViewPeserta && onViewPeserta(item)}
-                    className="text-sm text-link underline"
-                  >
-                    Lihat peserta
-                  </button>
-                )}
-              </td>
-              <td className="px-4 py-4 align-top text-[#0A1128] font-medium">{item.lastUpdated || '-'}</td>
-              <td className="px-4 py-4 align-top sticky right-0 z-10 transition-colors relative bg-white group-hover:bg-[#F9FAFB]">
-                <FreezeBlurRight />
-                <div className="flex items-center justify-center gap-1">
-                  <button
-                    onClick={() => onEdit && onEdit(item)}
-                    className="w-8 h-8 rounded-full flex items-center justify-center text-gray-500 hover:bg-gray-100 hover:text-[#0A1128] transition-colors"
-                    title="Perbarui riwayat pelatihan"
-                  >
-                    <Pencil size={15} />
-                  </button>
-                  <button
-                    onClick={() => onDownload && onDownload(item)}
-                    className="w-8 h-8 rounded-full flex items-center justify-center text-gray-500 hover:bg-gray-100 hover:text-[#0A1128] transition-colors"
-                    title="Unduh data"
-                  >
-                    <Download size={15} />
-                  </button>
-                </div>
-              </td>
+      <TableShell>
+        <table className="w-full table-fixed text-left text-sm whitespace-nowrap">
+          <thead className="bg-[#0A1128] text-white sticky top-0 z-20">
+            <tr>
+              <th className="px-4 py-4 font-medium align-bottom w-[244px]">
+                <SortableHeader label="Nama Pelatihan" sortKey="nama" sortConfig={sortConfig} onSort={handleSort} />
+              </th>
+              <th className="px-4 py-4 font-medium align-bottom w-[244px]">
+                <SortableHeader label="Daerah Pelatihan" sortKey="daerah" sortConfig={sortConfig} onSort={handleSort} />
+              </th>
+              <th className="px-4 py-4 font-medium align-bottom w-[244px]">
+                <SortableHeader label="Tgl. Mulai" sortKey="tglMulai" sortConfig={sortConfig} onSort={handleSort} />
+              </th>
+              <th className="px-4 py-4 font-medium align-bottom w-[244px]">
+                <SortableHeader label="Nama Peserta" sublabel="Peserta Guru Pelatihan" sortKey="pesertaNama" sortConfig={sortConfig} onSort={handleSort} />
+              </th>
+              <th className="px-4 py-4 font-medium align-bottom w-[244px]">
+                <SortableHeader label="Last Updated" sortKey="lastUpdated" sortConfig={sortConfig} onSort={handleSort} />
+              </th>
+              <th className="px-4 py-4 font-medium align-bottom w-[244px] text-center sticky right-0 z-30 bg-[#0A1128] relative">Action<FreezeBlurRight /></th>
             </tr>
-            )
-          })
-        ) : (
-          <tr>
-            <td colSpan="6" className="px-4 py-12 text-center text-gray-500">
-              Tidak ada data riwayat pelatihan {searchQuery ? `untuk pencarian "${searchQuery}"` : ''}.
-            </td>
-          </tr>
-        )}
-      </tbody>
-    </table>
-    </TableShell>
+          </thead>
+          <tbody className="divide-y divide-gray-100">
+            {pageData.length > 0 ? (
+              pageData.map(item => {
+                return (
+                  <tr key={item.id} className="group transition-colors hover:bg-[#F9FAFB]">
+                    <td className="px-4 py-4 align-top">
+                      <div className="flex items-center gap-3">
+                        <span className="font-bold text-[#0A1128] whitespace-normal max-w-[244px]">{item.nama}</span>
+                        {item.isNew && (
+                          <span className="bg-blue-600 text-white text-[10px] px-2 py-0.5 rounded-full font-bold shrink-0">New</span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-4 py-4 align-top text-[#0A1128] font-medium" title={item.daerah}>
+                      <span className="block whitespace-normal break-words leading-snug">{abbrevRegion(item.daerah)}</span>
+                    </td>
+                    <td className="px-4 py-4 align-top text-[#0A1128] font-medium">{item.tglMulai}</td>
+                    <td className="px-4 py-4 align-top">
+                      {item.pesertaNama && item.pesertaNama !== '-' ? (
+                        <button onClick={() => onViewPeserta && onViewPeserta(item)} className="text-left">
+                          <div className="font-medium text-[#0A1128] bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded inline-block">{item.pesertaNama}</div>
+                          {item.pesertaLainnya > 0 && (
+                            <span className="block mt-1 text-xs text-link underline">{item.pesertaLainnya} lainnya</span>
+                          )}
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => onViewPeserta && onViewPeserta(item)}
+                          className="text-sm text-link underline"
+                        >
+                          Lihat peserta
+                        </button>
+                      )}
+                    </td>
+                    <td className="px-4 py-4 align-top text-[#0A1128] font-medium">{item.lastUpdated || '-'}</td>
+                    <td className="px-4 py-4 align-top sticky right-0 z-10 transition-colors relative bg-white group-hover:bg-[#F9FAFB]">
+                      <FreezeBlurRight />
+                      <div className="flex items-center justify-center gap-1">
+                        <button
+                          onClick={() => onEdit && onEdit(item)}
+                          className="w-8 h-8 rounded-full flex items-center justify-center text-gray-500 hover:bg-gray-100 hover:text-[#0A1128] transition-colors"
+                          title="Perbarui riwayat pelatihan"
+                        >
+                          <Pencil size={15} />
+                        </button>
+                        <button
+                          onClick={() => onDownload && onDownload(item)}
+                          className="w-8 h-8 rounded-full flex items-center justify-center text-gray-500 hover:bg-gray-100 hover:text-[#0A1128] transition-colors"
+                          title="Unduh data"
+                        >
+                          <Download size={15} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                )
+              })
+            ) : (
+              <tr>
+                <td colSpan="6" className="px-4 py-12 text-center text-gray-500">
+                  Tidak ada data riwayat pelatihan {searchQuery ? `untuk pencarian "${searchQuery}"` : ''}.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </TableShell>
 
-    {totalPages > 1 && (
-      <div className="mt-10 flex items-center justify-end gap-1 text-sm text-gray-500">
-        <button
-          onClick={() => goTo(safePage - 1)}
-          disabled={safePage <= 1}
-          className="w-8 h-8 rounded-full flex items-center justify-center text-gray-500 hover:bg-gray-100 hover:text-[#0A1128] transition-colors disabled:opacity-40 disabled:pointer-events-none"
-          title="Halaman sebelumnya"
-        >
-          <ChevronLeft size={16} />
-        </button>
-        {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
+      {totalPages > 1 && (
+        <div className="mt-10 flex items-center justify-end gap-1 text-sm text-gray-500">
           <button
-            key={p}
-            onClick={() => goTo(p)}
-            className={
-              'w-8 h-8 rounded-full flex items-center justify-center font-medium transition-colors ' +
-              (p === safePage
-                ? 'bg-[#0033EC] text-white'
-                : 'text-gray-500 hover:bg-gray-100 hover:text-[#0A1128]')
-            }
+            onClick={() => goTo(safePage - 1)}
+            disabled={safePage <= 1}
+            className="w-8 h-8 rounded-full flex items-center justify-center text-gray-500 hover:bg-gray-100 hover:text-[#0A1128] transition-colors disabled:opacity-40 disabled:pointer-events-none"
+            title="Halaman sebelumnya"
           >
-            {p}
+            <ChevronLeft size={16} />
           </button>
-        ))}
-        <button
-          onClick={() => goTo(safePage + 1)}
-          disabled={safePage >= totalPages}
-          className="w-8 h-8 rounded-full flex items-center justify-center text-gray-500 hover:bg-gray-100 hover:text-[#0A1128] transition-colors disabled:opacity-40 disabled:pointer-events-none"
-          title="Halaman berikutnya"
-        >
-          <ChevronRight size={16} />
-        </button>
-      </div>
-    )}
+          {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
+            <button
+              key={p}
+              onClick={() => goTo(p)}
+              className={
+                'w-8 h-8 rounded-full flex items-center justify-center font-medium transition-colors ' +
+                (p === safePage
+                  ? 'bg-[#0033EC] text-white'
+                  : 'text-gray-500 hover:bg-gray-100 hover:text-[#0A1128]')
+              }
+            >
+              {p}
+            </button>
+          ))}
+          <button
+            onClick={() => goTo(safePage + 1)}
+            disabled={safePage >= totalPages}
+            className="w-8 h-8 rounded-full flex items-center justify-center text-gray-500 hover:bg-gray-100 hover:text-[#0A1128] transition-colors disabled:opacity-40 disabled:pointer-events-none"
+            title="Halaman berikutnya"
+          >
+            <ChevronRight size={16} />
+          </button>
+        </div>
+      )}
     </div>
   )
 }

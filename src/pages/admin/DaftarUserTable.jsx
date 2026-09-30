@@ -12,15 +12,15 @@ import { abbrevRegion } from '@/lib/format'
 //   viewport dan nyangkut di belakang sidebar. Jadi cuma baris header yang beku.
 
 const STATUS_CLASSES = {
-  Disetujui:     'bg-green-50 text-green-500',
-  Ditangguhkan:  'bg-orange-50 text-orange-500',
-  Ditolak:       'border border-pink-200 text-pink-500 bg-transparent',
-  'Baru Dihapus':'border border-red-200 text-red-500 bg-transparent',
+  Disetujui: 'bg-green-50 text-green-500',
+  Ditangguhkan: 'bg-orange-50 text-orange-500',
+  Ditolak: 'border border-pink-200 text-pink-500 bg-transparent',
+  'Baru Dihapus': 'border border-red-200 text-red-500 bg-transparent',
 }
 const SUBSCRIPTION_CLASSES = {
-  Active:      'text-green-500',
-  'Not Active':'text-gray-400',
-  Expired:     'text-red-500',
+  Active: 'text-green-500',
+  'Not Active': 'text-gray-400',
+  Expired: 'text-red-500',
 }
 
 const Td = ({ children, className, ...props }) => (
