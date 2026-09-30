@@ -3,10 +3,10 @@ import { Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { RightPanel } from '@/components/layout/RightPanel'
 import { StepBar, StepProgress, StepHeader } from '@/components/layout/StepIndicator'
-import { OtpInput }     from '@/components/shared/OtpInput'
+import { OtpInput } from '@/components/shared/OtpInput'
 import { useCountdown } from '@/hooks/useCountdown'
 import { authApi, tokenStorage } from '@/lib/api'
-import { readOtpSession } from '@/lib/otpSession'
+import { readOtpSession, clearOtpSession } from '@/lib/otpSession'
 import { translateApiError } from '@/lib/errorMessages'
 
 // Jeda antar-kirim-ulang OTP (detik). Backend tidak mengembalikan cooldown/retryAfter,
@@ -29,8 +29,8 @@ export function SignUpOtpPage({ onNavigate, otpToken, email, onOtpToken, onVerif
   const [otpCode, setOtpCode] = useState('')
   const [loading, setLoading] = useState(false)
   const [resending, setResending] = useState(false)
-  const [error, setError]     = useState('')
-  const [info, setInfo]       = useState('')
+  const [error, setError] = useState('')
+  const [info, setInfo] = useState('')
   // Kunci sinkron anti double-submit: dua klik cepat dalam satu tick lolos dari
   // state `loading` (belum re-render) → confirmEmail dobel → sukses dobel →
   // dialog treatment berlapis. Ref (bukan state) karena harus berlaku SEBELUM
@@ -104,11 +104,27 @@ export function SignUpOtpPage({ onNavigate, otpToken, email, onOtpToken, onVerif
     }
   }
 
+  // "kembali ke login" = logout: bersihkan sesi lalu ke halaman login.
+  const handleBackToLogin = () => {
+    tokenStorage.clear()
+    clearOtpSession()
+    onNavigate('login')
+  }
+
   // Satu definisi CTA; dipakai di footer sticky (mobile + desktop app-shell).
   const cta = (
-    <Button className="w-full rounded-full" disabled={loading || otpCode.length !== 6} onClick={handleVerify}>
-      {loading ? <><Loader2 size={16} className="animate-spin" /> Memverifikasi...</> : 'Konfirmasi'}
-    </Button>
+    <>
+      <Button className="w-full rounded-full" disabled={loading || otpCode.length !== 6} onClick={handleVerify}>
+        {loading ? <><Loader2 size={16} className="animate-spin" /> Memverifikasi...</> : 'Konfirmasi'}
+      </Button>
+      <button
+        type="button"
+        onClick={handleBackToLogin}
+        className="w-full text-center text-xs text-blue-700/80 font-medium underline underline-offset-2 transition-opacity hover:opacity-70"
+      >
+        kembali ke login
+      </button>
+    </>
   )
 
   // Blok "Kirim Ulang" / countdown. Desktop app-shell menaruhnya di footer
@@ -119,15 +135,15 @@ export function SignUpOtpPage({ onNavigate, otpToken, email, onOtpToken, onVerif
     <div className="text-center">
       {expired
         ? <p className="text-sm text-muted-foreground">
-            {/* Prefix "Tidak menerima kode?" hanya desktop; mobile tombol saja. */}
-            <span className="hidden lg:inline">Tidak menerima kode? </span>
-            <button
-              onClick={handleResend}
-              disabled={resending}
-              className="align-middle text-[#0033EC] font-medium underline underline-offset-2 disabled:opacity-50 inline-flex items-center gap-1"
-            >
-              {resending ? <><Loader2 size={14} className="animate-spin" /> Mengirim ulang...</> : 'Kirim Ulang'}</button>
-          </p>
+          {/* Prefix "Tidak menerima kode?" hanya desktop; mobile tombol saja. */}
+          <span className="hidden lg:inline">Tidak menerima kode? </span>
+          <button
+            onClick={handleResend}
+            disabled={resending}
+            className="align-middle text-[#0033EC] font-medium underline underline-offset-2 disabled:opacity-50 inline-flex items-center gap-1"
+          >
+            {resending ? <><Loader2 size={14} className="animate-spin" /> Mengirim ulang...</> : 'Kirim Ulang'}</button>
+        </p>
         : <p className="text-sm text-muted-foreground flex items-center justify-center gap-1">Tidak menerima kode? <span className="font-bold text-[#EF4444]">{display}</span></p>}
     </div>
   )
@@ -153,7 +169,7 @@ export function SignUpOtpPage({ onNavigate, otpToken, email, onOtpToken, onVerif
     <RightPanel
       stickyFooter={footerNode}
       lockDesktop
-      progress={1}      topBar={
+      progress={1} topBar={
         <>
           {/* MOBILE: header tanpa back — data sudah ter-submit di step 2, kembali
               hanya akan mengulang registrasi dari awal (audit #38). */}
