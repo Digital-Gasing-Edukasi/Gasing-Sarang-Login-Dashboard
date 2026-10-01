@@ -1,11 +1,13 @@
 import leftImg from '@/assets/dark-mode/placeholder-left.png';
+import tamuIcon from '@/assets/Icon/tamu.svg';
 import { useNavigate } from 'react-router-dom';
+import { PAGE_PATHS } from '@/lib/routes';
 export const APP_VERSION = import.meta.env.VITE_APP_VERSION;
 
 // Panel kiri (desktop, lg+) untuk semua halaman auth.
 // Tema gelap: satu ilustrasi composite (bg + bulan + bintang + awan + maskot).
 // Audit #6: copyright desktop di kiri-bawah placeholder image.
-// Audit #7: tombol ikon "Lanjut Sebagai Tamu" di kiri-atas placeholder image.
+// Audit #7: tombol ikon "Lanjut Sebagai Tamu" di kanan-atas placeholder image.
 export function LeftPanel() {
   const navigate = useNavigate()
   return (
@@ -17,6 +19,17 @@ export function LeftPanel() {
         draggable="false"
         className="pointer-events-none absolute inset-0 h-full w-full select-none object-cover object-bottom"
       />
+
+      {/* Masuk sebagai tamu → halaman komunitas (publik, tanpa auth). */}
+      <button
+        type="button"
+        onClick={() => navigate(PAGE_PATHS.komunitas)}
+        aria-label="Masuk sebagai tamu"
+        title="Masuk sebagai tamu"
+        className="absolute top-6 right-6 z-20 flex h-[38px] w-[38px] items-center rounded-full justify-center transition hover:bg-white/20 active:scale-95"
+      >
+        <img src={tamuIcon} alt="" draggable="false" className="h-[38px] w-[38px] select-none" />
+      </button>
 
       {/* judul */}
       <div className="relative z-10 px-20 pt-20 lg:pt-16">

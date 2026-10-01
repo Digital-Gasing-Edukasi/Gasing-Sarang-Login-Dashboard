@@ -275,6 +275,11 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
   };
 
   const handleRegister = async () => {
+    // console.log({
+    //   sessions,
+    //   lastTrainingSessionId
+    // });
+    // return;
     const next = {};
     if (!birthdate) next.birthdate = "Tanggal lahir wajib diisi.";
     if (!regionId) next.regionId = "Lokasi kamu wajib dipilih.";
@@ -305,6 +310,7 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
         firstTrainingMonth: Number(kapanMonth) + 1, // kapanMonth 0-based (getMonth)
         firstTrainingRegionId:
           selectedSession?.regionId ?? selectedSession?.region?.id ?? null,
+        firstTrainingSessionId: lastTrainingSessionId,
         schoolName,
       });
       onOtpToken(data.token, email, null, 'register');
@@ -377,15 +383,17 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
     </p>
   );
 
-  // Isi footer sticky: CTA + link Log In (step 1). Step 2 tetap render link tapi
-  // `invisible` (tinggi tetap dipesan) supaya tinggi container CTA identik antar-step.
+  // Isi footer sticky: CTA + link Log In (step 1, desktop saja — mobile tidak
+  // perlu). Step 2 tetap render placeholder `invisible` (tinggi tetap dipesan)
+  // supaya tinggi container CTA identik antar-step.
   const footerNode = (
     <div className="space-y-4">
       {cta}
       <div
-        className={`hidden lg:block ${step !== 1 ? "invisible" : ""}`}
+        className="hidden lg:block"
         aria-hidden={step !== 1}
       >
+        {step === 1 ? loginLink : <p className="text-sm text-center invisible">{"\u00A0"}</p>}
       </div>
     </div>
   );
@@ -408,6 +416,7 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
     <RightPanel
       stickyFooter={footerNode}
       lockDesktop
+      lgContentJustify="lg:justify-start"
       progress={step === 1 ? 1 / 3 : 2 / 3}
       topBar={
         <>
@@ -435,8 +444,7 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
           <h1 className="hidden lg:block text-center text-2xl font-bold lg:font-semibold text-foreground animate-fade-in-up">
             Data Akun
           </h1>
-          {gapTop}
-          <div className="space-y-6 animate-fade-in-up delay-200 lg:shrink-0">
+          <div className="space-y-6 animate-fade-in-up delay-200 lg:shrink-0 md:mt-5">
             {errors.general && (
               <p className="text-sm text-red-500 text-center">
                 {errors.general}
@@ -621,7 +629,6 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
           <h1 className="hidden lg:block text-center text-2xl font-bold lg:font-semibold text-foreground animate-fade-in-up">
             Data Pribadi
           </h1>
-          {gapTop}
           {/* Desktop dirapetin (lg:space-y-4, 16px) supaya step 2 fit tanpa scroll
               di viewport 1366x768 dengan rules jarak yang ada. Mobile tetap 16px. */}
           <div className="space-y-6 animate-fade-in-up delay-200 lg:shrink-0">
@@ -750,7 +757,7 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
 
             <div className="space-y-2 lg:space-y-2">
               <Label className="text-[13px] font-medium leading-normal">
-                Dimana kamu mendapat pelatihan Gasing pertama?
+                Daerah pelatihan pertama?
               </Label>
               <SearchableSelect
                 value={lastTrainingSessionId}

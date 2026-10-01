@@ -1,5 +1,6 @@
 import { MobileReviewNotice } from '@/components/shared/MobileReviewNotice'
 import { AuthDarkLayout, DarkPrimaryButton } from '@/components/shared/DarkAuth'
+import loginSuccessBg from '@/assets/Mobile/login-success-bg.png'
 
 // Greeting setelah pendaftaran (OTP terverifikasi): akun masuk antrean review admin.
 export function SignUpReviewPage({ onNavigate }) {
@@ -9,9 +10,11 @@ export function SignUpReviewPage({ onNavigate }) {
       <MobileReviewNotice
         title="Terima Kasih Telah Mendaftar!"
         onButton={() => onNavigate("login")}
+        backgroundImage={loginSuccessBg}
       >
         Akun kamu akan kami tinjau maksimal dalam{" "}
-        <span className="font-semibold text-white">24 jam</span>untuk memastikan
+        <span className="font-semibold text-white">24 jam</span>{" "}
+        untuk memastikan
         kamu sudah terdaftar sebagai Alumni Pelatihan Gasing.
         <br />
         <br />

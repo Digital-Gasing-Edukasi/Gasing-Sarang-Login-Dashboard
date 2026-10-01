@@ -1,17 +1,20 @@
 import { Logo } from '@/components/shared/Logo'
 
+const DEFAULT_BG =
+  'radial-gradient(ellipse at 50% 20%, #4c1d95 0%, #2e1065 40%, #1a0b3d 75%, #120833 100%)'
+
 // Layar notifikasi "sedang ditinjau" bertema gelap untuk mobile (lg:hidden).
 // Dipakai layar sukses Perbaikan Data (flow 8) & sukses Signup (flow 9).
 // Logo Sarang Gasing di pojok kiri-atas; judul/teks/tombol di tengah layar.
 // Desktop tetap pakai versi terang masing-masing halaman.
-export function MobileReviewNotice({ title, children, buttonLabel = 'Kembali ke Login', onButton }) {
+// `backgroundImage` opsional: pemanggil bisa menimpa wallpaper default
+// (mis. sukses Signup pakai login-success-bg.png).
+export function MobileReviewNotice({ title, children, buttonLabel = 'Kembali ke Login', onButton, backgroundImage }) {
+  const background = backgroundImage ? `url(${backgroundImage})` : DEFAULT_BG
   return (
     <div
-      className="lg:hidden relative min-h-screen flex flex-col text-white animate-fade-in-up"
-      style={{
-        background:
-          'radial-gradient(ellipse at 50% 20%, #4c1d95 0%, #2e1065 40%, #1a0b3d 75%, #120833 100%)',
-      }}
+      className="lg:hidden relative min-h-screen flex flex-col text-white animate-fade-in-up bg-cover bg-center bg-no-repeat bg-[#0D0B2E]"
+      style={{ backgroundImage: background }}
     >
       {/* Logo pojok kiri-atas (padding 16px) */}
       <div className="shrink-0 px-4 pt-4">

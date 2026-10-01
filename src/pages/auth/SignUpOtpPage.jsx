@@ -112,18 +112,22 @@ export function SignUpOtpPage({ onNavigate, otpToken, email, onOtpToken, onVerif
   }
 
   // Satu definisi CTA; dipakai di footer sticky (mobile + desktop app-shell).
+  // Link "Kembali ke Log In" hanya desktop — mobile tidak perlu.
   const cta = (
     <>
       <Button className="w-full rounded-full" disabled={loading || otpCode.length !== 6} onClick={handleVerify}>
         {loading ? <><Loader2 size={16} className="animate-spin" /> Memverifikasi...</> : 'Konfirmasi'}
       </Button>
-      <button
-        type="button"
-        onClick={handleBackToLogin}
-        className="w-full text-center text-xs font-semibold text-[#0033EC] underline underline-offset-2 transition-opacity hover:opacity-70"
-      >
-        kembali ke login
-      </button>
+      <div className="hidden lg:flex text-xs font-semibold items-center justify-center gap-1 text-gray-500">
+        Kembali ke
+        <button
+          type="button"
+          onClick={handleBackToLogin}
+          className="text-center text-[#0033EC] transition-opacity hover:opacity-70"
+        >
+          Log In
+        </button>
+      </div>
     </>
   )
 
@@ -169,6 +173,7 @@ export function SignUpOtpPage({ onNavigate, otpToken, email, onOtpToken, onVerif
     <RightPanel
       stickyFooter={footerNode}
       lockDesktop
+      fixedMobile
       progress={1} topBar={
         <>
           {/* MOBILE: header tanpa back — data sudah ter-submit di step 2, kembali

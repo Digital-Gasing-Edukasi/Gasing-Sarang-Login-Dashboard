@@ -197,7 +197,7 @@ export function ApproveModal({ candidate, discourseGroups = [], trainingSessions
   useEffect(() => {
     if (!candidate) return
     setRole(resolveRoleValue(discourseGroups, candidate.role))
-    setSession(candidate.raw?.firstTrainingSessionId ? String(candidate.raw.firstTrainingSessionId) : '')
+    setSession(candidate.raw?.firstTrainingRegionId ? String(candidate.raw.firstTrainingRegionId) : '')
   }, [candidate, discourseGroups])
 
   if (!candidate) return null
@@ -209,7 +209,7 @@ export function ApproveModal({ candidate, discourseGroups = [], trainingSessions
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#030B1F]/30 backdrop-blur-sm p-4">
       <div className="bg-white rounded-[24px] w-full max-w-[480px] shadow-2xl p-7">
         <div className="flex items-start justify-between mb-7">
-          <h3 className="text-xl font-bold text-[#0A1128]">Setujui Akun Ini?</h3>
+          <h3 className="text-xl font-bold text-[#0A1128]" onClick={()=>console.log({candidate, trainingSessions})}>Setujui Akun Ini?</h3>
           <button
             type="button" onClick={onCancel} aria-label="Tutup"
             className="text-gray-400 hover:text-[#0A1128] transition-colors"
@@ -221,6 +221,7 @@ export function ApproveModal({ candidate, discourseGroups = [], trainingSessions
         <div className="flex flex-col items-stretch gap-5">
           <span className="font-bold text-[#0A1128] pt-2.5 shrink-0">{candidate.name}</span>
           <RoleSelect value={role} onChange={setRole} options={roleOptions} placeholder="Role" />
+          {session}
           <Dropdown
             value={session}
             onChange={setSession}

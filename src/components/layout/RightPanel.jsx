@@ -7,7 +7,10 @@ export const APP_VERSION = import.meta.env.VITE_APP_VERSION;
 // tak berpengaruh di layar sempit), lg → base 1366 (380px), fhd → base 1920 (480px).
 // lockDesktop: diterima biar call-site lama gak error, tapi layout sekarang pakai
 // document scroll (header sticky-top + CTA sticky-bottom) di mobile & desktop.
-export function RightPanel({ children, mobileHero = null, topBar = null, stickyFooter = null, footerWrapClassName = '', progress = null, maxWidth = 'max-w-md lg:max-w-[380px] fhd:max-w-[480px]', padX = '1', lockDesktop = false }) {
+// lgContentJustify: perataan vertikal konten di desktop (default center).
+// fixedMobile: kunci halaman mobile ke 100dvh tanpa scroll (header atas, konten
+// atas via justify-start, CTA di bawah) — khusus halaman pendek seperti OTP.
+export function RightPanel({ children, mobileHero = null, topBar = null, stickyFooter = null, footerWrapClassName = '', progress = null, maxWidth = 'max-w-md lg:max-w-[380px] fhd:max-w-[480px]', padX = '1', lockDesktop = false, lgContentJustify = 'lg:justify-center', fixedMobile = false }) {
   // Kartu putih jadi "popup sheet" (rounded-top, naik menutupi hero) HANYA saat
   // ada hero ungu di atasnya. Halaman tanpa hero (signup/perbaikan) tampil polos.
   const sheet = !!mobileHero
@@ -45,7 +48,10 @@ export function RightPanel({ children, mobileHero = null, topBar = null, stickyF
   }, [appShell])
 
   return (
-    <div className="flex-1 flex flex-col bg-background relative min-h-screen">
+    <div className={cn(
+      "flex-1 flex flex-col bg-background relative min-h-screen",
+      fixedMobile && "max-lg:min-h-0 max-lg:h-dvh max-lg:overflow-hidden",
+    )}>
       {mobileHero}
       {topBar && (
         <div
@@ -80,7 +86,8 @@ export function RightPanel({ children, mobileHero = null, topBar = null, stickyF
       )}
       <div
         className={cn(
-          "flex-1 flex flex-col justify-start lg:justify-center px-4 lg:px-4 pb-6 w-full mx-auto bg-background",
+          "flex-1 flex flex-col justify-start px-4 lg:px-4 pb-6 w-full mx-auto bg-background",
+          lgContentJustify,
           maxWidth,
           sheet
             ? "relative z-10 -mt-6 lg:mt-0 rounded-t-[28px] lg:rounded-none shadow-[0_-12px_30px_rgba(0,0,0,0.10)] lg:shadow-none pt-6 lg:pt-12"
