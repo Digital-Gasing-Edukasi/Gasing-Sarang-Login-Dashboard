@@ -45,7 +45,7 @@ export function useAdminBoot({
     trainingSessionsApi.list({ page: 1, limit: 100 })
       .then(res => {
         const list = Array.isArray(res) ? res : (res?.data || res?.items || [])
-        setTrainingSessions(list.map(s => ({ id: s.id, name: s.name || '-' })))
+        setTrainingSessions(list.map(s => ({ id: s.id, name: s.name || '-', regionId: s.regionId })))
       })
       .catch(err => console.error("Failed to load training sessions", err))
   }, [])

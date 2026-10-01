@@ -197,7 +197,7 @@ export function ApproveModal({ candidate, discourseGroups = [], trainingSessions
   useEffect(() => {
     if (!candidate) return
     setRole(resolveRoleValue(discourseGroups, candidate.role))
-    setSession(candidate.raw?.firstTrainingRegionId ? String(candidate.raw.firstTrainingRegionId) : '')
+    setSession(candidate.raw?.firstTrainingRegionId ? trainingSessions.find(v=>v.regionId === candidate.raw?.firstTrainingRegionId).id : '')
   }, [candidate, discourseGroups])
 
   if (!candidate) return null
@@ -221,7 +221,6 @@ export function ApproveModal({ candidate, discourseGroups = [], trainingSessions
         <div className="flex flex-col items-stretch gap-5">
           <span className="font-bold text-[#0A1128] pt-2.5 shrink-0">{candidate.name}</span>
           <RoleSelect value={role} onChange={setRole} options={roleOptions} placeholder="Role" />
-          {session}
           <Dropdown
             value={session}
             onChange={setSession}
