@@ -16,12 +16,17 @@ import { discourseApi } from '@/lib/api'
 describe('AuthChoicePage - tombol per role (ROLE-02/ROLE-03)', () => {
   beforeEach(() => vi.clearAllMocks())
 
-  it('superadmin (showDashboard=true) -> 3 tombol: Dashboard, Moderator (Discourse), Gasing Web App', () => {
-    render(<AuthChoicePage user={{ superadmin: true }} onNavigate={() => {}} onSignOut={() => {}} />)
+  it('superadmin (showDashboard=true) -> 4 tombol: Dashboard, Dashboard V2, Moderator (Discourse), Gasing Web App', () => {
+    const onNavigate = vi.fn()
+    render(<AuthChoicePage user={{ superadmin: true }} onNavigate={onNavigate} onSignOut={() => {}} />)
 
-    expect(screen.getByRole('button', { name: /Dashboard/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Dashboard' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Dashboard V2' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Moderator \(Discourse\)/i })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Gasing Web App/i })).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Dashboard V2' }))
+    expect(onNavigate).toHaveBeenCalledWith('admin-dashboard-v2')
   })
 
   it('moderator non-superadmin (showDashboard=false) -> HANYA 2 tombol, TANPA Dashboard', () => {

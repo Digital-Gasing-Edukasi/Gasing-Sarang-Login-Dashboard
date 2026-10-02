@@ -15,6 +15,10 @@ export function AuthChoicePage({ user, onNavigate, onSignOut }) {
     onNavigate('admin-dashboard')
   }
 
+  const handleGoDashboardV2 = () => {
+    onNavigate('admin-dashboard-v2')
+  }
+
   const handleRedirectDefault = () => {
     webAppApi.redirectWithTokens()
   }
@@ -65,17 +69,32 @@ export function AuthChoicePage({ user, onNavigate, onSignOut }) {
 
         <div className="space-y-4 w-full">
           {showDashboard && (
-            <Button
-              onClick={handleGoDashboard}
-              className="w-full flex items-center justify-between"
-              size="lg"
-            >
-              <span className="flex items-center gap-2">
-                <LayoutDashboard size={18} />
-                Dashboard
-              </span>
-              <ArrowRight size={18} />
-            </Button>
+            <>
+              <Button
+                onClick={handleGoDashboard}
+                className="w-full flex items-center justify-between"
+                size="lg"
+              >
+                <span className="flex items-center gap-2">
+                  <LayoutDashboard size={18} />
+                  Dashboard
+                </span>
+                <ArrowRight size={18} />
+              </Button>
+
+              <Button
+                onClick={handleGoDashboardV2}
+                variant="outline"
+                className="w-full flex items-center justify-between"
+                size="lg"
+              >
+                <span className="flex items-center gap-2">
+                  <LayoutDashboard size={18} />
+                  Dashboard V2
+                </span>
+                <ArrowRight size={18} />
+              </Button>
+            </>
           )}
 
           <Button

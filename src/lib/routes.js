@@ -36,6 +36,7 @@ export const PAGE_PATHS = {
   "revise-error": "/register/revise/invalid",
 
   "admin-dashboard": "/dashboard-admin",
+  "admin-dashboard-v2": "/dashboard-v2",
 
   "payment-success": "/payment/success",
   "payment-finish": "/payment/finish",

@@ -89,7 +89,7 @@ describe('handleLoginSuccess routing matrix', () => {
     await waitFor(() =>
       expect(screen.getByText('Pilih Tujuan Login')).toBeInTheDocument(),
     )
-    expect(screen.getByRole('button', { name: /Dashboard/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Dashboard' })).toBeInTheDocument()
   })
 
   it('ROLE-03b (bug 1 fix): superadmin WITH DISABLED-SSO -> STILL /login/choice, NOT /dashboard-admin', async () => {
