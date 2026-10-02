@@ -1,7 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Button } from "@/components/ui/button";
 import { authApi, tokenStorage } from "@/lib/api";
-import { LogOut } from "lucide-react";
+import { AdminV2Layout } from "./components/AdminV2Layout.jsx";
 
 // QueryClient owned by admin_v2 so the rest of the app stays untouched.
 // (No provider changes in main.jsx / App.jsx needed.)
@@ -22,22 +21,7 @@ function AdminV2Content({ user, onSignOut }) {
     }
   };
 
-  return (
-    <div className="flex min-h-screen flex-col items-center justify-center gap-6 bg-background p-6">
-      <h1 className="text-2xl font-bold text-foreground">Admin V2</h1>
-      {user?.email && (
-        <p className="text-sm text-muted-foreground">{user.email}</p>
-      )}
-      <Button
-        onClick={handleLogout}
-        variant="outline"
-        className="flex items-center gap-2"
-      >
-        <LogOut size={18} />
-        <span>Logout</span>
-      </Button>
-    </div>
-  );
+  return <AdminV2Layout user={user} onLogout={handleLogout} />;
 }
 
 export default function AdminV2Page(props) {
