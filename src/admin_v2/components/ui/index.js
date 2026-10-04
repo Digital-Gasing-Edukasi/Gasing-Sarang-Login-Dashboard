@@ -23,3 +23,9 @@ export {
   DialogDescription,
 } from "./dialog.jsx";
 export { SearchSelect } from "./search-select.jsx";
+export {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+  TooltipProvider,
+} from "./tooltip.jsx";
