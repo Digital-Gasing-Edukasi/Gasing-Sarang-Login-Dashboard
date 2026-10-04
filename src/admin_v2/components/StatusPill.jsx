@@ -1,5 +1,5 @@
-import { cn } from "../../../lib/utils.js";
-import { getVerifiedStatusMeta } from "../../../lib/verificationStatus.js";
+import { cn } from "../lib/utils.js";
+import { getVerifiedStatusMeta } from "../lib/verificationStatus.js";
 
 export function StatusPill({ value, className }) {
   const meta = getVerifiedStatusMeta(value);

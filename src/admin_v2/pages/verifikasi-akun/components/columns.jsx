@@ -2,7 +2,7 @@ import { Button } from "../../../components/ui/button.jsx";
 import { OverflowText } from "../../../components/OverflowText.jsx";
 import { formatShortDate, formatTrainingPeriod } from "../../../lib/format.js";
 import { RoleBadge } from "./RoleBadge.jsx";
-import { StatusPill } from "./StatusPill.jsx";
+import { StatusPill } from "../../../components/StatusPill.jsx";
 import { UserCell } from "./UserCell.jsx";
 
 const text = (value) => (

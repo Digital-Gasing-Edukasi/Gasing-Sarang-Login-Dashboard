@@ -11,5 +11,6 @@ export { adminV2Tokens } from "./tokens.js";
 export {
   VERIFIED_STATUS,
   fetchVerificationUsers,
+  fetchVerificationStatusCount,
   verificationUsersKeys,
 } from "./users.js";
