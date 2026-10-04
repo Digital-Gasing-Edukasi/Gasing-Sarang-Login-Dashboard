@@ -267,7 +267,7 @@ export function AppRoutes({
 
       {/* ── Dashboard admin v2 ──────────────────────────────────────────── */}
       <Route
-        path="/dashboard-v2"
+        path="/dashboard-v2/*"
         element={requireAuth(
           <Suspense fallback={<DashboardSpinner />}>
             <AdminV2Page

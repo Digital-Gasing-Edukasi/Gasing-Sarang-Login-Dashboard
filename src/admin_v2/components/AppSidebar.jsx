@@ -1,16 +1,13 @@
-import { Calendar, ClipboardList, LogOut, UserSearch, Users, Wallet } from "lucide-react";
+import { useLocation, useNavigate } from "react-router-dom";
+import { LogOut } from "lucide-react";
 import { cn } from "../lib/utils.js";
+import { ADMIN_V2_ROUTES, adminV2Path, isRouteActive } from "../routes/routes.jsx";
 import { Button } from "./ui/button.jsx";
 
-export const ADMIN_V2_MENUS = [
-  { key: "verifikasi-akun", title: "Verifikasi Akun", icon: UserSearch },
-  { key: "verifikasi-pembayaran", title: "Verifikasi Pembayaran", icon: Wallet },
-  { key: "manajemen-akun", title: "Manajemen Akun", icon: Users },
-  { key: "riwayat-pelatihan", title: "Riwayat Pelatihan", icon: Calendar },
-  { key: "pendaftaran-trainer", title: "Pendaftaran Trainer", icon: ClipboardList },
-];
+export function AppSidebar({ user, onLogout }) {
+  const navigate = useNavigate();
+  const { pathname } = useLocation();
 
-export function AppSidebar({ active, onSelect, user, onLogout }) {
   return (
     <aside className="flex h-full w-64 shrink-0 flex-col border-r bg-background">
       <div className="flex h-16 items-center border-b px-6">
@@ -18,14 +15,14 @@ export function AppSidebar({ active, onSelect, user, onLogout }) {
       </div>
 
       <nav className="flex-1 space-y-1 overflow-y-auto p-3">
-        {ADMIN_V2_MENUS.map((menu) => {
+        {ADMIN_V2_ROUTES.map((menu) => {
           const Icon = menu.icon;
-          const isActive = menu.key === active;
+          const isActive = isRouteActive(menu, pathname);
           return (
             <Button
               key={menu.key}
               variant={isActive ? "secondary" : "ghost"}
-              onClick={() => onSelect?.(menu.key)}
+              onClick={() => navigate(adminV2Path(menu))}
               className={cn(
                 "w-full justify-start gap-3 px-3",
                 isActive && "font-semibold",

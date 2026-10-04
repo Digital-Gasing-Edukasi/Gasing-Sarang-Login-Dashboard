@@ -1,6 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { authApi, tokenStorage } from "@/lib/api";
-import { AdminV2Layout } from "./components/AdminV2Layout.jsx";
+import { AdminV2Routes } from "./routes/AdminV2Routes.jsx";
 
 // QueryClient owned by admin_v2 so the rest of the app stays untouched.
 // (No provider changes in main.jsx / App.jsx needed.)
@@ -21,7 +21,7 @@ function AdminV2Content({ user, onSignOut }) {
     }
   };
 
-  return <AdminV2Layout user={user} onLogout={handleLogout} />;
+  return <AdminV2Routes user={user} onLogout={handleLogout} />;
 }
 
 export default function AdminV2Page(props) {
