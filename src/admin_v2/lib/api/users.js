@@ -47,11 +47,10 @@ export async function fetchVerificationStatusCount(filter) {
   return res?.meta?.total ?? 0;
 }
 
-// PATCH /admin/users/:userId/verify — approve (or reject) an account.
-export function verifyUser({ userId, status, discourseGroupId, firstTrainingSessionId }) {
-  return apiPatch(`/admin/users/${userId}/verify`, {
-    status,
-    discourseGroupId,
-    firstTrainingSessionId,
-  });
+// PATCH /admin/users/:userId/verify — approve, revise, or reject an account.
+// Body varies per action (see rejectPayload.js); passed through as-is.
+export function verifyUser({ userId, ...payload }) {
+  // console.log({ userId, payload });
+  // return;
+  return apiPatch(`/admin/users/${userId}/verify`, payload);
 }

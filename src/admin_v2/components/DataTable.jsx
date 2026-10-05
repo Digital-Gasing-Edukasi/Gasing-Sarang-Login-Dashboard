@@ -32,10 +32,10 @@ export function DataTable({
     cn(
       stickyFirst &&
         idx === 0 &&
-        "sticky left-0 z-10 bg-background after:absolute after:inset-y-0 after:right-0 after:w-px after:bg-border after:content-['']",
+        "sticky left-0 z-10 bg-background group-hover:bg-muted after:absolute after:inset-y-0 after:right-0 after:w-px after:bg-border after:content-['']",
       stickyLast &&
         idx === lastIdx &&
-        "sticky right-0 z-10 bg-background before:absolute before:inset-y-0 before:left-0 before:w-px before:bg-border before:content-['']",
+        "sticky right-0 z-10 bg-background group-hover:bg-muted before:absolute before:inset-y-0 before:left-0 before:w-px before:bg-border before:content-['']",
     );
 
   return (
@@ -90,7 +90,7 @@ export function DataTable({
             </tr>
           ) : (
             rows.map((row) => (
-              <tr key={keyOf(row)} className="border-b last:border-0 hover:bg-muted/30">
+              <tr key={keyOf(row)} className="group border-b last:border-0 hover:bg-muted">
                 {columns.map((col, idx) => (
                   <td
                   key={col.key}

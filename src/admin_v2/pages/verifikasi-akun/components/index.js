@@ -5,3 +5,7 @@ export { ApproveDialog } from "./ApproveDialog.jsx";
 export { RejectDialog } from "./RejectDialog.jsx";
 export { RoleSelect } from "./RoleSelect.jsx";
 export { TrainingSessionSelect } from "./TrainingSessionSelect.jsx";
+export {
+  FIELD_DEFS,
+  buildVerifyPayload,
+} from "./rejectPayload.js";

@@ -40,3 +40,4 @@ export {
 } from "./toast.jsx";
 export { Toaster } from "./toaster.jsx";
 export { useToast, toast } from "./use-toast.js";
+export { Textarea } from "./textarea.jsx";

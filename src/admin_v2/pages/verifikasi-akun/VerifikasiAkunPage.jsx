@@ -86,6 +86,22 @@ export default function VerifikasiAkunPage() {
     setPage(1);
   };
 
+  const handleRejected = (rejectedUser, { permanent }) => {
+    setRejectUser(null);
+    setPage(1);
+    toast({
+      title: "Akun ditolak",
+      description: rejectedUser?.name
+        ? permanent
+          ? `${rejectedUser.name} ditolak permanen.`
+          : `${rejectedUser.name} diminta untuk revisi data.`
+        : "Akun telah diproses.",
+    });
+    queryClient.invalidateQueries({
+      queryKey: verificationUsersKeys.byStatus(VERIFIED_STATUS.WAITING),
+    });
+  };
+
   const handleApproved = (approvedUser) => {
     setApproveUser(null);
     setTab("voucher");
@@ -172,7 +188,11 @@ export default function VerifikasiAkunPage() {
         onClose={() => setApproveUser(null)}
         onApproved={handleApproved}
       />
-      <RejectDialog user={rejectUser} onClose={() => setRejectUser(null)} />
+      <RejectDialog
+        user={rejectUser}
+        onClose={() => setRejectUser(null)}
+        onRejected={handleRejected}
+      />
 
       {!isLoading && !isError && (
         <Pagination
