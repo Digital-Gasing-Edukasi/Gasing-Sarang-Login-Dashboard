@@ -1,3 +1,4 @@
+import { CheckCircle2, XCircle } from "lucide-react";
 import { Button } from "../../../components/ui/button.jsx";
 import { OverflowText } from "../../../components/OverflowText.jsx";
 import { formatShortDate, formatTrainingPeriod } from "../../../lib/format.js";
@@ -41,7 +42,36 @@ const pendingColumns = [
     render: (u) => text(formatTrainingPeriod(u.firstTrainingYear, u.firstTrainingMonth)),
   },
   { key: "school", header: "Asal Sekolah", wrap: true, render: (u) => text(u.schoolName) },
-  { key: "approve", header: "Setuju?", render: () => null },
+  {
+    key: "approve",
+    header: "Setuju?",
+    render: (u, actions) => (
+      <div className="flex items-center gap-1">
+        <Button
+          size="icon"
+          variant="ghost"
+          type="button"
+          aria-label={`Setujui ${u.name}`}
+          title="Setujui"
+          onClick={() => actions?.onApprove?.(u)}
+          className="text-green-600 hover:bg-green-50 hover:text-green-700"
+        >
+          <CheckCircle2 size={18} />
+        </Button>
+        <Button
+          size="icon"
+          variant="ghost"
+          type="button"
+          aria-label={`Tolak ${u.name}`}
+          title="Tolak"
+          onClick={() => actions?.onReject?.(u)}
+          className="text-red-600 hover:bg-red-50 hover:text-red-700"
+        >
+          <XCircle size={18} />
+        </Button>
+      </div>
+    ),
+  },
 ];
 
 const voucherColumns = [
@@ -125,7 +155,8 @@ const voucherColumns = [
   },
 ];
 
-export const VERIFIKASI_COLUMNS = {
-  pending: pendingColumns,
-  voucher: voucherColumns,
-};
+export function getVerifikasiColumns(actions) {
+  const bind = (cols) =>
+    cols.map((col) => ({ ...col, render: (row) => col.render(row, actions) }));
+  return { pending: bind(pendingColumns), voucher: bind(voucherColumns) };
+}

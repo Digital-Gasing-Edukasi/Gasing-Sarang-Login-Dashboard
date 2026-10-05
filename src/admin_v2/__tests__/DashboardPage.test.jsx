@@ -30,10 +30,10 @@ describe("DashboardPage", () => {
     expect(container.querySelectorAll("svg").length).toBe(4);
 
     for (const [label, total] of [
-      ["Pending pengguna", 12],
-      ["Pending Voucher Setup pengguna", 7],
-      ["Disetujui pengguna", 34],
-      ["Ditolak pengguna", 6],
+      ["Pending", 12],
+      ["Pending Voucher Setup", 7],
+      ["Disetujui", 34],
+      ["Ditolak", 6],
     ]) {
       expect(await screen.findByText(label)).toBeInTheDocument();
       expect(await screen.findByText(String(total))).toBeInTheDocument();

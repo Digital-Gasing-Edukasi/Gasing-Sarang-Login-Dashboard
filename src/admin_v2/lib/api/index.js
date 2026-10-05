@@ -14,3 +14,7 @@ export {
   fetchVerificationStatusCount,
   verificationUsersKeys,
 } from "./users.js";
+export {
+  fetchTrainingSessions,
+  trainingSessionsKeys,
+} from "./training-sessions.js";

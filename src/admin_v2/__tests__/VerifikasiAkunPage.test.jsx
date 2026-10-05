@@ -13,13 +13,43 @@ if (!window.HTMLElement.prototype.scrollIntoView) {
 }
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import verifFixture from "../../../dev/responses/verif.json";
+import sessionsFixture from "../../../dev/responses/training-sessions.json";
 
 vi.mock("../lib/api/users.js", async (importOriginal) => {
   const actual = await importOriginal();
   return { ...actual, fetchVerificationUsers: vi.fn() };
 });
 
+vi.mock("../lib/api/training-sessions.js", async (importOriginal) => {
+  const actual = await importOriginal();
+  return { ...actual, fetchTrainingSessions: vi.fn() };
+});
+
+// Radix modal Dialog traps focus in a way jsdom can't settle when a second
+// floating layer (Select) opens inside it — infinite focus ping-pong. Render
+// dialog chrome inline so flow tests exercise OUR wiring, not Radix traps.
+vi.mock("../components/ui/dialog.jsx", async () => {
+  const React = await import("react");
+  const Passthrough = ({ children }) =>
+    React.createElement(React.Fragment, null, children);
+  return {
+    Dialog: ({ open, children }) =>
+      open ? React.createElement(React.Fragment, null, children) : null,
+    DialogTrigger: Passthrough,
+    DialogClose: Passthrough,
+    DialogPortal: Passthrough,
+    DialogOverlay: Passthrough,
+    DialogContent: ({ children }) =>
+      React.createElement("div", { role: "dialog" }, children),
+    DialogHeader: Passthrough,
+    DialogFooter: Passthrough,
+    DialogTitle: ({ children }) => React.createElement("h2", null, children),
+    DialogDescription: Passthrough,
+  };
+});
+
 import { fetchVerificationUsers, verificationUsersKeys } from "../lib/api/users.js";
+import { fetchTrainingSessions } from "../lib/api/training-sessions.js";
 import VerifikasiAkunPage from "../pages/verifikasi-akun/VerifikasiAkunPage.jsx";
 
 const waitingPayload = {
@@ -46,6 +76,10 @@ function renderPage() {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  fetchTrainingSessions.mockImplementation(async () => ({
+    data: sessionsFixture.data,
+    meta: sessionsFixture.meta,
+  }));
   fetchVerificationUsers.mockImplementation(({ status, page = 1, limit = 20, keyword = "" }) => {
     const pool = status === "waiting" ? waitingPayload.data : voucherPayload.data;
     const kw = keyword.trim().toLowerCase();
@@ -132,7 +166,6 @@ describe("VerifikasiAkunPage", () => {
     expect(screen.getAllByText("06 Apr 2026").length).toBeGreaterThan(0);
     expect(screen.getAllByRole("button", { name: "Konfirmasi" }).length).toBeGreaterThan(0);
   });
-});
 
   it("lists refetch when another page invalidates via the shared key factory", async () => {
     renderPage();
@@ -186,3 +219,75 @@ describe("VerifikasiAkunPage", () => {
     });
   });
 
+  it("approve flow: dialog, role pick, session search, submit logs payload", async () => {
+    const user = userEvent.setup();
+    const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+    try {
+      renderPage();
+      await screen.findByText("Ade Raharja");
+
+      await user.click(screen.getByRole("button", { name: "Setujui Ade Raharja" }));
+      expect(await screen.findByText("Setujui Akun Ini?")).toBeInTheDocument();
+      expect(screen.getAllByText("Ade Raharja").length).toBeGreaterThan(1);
+
+      // Submit locked until role + session are chosen.
+      expect(screen.getByRole("button", { name: "Setujui" })).toBeDisabled();
+
+      // Role with icon + color.
+      await user.click(screen.getByRole("combobox", { name: "Role" }));
+      await user.click(await screen.findByRole("option", { name: "Guru" }));
+
+      // Server-searchable session dropdown.
+      await user.click(
+        screen.getByRole("combobox", { name: "Pilih pelatihan…" }),
+      );
+      await user.type(screen.getByPlaceholderText("Ketik nama pelatihan…"), "gunung");
+      await waitFor(() => {
+        expect(
+          screen.queryByRole("option", { name: "Test Pelatihan" }),
+        ).not.toBeInTheDocument();
+      });
+      await user.click(await screen.findByRole("option", { name: "Gunung Sindur" }));
+      await waitFor(() => {
+        expect(
+          fetchTrainingSessions.mock.calls.some((c) => c[0].keyword === "gunung"),
+        ).toBe(true);
+      });
+
+      const submit = screen.getByRole("button", { name: "Setujui" });
+      expect(submit).not.toBeDisabled();
+      await user.click(submit);
+
+      expect(logSpy).toHaveBeenCalledWith(
+        "Approve akun:",
+        expect.objectContaining({
+          roleId: "49",
+          roleName: "Guru",
+          trainingSessionId: "01a0eb10-c694-71fa-a281-21e3fe01f087",
+        }),
+      );
+    } finally {
+      logSpy.mockRestore();
+    }
+  });
+
+  it("reject flow: dialog opens and logs for now (stub)", async () => {
+    const user = userEvent.setup();
+    const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+    try {
+      renderPage();
+      await screen.findByText("Ade Raharja");
+
+      await user.click(screen.getByRole("button", { name: "Tolak Ade Raharja" }));
+      expect(await screen.findByText("Tolak Akun Ini?")).toBeInTheDocument();
+
+      await user.click(screen.getByRole("button", { name: "Tolak" }));
+      expect(logSpy).toHaveBeenCalledWith(
+        "Reject akun:",
+        expect.objectContaining({ name: "Ade Raharja" }),
+      );
+    } finally {
+      logSpy.mockRestore();
+    }
+  });
+});

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { Search } from "lucide-react";
 import { cn } from "../../lib/utils.js";
@@ -11,7 +11,11 @@ import { useDebouncedValue } from "../../hooks/useDebouncedValue.js";
 import { Input } from "../../components/ui/input.jsx";
 import { DataTable } from "../../components/index.js";
 import { Pagination } from "../../components/index.js";
-import { VERIFIKASI_COLUMNS } from "./components/index.js";
+import {
+  ApproveDialog,
+  RejectDialog,
+  getVerifikasiColumns,
+} from "./components/index.js";
 
 const DEFAULT_LIMIT = 20;
 
@@ -53,6 +57,8 @@ export default function VerifikasiAkunPage() {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(DEFAULT_LIMIT);
   const [keyword, setKeyword] = useState("");
+  const [approveUser, setApproveUser] = useState(null);
+  const [rejectUser, setRejectUser] = useState(null);
   const debouncedKeyword = useDebouncedValue(keyword, 500);
   const current = TABS.find((t) => t.key === tab) ?? TABS[0];
 
@@ -77,6 +83,15 @@ export default function VerifikasiAkunPage() {
     setLimit(next);
     setPage(1);
   };
+
+  const columns = useMemo(
+    () =>
+      getVerifikasiColumns({
+        onApprove: setApproveUser,
+        onReject: setRejectUser,
+      }),
+    [],
+  );
 
   const rows = data?.data ?? [];
   const meta = data?.meta ?? null;
@@ -119,7 +134,7 @@ export default function VerifikasiAkunPage() {
       </div>
 
       <DataTable
-        columns={VERIFIKASI_COLUMNS[tab]}
+        columns={columns[tab]}
         rows={rows}
         keyOf={(u) => u.id}
         loading={isLoading}
@@ -131,6 +146,9 @@ export default function VerifikasiAkunPage() {
             : "Tidak ada data pada tab ini."
         }
       />
+
+      <ApproveDialog user={approveUser} onClose={() => setApproveUser(null)} />
+      <RejectDialog user={rejectUser} onClose={() => setRejectUser(null)} />
 
       {!isLoading && !isError && (
         <Pagination

@@ -64,12 +64,12 @@ describe("AdminV2Routes", () => {
     expect(screen.getByText("Admin V2")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Dashboard" })).toBeInTheDocument();
     // Lazy dashboard page resolves (status cards).
-    expect(await screen.findByText("Pending pengguna")).toBeInTheDocument();
+    expect(await screen.findByText("Pending")).toBeInTheDocument();
   });
 
   it("sidebar click navigates to the page and updates the header", async () => {
     renderAt("/dashboard-v2");
-    await screen.findByText("Pending pengguna");
+    await screen.findByText("Pending");
 
     fireEvent.click(screen.getByRole("button", { name: "Verifikasi Pembayaran" }));
 
