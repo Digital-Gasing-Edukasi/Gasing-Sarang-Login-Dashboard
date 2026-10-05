@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Search } from "lucide-react";
 import { cn } from "../../lib/utils.js";
 import {
@@ -9,6 +9,7 @@ import {
 } from "../../lib/api/index.js";
 import { useDebouncedValue } from "../../hooks/useDebouncedValue.js";
 import { Input } from "../../components/ui/input.jsx";
+import { toast } from "../../components/ui/use-toast.js";
 import { DataTable } from "../../components/index.js";
 import { Pagination } from "../../components/index.js";
 import {
@@ -53,6 +54,7 @@ function CountBadge({ status }) {
 }
 
 export default function VerifikasiAkunPage() {
+  const queryClient = useQueryClient();
   const [tab, setTab] = useState(TABS[0].key);
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(DEFAULT_LIMIT);
@@ -82,6 +84,24 @@ export default function VerifikasiAkunPage() {
   const handleLimit = (next) => {
     setLimit(next);
     setPage(1);
+  };
+
+  const handleApproved = (approvedUser) => {
+    setApproveUser(null);
+    setTab("voucher");
+    setPage(1);
+    toast({
+      title: "Akun disetujui",
+      description: approvedUser?.name
+        ? `${approvedUser.name} kini menunggu setup voucher.`
+        : "Akun kini menunggu setup voucher.",
+    });
+    queryClient.invalidateQueries({
+      queryKey: verificationUsersKeys.byStatus(VERIFIED_STATUS.WAITING),
+    });
+    queryClient.invalidateQueries({
+      queryKey: verificationUsersKeys.byStatus(VERIFIED_STATUS.PENDING_VOUCHER),
+    });
   };
 
   const columns = useMemo(
@@ -147,7 +167,11 @@ export default function VerifikasiAkunPage() {
         }
       />
 
-      <ApproveDialog user={approveUser} onClose={() => setApproveUser(null)} />
+      <ApproveDialog
+        user={approveUser}
+        onClose={() => setApproveUser(null)}
+        onApproved={handleApproved}
+      />
       <RejectDialog user={rejectUser} onClose={() => setRejectUser(null)} />
 
       {!isLoading && !isError && (

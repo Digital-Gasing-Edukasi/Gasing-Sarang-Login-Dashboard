@@ -46,29 +46,21 @@ const pendingColumns = [
     key: "approve",
     header: "Setuju?",
     render: (u, actions) => (
-      <div className="flex items-center gap-1">
-        <Button
-          size="icon"
-          variant="ghost"
+      <div className="flex items-center gap-2">
+        <button
           type="button"
-          aria-label={`Setujui ${u.name}`}
-          title="Setujui"
           onClick={() => actions?.onApprove?.(u)}
-          className="text-green-600 hover:bg-green-50 hover:text-green-700"
+          className="text-green-600 hover:bg-green-50 hover:text-green-700 rounded-full"
         >
-          <CheckCircle2 size={18} />
-        </Button>
-        <Button
-          size="icon"
-          variant="ghost"
+          <CheckCircle2 size={24} />
+        </button>
+        <button
           type="button"
-          aria-label={`Tolak ${u.name}`}
-          title="Tolak"
           onClick={() => actions?.onReject?.(u)}
-          className="text-red-600 hover:bg-red-50 hover:text-red-700"
+          className="text-red-600 hover:bg-red-50 hover:text-red-700 rounded-full"
         >
-          <XCircle size={18} />
-        </Button>
+          <XCircle size={24} />
+        </button>
       </div>
     ),
   },
@@ -148,7 +140,7 @@ const voucherColumns = [
     header: "Action",
     // Confirm flow comes later — no-op for now.
     render: () => (
-      <Button size="sm" type="button" onClick={() => {}}>
+      <Button size="sm" type="button" onClick={() => { }}>
         Konfirmasi
       </Button>
     ),

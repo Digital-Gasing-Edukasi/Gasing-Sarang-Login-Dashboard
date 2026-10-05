@@ -1,4 +1,4 @@
-import { apiGet } from "./client.js";
+import { apiGet, apiPatch } from "./client.js";
 
 // Backend-validated filter buckets: "waiting"|"pending_voucher"|"approved"|"rejected"|"all".
 // (Numeric verifiedStatus on user objects is display-only — see verificationStatus.js.)
@@ -45,4 +45,13 @@ export const verificationUsersKeys = {
 export async function fetchVerificationStatusCount(filter) {
   const res = await fetchVerificationUsers({ status: filter, page: 1, limit: 1 });
   return res?.meta?.total ?? 0;
+}
+
+// PATCH /admin/users/:userId/verify — approve (or reject) an account.
+export function verifyUser({ userId, status, discourseGroupId, firstTrainingSessionId }) {
+  return apiPatch(`/admin/users/${userId}/verify`, {
+    status,
+    discourseGroupId,
+    firstTrainingSessionId,
+  });
 }

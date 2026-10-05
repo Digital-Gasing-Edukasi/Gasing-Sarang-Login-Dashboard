@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { authApi, tokenStorage } from "@/lib/api";
+import { Toaster } from "./components/ui/toaster.jsx";
 import { AdminV2Routes } from "./routes/AdminV2Routes.jsx";
 
 // QueryClient owned by admin_v2 so the rest of the app stays untouched.
@@ -28,6 +29,7 @@ export default function AdminV2Page(props) {
   return (
     <QueryClientProvider client={queryClient}>
       <AdminV2Content {...props} />
+      <Toaster />
     </QueryClientProvider>
   );
 }

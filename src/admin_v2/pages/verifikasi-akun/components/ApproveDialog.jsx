@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useMutation } from "@tanstack/react-query";
 import { Button } from "../../../components/ui/button.jsx";
 import {
   Dialog,
@@ -8,33 +9,43 @@ import {
   DialogTitle,
 } from "../../../components/ui/dialog.jsx";
 import { Label } from "../../../components/ui/label.jsx";
-import { getRoleMeta } from "../../../lib/roles.js";
+import { FALLBACK_TEXT } from "../../../lib/format.js";
+import { verifyUser } from "../../../lib/api/index.js";
 import { RoleSelect } from "./RoleSelect.jsx";
 import { TrainingSessionSelect } from "./TrainingSessionSelect.jsx";
 
-export function ApproveDialog({ user, onClose }) {
+export function ApproveDialog({ user, onClose, onApproved }) {
   const [roleId, setRoleId] = useState("");
   const [sessionId, setSessionId] = useState("");
+  const open = !!user;
 
-  // Fresh form every time the dialog opens for (another) user.
-  useEffect(() => {
+  const approve = useMutation({
+    mutationFn: () =>
+      verifyUser({
+        userId: user.id,
+        status: "approved",
+        discourseGroupId: Number(roleId),
+        firstTrainingSessionId: sessionId,
+      }),
+    onSuccess: () => {
+      setRoleId("");
+      setSessionId("");
+      onApproved?.(user);
+    },
+  });
+
+  // Fresh form every time the dialog closes.
+  const handleClose = () => {
     setRoleId("");
     setSessionId("");
-  }, [user?.id]);
-
-  const handleSubmit = () => {
-    console.log("Approve akun:", {
-      userId: user?.id,
-      name: user?.name,
-      roleId,
-      roleName: getRoleMeta(roleId)?.fullName ?? null,
-      trainingSessionId: sessionId,
-    });
+    approve.reset();
     onClose();
   };
 
+  const handleSubmit = () => approve.mutate();
+
   return (
-    <Dialog open={!!user} onOpenChange={(open) => !open && onClose()}>
+    <Dialog open={open} onOpenChange={(isOpen) => !isOpen && handleClose()}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Setujui Akun Ini?</DialogTitle>
@@ -53,16 +64,32 @@ export function ApproveDialog({ user, onClose }) {
         </div>
 
         <div className="space-y-2">
+          <Label>Alumni Pelatihan</Label>
+          <p className="text-sm text-muted-foreground">
+            {user?.firstTrainingRegion?.regionName || FALLBACK_TEXT}
+          </p>
+        </div>
+
+        <div className="space-y-2">
           <Label>Pelatihan pertama</Label>
           <TrainingSessionSelect value={sessionId} onValueChange={setSessionId} />
         </div>
 
+        {approve.isError && (
+          <p className="text-sm text-red-600">
+            Gagal menyetujui: {approve.error?.message || "Unknown error"}
+          </p>
+        )}
+
         <DialogFooter>
-          <Button variant="outline" onClick={onClose}>
+          <Button variant="outline" onClick={handleClose} disabled={approve.isPending}>
             Batal
           </Button>
-          <Button onClick={handleSubmit} disabled={!roleId || !sessionId}>
-            Setujui
+          <Button
+            onClick={handleSubmit}
+            disabled={!roleId || !sessionId || approve.isPending}
+          >
+            {approve.isPending ? "Menyetujui…" : "Setujui"}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -13,6 +13,7 @@ export {
   fetchVerificationUsers,
   fetchVerificationStatusCount,
   verificationUsersKeys,
+  verifyUser,
 } from "./users.js";
 export {
   fetchTrainingSessions,

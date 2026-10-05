@@ -15,7 +15,7 @@ export function RejectDialog({ user, onClose }) {
   };
 
   return (
-    <Dialog open={!!user} onOpenChange={(open) => !open && onClose()} modal={false}>
+    <Dialog open={!!user} onOpenChange={(open) => !open && onClose()}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Tolak Akun Ini?</DialogTitle>
