@@ -29,12 +29,11 @@ export function buildReviseFields(checkedKeys) {
 }
 
 // Normal (revise) payload vs `lainnya` (permanent reject) payload.
-export function buildVerifyPayload({ checkedKeys, customReason, firstTrainingSessionId }) {
+export function buildVerifyPayload({ checkedKeys, customReason }) {
   if (isLainnya(checkedKeys)) {
     return {
       status: "rejected",
       rejectedReason: customReason,
-      firstTrainingSessionId,
     };
   }
   return {

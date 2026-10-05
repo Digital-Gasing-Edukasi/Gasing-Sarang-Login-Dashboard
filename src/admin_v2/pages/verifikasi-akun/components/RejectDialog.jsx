@@ -32,8 +32,7 @@ export function RejectDialog({ user, onClose, onRejected }) {
         userId: user.id,
         ...buildVerifyPayload({
           checkedKeys: fields,
-          customReason: reason.trim(),
-          firstTrainingSessionId: user.firstTrainingSession?.id ?? null,
+          customReason: reason.trim()
         }),
       }),
     onSuccess: () => {
@@ -56,7 +55,7 @@ export function RejectDialog({ user, onClose, onRejected }) {
   const submittable = canSubmitReject({ checkedKeys: fields, customReason: reason });
 
   return (
-    <Dialog open={open} onOpenChange={(isOpen) => !isOpen && handleClose()} modal={false}>
+    <Dialog open={open} onOpenChange={(isOpen) => !isOpen && handleClose()}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Tolak Akun Ini?</DialogTitle>
