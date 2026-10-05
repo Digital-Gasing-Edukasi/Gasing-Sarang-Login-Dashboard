@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, waitFor, within } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import userEvent from "@testing-library/user-event";
@@ -38,6 +38,15 @@ vi.mock("../lib/api/training-histories.js", async (importOriginal) => {
 
 vi.mock("../lib/clipboard.js", () => ({ copyText: vi.fn(async () => true) }));
 
+vi.mock("../lib/api/exports.js", async (importOriginal) => {
+  const actual = await importOriginal();
+  return {
+    ...actual,
+    requestExport: vi.fn(async () => "t-export"),
+    fetchExportJob: vi.fn(async () => ({ status: "COMPLETED", progress: 100 })),
+  };
+});
+
 // Radix modal Dialog traps focus in a way jsdom can't settle when a second
 // floating layer (Select) opens inside it — infinite focus ping-pong. Render
 // dialog chrome inline so flow tests exercise OUR wiring, not Radix traps.
@@ -66,6 +75,8 @@ import { fetchTrainingSessions } from "../lib/api/training-sessions.js";
 import { fetchTrainingHistory } from "../lib/api/training-histories.js";
 import historyFixture from "../../../dev/responses/training-user.json";
 import { copyText } from "../lib/clipboard.js";
+import { requestExport } from "../lib/api/exports.js";
+import { useDownloads } from "../stores/useDownloads.js";
 import VerifikasiAkunPage from "../pages/verifikasi-akun/VerifikasiAkunPage.jsx";
 
 // Everything derives from fixtures — never hardcode names/ids.
@@ -135,7 +146,12 @@ function mockLists() {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  useDownloads.getState().reset();
   mockLists();
+});
+
+afterEach(() => {
+  useDownloads.getState().reset();
 });
 
 const waitingCalls = () =>
@@ -381,5 +397,21 @@ describe("VerifikasiAkunPage", () => {
         fetchTrainingHistory.mock.calls.some((c) => c[0].page === 2),
       ).toBe(true);
     });
+  });
+
+  it("export buttons on both tabs start scoped exports", async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await screen.findByText(U0.name);
+
+    // Pending tab → verifikasi-akun scope.
+    await user.click(screen.getByRole("button", { name: "Export" }));
+    expect(requestExport).toHaveBeenCalledWith("waiting");
+
+    // Voucher tab → pending-voucher scope.
+    fireEvent.click(screen.getByRole("button", { name: /Pending Voucher Setup/ }));
+    await screen.findByText("Kode Voucher");
+    await user.click(screen.getByRole("button", { name: "Export" }));
+    expect(requestExport).toHaveBeenCalledWith("pending_voucher");
   });
 });

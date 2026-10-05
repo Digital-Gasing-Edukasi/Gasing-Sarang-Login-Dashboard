@@ -1,6 +1,8 @@
+import { useEffect } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { authApi, tokenStorage } from "@/lib/api";
 import { Toaster } from "./components/ui/toaster.jsx";
+import { useDownloads } from "./stores/useDownloads.js";
 import { AdminV2Routes } from "./routes/AdminV2Routes.jsx";
 
 // QueryClient owned by admin_v2 so the rest of the app stays untouched.
@@ -8,6 +10,10 @@ import { AdminV2Routes } from "./routes/AdminV2Routes.jsx";
 const queryClient = new QueryClient();
 
 function AdminV2Content({ user, onSignOut }) {
+  const hydrate = useDownloads((s) => s.hydrate);
+  useEffect(() => {
+    hydrate();
+  }, [hydrate]);
   const handleLogout = async () => {
     try {
       await authApi.logout();

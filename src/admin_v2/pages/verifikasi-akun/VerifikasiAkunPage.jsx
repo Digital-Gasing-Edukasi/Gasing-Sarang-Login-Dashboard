@@ -11,6 +11,7 @@ import { useDebouncedValue } from "../../hooks/useDebouncedValue.js";
 import { Input } from "../../components/ui/input.jsx";
 import { toast } from "../../components/ui/use-toast.js";
 import { DataTable } from "../../components/index.js";
+import { ExportButton } from "../../components/downloads/index.js";
 import { Pagination } from "../../components/index.js";
 import {
   ApproveDialog,
@@ -177,15 +178,18 @@ export default function VerifikasiAkunPage() {
           })}
         </div>
 
-        <div className="relative w-full sm:w-64">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            value={keyword}
-            onChange={(e) => setKeyword(e.target.value)}
-            placeholder="Cari nama, email, username…"
-            aria-label="Cari pengguna"
-            className="pl-9"
-          />
+        <div className="flex w-full gap-2 sm:w-auto">
+          <div className="relative flex-1 sm:w-64">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={keyword}
+              onChange={(e) => setKeyword(e.target.value)}
+              placeholder="Cari nama, email, username…"
+              aria-label="Cari pengguna"
+              className="pl-9"
+            />
+          </div>
+          <ExportButton scope={current.status} />
         </div>
       </div>
 
