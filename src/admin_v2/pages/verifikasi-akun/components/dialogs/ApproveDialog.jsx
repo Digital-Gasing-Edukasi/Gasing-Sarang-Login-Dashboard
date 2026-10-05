@@ -1,18 +1,18 @@
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
-import { Button } from "../../../components/ui/button.jsx";
+import { Button } from "../../../../components/ui/button.jsx";
 import {
   Dialog,
   DialogContent,
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "../../../components/ui/dialog.jsx";
-import { Label } from "../../../components/ui/label.jsx";
-import { FALLBACK_TEXT } from "../../../lib/format.js";
-import { verifyUser } from "../../../lib/api/index.js";
-import { RoleSelect } from "./RoleSelect.jsx";
-import { TrainingSessionSelect } from "./TrainingSessionSelect.jsx";
+} from "../../../../components/ui/dialog.jsx";
+import { Label } from "../../../../components/ui/label.jsx";
+import { FALLBACK_TEXT } from "../../../../lib/format.js";
+import { verifyUser } from "../../../../lib/api/index.js";
+import { RoleSelect } from "../RoleSelect.jsx";
+import { TrainingSessionSelect } from "../TrainingSessionSelect.jsx";
 
 export function ApproveDialog({ user, onClose, onApproved }) {
   const [roleId, setRoleId] = useState("");

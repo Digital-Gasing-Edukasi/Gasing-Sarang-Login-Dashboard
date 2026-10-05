@@ -19,3 +19,7 @@ export {
   fetchTrainingSessions,
   trainingSessionsKeys,
 } from "./training-sessions.js";
+export {
+  fetchTrainingHistory,
+  trainingHistoryKeys,
+} from "./training-histories.js";

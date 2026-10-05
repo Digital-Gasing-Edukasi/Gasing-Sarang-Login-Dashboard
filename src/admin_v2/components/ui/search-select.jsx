@@ -140,6 +140,7 @@ export function SearchSelect({
         ref={triggerRef}
         type="button"
         role="combobox"
+        aria-label={selected ? selected.label : placeholder}
         aria-expanded={open}
         aria-haspopup="listbox"
         disabled={disabled}

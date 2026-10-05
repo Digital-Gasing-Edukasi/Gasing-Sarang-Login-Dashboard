@@ -15,6 +15,8 @@ import { Pagination } from "../../components/index.js";
 import {
   ApproveDialog,
   RejectDialog,
+  TrainingHistoryDialog,
+  VoucherConfirmDialog,
   getVerifikasiColumns,
 } from "./components/index.js";
 
@@ -61,6 +63,8 @@ export default function VerifikasiAkunPage() {
   const [keyword, setKeyword] = useState("");
   const [approveUser, setApproveUser] = useState(null);
   const [rejectUser, setRejectUser] = useState(null);
+  const [voucherUser, setVoucherUser] = useState(null);
+  const [historyUser, setHistoryUser] = useState(null);
   const debouncedKeyword = useDebouncedValue(keyword, 500);
   const current = TABS.find((t) => t.key === tab) ?? TABS[0];
 
@@ -102,6 +106,20 @@ export default function VerifikasiAkunPage() {
     });
   };
 
+  const handleVoucherConfirmed = (confirmedUser) => {
+    setVoucherUser(null);
+    setPage(1);
+    toast({
+      title: "Voucher dikonfirmasi",
+      description: confirmedUser?.name
+        ? `Voucher ${confirmedUser.name} telah dikonfirmasi.`
+        : "Voucher telah dikonfirmasi.",
+    });
+    queryClient.invalidateQueries({
+      queryKey: verificationUsersKeys.byStatus(VERIFIED_STATUS.PENDING_VOUCHER),
+    });
+  };
+
   const handleApproved = (approvedUser) => {
     setApproveUser(null);
     setTab("voucher");
@@ -125,6 +143,8 @@ export default function VerifikasiAkunPage() {
       getVerifikasiColumns({
         onApprove: setApproveUser,
         onReject: setRejectUser,
+        onConfirmVoucher: setVoucherUser,
+        onShowHistory: setHistoryUser,
       }),
     [],
   );
@@ -187,6 +207,15 @@ export default function VerifikasiAkunPage() {
         user={approveUser}
         onClose={() => setApproveUser(null)}
         onApproved={handleApproved}
+      />
+      <TrainingHistoryDialog
+        user={historyUser}
+        onClose={() => setHistoryUser(null)}
+      />
+      <VoucherConfirmDialog
+        user={voucherUser}
+        onClose={() => setVoucherUser(null)}
+        onConfirmed={handleVoucherConfirmed}
       />
       <RejectDialog
         user={rejectUser}

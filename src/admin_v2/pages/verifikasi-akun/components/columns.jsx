@@ -50,6 +50,8 @@ const pendingColumns = [
         <button
           type="button"
           onClick={() => actions?.onApprove?.(u)}
+          aria-label={`Setujui ${u.name}`}
+          title="Setujui"
           className="text-green-600 hover:bg-green-50 hover:text-green-700 rounded-full"
         >
           <CheckCircle2 size={24} />
@@ -57,6 +59,8 @@ const pendingColumns = [
         <button
           type="button"
           onClick={() => actions?.onReject?.(u)}
+          aria-label={`Tolak ${u.name}`}
+          title="Tolak"
           className="text-red-600 hover:bg-red-50 hover:text-red-700 rounded-full"
         >
           <XCircle size={24} />
@@ -101,9 +105,11 @@ const voucherColumns = [
   {
     key: "training-history",
     header: "Riwayat Pelatihan",
-    // Detail dialog comes later — anchor only for now.
-    render: () => (
-      <a className="cursor-pointer whitespace-nowrap text-sm font-medium text-blue-600 hover:underline">
+    render: (u, actions) => (
+      <a
+        onClick={() => actions?.onShowHistory?.(u)}
+        className="cursor-pointer whitespace-nowrap text-sm font-medium text-blue-600 hover:underline"
+      >
         Lihat Detail
       </a>
     ),
@@ -138,9 +144,12 @@ const voucherColumns = [
   {
     key: "action",
     header: "Action",
-    // Confirm flow comes later — no-op for now.
-    render: () => (
-      <Button size="sm" type="button" onClick={() => { }}>
+    render: (u, actions) => (
+      <Button
+        size="sm"
+        type="button"
+        onClick={() => actions?.onConfirmVoucher?.(u)}
+      >
         Konfirmasi
       </Button>
     ),

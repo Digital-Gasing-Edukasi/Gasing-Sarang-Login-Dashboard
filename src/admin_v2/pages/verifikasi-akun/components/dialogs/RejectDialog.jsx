@@ -1,24 +1,24 @@
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
-import { Button } from "../../../components/ui/button.jsx";
-import { Checkbox } from "../../../components/ui/checkbox.jsx";
+import { Button } from "../../../../components/ui/button.jsx";
+import { Checkbox } from "../../../../components/ui/checkbox.jsx";
 import {
   Dialog,
   DialogContent,
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "../../../components/ui/dialog.jsx";
-import { Label } from "../../../components/ui/label.jsx";
-import { Textarea } from "../../../components/ui/textarea.jsx";
-import { verifyUser } from "../../../lib/api/index.js";
+} from "../../../../components/ui/dialog.jsx";
+import { Label } from "../../../../components/ui/label.jsx";
+import { Textarea } from "../../../../components/ui/textarea.jsx";
+import { verifyUser } from "../../../../lib/api/index.js";
 import {
   FIELD_DEFS,
   LAINNYA_KEY,
   buildVerifyPayload,
   canSubmitReject,
   toggleRejectField,
-} from "./rejectPayload.js";
+} from "../rejectPayload.js";
 
 export function RejectDialog({ user, onClose, onRejected }) {
   const [fields, setFields] = useState([]);
@@ -32,7 +32,7 @@ export function RejectDialog({ user, onClose, onRejected }) {
         userId: user.id,
         ...buildVerifyPayload({
           checkedKeys: fields,
-          customReason: reason.trim()
+          customReason: reason.trim(),
         }),
       }),
     onSuccess: () => {
