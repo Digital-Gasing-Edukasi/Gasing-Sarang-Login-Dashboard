@@ -49,8 +49,13 @@ export const verificationUsersKeys = {
 
 // Status headline number: fetch a single row, read meta.total.
 // `filter` is a VERIFIED_STATUS bucket string (backend rejects numerics).
-export async function fetchVerificationStatusCount(filter) {
-  const res = await fetchVerificationUsers({ status: filter, page: 1, limit: 1 });
+export async function fetchVerificationStatusCount(filter, { subscription } = {}) {
+  const res = await fetchVerificationUsers({
+    status: filter,
+    page: 1,
+    limit: 1,
+    subscription,
+  });
   return res?.meta?.total ?? 0;
 }
 
