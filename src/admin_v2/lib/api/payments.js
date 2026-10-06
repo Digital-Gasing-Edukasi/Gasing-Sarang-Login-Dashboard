@@ -1,4 +1,4 @@
-import { apiGet } from "./client.js";
+import { apiGet, apiPost } from "./client.js";
 
 // GET /admin/payments/manual-transfer/list?filter=<state>&page&limit
 // state: "receipt_uploaded" | "rejected"
@@ -21,3 +21,12 @@ export const manualPaymentKeys = {
     { page, limit },
   ],
 };
+
+// POST /admin/payments/manual-transfer/:paymentId/reject
+// Body: { reason: <reason-key>, notes: <text> }
+export function rejectManualPayment({ paymentId, reason, notes }) {
+  return apiPost(`/admin/payments/manual-transfer/${paymentId}/reject`, {
+    reason,
+    notes,
+  });
+}

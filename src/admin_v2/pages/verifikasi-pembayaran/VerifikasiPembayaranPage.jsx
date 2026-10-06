@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
 import { cn } from "../../lib/utils.js";
 import {
   VERIFIED_STATUS,
@@ -9,6 +9,7 @@ import {
   verificationUsersKeys,
 } from "../../lib/api/index.js";
 import { CountBadge, DataTable } from "../../components/index.js";
+import { toast } from "../../components/ui/use-toast.js";
 import { Search } from "lucide-react";
 import { Input } from "../../components/ui/input.jsx";
 import { useDebouncedValue } from "../../hooks/useDebouncedValue.js";
@@ -96,6 +97,7 @@ export default function VerifikasiPembayaranPage() {
   const debouncedKeyword = useDebouncedValue(keyword, 500);
   const [payment, setPayment] = useState(null);
   const [rejectPayment, setRejectPayment] = useState(null);
+  const queryClient = useQueryClient();
 
   // New search term → back to first page.
   useEffect(() => {
@@ -128,6 +130,23 @@ export default function VerifikasiPembayaranPage() {
   const handleLimit = (next) => {
     setLimit(next);
     setPage(1);
+  };
+
+  const handlePaymentRejected = (rejectedPayment) => {
+    setRejectPayment(null);
+    setPage(1);
+    toast({
+      title: "Pembayaran ditolak",
+      description: rejectedPayment?.user?.email
+        ? `Pembayaran ${rejectedPayment.user.email} telah ditolak.`
+        : "Pembayaran telah ditolak.",
+    });
+    queryClient.invalidateQueries({
+      queryKey: manualPaymentKeys.byState("receipt_uploaded"),
+    });
+    queryClient.invalidateQueries({
+      queryKey: manualPaymentKeys.byState("rejected"),
+    });
   };
 
   const columns = useMemo(
@@ -224,6 +243,7 @@ export default function VerifikasiPembayaranPage() {
       <PaymentRejectDialog
         payment={rejectPayment}
         onClose={() => setRejectPayment(null)}
+        onRejected={handlePaymentRejected}
       />
     </div>
   );

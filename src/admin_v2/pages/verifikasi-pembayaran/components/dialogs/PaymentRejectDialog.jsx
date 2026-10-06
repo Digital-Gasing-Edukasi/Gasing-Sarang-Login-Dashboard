@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useMutation } from "@tanstack/react-query";
 import { Button } from "../../../../components/ui/button.jsx";
 import {
   Dialog,
@@ -10,6 +11,7 @@ import {
 } from "../../../../components/ui/dialog.jsx";
 import { Input } from "../../../../components/ui/input.jsx";
 import { Label } from "../../../../components/ui/label.jsx";
+import { rejectManualPayment } from "../../../../lib/api/index.js";
 import {
   RadioGroup,
   RadioGroupItem,
@@ -39,7 +41,7 @@ const REASON_INPUTS = {
   },
 };
 
-export function PaymentRejectDialog({ payment, onClose }) {
+export function PaymentRejectDialog({ payment, onClose, onRejected }) {
   const open = !!payment;
   const [reason, setReason] = useState("");
   const [notes, setNotes] = useState({});
@@ -50,12 +52,29 @@ export function PaymentRejectDialog({ payment, onClose }) {
   const submittable =
     !!reason && (inputDef?.optional || note.trim().length > 0);
 
+  const reject = useMutation({
+    mutationFn: () =>
+      rejectManualPayment({
+        paymentId: payment.id,
+        reason,
+        notes: note.trim(),
+      }),
+    onSuccess: () => {
+      setReason("");
+      setNotes({});
+      onRejected?.(payment);
+    },
+  });
+
   // Fresh form every time the dialog closes.
   const handleClose = () => {
     setReason("");
     setNotes({});
+    reject.reset();
     onClose();
   };
+
+  const handleSubmit = () => reject.mutate();
 
   return (
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && handleClose()}>
@@ -95,18 +114,23 @@ export function PaymentRejectDialog({ payment, onClose }) {
           </div>
         )}
 
+        {reject.isError && (
+          <p className="text-sm text-red-600">
+            Gagal menolak: {reject.error?.message || "Unknown error"}
+          </p>
+        )}
+
         <DialogFooter>
-          <Button variant="outline" type="button" onClick={handleClose}>
+          <Button variant="outline" type="button" onClick={handleClose} disabled={reject.isPending}>
             Batalkan
           </Button>
-          {/* Submit flow comes later — dummy for now. */}
           <Button
             variant="destructive"
             type="button"
-            disabled={!submittable}
-            onClick={() => {}}
+            disabled={!submittable || reject.isPending}
+            onClick={handleSubmit}
           >
-            Tolak Pembayaran
+            {reject.isPending ? "Menolak…" : "Tolak Pembayaran"}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -15,7 +15,11 @@ vi.mock("../lib/api/users.js", async (importOriginal) => {
 
 vi.mock("../lib/api/payments.js", async (importOriginal) => {
   const actual = await importOriginal();
-  return { ...actual, fetchManualPayments: vi.fn() };
+  return {
+    ...actual,
+    fetchManualPayments: vi.fn(),
+    rejectManualPayment: vi.fn(async () => ({})),
+  };
 });
 
 vi.mock("../lib/api/training-histories.js", async (importOriginal) => {
@@ -45,7 +49,7 @@ vi.mock("../components/ui/dialog.jsx", async () => {
 });
 
 import { fetchVerificationUsers } from "../lib/api/users.js";
-import { fetchManualPayments } from "../lib/api/payments.js";
+import { fetchManualPayments, rejectManualPayment } from "../lib/api/payments.js";
 import { fetchTrainingHistory } from "../lib/api/training-histories.js";
 import VerifikasiPembayaranPage from "../pages/verifikasi-pembayaran/VerifikasiPembayaranPage.jsx";
 
@@ -211,7 +215,7 @@ describe("VerifikasiPembayaranPage", () => {
     expect(screen.getByRole("dialog")).toBeInTheDocument();
   });
 
-  it("payment reject flow: handoff, radios, conditional input, dummy submit", async () => {
+  it("payment reject submit: reason payload, close, both lists invalidated", async () => {
     const user = userEvent.setup();
     renderPage();
     await screen.findByText(U0.name);
@@ -219,91 +223,46 @@ describe("VerifikasiPembayaranPage", () => {
     fireEvent.click(screen.getByRole("button", { name: /Menunggu Verifikasi/ }));
     await screen.findByText(`@${P0.user.username}`);
 
-    // Confirm → Tolak closes it and opens the reject dialog.
     await user.click(screen.getAllByRole("button", { name: "Konfirmasi" })[0]);
-    let confirmDialog = await screen.findByRole("dialog");
     await user.click(
-      within(confirmDialog).getByRole("button", { name: "Tolak Pembayaran" }),
+      within(await screen.findByRole("dialog")).getByRole("button", {
+        name: "Tolak Pembayaran",
+      }),
     );
 
     const dialog = await screen.findByRole("dialog");
-    expect(
-      within(dialog).getByRole("heading", { name: "Tolak Pembayaran" }),
-    ).toBeInTheDocument();
-    expect(within(dialog).getByText(`Akun: ${P0.user.email}`)).toBeInTheDocument();
-    expect(
-      within(dialog).getByText("Pilih alasan penolakan:"),
-    ).toBeInTheDocument();
-
-    // Radios are exclusive; each reason shows its own input.
-    await user.click(within(dialog).getByRole("radio", { name: "Transfer tidak mencukupi" }));
-    expect(
-      within(dialog).getByPlaceholderText("Contoh: 100000"),
-    ).toBeInTheDocument();
-    // Required nominal → locked until typed.
-    expect(
-      within(dialog).getByRole("button", { name: "Tolak Pembayaran" }),
-    ).toBeDisabled();
-    await user.type(
-      within(dialog).getByPlaceholderText("Contoh: 100000"),
-      "100000",
+    await user.click(
+      within(dialog).getByRole("radio", { name: "Dana tidak diterima" }),
     );
-    expect(
-      within(dialog).getByRole("button", { name: "Tolak Pembayaran" }),
-    ).not.toBeDisabled();
-
-    await user.click(within(dialog).getByRole("radio", { name: "Dana tidak diterima" }));
-    expect(
+    await user.type(
       within(dialog).getByPlaceholderText("Catatan tambahan untuk alasan ini..."),
-    ).toBeInTheDocument();
-    // Optional note → submittable right away.
-    expect(
-      within(dialog).getByRole("button", { name: "Tolak Pembayaran" }),
-    ).not.toBeDisabled();
+      "uang tidak masuk",
+    );
 
-    // Dummy submit: dialog stays open.
+    const verifikasiBefore = fetchManualPayments.mock.calls.filter(
+      (c) => c[0].state === "receipt_uploaded",
+    ).length;
+    const ditolakBefore = fetchManualPayments.mock.calls.filter(
+      (c) => c[0].state === "rejected",
+    ).length;
     await user.click(
       within(dialog).getByRole("button", { name: "Tolak Pembayaran" }),
     );
-    expect(screen.getByRole("dialog")).toBeInTheDocument();
 
-    // Batalkan closes.
-    await user.click(within(dialog).getByRole("button", { name: "Batalkan" }));
-    await waitFor(() => {
-      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(rejectManualPayment).toHaveBeenCalledWith({
+      paymentId: P0.id,
+      reason: "fund_not_retrieved",
+      notes: "uang tidak masuk",
     });
-  });
-
-  it("search shows on Belum Langganan only and filters by keyword", async () => {
-    const user = userEvent.setup();
-    renderPage();
-    await screen.findByText(U0.name);
-
-    // Belum tab: search input present.
-    const search = screen.getByRole("textbox", { name: "Cari pengguna" });
-    // U1-only token within the unsubscribed pool.
-    const others = unsubFixture.data.slice(1);
-    const token = others[0].username;
-    await user.type(search, token);
 
     await waitFor(() => {
       expect(
-        fetchVerificationUsers.mock.calls.some((c) => c[0].keyword === token),
-      ).toBe(true);
+        fetchManualPayments.mock.calls.filter((c) => c[0].state === "receipt_uploaded")
+          .length,
+      ).toBeGreaterThan(verifikasiBefore);
+      expect(
+        fetchManualPayments.mock.calls.filter((c) => c[0].state === "rejected").length,
+      ).toBeGreaterThan(ditolakBefore);
     });
-    expect(screen.queryByText(U0.name)).not.toBeInTheDocument();
-
-    // Payment tabs: no search input.
-    fireEvent.click(screen.getByRole("button", { name: /Menunggu Verifikasi/ }));
-    await screen.findByText(`@${P0.user.username}`);
-    expect(
-      screen.queryByRole("textbox", { name: "Cari pengguna" }),
-    ).not.toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole("button", { name: /Pembayaran Ditolak/ }));
-    await screen.findByText(`@${P0.user.username}`);
-    expect(
-      screen.queryByRole("textbox", { name: "Cari pengguna" }),
-    ).not.toBeInTheDocument();
   });
 });

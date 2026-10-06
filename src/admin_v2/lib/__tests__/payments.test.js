@@ -1,9 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-vi.mock("../api/client.js", () => ({ apiGet: vi.fn() }));
+vi.mock("../api/client.js", () => ({ apiGet: vi.fn(), apiPost: vi.fn(), apiPatch: vi.fn() }));
 
-import { apiGet } from "../api/client.js";
-import { fetchManualPayments } from "../api/payments.js";
+import { apiGet, apiPost } from "../api/client.js";
+import { fetchManualPayments, rejectManualPayment } from "../api/payments.js";
 
 beforeEach(() => vi.clearAllMocks());
 
@@ -29,6 +29,19 @@ describe("fetchManualPayments", () => {
       filter: "rejected",
       page: 1,
       limit: 20,
+    });
+  });
+});
+
+describe("rejectManualPayment", () => {
+  it("POSTs reason + notes to the payment", async () => {
+    apiPost.mockResolvedValue({});
+
+    await rejectManualPayment({ paymentId: "p-1", reason: "fund_not_retrieved", notes: "x" });
+
+    expect(apiPost).toHaveBeenCalledWith("/admin/payments/manual-transfer/p-1/reject", {
+      reason: "fund_not_retrieved",
+      notes: "x",
     });
   });
 });
