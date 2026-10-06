@@ -207,6 +207,11 @@ describe("VerifikasiAkunPage", () => {
       ).not.toBeInTheDocument();
     });
     await user.click(await screen.findByRole("option", { name: "Gunung Sindur" }));
+    expect(
+      fetchTrainingSessions.mock.calls.some(
+        (c) => c[0].regionId === U0.firstTrainingRegionId,
+      ),
+    ).toBe(true);
 
     const submit = within(dialog).getByRole("button", { name: "Setujui" });
     expect(submit).not.toBeDisabled();
@@ -307,8 +312,8 @@ describe("VerifikasiAkunPage", () => {
     const voucherCode = voucherPool[0].lastVoucher.code;
     expect(screen.getByText(voucherCode)).toBeInTheDocument();
     expect(
-      screen.getByText(ROLE_META_BY_ID[voucherPool[0].discourseGroupId].fullName),
-    ).toBeInTheDocument();
+      screen.getAllByText(ROLE_META_BY_ID[voucherPool[0].discourseGroupId].fullName).length,
+    ).toBeGreaterThan(0);
 
     await user.click(screen.getAllByRole("button", { name: "Konfirmasi" })[0]);
     const dialog = await screen.findByRole("dialog");

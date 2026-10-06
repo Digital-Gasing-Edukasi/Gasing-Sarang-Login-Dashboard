@@ -19,6 +19,7 @@ describe("fetchVerificationUsers", () => {
         page: 2,
         limit: 50,
         "filter[verifiedStatus]": "waiting",
+        "filter[confirmed]": "yes",
         "sort[by]": "createdAt",
         "sort[order]": "desc",
       }),

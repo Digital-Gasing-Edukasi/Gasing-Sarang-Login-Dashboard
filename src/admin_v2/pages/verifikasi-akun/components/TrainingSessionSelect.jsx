@@ -7,15 +7,25 @@ import {
 import { useDebouncedValue } from "../../../hooks/useDebouncedValue.js";
 import { SearchSelect } from "../../../components/ui/search-select.jsx";
 
-// Server-searchable training session dropdown (searches by name).
-export function TrainingSessionSelect({ value, onValueChange }) {
+// Server-searchable training session dropdown (searches by name,
+// scoped to the user's first training region when provided).
+export function TrainingSessionSelect({ value, onValueChange, regionId }) {
   const [keyword, setKeyword] = useState("");
   const debouncedKeyword = useDebouncedValue(keyword, 400);
 
   const { data, isFetching } = useQuery({
-    queryKey: trainingSessionsKeys.page(1, { limit: 100, keyword: debouncedKeyword }),
+    queryKey: trainingSessionsKeys.page(1, {
+      limit: 100,
+      keyword: debouncedKeyword,
+      regionId,
+    }),
     queryFn: () =>
-      fetchTrainingSessions({ page: 1, limit: 100, keyword: debouncedKeyword }),
+      fetchTrainingSessions({
+        page: 1,
+        limit: 100,
+        keyword: debouncedKeyword,
+        regionId,
+      }),
     staleTime: 30_000,
   });
 

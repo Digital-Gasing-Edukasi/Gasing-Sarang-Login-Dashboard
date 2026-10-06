@@ -16,6 +16,7 @@ export function fetchVerificationUsers({ status, page = 1, limit = 20, keyword =
     page,
     limit,
     "filter[verifiedStatus]": status,
+    "filter[confirmed]": "yes",
     "filter[keyword]": keyword || undefined,
     "sort[by]": "createdAt",
     "sort[order]": "desc",

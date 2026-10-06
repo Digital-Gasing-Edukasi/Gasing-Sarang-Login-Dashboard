@@ -106,12 +106,15 @@ const voucherColumns = [
     key: "training-history",
     header: "Riwayat Pelatihan",
     render: (u, actions) => (
-      <a
-        onClick={() => actions?.onShowHistory?.(u)}
-        className="cursor-pointer whitespace-nowrap text-sm font-medium text-blue-600 hover:underline"
-      >
-        Lihat Detail
-      </a>
+      <>
+        <span className="mr-2 font-semibold">{u.numTrainings}</span>
+        <a
+          onClick={() => actions?.onShowHistory?.(u)}
+          className="cursor-pointer whitespace-nowrap text-sm font-medium text-blue-600 hover:underline"
+        >
+          Lihat Detail
+        </a>
+      </>
     ),
   },
   {

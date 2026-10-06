@@ -72,7 +72,11 @@ export function ApproveDialog({ user, onClose, onApproved }) {
 
         <div className="space-y-2">
           <Label>Pelatihan pertama</Label>
-          <TrainingSessionSelect value={sessionId} onValueChange={setSessionId} />
+          <TrainingSessionSelect
+            value={sessionId}
+            onValueChange={setSessionId}
+            regionId={user?.firstTrainingRegionId}
+          />
         </div>
 
         {approve.isError && (
