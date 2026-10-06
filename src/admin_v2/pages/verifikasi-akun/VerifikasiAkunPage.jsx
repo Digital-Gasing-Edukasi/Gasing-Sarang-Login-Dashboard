@@ -10,7 +10,7 @@ import {
 import { useDebouncedValue } from "../../hooks/useDebouncedValue.js";
 import { Input } from "../../components/ui/input.jsx";
 import { toast } from "../../components/ui/use-toast.js";
-import { DataTable } from "../../components/index.js";
+import { CountBadge, DataTable } from "../../components/index.js";
 import { ExportButton } from "../../components/downloads/index.js";
 import { Pagination } from "../../components/index.js";
 import {
@@ -41,18 +41,12 @@ function useUserList(status, page, limit, keyword) {
   });
 }
 
-function CountBadge({ status }) {
-  const { data } = useQuery({
-    queryKey: verificationUsersKeys.page(status, 1, { limit: DEFAULT_LIMIT }),
-    queryFn: () =>
-      fetchVerificationUsers({ status, page: 1, limit: DEFAULT_LIMIT }),
-    staleTime: 30_000,
-    select: (res) => res?.meta?.total ?? 0,
-  });
+function TabCountBadge({ status }) {
   return (
-    <span className="ml-2 inline-flex min-w-6 items-center justify-center rounded-full bg-muted px-1.5 py-0.5 text-xs font-semibold text-muted-foreground">
-      {data ?? "…"}
-    </span>
+    <CountBadge
+      queryKey={verificationUsersKeys.page(status, 1, { limit: DEFAULT_LIMIT })}
+      queryFn={() => fetchVerificationUsers({ status, page: 1, limit: DEFAULT_LIMIT })}
+    />
   );
 }
 
@@ -172,7 +166,7 @@ export default function VerifikasiAkunPage() {
                 )}
               >
                 {t.title}
-                <CountBadge status={t.status} />
+                <TabCountBadge status={t.status} />
               </button>
             );
           })}

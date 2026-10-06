@@ -2,9 +2,9 @@ import { CheckCircle2, XCircle } from "lucide-react";
 import { Button } from "../../../components/ui/button.jsx";
 import { OverflowText } from "../../../components/OverflowText.jsx";
 import { formatShortDate, formatTrainingPeriod } from "../../../lib/format.js";
-import { RoleBadge } from "./RoleBadge.jsx";
+import { RoleBadge } from "../../../components/RoleBadge.jsx";
 import { StatusPill } from "../../../components/StatusPill.jsx";
-import { UserCell } from "./UserCell.jsx";
+import { UserCell } from "../../../components/UserCell.jsx";
 
 const text = (value) => (
   <OverflowText value={value} className="text-sm text-foreground" />

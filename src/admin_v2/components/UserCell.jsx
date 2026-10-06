@@ -1,4 +1,4 @@
-import { OverflowText } from "../../../components/OverflowText.jsx";
+import { OverflowText } from "./OverflowText.jsx";
 
 export function UserCell({ name, username }) {
   return (

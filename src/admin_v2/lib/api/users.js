@@ -11,12 +11,13 @@ export const VERIFIED_STATUS = {
 
 // GET /admin/users?page&limit&filter[verifiedStatus]&filter[keyword]&sort[by]=createdAt&sort[order]=desc
 // → { data: [...], meta: { current_page, last_page, per_page, total, from, to } }
-export function fetchVerificationUsers({ status, page = 1, limit = 20, keyword = "" }) {
+export function fetchVerificationUsers({ status, page = 1, limit = 20, keyword = "", subscription } = {}) {
   return apiGet("/admin/users", {
     page,
     limit,
     "filter[verifiedStatus]": status,
     "filter[confirmed]": "yes",
+    "filter[subscriptionStatus]": subscription || undefined,
     "filter[keyword]": keyword || undefined,
     "sort[by]": "createdAt",
     "sort[order]": "desc",
@@ -33,11 +34,16 @@ export function fetchVerificationUsers({ status, page = 1, limit = 20, keyword =
 export const verificationUsersKeys = {
   all: ["admin_v2", "verification-users"],
   byStatus: (status) => ["admin_v2", "verification-users", status],
-  page: (status, page, { limit = 20, keyword = "" } = {}) => [
+  page: (status, page, { limit = 20, keyword = "", subscription } = {}) => [
     "admin_v2",
     "verification-users",
     status,
-    { page, limit, ...(keyword ? { keyword } : {}) },
+    {
+      page,
+      limit,
+      ...(keyword ? { keyword } : {}),
+      ...(subscription ? { subscription } : {}),
+    },
   ],
 };
 

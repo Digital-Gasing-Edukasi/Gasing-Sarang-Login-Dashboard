@@ -1,4 +1,4 @@
-import { getRoleMeta } from "../../../lib/roles.js";
+import { getRoleMeta } from "../lib/roles.js";
 
 // Looked up by discourse group id. `label` is only a fallback for unknown ids.
 export function RoleBadge({ groupId, label }) {

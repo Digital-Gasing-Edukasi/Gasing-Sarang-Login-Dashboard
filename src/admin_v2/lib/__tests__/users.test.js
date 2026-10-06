@@ -26,6 +26,16 @@ describe("fetchVerificationUsers", () => {
     );
   });
 
+  it("passes subscriptionStatus through when set", async () => {
+    apiGet.mockResolvedValue({ data: [], meta: {} });
+
+    await fetchVerificationUsers({ status: "approved", subscription: "not_subscribed" });
+    expect(apiGet).toHaveBeenLastCalledWith(
+      "/admin/users",
+      expect.objectContaining({ "filter[subscriptionStatus]": "not_subscribed" }),
+    );
+  });
+
   it("passes keyword through, undefined when blank (client omits it)", async () => {
     apiGet.mockResolvedValue({ data: [], meta: {} });
 

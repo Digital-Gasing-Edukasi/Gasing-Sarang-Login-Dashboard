@@ -4,3 +4,7 @@ export { DataTable } from "./DataTable.jsx";
 export { OverflowText } from "./OverflowText.jsx";
 export { Pagination, PAGE_LIMIT_OPTIONS } from "./Pagination.jsx";
 export { StatusPill } from "./StatusPill.jsx";
+export { TrainingHistoryDialog } from "./dialogs/TrainingHistoryDialog.jsx";
+export { RoleBadge } from "./RoleBadge.jsx";
+export { UserCell } from "./UserCell.jsx";
+export { CountBadge } from "./CountBadge.jsx";

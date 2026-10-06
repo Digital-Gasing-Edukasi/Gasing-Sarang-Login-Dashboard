@@ -5,15 +5,15 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-} from "../../../../components/ui/dialog.jsx";
-import { DataTable } from "../../../../components/DataTable.jsx";
-import { Pagination } from "../../../../components/Pagination.jsx";
-import { OverflowText } from "../../../../components/OverflowText.jsx";
-import { formatShortDate } from "../../../../lib/format.js";
+} from "../../components/ui/dialog.jsx";
+import { DataTable } from "../../components/DataTable.jsx";
+import { Pagination } from "../../components/Pagination.jsx";
+import { OverflowText } from "../../components/OverflowText.jsx";
+import { formatShortDate } from "../../lib/format.js";
 import {
   fetchTrainingHistory,
   trainingHistoryKeys,
-} from "../../../../lib/api/index.js";
+} from "../../lib/api/index.js";
 
 const HISTORY_LIMIT = 100;
 

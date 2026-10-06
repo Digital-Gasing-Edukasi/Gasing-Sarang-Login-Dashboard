@@ -30,3 +30,7 @@ export {
   fetchExportJob,
   exportJobKeys,
 } from "./exports.js";
+export {
+  fetchManualPayments,
+  manualPaymentKeys,
+} from "./payments.js";

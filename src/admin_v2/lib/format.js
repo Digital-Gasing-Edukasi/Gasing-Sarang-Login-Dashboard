@@ -13,18 +13,30 @@ const ID_MONTHS = [
   "Desember",
 ];
 
+// Backend sends ENGLISH month names ("October", "December", ...); display
+// uses Indonesian abbreviations ("Okt", "Des", ...). Indonesian spellings
+// kept as aliases for tolerance.
 const ID_MONTH_ABBR = {
+  January: "Jan",
   Januari: "Jan",
+  February: "Feb",
   Februari: "Feb",
+  March: "Mar",
   Maret: "Mar",
   April: "Apr",
+  May: "Mei",
   Mei: "Mei",
+  June: "Jun",
   Juni: "Jun",
+  July: "Jul",
   Juli: "Jul",
+  August: "Agu",
   Agustus: "Agu",
   September: "Sep",
+  October: "Okt",
   Oktober: "Okt",
   November: "Nov",
+  December: "Des",
   Desember: "Des",
 };
 
@@ -46,4 +58,16 @@ export function formatShortDate(formatted) {
   const abbr = ID_MONTH_ABBR[month];
   if (!abbr) return `${day} ${month} ${year}`;
   return `${day} ${abbr} ${year}`;
+}
+
+// Date → "02 Okt 2026 13:54" (Indonesian abbrev months, local timezone).
+export function formatDateTime(date) {
+  const d = date instanceof Date ? date : new Date(date);
+  if (Number.isNaN(d.getTime())) return FALLBACK_TEXT;
+  const day = String(d.getDate()).padStart(2, "0");
+  const monthName = ID_MONTHS[d.getMonth()];
+  const abbr = ID_MONTH_ABBR[monthName] ?? monthName.slice(0, 3);
+  const hours = String(d.getHours()).padStart(2, "0");
+  const minutes = String(d.getMinutes()).padStart(2, "0");
+  return `${day} ${abbr} ${d.getFullYear()} ${hours}:${minutes}`;
 }
