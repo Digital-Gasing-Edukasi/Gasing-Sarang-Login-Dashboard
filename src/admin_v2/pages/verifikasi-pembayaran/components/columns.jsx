@@ -1,15 +1,15 @@
 import { CheckCircle2, MoreVertical, Trash2 } from "lucide-react";
 import { Button } from "../../../components/ui/button.jsx";
-import { cn } from "../../../lib/utils.js";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "../../../components/ui/popover.jsx";
 import { OverflowText } from "../../../components/OverflowText.jsx";
+import { DeadlineCell } from "./DeadlineCell.jsx";
 import { RoleBadge } from "../../../components/RoleBadge.jsx";
 import { UserCell } from "../../../components/UserCell.jsx";
-import { FALLBACK_TEXT, formatDateTime, formatShortDate } from "../../../lib/format.js";
+import { formatShortDate } from "../../../lib/format.js";
 
 const text = (value) => (
   <OverflowText value={value} className="text-sm text-foreground" />
@@ -108,20 +108,7 @@ const paymentColumns = (withMenu) => [
   {
     key: "deadline",
     header: "Deadline",
-    render: (p) => {
-      if (!p.createdAt?.unix) return text(null);
-      const deadline = new Date((p.createdAt.unix + 24 * 3600) * 1000);
-      const passed = deadline.getTime() < Date.now();
-      return (
-        <OverflowText
-          value={formatDateTime(deadline)}
-          className={cn(
-            "text-sm",
-            passed ? "font-semibold text-red-600" : "text-foreground",
-          )}
-        />
-      );
-    },
+    render: (p) => <DeadlineCell createdAtUnix={p.createdAt?.unix} />,
   },
   {
     key: "member",
@@ -141,7 +128,7 @@ const paymentColumns = (withMenu) => [
   {
     key: "uploaded",
     header: "Tgl. Upload",
-    render: (p) => text(formatShortDate(p.createdAt?.utc?.formatted)),
+    render: (p) => text(p.transferDate?.formatted),
   },
   withMenu
     ? {
@@ -202,4 +189,3 @@ export function getPembayaranColumns(actions) {
   };
 }
 
-export { FALLBACK_TEXT };

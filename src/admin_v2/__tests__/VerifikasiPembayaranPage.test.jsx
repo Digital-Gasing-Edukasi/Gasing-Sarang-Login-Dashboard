@@ -139,17 +139,16 @@ describe("VerifikasiPembayaranPage", () => {
     expect(
       screen.getByText(formatShortDate(P0.periodeEnd.utc.formatted)),
     ).toBeInTheDocument();
-    // Fixture deadline (Oct 2026) is long past → red expired styling.
-    const deadlineEl = screen.getByText(
-      formatDateTime(new Date((P0.createdAt.unix + 24 * 3600) * 1000)),
-    );
-    expect(deadlineEl.className).toMatch(/text-red-600/);
+    // Fixture deadline is in the future → live HH:MM:SS countdown.
+    const countdownEl = await screen.findByText(/\d{2}:\d{2}:\d{2}/);
+    expect(countdownEl.className).not.toMatch(/text-red-600/);
     expect(fetchManualPayments).toHaveBeenCalledWith(
       expect.objectContaining({ state: "receipt_uploaded" }),
     );
     expect(
       screen.getAllByRole("button", { name: "Konfirmasi" }).length,
     ).toBeGreaterThan(0);
+    expect(screen.getByText(P0.transferDate.formatted)).toBeInTheDocument();
   });
 
   it("ditolak tab: action menu with approve + delete entries", async () => {
