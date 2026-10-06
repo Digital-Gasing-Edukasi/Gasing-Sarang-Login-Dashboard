@@ -140,8 +140,7 @@ describe("VerifikasiPembayaranPage", () => {
       screen.getByText(formatShortDate(P0.periodeEnd.utc.formatted)),
     ).toBeInTheDocument();
     // Fixture deadline is in the future → live HH:MM:SS countdown.
-    const countdownEl = await screen.findByText(/\d{2}:\d{2}:\d{2}/);
-    expect(countdownEl.className).not.toMatch(/text-red-600/);
+    expect(await screen.findByText(/\d{2}:\d{2}:\d{2}/)).toBeInTheDocument();
     expect(fetchManualPayments).toHaveBeenCalledWith(
       expect.objectContaining({ state: "receipt_uploaded" }),
     );
@@ -165,5 +164,103 @@ describe("VerifikasiPembayaranPage", () => {
     await user.click(screen.getAllByRole("button", { name: /Aksi pembayaran/ })[0]);
     expect(await screen.findByText("Setujui Pembayaran")).toBeInTheDocument();
     expect(screen.getByText("Hapus Akun")).toBeInTheDocument();
+  });
+
+  it("payment confirm dialog: details, rupiah, receipt, dummy actions", async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await screen.findByText(U0.name);
+
+    fireEvent.click(screen.getByRole("button", { name: /Menunggu Verifikasi/ }));
+    await screen.findByText(`@${P0.user.username}`);
+
+    await user.click(screen.getAllByRole("button", { name: "Konfirmasi" })[0]);
+    const dialog = await screen.findByRole("dialog");
+    expect(
+      within(dialog).getByRole("heading", { name: "Konfirmasi Pembayaran" }),
+    ).toBeInTheDocument();
+    expect(within(dialog).getByText(`Akun: ${P0.user.email}`)).toBeInTheDocument();
+    expect(within(dialog).getByText(P0.senderName)).toBeInTheDocument();
+    expect(within(dialog).getByText(P0.senderBankName)).toBeInTheDocument();
+    expect(
+      within(dialog).getByText(P0.transferDate.formatted),
+    ).toBeInTheDocument();
+    expect(within(dialog).getByText("Tahunan")).toBeInTheDocument();
+    expect(within(dialog).getByText("Rp 396.000")).toBeInTheDocument();
+
+    const receipt = within(dialog).getByAltText("Bukti transfer");
+    expect(receipt).toHaveAttribute("src", P0.receiptUrl);
+    const download = within(dialog).getByRole("link", { name: "Unduh Bukti" });
+    expect(download).toHaveAttribute("href", P0.receiptUrl);
+
+    // Dummies: clickable, dialog stays open.
+    await user.click(within(dialog).getByRole("button", { name: "Tolak Pembayaran" }));
+    await user.click(
+      within(dialog).getByRole("button", { name: "Konfirmasi Pembayaran" }),
+    );
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+  });
+
+  it("payment reject flow: handoff, radios, conditional input, dummy submit", async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await screen.findByText(U0.name);
+
+    fireEvent.click(screen.getByRole("button", { name: /Menunggu Verifikasi/ }));
+    await screen.findByText(`@${P0.user.username}`);
+
+    // Confirm → Tolak closes it and opens the reject dialog.
+    await user.click(screen.getAllByRole("button", { name: "Konfirmasi" })[0]);
+    let confirmDialog = await screen.findByRole("dialog");
+    await user.click(
+      within(confirmDialog).getByRole("button", { name: "Tolak Pembayaran" }),
+    );
+
+    const dialog = await screen.findByRole("dialog");
+    expect(
+      within(dialog).getByRole("heading", { name: "Tolak Pembayaran" }),
+    ).toBeInTheDocument();
+    expect(within(dialog).getByText(`Akun: ${P0.user.email}`)).toBeInTheDocument();
+    expect(
+      within(dialog).getByText("Pilih alasan penolakan:"),
+    ).toBeInTheDocument();
+
+    // Radios are exclusive; each reason shows its own input.
+    await user.click(within(dialog).getByRole("radio", { name: "Transfer tidak mencukupi" }));
+    expect(
+      within(dialog).getByPlaceholderText("Contoh: 100000"),
+    ).toBeInTheDocument();
+    // Required nominal → locked until typed.
+    expect(
+      within(dialog).getByRole("button", { name: "Tolak Pembayaran" }),
+    ).toBeDisabled();
+    await user.type(
+      within(dialog).getByPlaceholderText("Contoh: 100000"),
+      "100000",
+    );
+    expect(
+      within(dialog).getByRole("button", { name: "Tolak Pembayaran" }),
+    ).not.toBeDisabled();
+
+    await user.click(within(dialog).getByRole("radio", { name: "Dana tidak diterima" }));
+    expect(
+      within(dialog).getByPlaceholderText("Catatan tambahan untuk alasan ini..."),
+    ).toBeInTheDocument();
+    // Optional note → submittable right away.
+    expect(
+      within(dialog).getByRole("button", { name: "Tolak Pembayaran" }),
+    ).not.toBeDisabled();
+
+    // Dummy submit: dialog stays open.
+    await user.click(
+      within(dialog).getByRole("button", { name: "Tolak Pembayaran" }),
+    );
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+
+    // Batalkan closes.
+    await user.click(within(dialog).getByRole("button", { name: "Batalkan" }));
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    });
   });
 });

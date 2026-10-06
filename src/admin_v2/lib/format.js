@@ -80,3 +80,10 @@ export function formatCountdown(ms) {
   const seconds = String(total % 60).padStart(2, "0");
   return `${hours}:${minutes}:${seconds}`;
 }
+
+// Nominal → "Rp 396.000". Non-numeric → fallback.
+export function formatRupiah(n) {
+  const num = Number(n);
+  if (!Number.isFinite(num)) return FALLBACK_TEXT;
+  return `Rp ${num.toLocaleString("id-ID")}`;
+}

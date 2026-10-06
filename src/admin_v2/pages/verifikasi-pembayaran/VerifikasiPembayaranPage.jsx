@@ -11,7 +11,11 @@ import {
 import { CountBadge, DataTable } from "../../components/index.js";
 import { Pagination } from "../../components/index.js";
 import { TrainingHistoryDialog } from "../../components/index.js";
-import { getPembayaranColumns } from "./components/index.js";
+import {
+  PaymentConfirmDialog,
+  PaymentRejectDialog,
+  getPembayaranColumns,
+} from "./components/index.js";
 
 const DEFAULT_LIMIT = 20;
 
@@ -83,6 +87,8 @@ export default function VerifikasiPembayaranPage() {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(DEFAULT_LIMIT);
   const [historyUser, setHistoryUser] = useState(null);
+  const [payment, setPayment] = useState(null);
+  const [rejectPayment, setRejectPayment] = useState(null);
 
   const belum = useUnsubscribed(page, limit, tab === "belum");
   const verifikasi = useManualList(
@@ -116,6 +122,7 @@ export default function VerifikasiPembayaranPage() {
     () =>
       getPembayaranColumns({
         onShowHistory: setHistoryUser,
+        onConfirmPayment: setPayment,
         // Approve/delete payment flows come later — no-ops for now.
         onApprovePayment: () => {},
         onDeleteAccount: () => {},
@@ -174,6 +181,18 @@ export default function VerifikasiPembayaranPage() {
       <TrainingHistoryDialog
         user={historyUser}
         onClose={() => setHistoryUser(null)}
+      />
+      <PaymentConfirmDialog
+        payment={payment}
+        onClose={() => setPayment(null)}
+        onReject={(p) => {
+          setPayment(null);
+          setRejectPayment(p);
+        }}
+      />
+      <PaymentRejectDialog
+        payment={rejectPayment}
+        onClose={() => setRejectPayment(null)}
       />
     </div>
   );

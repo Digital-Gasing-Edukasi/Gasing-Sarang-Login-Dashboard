@@ -41,3 +41,4 @@ export {
 export { Toaster } from "./toaster.jsx";
 export { useToast, toast } from "./use-toast.js";
 export { Textarea } from "./textarea.jsx";
+export { RadioGroup, RadioGroupItem } from "./radio-group.jsx";

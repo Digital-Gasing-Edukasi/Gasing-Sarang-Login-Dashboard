@@ -170,9 +170,8 @@ const paymentColumns = (withMenu) => [
     : {
         key: "action",
         header: "Action",
-        // Confirm flow comes later — no-op for now.
-        render: () => (
-          <Button size="sm" type="button" onClick={() => {}}>
+        render: (p, actions) => (
+          <Button size="sm" type="button" onClick={() => actions?.onConfirmPayment?.(p)}>
             Konfirmasi
           </Button>
         ),
