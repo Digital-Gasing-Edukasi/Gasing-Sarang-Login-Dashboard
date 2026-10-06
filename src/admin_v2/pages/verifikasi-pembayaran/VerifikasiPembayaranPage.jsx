@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { cn } from "../../lib/utils.js";
 import {
@@ -9,6 +9,9 @@ import {
   verificationUsersKeys,
 } from "../../lib/api/index.js";
 import { CountBadge, DataTable } from "../../components/index.js";
+import { Search } from "lucide-react";
+import { Input } from "../../components/ui/input.jsx";
+import { useDebouncedValue } from "../../hooks/useDebouncedValue.js";
 import { Pagination } from "../../components/index.js";
 import { TrainingHistoryDialog } from "../../components/index.js";
 import {
@@ -53,12 +56,13 @@ function TabCountBadge({ tabKey }) {
   );
 }
 
-function useUnsubscribed(page, limit, enabled) {
+function useUnsubscribed(page, limit, keyword, enabled) {
   return useQuery({
     enabled,
     queryKey: verificationUsersKeys.page(VERIFIED_STATUS.APPROVED, page, {
       limit,
       subscription: "not_subscribed",
+      keyword,
     }),
     queryFn: () =>
       fetchVerificationUsers({
@@ -66,6 +70,7 @@ function useUnsubscribed(page, limit, enabled) {
         page,
         limit,
         subscription: "not_subscribed",
+        keyword,
       }),
     staleTime: 30_000,
     placeholderData: keepPreviousData,
@@ -87,10 +92,17 @@ export default function VerifikasiPembayaranPage() {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(DEFAULT_LIMIT);
   const [historyUser, setHistoryUser] = useState(null);
+  const [keyword, setKeyword] = useState("");
+  const debouncedKeyword = useDebouncedValue(keyword, 500);
   const [payment, setPayment] = useState(null);
   const [rejectPayment, setRejectPayment] = useState(null);
 
-  const belum = useUnsubscribed(page, limit, tab === "belum");
+  // New search term → back to first page.
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedKeyword]);
+
+  const belum = useUnsubscribed(page, limit, debouncedKeyword, tab === "belum");
   const verifikasi = useManualList(
     "receipt_uploaded",
     page,
@@ -137,26 +149,41 @@ export default function VerifikasiPembayaranPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex gap-1 border-b">
-        {TABS.map((t) => {
-          const isActive = t.key === tab;
-          return (
-            <button
-              key={t.key}
-              type="button"
-              onClick={() => handleTab(t.key)}
-              className={cn(
-                "flex items-center border-b-2 px-4 py-2 text-sm transition-colors",
-                isActive
-                  ? "border-primary font-semibold text-foreground"
-                  : "border-transparent text-muted-foreground hover:text-foreground",
-              )}
-            >
-              {t.title}
-              <TabCountBadge tabKey={t.key} />
-            </button>
-          );
-        })}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex gap-1 border-b">
+          {TABS.map((t) => {
+            const isActive = t.key === tab;
+            return (
+              <button
+                key={t.key}
+                type="button"
+                onClick={() => handleTab(t.key)}
+                className={cn(
+                  "flex items-center border-b-2 px-4 py-2 text-sm transition-colors",
+                  isActive
+                    ? "border-primary font-semibold text-foreground"
+                    : "border-transparent text-muted-foreground hover:text-foreground",
+                )}
+              >
+                {t.title}
+                <TabCountBadge tabKey={t.key} />
+              </button>
+            );
+          })}
+        </div>
+
+        {tab === "belum" && (
+          <div className="relative w-full sm:w-64">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={keyword}
+              onChange={(e) => setKeyword(e.target.value)}
+              placeholder="Cari nama, email, username…"
+              aria-label="Cari pengguna"
+              className="pl-9"
+            />
+          </div>
+        )}
       </div>
 
       <DataTable
@@ -166,7 +193,11 @@ export default function VerifikasiPembayaranPage() {
         loading={isLoading}
         error={isError ? error : null}
         onRetry={() => refetch()}
-        emptyText="Tidak ada data pada tab ini."
+        emptyText={
+          debouncedKeyword && tab === "belum"
+            ? `Tidak ada hasil untuk "${debouncedKeyword}".`
+            : "Tidak ada data pada tab ini."
+        }
       />
 
       {!isLoading && !isError && (

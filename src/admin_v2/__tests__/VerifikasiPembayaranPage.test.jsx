@@ -65,10 +65,20 @@ function renderPage() {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  fetchVerificationUsers.mockImplementation(async () => ({
-    data: unsubFixture.data,
-    meta: unsubFixture.meta,
-  }));
+  fetchVerificationUsers.mockImplementation(({ keyword = "" } = {}) => {
+    const kw = keyword.trim().toLowerCase();
+    const data = kw
+      ? unsubFixture.data.filter((u) =>
+          [u.name, u.username, u.email].some((f) =>
+            (f || "").toLowerCase().includes(kw),
+          ),
+        )
+      : unsubFixture.data;
+    return Promise.resolve({
+      data,
+      meta: { ...unsubFixture.meta, to: data.length, total: kw ? data.length : unsubFixture.meta.total },
+    });
+  });
   fetchManualPayments.mockImplementation(async () => ({
     data: paymentFixture.data,
     meta: paymentFixture.meta,
@@ -262,5 +272,38 @@ describe("VerifikasiPembayaranPage", () => {
     await waitFor(() => {
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     });
+  });
+
+  it("search shows on Belum Langganan only and filters by keyword", async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await screen.findByText(U0.name);
+
+    // Belum tab: search input present.
+    const search = screen.getByRole("textbox", { name: "Cari pengguna" });
+    // U1-only token within the unsubscribed pool.
+    const others = unsubFixture.data.slice(1);
+    const token = others[0].username;
+    await user.type(search, token);
+
+    await waitFor(() => {
+      expect(
+        fetchVerificationUsers.mock.calls.some((c) => c[0].keyword === token),
+      ).toBe(true);
+    });
+    expect(screen.queryByText(U0.name)).not.toBeInTheDocument();
+
+    // Payment tabs: no search input.
+    fireEvent.click(screen.getByRole("button", { name: /Menunggu Verifikasi/ }));
+    await screen.findByText(`@${P0.user.username}`);
+    expect(
+      screen.queryByRole("textbox", { name: "Cari pengguna" }),
+    ).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /Pembayaran Ditolak/ }));
+    await screen.findByText(`@${P0.user.username}`);
+    expect(
+      screen.queryByRole("textbox", { name: "Cari pengguna" }),
+    ).not.toBeInTheDocument();
   });
 });
