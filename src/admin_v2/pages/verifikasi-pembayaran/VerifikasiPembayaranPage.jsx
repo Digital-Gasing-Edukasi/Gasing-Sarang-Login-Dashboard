@@ -132,6 +132,23 @@ export default function VerifikasiPembayaranPage() {
     setPage(1);
   };
 
+  const handlePaymentApproved = (approvedPayment) => {
+    setPayment(null);
+    setPage(1);
+    toast({
+      title: "Pembayaran disetujui",
+      description: approvedPayment?.user?.email
+        ? `Pembayaran ${approvedPayment.user.email} telah disetujui.`
+        : "Pembayaran telah disetujui.",
+    });
+    queryClient.invalidateQueries({
+      queryKey: verificationUsersKeys.byStatus(VERIFIED_STATUS.APPROVED),
+    });
+    queryClient.invalidateQueries({
+      queryKey: manualPaymentKeys.byState("receipt_uploaded"),
+    });
+  };
+
   const handlePaymentRejected = (rejectedPayment) => {
     setRejectPayment(null);
     setPage(1);
@@ -234,6 +251,7 @@ export default function VerifikasiPembayaranPage() {
       />
       <PaymentConfirmDialog
         payment={payment}
+        onApproved={handlePaymentApproved}
         onClose={() => setPayment(null)}
         onReject={(p) => {
           setPayment(null);

@@ -1,3 +1,4 @@
+import { useMutation } from "@tanstack/react-query";
 import { Download } from "lucide-react";
 import { Button } from "../../../../components/ui/button.jsx";
 import {
@@ -9,6 +10,7 @@ import {
   DialogTitle,
 } from "../../../../components/ui/dialog.jsx";
 import { FALLBACK_TEXT, formatRupiah } from "../../../../lib/format.js";
+import { approveManualPayment } from "../../../../lib/api/index.js";
 
 const PACKAGE_NAMES = { Yearly: "Tahunan", Monthly: "Bulanan" };
 
@@ -21,12 +23,23 @@ function Field({ label, children }) {
   );
 }
 
-export function PaymentConfirmDialog({ payment, onClose, onReject }) {
+export function PaymentConfirmDialog({ payment, onClose, onReject, onApproved }) {
   const open = !!payment;
+
+  const approve = useMutation({
+    mutationFn: () => approveManualPayment({ paymentId: payment.id }),
+    onSuccess: () => onApproved?.(payment),
+  });
   const email = payment?.user?.email;
 
+  // Fresh state every time the dialog closes (stale errors included).
+  const handleClose = () => {
+    approve.reset();
+    onClose();
+  };
+
   return (
-    <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
+    <Dialog open={open} onOpenChange={(isOpen) => !isOpen && handleClose()}>
       <DialogContent className="max-w-[768px]">
         <DialogHeader>
           <DialogTitle>Konfirmasi Pembayaran</DialogTitle>
@@ -71,12 +84,18 @@ export function PaymentConfirmDialog({ payment, onClose, onReject }) {
           </div>
         </div>
 
+        {approve.isError && (
+          <p className="text-sm text-red-600">
+            Gagal mengonfirmasi: {approve.error?.message || "Unknown error"}
+          </p>
+        )}
+
         <DialogFooter>
-          <Button variant="destructive" type="button" onClick={() => onReject?.(payment)}>
+          <Button variant="destructive" type="button" onClick={() => onReject?.(payment)} disabled={approve.isPending}>
             Tolak Pembayaran
           </Button>
-          <Button type="button" onClick={() => {}}>
-            Konfirmasi Pembayaran
+          <Button type="button" onClick={() => approve.mutate()} disabled={approve.isPending}>
+            {approve.isPending ? "Mengonfirmasi…" : "Konfirmasi Pembayaran"}
           </Button>
         </DialogFooter>
       </DialogContent>

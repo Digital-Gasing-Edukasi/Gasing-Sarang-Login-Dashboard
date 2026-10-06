@@ -3,7 +3,11 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 vi.mock("../api/client.js", () => ({ apiGet: vi.fn(), apiPost: vi.fn(), apiPatch: vi.fn() }));
 
 import { apiGet, apiPost } from "../api/client.js";
-import { fetchManualPayments, rejectManualPayment } from "../api/payments.js";
+import {
+  approveManualPayment,
+  fetchManualPayments,
+  rejectManualPayment,
+} from "../api/payments.js";
 
 beforeEach(() => vi.clearAllMocks());
 
@@ -42,6 +46,18 @@ describe("rejectManualPayment", () => {
     expect(apiPost).toHaveBeenCalledWith("/admin/payments/manual-transfer/p-1/reject", {
       reason: "fund_not_retrieved",
       notes: "x",
+    });
+  });
+});
+
+describe("approveManualPayment", () => {
+  it("POSTs to the approve endpoint with hardcoded notes", async () => {
+    apiPost.mockResolvedValue({});
+
+    await approveManualPayment({ paymentId: "p-1" });
+
+    expect(apiPost).toHaveBeenCalledWith("/admin/payments/manual-transfer/p-1/approve", {
+      notes: "Optional approval notes",
     });
   });
 });

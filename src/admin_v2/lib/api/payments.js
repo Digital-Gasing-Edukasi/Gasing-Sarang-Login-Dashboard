@@ -30,3 +30,11 @@ export function rejectManualPayment({ paymentId, reason, notes }) {
     notes,
   });
 }
+
+// POST /admin/payments/manual-transfer/:paymentId/approve
+// Notes are hardcoded until the form collects them.
+export function approveManualPayment({ paymentId }) {
+  return apiPost(`/admin/payments/manual-transfer/${paymentId}/approve`, {
+    notes: "Optional approval notes",
+  });
+}

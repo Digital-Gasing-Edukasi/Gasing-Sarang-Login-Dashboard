@@ -19,6 +19,7 @@ vi.mock("../lib/api/payments.js", async (importOriginal) => {
     ...actual,
     fetchManualPayments: vi.fn(),
     rejectManualPayment: vi.fn(async () => ({})),
+    approveManualPayment: vi.fn(async () => ({})),
   };
 });
 
@@ -49,7 +50,11 @@ vi.mock("../components/ui/dialog.jsx", async () => {
 });
 
 import { fetchVerificationUsers } from "../lib/api/users.js";
-import { fetchManualPayments, rejectManualPayment } from "../lib/api/payments.js";
+import {
+  approveManualPayment,
+  fetchManualPayments,
+  rejectManualPayment,
+} from "../lib/api/payments.js";
 import { fetchTrainingHistory } from "../lib/api/training-histories.js";
 import VerifikasiPembayaranPage from "../pages/verifikasi-pembayaran/VerifikasiPembayaranPage.jsx";
 
@@ -263,6 +268,46 @@ describe("VerifikasiPembayaranPage", () => {
       expect(
         fetchManualPayments.mock.calls.filter((c) => c[0].state === "rejected").length,
       ).toBeGreaterThan(ditolakBefore);
+    });
+  });
+
+  it("payment approve submit: no payload, close, belum + verifikasi invalidated", async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await screen.findByText(U0.name);
+
+    fireEvent.click(screen.getByRole("button", { name: /Menunggu Verifikasi/ }));
+    await screen.findByText(`@${P0.user.username}`);
+
+    await user.click(screen.getAllByRole("button", { name: "Konfirmasi" })[0]);
+    const dialog = await screen.findByRole("dialog");
+
+    const belumBefore = fetchVerificationUsers.mock.calls.length;
+    const verifikasiBefore = fetchManualPayments.mock.calls.filter(
+      (c) => c[0].state === "receipt_uploaded",
+    ).length;
+    const ditolakBefore = fetchManualPayments.mock.calls.filter(
+      (c) => c[0].state === "rejected",
+    ).length;
+
+    await user.click(
+      within(dialog).getByRole("button", { name: "Konfirmasi Pembayaran" }),
+    );
+
+    expect(approveManualPayment).toHaveBeenCalledWith({ paymentId: P0.id });
+
+    await waitFor(() => {
+      expect(fetchVerificationUsers.mock.calls.length).toBeGreaterThan(belumBefore);
+      expect(
+        fetchManualPayments.mock.calls.filter((c) => c[0].state === "receipt_uploaded")
+          .length,
+      ).toBeGreaterThan(verifikasiBefore);
+    });
+    expect(
+      fetchManualPayments.mock.calls.filter((c) => c[0].state === "rejected").length,
+    ).toBe(ditolakBefore);
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     });
   });
 });

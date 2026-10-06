@@ -34,4 +34,5 @@ export {
   fetchManualPayments,
   manualPaymentKeys,
   rejectManualPayment,
+  approveManualPayment,
 } from "./payments.js";
