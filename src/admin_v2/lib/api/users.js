@@ -1,4 +1,4 @@
-import { apiGet, apiPatch } from "./client.js";
+import { apiGet, apiPatch, apiPost } from "./client.js";
 
 // Backend-validated filter buckets: "waiting"|"pending_voucher"|"approved"|"rejected"|"all".
 // (Numeric verifiedStatus on user objects is display-only — see verificationStatus.js.)
@@ -60,4 +60,10 @@ export function verifyUser({ userId, ...payload }) {
   // console.log({ userId, payload });
   // return;
   return apiPatch(`/admin/users/${userId}/verify`, payload);
+}
+
+// POST /admin/users/:userId/deletion-request (no payload) — soft delete,
+// recoverable for 30 days.
+export function requestAccountDeletion({ userId }) {
+  return apiPost(`/admin/users/${userId}/deletion-request`);
 }

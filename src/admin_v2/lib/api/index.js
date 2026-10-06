@@ -14,6 +14,7 @@ export {
   fetchVerificationStatusCount,
   verificationUsersKeys,
   verifyUser,
+  requestAccountDeletion,
 } from "./users.js";
 export {
   fetchTrainingSessions,

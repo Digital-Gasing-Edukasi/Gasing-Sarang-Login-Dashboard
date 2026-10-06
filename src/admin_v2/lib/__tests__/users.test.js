@@ -1,9 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-vi.mock("../api/client.js", () => ({ apiGet: vi.fn() }));
+vi.mock("../api/client.js", () => ({ apiGet: vi.fn(), apiPost: vi.fn() }));
 
-import { apiGet } from "../api/client.js";
-import { fetchVerificationStatusCount, fetchVerificationUsers } from "../api/users.js";
+import { apiGet, apiPost } from "../api/client.js";
+import {
+  fetchVerificationStatusCount,
+  fetchVerificationUsers,
+  requestAccountDeletion,
+} from "../api/users.js";
 
 beforeEach(() => vi.clearAllMocks());
 
@@ -72,5 +76,15 @@ describe("fetchVerificationStatusCount", () => {
     apiGet.mockResolvedValue({ data: [] });
 
     await expect(fetchVerificationStatusCount("waiting")).resolves.toBe(0);
+  });
+});
+
+describe("requestAccountDeletion", () => {
+  it("POSTs to the deletion-request endpoint with no payload", async () => {
+    apiPost.mockResolvedValue({});
+
+    await requestAccountDeletion({ userId: "u-9" });
+
+    expect(apiPost).toHaveBeenCalledWith("/admin/users/u-9/deletion-request");
   });
 });

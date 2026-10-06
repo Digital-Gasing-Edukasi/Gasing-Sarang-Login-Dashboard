@@ -16,6 +16,7 @@ import { useDebouncedValue } from "../../hooks/useDebouncedValue.js";
 import { Pagination } from "../../components/index.js";
 import { TrainingHistoryDialog } from "../../components/index.js";
 import {
+  DeleteAccountDialog,
   PaymentConfirmDialog,
   PaymentRejectDialog,
   getPembayaranColumns,
@@ -97,6 +98,7 @@ export default function VerifikasiPembayaranPage() {
   const debouncedKeyword = useDebouncedValue(keyword, 500);
   const [payment, setPayment] = useState(null);
   const [rejectPayment, setRejectPayment] = useState(null);
+  const [deletePayment, setDeletePayment] = useState(null);
   const queryClient = useQueryClient();
 
   // New search term → back to first page.
@@ -149,6 +151,26 @@ export default function VerifikasiPembayaranPage() {
     });
   };
 
+  const handleAccountDeleted = (deletedPayment) => {
+    setDeletePayment(null);
+    setPage(1);
+    toast({
+      title: "Akun dihapus",
+      description: deletedPayment?.user?.email
+        ? `Akun ${deletedPayment.user.email} telah dihapus.`
+        : "Akun telah dihapus.",
+    });
+    queryClient.invalidateQueries({
+      queryKey: verificationUsersKeys.byStatus(VERIFIED_STATUS.APPROVED),
+    });
+    queryClient.invalidateQueries({
+      queryKey: manualPaymentKeys.byState("receipt_uploaded"),
+    });
+    queryClient.invalidateQueries({
+      queryKey: manualPaymentKeys.byState("rejected"),
+    });
+  };
+
   const handlePaymentRejected = (rejectedPayment) => {
     setRejectPayment(null);
     setPage(1);
@@ -173,7 +195,7 @@ export default function VerifikasiPembayaranPage() {
         onConfirmPayment: setPayment,
         // Approve/delete payment flows come later — no-ops for now.
         onApprovePayment: () => {},
-        onDeleteAccount: () => {},
+        onDeleteAccount: setDeletePayment,
       }),
     [],
   );
@@ -262,6 +284,11 @@ export default function VerifikasiPembayaranPage() {
         payment={rejectPayment}
         onClose={() => setRejectPayment(null)}
         onRejected={handlePaymentRejected}
+      />
+      <DeleteAccountDialog
+        payment={deletePayment}
+        onClose={() => setDeletePayment(null)}
+        onDeleted={handleAccountDeleted}
       />
     </div>
   );

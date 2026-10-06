@@ -10,7 +10,11 @@ import { ROLE_META_BY_ID } from "../lib/roles.js";
 
 vi.mock("../lib/api/users.js", async (importOriginal) => {
   const actual = await importOriginal();
-  return { ...actual, fetchVerificationUsers: vi.fn() };
+  return {
+    ...actual,
+    fetchVerificationUsers: vi.fn(),
+    requestAccountDeletion: vi.fn(async () => ({})),
+  };
 });
 
 vi.mock("../lib/api/payments.js", async (importOriginal) => {
@@ -49,7 +53,7 @@ vi.mock("../components/ui/dialog.jsx", async () => {
   };
 });
 
-import { fetchVerificationUsers } from "../lib/api/users.js";
+import { fetchVerificationUsers, requestAccountDeletion } from "../lib/api/users.js";
 import {
   approveManualPayment,
   fetchManualPayments,
@@ -306,6 +310,55 @@ describe("VerifikasiPembayaranPage", () => {
     expect(
       fetchManualPayments.mock.calls.filter((c) => c[0].state === "rejected").length,
     ).toBe(ditolakBefore);
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    });
+  });
+
+  it("delete account flow: menu, confirm, all three lists invalidated", async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await screen.findByText(U0.name);
+
+    fireEvent.click(screen.getByRole("button", { name: /Pembayaran Ditolak/ }));
+    await screen.findByText(`@${P0.user.username}`);
+
+    await user.click(screen.getAllByRole("button", { name: /Aksi pembayaran/ })[0]);
+    await user.click(await screen.findByText("Hapus Akun"));
+
+    // NOTE: Radix PopoverContent itself carries role="dialog" and stays
+    // mounted behind the modal — scope via the heading.
+    const heading = await screen.findByRole("heading", {
+      name: "Yakin Hapus Akun Ini?",
+    });
+    const dialog = heading.closest('[role="dialog"]');
+    expect(dialog).not.toBeNull();
+    expect(
+      within(dialog).getByText(`Akun ${P0.user.email} akan dihapus. Kamu masih dapat memulihkannya sebelum 30 hari.`),
+    ).toBeInTheDocument();
+
+    const belumBefore = fetchVerificationUsers.mock.calls.length;
+    const verifikasiBefore = fetchManualPayments.mock.calls.filter(
+      (c) => c[0].state === "receipt_uploaded",
+    ).length;
+    const ditolakBefore = fetchManualPayments.mock.calls.filter(
+      (c) => c[0].state === "rejected",
+    ).length;
+
+    await user.click(within(dialog).getByRole("button", { name: "Hapus Akun" }));
+
+    expect(requestAccountDeletion).toHaveBeenCalledWith({ userId: P0.user.id });
+
+    await waitFor(() => {
+      expect(fetchVerificationUsers.mock.calls.length).toBeGreaterThan(belumBefore);
+      expect(
+        fetchManualPayments.mock.calls.filter((c) => c[0].state === "receipt_uploaded")
+          .length,
+      ).toBeGreaterThan(verifikasiBefore);
+      expect(
+        fetchManualPayments.mock.calls.filter((c) => c[0].state === "rejected").length,
+      ).toBeGreaterThan(ditolakBefore);
+    });
     await waitFor(() => {
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     });
