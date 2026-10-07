@@ -9,3 +9,4 @@ export {
 } from "./rejectPayload.js";
 export { VoucherConfirmDialog } from "./dialogs/VoucherConfirmDialog.jsx";
 export { TrainingHistoryDialog } from "../../../components/dialogs/TrainingHistoryDialog.jsx";
+export { RegionSelect } from "./RegionSelect.jsx";

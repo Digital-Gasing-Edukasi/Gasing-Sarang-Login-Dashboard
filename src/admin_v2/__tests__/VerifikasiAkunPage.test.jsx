@@ -31,6 +31,16 @@ vi.mock("../lib/api/training-sessions.js", async (importOriginal) => {
   return { ...actual, fetchTrainingSessions: vi.fn() };
 });
 
+vi.mock("../lib/api/regions.js", async (importOriginal) => {
+  const actual = await importOriginal();
+  return {
+    ...actual,
+    fetchProvinces: vi.fn(),
+    fetchRegencies: vi.fn(),
+    fetchRegion: vi.fn(),
+  };
+});
+
 vi.mock("../lib/api/training-histories.js", async (importOriginal) => {
   const actual = await importOriginal();
   return { ...actual, fetchTrainingHistory: vi.fn() };
@@ -72,6 +82,11 @@ vi.mock("../components/ui/dialog.jsx", async () => {
 
 import { fetchVerificationUsers, verifyUser } from "../lib/api/users.js";
 import { fetchTrainingSessions } from "../lib/api/training-sessions.js";
+import {
+  fetchProvinces,
+  fetchRegencies,
+  fetchRegion,
+} from "../lib/api/regions.js";
 import { fetchTrainingHistory } from "../lib/api/training-histories.js";
 import historyFixture from "../../../dev/responses/training-user.json";
 import { copyText } from "../lib/clipboard.js";
@@ -85,6 +100,9 @@ const waitingPool = verifFixture.data
   .map((u) => ({ ...u, verifiedStatus: 0 }));
 const voucherPool = verifFixture.data;
 const U0 = waitingPool[0];
+
+// Province of the user's first training region (from the regency detail).
+const PROVINCE = { id: "prov-1", name: "User Province" };
 const U1 = waitingPool[1];
 const GUNUNG = sessionsFixture.data.find((s) => s.name === "Gunung Sindur");
 
@@ -130,6 +148,24 @@ function mockLists() {
   fetchTrainingSessions.mockImplementation(async () => ({
     data: sessionsFixture.data,
     meta: sessionsFixture.meta,
+  }));
+  fetchProvinces.mockImplementation(async () => [
+    { id: PROVINCE.id, name: PROVINCE.name, level: "PROVINCE", parentId: null },
+  ]);
+  fetchRegencies.mockImplementation(async () => [
+    {
+      id: U0.firstTrainingRegionId,
+      name: U0.firstTrainingRegion.regionName,
+      level: "REGENCY",
+      parentId: PROVINCE.id,
+    },
+    { id: "r-other", name: "Other Regency", level: "REGENCY", parentId: PROVINCE.id },
+  ]);
+  fetchRegion.mockImplementation(async (id) => ({
+    id,
+    name: U0.firstTrainingRegion.regionName,
+    level: "REGENCY",
+    parentId: PROVINCE.id,
   }));
   fetchTrainingHistory.mockImplementation(async ({ page = 1 }) => ({
     data: page === 1 ? historyFixture.data : [historyFixture.data[0]],
@@ -418,5 +454,58 @@ describe("VerifikasiAkunPage", () => {
     await screen.findByText("Kode Voucher");
     await user.click(screen.getByRole("button", { name: "Export" }));
     expect(requestExport).toHaveBeenCalledWith("pending_voucher");
+  });
+
+  it("alumni region preselects province+regency and refetches sessions on change", async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await screen.findByText(U0.name);
+
+    await user.click(screen.getByRole("button", { name: `Setujui ${U0.name}` }));
+    const dialog = await screen.findByRole("dialog");
+
+    // Province seeded from the regency detail's parentId.
+    await waitFor(() => {
+      expect(
+        within(dialog).getByRole("combobox", { name: PROVINCE.name }),
+      ).toBeInTheDocument();
+    });
+    expect(
+      fetchRegencies.mock.calls.some((c) => c[0] === PROVINCE.id),
+    ).toBe(true);
+
+    // Regency preselected from the user's first training region.
+    expect(
+      within(dialog).getByRole("combobox", {
+        name: U0.firstTrainingRegion.regionName,
+      }),
+    ).toBeInTheDocument();
+    expect(
+      fetchTrainingSessions.mock.calls.some(
+        (c) => c[0].regionId === U0.firstTrainingRegionId,
+      ),
+    ).toBe(true);
+
+    // Changing regency refetches sessions scoped to the new regency.
+    await user.click(
+      within(dialog).getByRole("combobox", {
+        name: U0.firstTrainingRegion.regionName,
+      }),
+    );
+    await user.click(await screen.findByRole("option", { name: "Other Regency" }));
+    await waitFor(() => {
+      expect(
+        fetchTrainingSessions.mock.calls.some((c) => c[0].regionId === "r-other"),
+      ).toBe(true);
+    });
+
+    // Switching province clears the regency → session picker disabled, no fetch.
+    const sessionsBefore = fetchTrainingSessions.mock.calls.length;
+    await user.click(within(dialog).getByRole("combobox", { name: PROVINCE.name }));
+    await user.click(await screen.findByRole("option", { name: PROVINCE.name }));
+    expect(
+      within(dialog).getByRole("combobox", { name: "Pilih daerah dulu…" }),
+    ).toBeDisabled();
+    expect(fetchTrainingSessions.mock.calls.length).toBe(sessionsBefore);
   });
 });

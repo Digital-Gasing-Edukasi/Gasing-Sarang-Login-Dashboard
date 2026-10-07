@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { Button } from "../../../../components/ui/button.jsx";
 import {
@@ -9,15 +9,21 @@ import {
   DialogTitle,
 } from "../../../../components/ui/dialog.jsx";
 import { Label } from "../../../../components/ui/label.jsx";
-import { FALLBACK_TEXT } from "../../../../lib/format.js";
 import { verifyUser } from "../../../../lib/api/index.js";
+import { RegionSelect } from "../RegionSelect.jsx";
 import { RoleSelect } from "../RoleSelect.jsx";
 import { TrainingSessionSelect } from "../TrainingSessionSelect.jsx";
 
 export function ApproveDialog({ user, onClose, onApproved }) {
   const [roleId, setRoleId] = useState("");
   const [sessionId, setSessionId] = useState("");
+  const [regionId, setRegionId] = useState("");
   const open = !!user;
+
+  // Alumni region follows the user; admin may still change it.
+  useEffect(() => {
+    if (open) setRegionId(user?.firstTrainingRegionId ?? "");
+  }, [open, user?.id]);
 
   const approve = useMutation({
     mutationFn: () =>
@@ -33,11 +39,11 @@ export function ApproveDialog({ user, onClose, onApproved }) {
       onApproved?.(user);
     },
   });
-
   // Fresh form every time the dialog closes.
   const handleClose = () => {
     setRoleId("");
     setSessionId("");
+    setRegionId("");
     approve.reset();
     onClose();
   };
@@ -65,9 +71,14 @@ export function ApproveDialog({ user, onClose, onApproved }) {
 
         <div className="space-y-2">
           <Label>Alumni Pelatihan</Label>
-          <p className="text-sm text-muted-foreground">
-            {user?.firstTrainingRegion?.regionName || FALLBACK_TEXT}
-          </p>
+          <RegionSelect
+            value={regionId}
+            initialLabel={user?.firstTrainingRegion?.regionName}
+            onValueChange={(next) => {
+              setRegionId(next);
+              setSessionId("");
+            }}
+          />
         </div>
 
         <div className="space-y-2">
@@ -75,7 +86,7 @@ export function ApproveDialog({ user, onClose, onApproved }) {
           <TrainingSessionSelect
             value={sessionId}
             onValueChange={setSessionId}
-            regionId={user?.firstTrainingRegionId}
+            regionId={regionId}
           />
         </div>
 

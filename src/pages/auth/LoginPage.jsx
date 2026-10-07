@@ -1,21 +1,22 @@
-import { useState } from 'react'
-import { Mail, Lock, Loader2 } from 'lucide-react'
-import { Button }   from '@/components/ui/button'
-import { Label }    from '@/components/ui/label'
-import { Checkbox } from '@/components/ui/checkbox'
-import { RightPanel, Divider } from '@/components/layout/RightPanel'
 import { MobileHero } from '@/components/layout/MobileHero'
+import { RightPanel } from '@/components/layout/RightPanel'
 import { IconInput, TogglePassword } from '@/components/shared/IconInput'
+import { LoginFailedToast } from '@/components/shared/LoginFailedToast'
 import { LoginStatusModal } from '@/components/shared/LoginStatusModal'
+import { Logo } from '@/components/shared/Logo'
 import { NoConnectionBanner } from '@/components/shared/NoConnectionBanner'
 import { RateLimitBanner } from '@/components/shared/RateLimitBanner'
-import { LoginFailedToast } from '@/components/shared/LoginFailedToast'
+import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Label } from '@/components/ui/label'
+import { useAppNavigation } from "@/hooks/useAppNavigation"
 import { authApi, profileApi, tokenStorage } from '@/lib/api'
 import { parseWaitSecs } from '@/lib/loginGate'
-import { Logo } from '@/components/shared/Logo'
+import { Loader2, Lock, Mail } from 'lucide-react'
+import { useState } from 'react'
 
 const ERR_INPUT = '!border-red-500 focus-visible:!border-red-500 focus-visible:ring-red-200'
-const EMAIL_RE  = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 // Deteksi kegagalan jaringan (offline / server tak terjangkau) → banner flow 5.
 const isNetworkError = (e) =>
@@ -24,18 +25,20 @@ const isNetworkError = (e) =>
   /failed to fetch|networkerror|load failed|fetch/i.test(e?.message || '')
 
 export function LoginPage({ onNavigate, onLoginSuccess, isSsoMode = false }) {
-  const [email, setEmail]       = useState('')
+  const { go } = useAppNavigation();
+
+  const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPass, setShowPass] = useState(false)
   const [remember, setRemember] = useState(false)
-  const [loading, setLoading]   = useState(false)
-  const [errors, setErrors]     = useState({})
+  const [loading, setLoading] = useState(false)
+  const [errors, setErrors] = useState({})
   // gate: modal saat proses login gagal — 'error' (server 5xx) atau 'suspended'
   // (backend tolak akun ditangguhkan). Status pending/expired (login sukses tapi
   // profil diblokir) di-guard terpusat di App.handleLoginSuccess.
-  const [gate, setGate]         = useState(null)
+  const [gate, setGate] = useState(null)
   // noConn: banner "Tidak Ada Koneksi" (flow 5).
-  const [noConn, setNoConn]     = useState(false)
+  const [noConn, setNoConn] = useState(false)
   // rateLimit: sisa detik cooldown dari 429 (Retry-After). null = tidak kena limit.
   const [rateLimit, setRateLimit] = useState(null)
   // loginFailed: toast merah "Login gagal" untuk 401 Invalid credentials (Figma 9047).
@@ -126,9 +129,9 @@ export function LoginPage({ onNavigate, onLoginSuccess, isSsoMode = false }) {
 
   const handleLogin = async () => {
     const next = {}
-    if (!email)                 next.email    = 'Pastikan email tidak kosong.'
+    if (!email) next.email = 'Pastikan email tidak kosong.'
     else if (!EMAIL_RE.test(email)) next.email = "Format email tidak sesuai.";
-    if (!password)              next.password = 'Pastikan password tidak kosong.'
+    if (!password) next.password = 'Pastikan password tidak kosong.'
     if (Object.keys(next).length) { setErrors(next); return }
 
     if (rateLimit) return   // masih cooldown 429 — jangan nembak backend lagi
@@ -136,8 +139,8 @@ export function LoginPage({ onNavigate, onLoginSuccess, isSsoMode = false }) {
     setErrors({}); setNoConn(false); setLoginFailed(false); setLoading(true)
     try {
       const data = await authApi.login(email, password)
-      console.log("authApi.login", {data});
-      
+      console.log("authApi.login", { data });
+
       if (handleSessionType(data, { email, password })) return
       tokenStorage.setTokens(data.accessToken, data.refreshToken, remember)
       const profile = await profileApi.getMe()

@@ -3,7 +3,7 @@ import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { SignUpPage } from '../SignUpPage'
-import { authApi, regionsApi, trainingSessionsApi } from '@/lib/api'
+import { authApi, regionsApi } from '@/lib/api'
 
 // jsdom tidak mengimplementasikan Pointer Capture API / scrollIntoView — dipakai
 // Radix Select (@radix-ui/react-select) internal saat klik trigger/item.
@@ -27,7 +27,6 @@ if (!Element.prototype.scrollIntoView) {
 vi.mock('@/lib/api', () => ({
   authApi: { register: vi.fn() },
   regionsApi: { list: vi.fn() },
-  trainingSessionsApi: { list: vi.fn() },
 }))
 
 // bad-words (Filter) dipakai SignUpPage untuk cek nama/username — tidak
@@ -38,36 +37,43 @@ function setupMocks() {
     if (params.type === 'REGENCY') return Promise.resolve({ data: [{ id: '1101', name: 'Kota Test' }] })
     return Promise.resolve({ data: [{ id: '11', name: 'Prov A' }] })
   })
-  trainingSessionsApi.list.mockResolvedValue({
-    data: [{ id: 's1', name: 'Kota Test', startDate: '2026-01-15', regionId: '1101' }],
-  })
 }
 
-// Isi semua field step 2 (birthdate, provinsi, kab/kota, kapan, dimana, sekolah)
-// lalu klik "Lanjutkan" (submit register). Dimulai langsung di step 2 lewat
-// location.state, jadi field step 1 (nama/username/dll) tidak perlu diisi —
-// handleRegister cuma memvalidasi field step 2.
+// Isi semua field step 2 (birthdate, provinsi, kab/kota lokasi, provinsi,
+// kab/kota pelatihan, sekolah) lalu klik "Lanjutkan" (submit register).
+// Dimulai langsung di step 2 lewat location.state, jadi field step 1
+// (nama/username/dll) tidak perlu diisi — handleRegister cuma memvalidasi
+// field step 2.
 async function fillStep2AndSubmit(ue) {
-  await screen.findByText('Pilih Provinsi') // provinces selesai loading (bukan lagi "Memuat...")
+  await screen.findAllByText('Pilih Provinsi') // provinces selesai loading (bukan lagi "Memuat...")
 
   await ue.click(screen.getByText('Pilih Tanggal'))
 
   // Radix SelectValue naruh style pointer-events:none di span placeholder-nya
   // → klik trigger lewat elemen <button> pembungkusnya, bukan teks langsung.
+  // Ada dua pasang provinsi/kabupaten (Lokasi + Daerah pelatihan): yang
+  // pertama diisi adalah Lokasi, lalu yang masih placeholder adalah pelatihan.
+  // Lokasi saat ini.
+  await ue.click(screen.getAllByText('Pilih Provinsi')[0].closest('button'))
+  await ue.click(await screen.findByRole('option', { name: 'Prov A' }))
+
+  await ue.click((await screen.findAllByText('Pilih Kab./Kota'))[0].closest('button'))
+  await ue.click(await screen.findByRole('option', { name: 'KOTA TEST' }))
+
+  // Daerah pelatihan pertama (pasangan trigger kedua; yang pertama sudah terisi).
   await ue.click(screen.getByText('Pilih Provinsi').closest('button'))
-  await ue.click(await screen.findByText('Prov A'))
+  await ue.click(await screen.findByRole('option', { name: 'Prov A' }))
 
   await ue.click((await screen.findByText('Pilih Kab./Kota')).closest('button'))
-  await ue.click(await screen.findByText('KOTA TEST'))
+  await ue.click(await screen.findByRole('option', { name: 'KOTA TEST' }))
 
+  // Kapan pelatihan pertama (independen dari daerah).
+  const currentYear = String(new Date().getFullYear())
   await ue.click(screen.getByText('Tahun').closest('button'))
-  await ue.click(await screen.findByText('2026'))
+  await ue.click(await screen.findByRole('option', { name: currentYear }))
 
   await ue.click(screen.getByText('Bulan').closest('button'))
-  await ue.click(await screen.findByText('Januari'))
-
-  await ue.click(screen.getByText('Pilih Daerah'))
-  await ue.click(await screen.findByText('KOTA TEST', { selector: 'button' }).catch(() => screen.findByRole('option', { name: 'KOTA TEST' })))
+  await ue.click(await screen.findByRole('option', { name: 'Januari' }))
 
   await ue.type(screen.getByPlaceholderText('Nama sekolah'), 'SD Test')
 
@@ -98,6 +104,18 @@ describe('SignUpPage — handleRegister error translation', () => {
     await fillStep2AndSubmit(ue)
 
     await waitFor(() => expect(authApi.register).toHaveBeenCalledTimes(1))
+
+    // Payload: tahun/bulan + firstTrainingRegionId = kab/kota pelatihan
+    // yang dipilih (murni region, tanpa session).
+    expect(authApi.register).toHaveBeenCalledWith(
+      expect.objectContaining({
+        regionId: '1101',
+        firstTrainingYear: new Date().getFullYear(),
+        firstTrainingMonth: 1,
+        firstTrainingRegionId: '1101',
+      })
+    )
+    expect(authApi.register.mock.calls[0][0]).not.toHaveProperty('firstTrainingSessionId')
 
     // Field-routing by keyword tetap jalan: balik ke step 1, error di bawah Email.
     const errText = await screen.findByText('Email sudah terdaftar. Gunakan email lain.')

@@ -37,3 +37,11 @@ export {
   rejectManualPayment,
   approveManualPayment,
 } from "./payments.js";
+export {
+  fetchProvinces,
+  fetchRegencies,
+  fetchRegion,
+  regionLabel,
+  regionsKeys,
+  REGION_CACHE,
+} from "./regions.js";

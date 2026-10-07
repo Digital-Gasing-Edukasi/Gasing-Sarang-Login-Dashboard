@@ -2,6 +2,7 @@ import { RightPanel } from '@/components/layout/RightPanel'
 import { StepBar, StepHeader, StepProgress } from '@/components/layout/StepIndicator'
 import { OtpInput } from '@/components/shared/OtpInput'
 import { Button } from '@/components/ui/button'
+import { useAppNavigation } from "@/hooks/useAppNavigation"
 import { useCountdown } from '@/hooks/useCountdown'
 import { authApi, tokenStorage } from '@/lib/api'
 import { translateApiError } from '@/lib/errorMessages'
@@ -17,6 +18,7 @@ const RESEND_COOLDOWN = 180
 const OTP_INVALID_MSG = 'Kode OTP tidak valid. Coba lagi.'
 
 export function SignUpOtpPage({ onNavigate, otpToken, email, onOtpToken, onVerified }) {
+  const { go } = useAppNavigation();
   // Setiap resend mencabut token lama & memberi token baru; simpan lokal supaya
   // confirmEmail/resend berikutnya selalu memakai token TERAKHIR, bukan prop awal.
   // otpToken/email juga di-backup ke sessionStorage (useAuthSession) sehingga
@@ -48,6 +50,11 @@ export function SignUpOtpPage({ onNavigate, otpToken, email, onOtpToken, onVerif
   const [hadTokenAtMount] = useState(() => !!otpToken)
   useEffect(() => {
     if (!hadTokenAtMount || !email) {
+      console.log("SignUpOtpPage:53", {
+        hadTokenAtMount,
+        email
+      });
+
       tokenStorage.clear()
       onNavigate('login')
     }
@@ -58,14 +65,16 @@ export function SignUpOtpPage({ onNavigate, otpToken, email, onOtpToken, onVerif
   const maskedEmail = email ? email.replace(/(.{3}).*(@.*)/, '$1*****$2') : 'email Anda'
 
   const handleVerify = async () => {
+    // go('signup-review');
+    // return;
     if (otpCode.length !== 6) { setError('Masukkan 6 digit OTP'); setInfo(''); return }
     if (verifyLock.current) return
     verifyLock.current = true
     setError(''); setInfo(''); setLoading(true)
     try {
       await authApi.confirmEmail(token, otpCode)
-      onVerified?.() // sesi OTP sekali-pakai: hapus backup agar tak tertinggal
-      onNavigate('signup-review')
+      go('signup-review')
+      // onVerified?.() // sesi OTP sekali-pakai: hapus backup agar tak tertinggal
     } catch (e) {
       // Gagal → kunci dibuka, user boleh coba lagi.
       verifyLock.current = false

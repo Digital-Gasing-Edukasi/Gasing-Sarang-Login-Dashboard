@@ -12,12 +12,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { SearchableSelect } from "@/components/ui/searchable-select";
 import { RightPanel } from "@/components/layout/RightPanel";
 import { StepBar, StepProgress } from "@/components/layout/StepIndicator";
 import { IconInput, TogglePassword } from "@/components/shared/IconInput";
 import { DateField } from "@/components/shared/DateField";
-import { authApi, regionsApi, trainingSessionsApi } from "@/lib/api";
+import { authApi, regionsApi } from "@/lib/api";
 import { ID_MONTHS as MONTHS, withBase, abbrevRegion } from "@/lib/format";
 import { getPasswordRules, isPasswordValid } from "@/lib/password";
 import { translateApiError } from "@/lib/errorMessages";
@@ -52,24 +51,6 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const asList = (data) =>
   Array.isArray(data) ? data : data?.data || data?.items || [];
-
-const sessionDate = (s) => {
-  const sd = s.startDate;
-  const raw = sd?.utc?.raw ?? (typeof sd === "string" ? sd : null);
-  const d = sd?.unix ? new Date(sd.unix * 1000) : raw ? new Date(raw) : null;
-  return d && !isNaN(d) ? d : null;
-};
-
-// "Kapan" = tahun + bulan pelatihan
-const sessionYear = (s) => {
-  const d = sessionDate(s);
-  return d ? String(d.getFullYear()) : "";
-};
-
-const sessionMonth = (s) => {
-  const d = sessionDate(s);
-  return d ? String(d.getMonth()) : "";
-};
 
 export function SignUpPage({ onNavigate, onOtpToken }) {
   // Draft form di sessionStorage (audit #38): step OTP tidak punya tombol back
@@ -110,24 +91,28 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
   const [regencyLoading, setRegencyLoading] = useState(false);
   const [regionId, setRegionId] = useState(draft.regionId || "");
 
-  // Pelatihan Gasing: Kapan (filter) → Dimana (session = lastTrainingSessionId)
-  const [sessions, setSessions] = useState([]);
-  const [sessionsLoading, setSessionsLoading] = useState(true);
+  // Kapan pelatihan Gasing pertama (independen — tidak memfilter daerah).
   const [kapanYear, setKapanYear] = useState(draft.kapanYear || "");
   const [kapanMonth, setKapanMonth] = useState(draft.kapanMonth || "");
-  const [lastTrainingSessionId, setLastTrainingSessionId] = useState(draft.lastTrainingSessionId || "");
+
+  // Daerah pelatihan pertama (Provinsi → Kab/Kota = firstTrainingRegionId) —
+  // sama polanya seperti "Lokasi kamu saat ini".
+  const [trainingProvinceId, setTrainingProvinceId] = useState(draft.trainingProvinceId || "");
+  const [trainingRegencies, setTrainingRegencies] = useState([]);
+  const [trainingRegencyLoading, setTrainingRegencyLoading] = useState(false);
+  const [trainingRegionId, setTrainingRegionId] = useState(draft.trainingRegionId || "");
 
   // Persist draft tiap ada perubahan (audit #38: Back dari OTP tidak reset).
   useEffect(() => {
     try {
       sessionStorage.setItem(
         'signup-draft',
-        JSON.stringify({ step, name, username, email, birthdate, schoolName, provinceId, regionId, kapanYear, kapanMonth, lastTrainingSessionId })
+        JSON.stringify({ step, name, username, email, birthdate, schoolName, provinceId, regionId, kapanYear, kapanMonth, trainingProvinceId, trainingRegionId })
       );
     } catch {
       /* storage penuh/nonaktif — abaikan */
     }
-  }, [step, name, username, email, birthdate, schoolName, provinceId, regionId, kapanYear, kapanMonth, lastTrainingSessionId]);
+  }, [step, name, username, email, birthdate, schoolName, provinceId, regionId, kapanYear, kapanMonth, trainingProvinceId, trainingRegionId]);
 
   useEffect(() => {
     regionsApi
@@ -135,23 +120,31 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
       .then((d) => setProvinces(asList(d)))
       .catch(() => setProvinces([]))
       .finally(() => setProvincesLoading(false));
-
-    trainingSessionsApi
-      .list({ limit: 100 })
-      .then((d) => setSessions(asList(d)))
-      .catch(() => setSessions([]))
-      .finally(() => setSessionsLoading(false));
   }, []);
+
+  // Ambil daftar kab/kota anak suatu provinsi (dipakai Lokasi + Daerah pelatihan).
+  const fetchRegencies = (parentId) =>
+    regionsApi
+      .list({ type: "REGENCY", parentId })
+      .then((d) => asList(d))
+      .catch(() => []);
 
   // Restore kab/kota saat kembali dari OTP dengan draft provinceId (audit #38).
   useEffect(() => {
-    if (!provinceId) return;
-    setRegencyLoading(true);
-    regionsApi
-      .list({ type: "REGENCY", parentId: provinceId })
-      .then((d) => setRegencies(asList(d)))
-      .catch(() => setRegencies([]))
-      .finally(() => setRegencyLoading(false));
+    if (provinceId) {
+      setRegencyLoading(true);
+      fetchRegencies(provinceId).then((d) => {
+        setRegencies(d);
+        setRegencyLoading(false);
+      });
+    }
+    if (trainingProvinceId) {
+      setTrainingRegencyLoading(true);
+      fetchRegencies(trainingProvinceId).then((d) => {
+        setTrainingRegencies(d);
+        setTrainingRegencyLoading(false);
+      });
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -160,50 +153,42 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
     setRegionId("");
     setRegencies([]);
     setRegencyLoading(true);
-    regionsApi
-      .list({ type: "REGENCY", parentId: v })
-      .then((d) => setRegencies(asList(d)))
-      .catch(() => setRegencies([]))
-      .finally(() => setRegencyLoading(false));
+    fetchRegencies(v).then((d) => {
+      setRegencies(d);
+      setRegencyLoading(false);
+    });
   };
+
+  const handleTrainingProvinceChange = (v) => {
+    setTrainingProvinceId(v);
+    setTrainingRegionId("");
+    clearFieldError("trainingRegionId");
+    setTrainingRegencies([]);
+    setTrainingRegencyLoading(true);
+    fetchRegencies(v).then((d) => {
+      setTrainingRegencies(d);
+      setTrainingRegencyLoading(false);
+    });
+  };
+
+  // Tahun pelatihan: hanya dari 2024 sampai tahun berjalan (independen,
+  // tidak diambil dari sessions).
+  const yearOptions = (() => {
+    const current = Math.max(new Date().getFullYear(), 2024);
+    const years = [];
+    for (let y = current; y >= 2024; y -= 1) years.push(String(y));
+    return years;
+  })();
+  const monthOptions = MONTHS.map((_, i) => String(i));
 
   const handleYearChange = (v) => {
     setKapanYear(v);
     setKapanMonth("");
-    setLastTrainingSessionId("");
   };
 
   const handleMonthChange = (v) => {
     setKapanMonth(v);
-    setLastTrainingSessionId("");
   };
-
-  const yearOptions = [...new Set(sessions.map(sessionYear).filter(Boolean))]
-    .sort()
-    .reverse();
-  // Tampilkan 12 bulan penuh dalam dropdown (per tahun), bukan hanya bulan yang ada sesi.
-  const monthOptions = MONTHS.map((_, i) => String(i));
-  // Filter daerah cukup pakai tahun; urut alfabet berdasar nama.
-  const dimanaOptions = sessions
-    .filter((s) => sessionYear(s) === kapanYear)
-    .sort((a, b) => String(a.name).localeCompare(String(b.name)));
-
-  // Label dropdown "Dimana": format kayak dropdown Daerah (KAB./KOTA + nama)
-  // pakai abbrevRegion. Kalau 2+ sesi jatuh ke label sama (mis. daerah sama,
-  // bulan beda dalam tahun yang sama) → tambahin bulan biar gak ambigu.
-  const dimanaLabelCounts = dimanaOptions.reduce((acc, s) => {
-    const label = abbrevRegion(s.name);
-    acc[label] = (acc[label] || 0) + 1;
-    return acc;
-  }, {});
-  const dimanaSelectOptions = dimanaOptions.map((s) => {
-    const base = abbrevRegion(s.name);
-    const label =
-      dimanaLabelCounts[base] > 1
-        ? `${base} — ${MONTHS[Number(sessionMonth(s))] ?? ""}`.trim()
-        : base;
-    return { value: s.id, label };
-  });
 
   const passwordRules = getPasswordRules(password);
   const allRulesOk = isPasswordValid(password);
@@ -227,7 +212,7 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
     regionId &&
     kapanYear &&
     kapanMonth &&
-    lastTrainingSessionId &&
+    trainingRegionId &&
     schoolName;
   // Checklist password hanya tampil saat field password sedang fokus (bukan lagi
   // setelah blur walau ada isi). onBlur ikon mata dijaga preventDefault → tak kedip.
@@ -275,16 +260,11 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
   };
 
   const handleRegister = async () => {
-    // console.log({
-    //   sessions,
-    //   lastTrainingSessionId
-    // });
-    // return;
     const next = {};
     if (!birthdate) next.birthdate = "Tanggal lahir wajib diisi.";
     if (!regionId) next.regionId = "Lokasi kamu wajib dipilih.";
-    if (!lastTrainingSessionId)
-      next.session = "Lokasi pelatihan wajib dipilih.";
+    if (!trainingRegionId)
+      next.trainingRegionId = "Lokasi pelatihan wajib dipilih.";
     if (!schoolName) next.schoolName = "Nama sekolah wajib diisi.";
     else if (schoolName.length > 100)
       next.schoolName = "Nama sekolah terlalu panjang. Maksimal 100 karakter.";
@@ -296,9 +276,8 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
     setErrors({});
     setLoading(true);
     try {
-      // Endpoint /auth/register mengharapkan tahun/bulan/region pelatihan pertama,
-      // bukan id session. Turunkan dari pilihan dropdown + region milik session.
-      const selectedSession = sessions.find((s) => s.id === lastTrainingSessionId);
+      // Endpoint /auth/register mengharapkan tahun/bulan + region (kab/kota)
+      // pelatihan pertama.
       const data = await authApi.register({
         username,
         email,
@@ -308,9 +287,7 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
         regionId,
         firstTrainingYear: Number(kapanYear),
         firstTrainingMonth: Number(kapanMonth) + 1, // kapanMonth 0-based (getMonth)
-        firstTrainingRegionId:
-          selectedSession?.regionId ?? selectedSession?.region?.id ?? null,
-        firstTrainingSessionId: lastTrainingSessionId,
+        firstTrainingRegionId: trainingRegionId,
         schoolName,
       });
       onOtpToken(data.token, email, null, 'register');
@@ -717,12 +694,9 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
                 <Select
                   value={kapanYear}
                   onValueChange={handleYearChange}
-                  disabled={sessionsLoading}
                 >
                   <SelectTrigger>
-                    <SelectValue
-                      placeholder={sessionsLoading ? "Memuat..." : "Tahun"}
-                    />
+                    <SelectValue placeholder="Tahun" />
                   </SelectTrigger>
                   <SelectContent>
                     {yearOptions.map((year) => (
@@ -759,21 +733,56 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
               <Label className="text-[13px] font-medium leading-normal">
                 Daerah pelatihan pertama?
               </Label>
-              <SearchableSelect
-                value={lastTrainingSessionId}
-                onValueChange={(v) => {
-                  setLastTrainingSessionId(v);
-                  clearFieldError("session");
-                }}
-                options={dimanaSelectOptions}
-                disabled={!kapanYear}
-                placeholder="Pilih Daerah"
-                searchPlaceholder="Cari daerah..."
-                title="Pilih Daerah"
-                triggerClassName={errors.session ? ERR_INPUT : ""}
-              />
-              {errors.session && (
-                <p className="text-xs text-red-500">{errors.session}</p>
+              <div className="grid grid-cols-2 gap-2 lg:gap-5">
+                <Select
+                  value={trainingProvinceId}
+                  onValueChange={handleTrainingProvinceChange}
+                  disabled={provincesLoading}
+                >
+                  <SelectTrigger>
+                    <SelectValue
+                      placeholder={
+                        provincesLoading ? "Memuat..." : "Pilih Provinsi"
+                      }
+                    />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {provinces.map((p) => (
+                      <SelectItem key={p.id} value={p.id}>
+                        {p.regionName || p.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select
+                  value={trainingRegionId}
+                  onValueChange={(v) => {
+                    setTrainingRegionId(v);
+                    clearFieldError("trainingRegionId");
+                  }}
+                  disabled={!trainingProvinceId || trainingRegencyLoading}
+                >
+                  <SelectTrigger
+                    className={`${errors.trainingRegionId ? ERR_INPUT : ""} ${trainingProvinceId && !trainingRegionId ? PLACEHOLDER_HINT : ""
+                      }`}
+                  >
+                    <SelectValue
+                      placeholder={
+                        trainingRegencyLoading ? "Memuat..." : "Pilih Kab./Kota"
+                      }
+                    />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {trainingRegencies.map((r) => (
+                      <SelectItem key={r.id} value={r.id}>
+                        {abbrevRegion(r.regionName || r.name)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              {errors.trainingRegionId && (
+                <p className="text-xs text-red-500">{errors.trainingRegionId}</p>
               )}
             </div>
 

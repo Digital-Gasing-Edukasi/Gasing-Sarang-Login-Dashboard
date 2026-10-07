@@ -8,8 +8,9 @@ import { useDebouncedValue } from "../../../hooks/useDebouncedValue.js";
 import { SearchSelect } from "../../../components/ui/search-select.jsx";
 
 // Server-searchable training session dropdown (searches by name,
-// scoped to the user's first training region when provided).
-export function TrainingSessionSelect({ value, onValueChange, regionId }) {
+// scoped to the chosen training regency). Stays disabled until a regency
+// is selected — sessions are meaningless without one.
+export function TrainingSessionSelect({ value, onValueChange, regionId, disabled }) {
   const [keyword, setKeyword] = useState("");
   const debouncedKeyword = useDebouncedValue(keyword, 400);
 
@@ -26,6 +27,7 @@ export function TrainingSessionSelect({ value, onValueChange, regionId }) {
         keyword: debouncedKeyword,
         regionId,
       }),
+    enabled: !!regionId,
     staleTime: 30_000,
   });
 
@@ -41,9 +43,10 @@ export function TrainingSessionSelect({ value, onValueChange, regionId }) {
       onValueChange={onValueChange}
       onSearchChange={setKeyword}
       loading={isFetching}
-      placeholder="Pilih pelatihan…"
+      placeholder={regionId ? "Pilih pelatihan…" : "Pilih daerah dulu…"}
       searchPlaceholder="Ketik nama pelatihan…"
       emptyText="Tidak ada pelatihan yang cocok."
+      disabled={disabled || !regionId}
     />
   );
 }
