@@ -26,6 +26,7 @@ import PaymentFinishPage from "@/pages/PaymentFinishPage";
 import PaymentUnfinishPage from "@/pages/PaymentUnfinishPage";
 import PaymentErrorPage from "@/pages/PaymentErrorPage";
 const AdminDashboardPage = lazy(() => import("@/pages/AdminDashboardPage"));
+const AdminV2Page = lazy(() => import("@/admin_v2/AdminV2Page.jsx"));
 import MidtransTestPage from "@/pages/MidtransTestPage";
 import KomunitasPage from "@/pages/komunitas/KomunitasPage";
 import TestMenuPage from "@/pages/TestMenuPage";
@@ -257,6 +258,19 @@ export function AppRoutes({
         element={requireAuth(
           <Suspense fallback={<DashboardSpinner />}>
             <AdminDashboardPage
+              user={currentUser}
+              onSignOut={onSignOut}
+            />
+          </Suspense>,
+        )}
+      />
+
+      {/* ── Dashboard admin v2 ──────────────────────────────────────────── */}
+      <Route
+        path="/dashboard-v2/*"
+        element={requireAuth(
+          <Suspense fallback={<DashboardSpinner />}>
+            <AdminV2Page
               user={currentUser}
               onSignOut={onSignOut}
             />

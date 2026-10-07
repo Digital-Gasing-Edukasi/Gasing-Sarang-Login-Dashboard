@@ -47,11 +47,11 @@ export function SignUpOtpPage({ onNavigate, otpToken, email, onOtpToken, onVerif
   // membatalkan navigasi sukses (race yang pernah kejadian).
   const [hadTokenAtMount] = useState(() => !!otpToken)
   useEffect(() => {
-    if (!hadTokenAtMount) {
+    if (!hadTokenAtMount || !email) {
       tokenStorage.clear()
       onNavigate('login')
     }
-  }, [hadTokenAtMount, onNavigate])
+  }, [hadTokenAtMount, onNavigate, email])
 
   if (!hadTokenAtMount) return null
 
@@ -156,7 +156,6 @@ export function SignUpOtpPage({ onNavigate, otpToken, email, onOtpToken, onVerif
   const footerNode = (
     <div className="space-y-4">
       {cta}
-      <div className="hidden lg:block">{resendBlock}</div>
     </div>
   )
 
@@ -212,7 +211,7 @@ export function SignUpOtpPage({ onNavigate, otpToken, email, onOtpToken, onVerif
         <OtpInput disabled={loading} error={!!error} onChange={code => { setOtpCode(code); setError('') }} />
         {/* CTA & kirim-ulang pindah ke footer sticky (mobile + desktop app-shell).
             Blok ini versi MOBILE saja; desktop menaruhnya di footer. */}
-        <div className="lg:hidden">{resendBlock}</div>
+        <div className="">{resendBlock}</div>
       </div>
       {gapBottom}
     </RightPanel>

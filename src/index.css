@@ -59,6 +59,13 @@
 
 .animate-fade-in-up { animation: fadeInUp 0.4s ease forwards; }
 .animate-fade-in    { animation: fadeIn   0.3s ease forwards; }
+/* Dialog-specific: uses CSS `translate` property so it doesn't override
+   Tailwind's transform-based centering (translateX/Y -50%). */
+@keyframes dialogIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.animate-dialog-in  { animation: dialogIn 0.25s ease forwards; }
 .delay-100 { animation-delay: 0.1s; opacity: 0; }
 .delay-200 { animation-delay: 0.2s; opacity: 0; }
 .delay-300 { animation-delay: 0.3s; opacity: 0; }

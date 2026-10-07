@@ -36,7 +36,7 @@ function useIsMobile() {
 }
 
 const TRIGGER_CLS = cn(
-  "flex h-11 w-full min-w-0 items-center justify-between gap-2 rounded-full border border-input bg-background px-5 py-2 text-sm text-left",
+  "flex h-11 w-full min-w-0 max-w-full items-center justify-between gap-2 overflow-hidden rounded-full border border-input bg-background px-5 py-2 text-sm text-left",
   "placeholder:text-muted-foreground",
   "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-0 focus:border-primary",
   "hover:border-gray-300",
@@ -197,7 +197,7 @@ export function SearchableSelect({
   )
 
   return (
-    <div className={cn("relative", className)}>
+    <div className={cn("relative min-w-0 w-full max-w-full", className)}>
       <button
         type="button"
         ref={triggerRef}
@@ -212,7 +212,7 @@ export function SearchableSelect({
       >
         <span
           title={selected ? String(selected.label) : placeholder}
-          className={cn("min-w-0 flex-1 truncate text-left", !selected && "text-muted-foreground")}
+          className={cn("w-0 min-w-0 flex-1 truncate overflow-hidden text-left", !selected && "text-muted-foreground")}
         >
           {selected ? selected.label : placeholder}
         </span>

@@ -9,10 +9,17 @@ import { ArrowRight, LayoutDashboard, LogIn, LogOut } from 'lucide-react'
 export function AuthChoicePage({ user, onNavigate, onSignOut }) {
   // Superadmin dapat tombol tambahan ke Dashboard Admin.
   const showDashboard = isSuperAdmin(user)
+  const isProduction = import.meta.env.VITE_ENV === "production"
+  // Dashboard V2 masih dalam pengembangan — hanya tampil di luar production.
+  const showDashboardV2 = showDashboard && !isProduction
   const [ssoError, setSsoError] = useState(false)
 
   const handleGoDashboard = () => {
     onNavigate('admin-dashboard')
+  }
+
+  const handleGoDashboardV2 = () => {
+    onNavigate('admin-dashboard-v2')
   }
 
   const handleRedirectDefault = () => {
@@ -65,17 +72,34 @@ export function AuthChoicePage({ user, onNavigate, onSignOut }) {
 
         <div className="space-y-4 w-full">
           {showDashboard && (
-            <Button
-              onClick={handleGoDashboard}
-              className="w-full flex items-center justify-between"
-              size="lg"
-            >
-              <span className="flex items-center gap-2">
-                <LayoutDashboard size={18} />
-                Dashboard
-              </span>
-              <ArrowRight size={18} />
-            </Button>
+            <>
+              <Button
+                onClick={handleGoDashboard}
+                className="w-full flex items-center justify-between"
+                size="lg"
+              >
+                <span className="flex items-center gap-2">
+                  <LayoutDashboard size={18} />
+                  Dashboard
+                </span>
+                <ArrowRight size={18} />
+              </Button>
+
+              {showDashboardV2 && (
+                <Button
+                  onClick={handleGoDashboardV2}
+                  variant="outline"
+                  className="w-full flex items-center justify-between"
+                  size="lg"
+                >
+                  <span className="flex items-center gap-2">
+                    <LayoutDashboard size={18} />
+                    Dashboard V2
+                  </span>
+                  <ArrowRight size={18} />
+                </Button>
+              )}
+            </>
           )}
 
           <Button
