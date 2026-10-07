@@ -55,12 +55,15 @@ const unsubscribedColumns = [
     key: "training-history",
     header: "Riwayat Pelatihan",
     render: (u, actions) => (
-      <a
-        onClick={() => actions?.onShowHistory?.(u)}
-        className="cursor-pointer whitespace-nowrap text-sm font-medium text-blue-600 hover:underline"
-      >
-        Lihat Detail
-      </a>
+      <>
+        <span className="mr-2 font-semibold">{u.numTrainings}</span>
+        <a
+          onClick={() => actions?.onShowHistory?.(u)}
+          className="cursor-pointer whitespace-nowrap text-sm font-medium text-blue-600 hover:underline"
+        >
+          Lihat Detail
+        </a>
+      </>
     ),
   },
   {
@@ -132,50 +135,50 @@ const paymentColumns = (withMenu) => [
   },
   withMenu
     ? {
-        key: "action",
-        header: "Action",
-        render: (p, actions) => (
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                size="icon"
-                variant="ghost"
-                type="button"
-                aria-label={`Aksi pembayaran ${p.orderId ?? p.id}`}
-              >
-                <MoreVertical size={18} />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-56 p-1" align="end">
-              <button
-                type="button"
-                onClick={() => actions?.onApprovePayment?.(p)}
-                className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-left text-sm text-green-700 hover:bg-accent"
-              >
-                <CheckCircle2 size={16} className="shrink-0" />
-                Setujui Pembayaran
-              </button>
-              <button
-                type="button"
-                onClick={() => actions?.onDeleteAccount?.(p)}
-                className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-left text-sm text-red-600 hover:bg-accent"
-              >
-                <Trash2 size={16} className="shrink-0" />
-                Hapus Akun
-              </button>
-            </PopoverContent>
-          </Popover>
-        ),
-      }
+      key: "action",
+      header: "Action",
+      render: (p, actions) => (
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button
+              size="icon"
+              variant="ghost"
+              type="button"
+              aria-label={`Aksi pembayaran ${p.orderId ?? p.id}`}
+            >
+              <MoreVertical size={18} />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-56 p-1" align="end">
+            <button
+              type="button"
+              onClick={() => actions?.onApprovePayment?.(p)}
+              className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-left text-sm text-green-700 hover:bg-accent"
+            >
+              <CheckCircle2 size={16} className="shrink-0" />
+              Setujui Pembayaran
+            </button>
+            <button
+              type="button"
+              onClick={() => actions?.onDeleteAccount?.(p)}
+              className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-left text-sm text-red-600 hover:bg-accent"
+            >
+              <Trash2 size={16} className="shrink-0" />
+              Hapus Akun
+            </button>
+          </PopoverContent>
+        </Popover>
+      ),
+    }
     : {
-        key: "action",
-        header: "Action",
-        render: (p, actions) => (
-          <Button size="sm" type="button" onClick={() => actions?.onConfirmPayment?.(p)}>
-            Konfirmasi
-          </Button>
-        ),
-      },
+      key: "action",
+      header: "Action",
+      render: (p, actions) => (
+        <Button size="sm" type="button" onClick={() => actions?.onConfirmPayment?.(p)}>
+          Konfirmasi
+        </Button>
+      ),
+    },
 ];
 
 export function getPembayaranColumns(actions) {
