@@ -4,9 +4,9 @@ import { cn } from "../../lib/utils.js";
 import {
   VERIFIED_STATUS,
   fetchManualPayments,
-  fetchVerificationUsers,
+  fetchUsers,
   manualPaymentKeys,
-  verificationUsersKeys,
+  usersKeys,
 } from "../../lib/api/index.js";
 import { CountBadge, DataTable } from "../../components/index.js";
 import { toast } from "../../components/ui/use-toast.js";
@@ -34,12 +34,12 @@ function TabCountBadge({ tabKey }) {
   if (tabKey === "belum") {
     return (
       <CountBadge
-        queryKey={verificationUsersKeys.page(VERIFIED_STATUS.APPROVED, 1, {
+        queryKey={usersKeys.page(VERIFIED_STATUS.APPROVED, 1, {
           limit: DEFAULT_LIMIT,
           subscription: "not_subscribed",
         })}
         queryFn={() =>
-          fetchVerificationUsers({
+          fetchUsers({
             status: VERIFIED_STATUS.APPROVED,
             page: 1,
             limit: DEFAULT_LIMIT,
@@ -61,13 +61,13 @@ function TabCountBadge({ tabKey }) {
 function useUnsubscribed(page, limit, keyword, enabled) {
   return useQuery({
     enabled,
-    queryKey: verificationUsersKeys.page(VERIFIED_STATUS.APPROVED, page, {
+    queryKey: usersKeys.page(VERIFIED_STATUS.APPROVED, page, {
       limit,
       subscription: "not_subscribed",
       keyword,
     }),
     queryFn: () =>
-      fetchVerificationUsers({
+      fetchUsers({
         status: VERIFIED_STATUS.APPROVED,
         page,
         limit,
@@ -144,7 +144,7 @@ export default function VerifikasiPembayaranPage() {
         : "Pembayaran telah disetujui.",
     });
     queryClient.invalidateQueries({
-      queryKey: verificationUsersKeys.byStatus(VERIFIED_STATUS.APPROVED),
+      queryKey: usersKeys.byStatus(VERIFIED_STATUS.APPROVED),
     });
     queryClient.invalidateQueries({
       queryKey: manualPaymentKeys.byState("receipt_uploaded"),
@@ -161,7 +161,7 @@ export default function VerifikasiPembayaranPage() {
         : "Akun telah dihapus.",
     });
     queryClient.invalidateQueries({
-      queryKey: verificationUsersKeys.byStatus(VERIFIED_STATUS.APPROVED),
+      queryKey: usersKeys.byStatus(VERIFIED_STATUS.APPROVED),
     });
     queryClient.invalidateQueries({
       queryKey: manualPaymentKeys.byState("receipt_uploaded"),
@@ -236,7 +236,7 @@ export default function VerifikasiPembayaranPage() {
             <Input
               value={keyword}
               onChange={(e) => setKeyword(e.target.value)}
-              placeholder="Cari nama, email, username…"
+              placeholder="Cari nama, email…"
               aria-label="Cari pengguna"
               className="pl-9"
             />

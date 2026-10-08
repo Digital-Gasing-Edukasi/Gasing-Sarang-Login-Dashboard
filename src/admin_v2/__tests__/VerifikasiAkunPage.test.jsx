@@ -21,7 +21,7 @@ vi.mock("../lib/api/users.js", async (importOriginal) => {
   const actual = await importOriginal();
   return {
     ...actual,
-    fetchVerificationUsers: vi.fn(),
+    fetchUsers: vi.fn(),
     verifyUser: vi.fn(async () => ({})),
   };
 });
@@ -80,7 +80,7 @@ vi.mock("../components/ui/dialog.jsx", async () => {
   };
 });
 
-import { fetchVerificationUsers, verifyUser } from "../lib/api/users.js";
+import { fetchUsers, verifyUser } from "../lib/api/users.js";
 import { fetchTrainingSessions } from "../lib/api/training-sessions.js";
 import {
   fetchProvinces,
@@ -120,7 +120,7 @@ function renderPage() {
 }
 
 function mockLists() {
-  fetchVerificationUsers.mockImplementation(
+  fetchUsers.mockImplementation(
     ({ status, page = 1, limit = 20, keyword = "" }) => {
       const pool = status === "waiting" ? waitingPool : voucherPool;
       const kw = keyword.trim().toLowerCase();
@@ -191,9 +191,9 @@ afterEach(() => {
 });
 
 const waitingCalls = () =>
-  fetchVerificationUsers.mock.calls.filter((c) => c[0].status === "waiting");
+  fetchUsers.mock.calls.filter((c) => c[0].status === "waiting");
 const voucherCalls = () =>
-  fetchVerificationUsers.mock.calls.filter((c) => c[0].status === "pending_voucher");
+  fetchUsers.mock.calls.filter((c) => c[0].status === "pending_voucher");
 
 describe("VerifikasiAkunPage", () => {
   it("pending tab: totals, user cells, status pill, actions", async () => {
@@ -385,7 +385,7 @@ describe("VerifikasiAkunPage", () => {
 
     await waitFor(() => {
       expect(
-        fetchVerificationUsers.mock.calls.some((c) => c[0].keyword === token),
+        fetchUsers.mock.calls.some((c) => c[0].keyword === token),
       ).toBe(true);
     });
     expect(screen.getByText(U1.email)).toBeInTheDocument();

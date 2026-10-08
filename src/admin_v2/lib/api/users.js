@@ -9,15 +9,24 @@ export const VERIFIED_STATUS = {
   REJECTED: "rejected",
 };
 
+// `subscription` accepts a single status or an array (sent comma-joined).
+// `status` is optional (omitted when undefined — e.g. suspended/deleted tabs).
+// `confirmed`/`suspended` send their defaults ("yes"/0); pass null to omit
+// the filter entirely (the client strips null params).
+const normalizeSubscription = (subscription) =>
+  Array.isArray(subscription) ? subscription.join(",") : subscription;
+
 // GET /admin/users?page&limit&filter[verifiedStatus]&filter[keyword]&sort[by]=createdAt&sort[order]=desc
 // → { data: [...], meta: { current_page, last_page, per_page, total, from, to } }
-export function fetchVerificationUsers({ status, page = 1, limit = 20, keyword = "", subscription } = {}) {
+export function fetchUsers({ status, page = 1, limit = 20, keyword = "", subscription, deletionPending = 0, suspended = 0, confirmed = "yes" } = {}) {
   return apiGet("/admin/users", {
     page,
     limit,
     "filter[verifiedStatus]": status,
-    "filter[confirmed]": "yes",
-    "filter[subscriptionStatus]": subscription || undefined,
+    "filter[confirmed]": confirmed,
+    "filter[subscriptionStatus]": normalizeSubscription(subscription) || undefined,
+    "filter[deletionPending]": deletionPending,
+    "filter[suspended]": suspended,
     "filter[keyword]": keyword || undefined,
     "sort[by]": "createdAt",
     "sort[order]": "desc",
@@ -26,35 +35,38 @@ export function fetchVerificationUsers({ status, page = 1, limit = 20, keyword =
 
 // Query key factory — the single reference for reads AND invalidations.
 // Hierarchy (prefix-matchable):
-//   ["admin_v2", "verification-users"]              → everything on this page
-//   [..., status]                                   → one tab (all its pages)
-//   [..., status, page]                             → one exact list
+//   ["admin_v2", "users"]              → everything on this page
+//   [..., status]                     → one tab (all its pages)
+//   [..., status, page]               → one exact list
 // Invalidate from anywhere, e.g. after approving a user:
-//   queryClient.invalidateQueries({ queryKey: verificationUsersKeys.all })
-export const verificationUsersKeys = {
-  all: ["admin_v2", "verification-users"],
-  byStatus: (status) => ["admin_v2", "verification-users", status],
-  page: (status, page, { limit = 20, keyword = "", subscription } = {}) => [
+//   queryClient.invalidateQueries({ queryKey: usersKeys.all })
+export const usersKeys = {
+  all: ["admin_v2", "users"],
+  byStatus: (status) => ["admin_v2", "users", status],
+  page: (status, page, { limit = 20, keyword = "", subscription, deletionPending = 0, suspended = 0, confirmed = "yes" } = {}) => [
     "admin_v2",
-    "verification-users",
+    "users",
     status,
     {
       page,
       limit,
       ...(keyword ? { keyword } : {}),
-      ...(subscription ? { subscription } : {}),
+      ...(subscription ? { subscription: normalizeSubscription(subscription) } : {}),
+      ...(deletionPending ? { deletionPending } : {}),
+      ...(suspended !== 0 ? { suspended } : {}),
+      ...(confirmed !== "yes" ? { confirmed } : {}),
     },
   ],
 };
 
 // Status headline number: fetch a single row, read meta.total.
 // `filter` is a VERIFIED_STATUS bucket string (backend rejects numerics).
-export async function fetchVerificationStatusCount(filter, { subscription } = {}) {
-  const res = await fetchVerificationUsers({
+export async function fetchUsersCount(filter, opts = {}) {
+  const res = await fetchUsers({
     status: filter,
     page: 1,
     limit: 1,
-    subscription,
+    ...opts,
   });
   return res?.meta?.total ?? 0;
 }

@@ -18,11 +18,11 @@ vi.mock("../lib/api/users.js", async (importOriginal) => {
   const actual = await importOriginal();
   return {
     ...actual,
-    fetchVerificationUsers: vi.fn(async () => ({
+    fetchUsers: vi.fn(async () => ({
       data: [],
       meta: { current_page: 1, last_page: 1, per_page: 1, from: 0, to: 0, total: 0 },
     })),
-    fetchVerificationStatusCount: vi.fn(async () => 0),
+    fetchUsersCount: vi.fn(async () => 0),
   };
 });
 

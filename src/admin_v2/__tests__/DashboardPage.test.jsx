@@ -6,8 +6,8 @@ vi.mock("../lib/api/users.js", async (importOriginal) => {
   const actual = await importOriginal();
   return {
     ...actual,
-    fetchVerificationStatusCount: vi.fn(),
-    fetchVerificationUsers: vi.fn(),
+    fetchUsersCount: vi.fn(),
+    fetchUsers: vi.fn(),
   };
 });
 
@@ -17,8 +17,8 @@ vi.mock("../lib/api/payments.js", async (importOriginal) => {
 });
 
 import {
-  fetchVerificationStatusCount,
-  fetchVerificationUsers,
+  fetchUsersCount,
+  fetchUsers,
 } from "../lib/api/users.js";
 import { fetchManualPayments } from "../lib/api/payments.js";
 import DashboardPage from "../pages/dashboard/DashboardPage.jsx";
@@ -29,13 +29,13 @@ const SUBSCRIPTION_TOTALS = { active: 50, not_subscribed: 18 };
 
 beforeEach(() => {
   vi.clearAllMocks();
-  fetchVerificationStatusCount.mockImplementation(async (filter, opts = {}) => {
+  fetchUsersCount.mockImplementation(async (filter, opts = {}) => {
     if (filter === "approved" && opts.subscription) {
       return SUBSCRIPTION_TOTALS[opts.subscription] ?? 0;
     }
     return TOTALS[filter] ?? 0;
   });
-  fetchVerificationUsers.mockImplementation(async ({ subscription } = {}) => ({
+  fetchUsers.mockImplementation(async ({ subscription } = {}) => ({
     data: [],
     meta: { total: SUBSCRIPTION_TOTALS[subscription] ?? 0 },
   }));
@@ -67,8 +67,8 @@ describe("DashboardPage", () => {
     }
 
     // 4 status cards + 2 subscription slices.
-    expect(fetchVerificationStatusCount).toHaveBeenCalledTimes(6);
-    const asked = fetchVerificationStatusCount.mock.calls.map((c) => c[0]).sort();
+    expect(fetchUsersCount).toHaveBeenCalledTimes(6);
+    const asked = fetchUsersCount.mock.calls.map((c) => c[0]).sort();
     expect(asked).toEqual([
       "approved",
       "approved",
@@ -77,7 +77,7 @@ describe("DashboardPage", () => {
       "rejected",
       "waiting",
     ]);
-    const slices = fetchVerificationStatusCount.mock.calls
+    const slices = fetchUsersCount.mock.calls
       .map((c) => c[1]?.subscription)
       .sort();
     expect(slices).toEqual(["active", "not_subscribed", undefined, undefined, undefined, undefined]);

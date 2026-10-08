@@ -12,7 +12,7 @@ vi.mock("../lib/api/users.js", async (importOriginal) => {
   const actual = await importOriginal();
   return {
     ...actual,
-    fetchVerificationUsers: vi.fn(),
+    fetchUsers: vi.fn(),
     requestAccountDeletion: vi.fn(async () => ({})),
   };
 });
@@ -53,7 +53,7 @@ vi.mock("../components/ui/dialog.jsx", async () => {
   };
 });
 
-import { fetchVerificationUsers, requestAccountDeletion } from "../lib/api/users.js";
+import { fetchUsers, requestAccountDeletion } from "../lib/api/users.js";
 import {
   approveManualPayment,
   fetchManualPayments,
@@ -78,7 +78,7 @@ function renderPage() {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  fetchVerificationUsers.mockImplementation(({ keyword = "" } = {}) => {
+  fetchUsers.mockImplementation(({ keyword = "" } = {}) => {
     const kw = keyword.trim().toLowerCase();
     const data = kw
       ? unsubFixture.data.filter((u) =>
@@ -126,7 +126,7 @@ describe("VerifikasiPembayaranPage", () => {
     expect(lastTh.className).toMatch(/sticky/);
     expect(lastTh.className).toMatch(/right-0/);
     // Unsubscribed fetch carries the subscription filter.
-    expect(fetchVerificationUsers).toHaveBeenCalledWith(
+    expect(fetchUsers).toHaveBeenCalledWith(
       expect.objectContaining({ subscription: "not_subscribed" }),
     );
   });
@@ -286,7 +286,7 @@ describe("VerifikasiPembayaranPage", () => {
     await user.click(screen.getAllByRole("button", { name: "Konfirmasi" })[0]);
     const dialog = await screen.findByRole("dialog");
 
-    const belumBefore = fetchVerificationUsers.mock.calls.length;
+    const belumBefore = fetchUsers.mock.calls.length;
     const verifikasiBefore = fetchManualPayments.mock.calls.filter(
       (c) => c[0].state === "receipt_uploaded",
     ).length;
@@ -301,7 +301,7 @@ describe("VerifikasiPembayaranPage", () => {
     expect(approveManualPayment).toHaveBeenCalledWith({ paymentId: P0.id });
 
     await waitFor(() => {
-      expect(fetchVerificationUsers.mock.calls.length).toBeGreaterThan(belumBefore);
+      expect(fetchUsers.mock.calls.length).toBeGreaterThan(belumBefore);
       expect(
         fetchManualPayments.mock.calls.filter((c) => c[0].state === "receipt_uploaded")
           .length,
@@ -337,7 +337,7 @@ describe("VerifikasiPembayaranPage", () => {
       within(dialog).getByText(`Akun ${P0.user.email} akan dihapus. Kamu masih dapat memulihkannya sebelum 30 hari.`),
     ).toBeInTheDocument();
 
-    const belumBefore = fetchVerificationUsers.mock.calls.length;
+    const belumBefore = fetchUsers.mock.calls.length;
     const verifikasiBefore = fetchManualPayments.mock.calls.filter(
       (c) => c[0].state === "receipt_uploaded",
     ).length;
@@ -350,7 +350,7 @@ describe("VerifikasiPembayaranPage", () => {
     expect(requestAccountDeletion).toHaveBeenCalledWith({ userId: P0.user.id });
 
     await waitFor(() => {
-      expect(fetchVerificationUsers.mock.calls.length).toBeGreaterThan(belumBefore);
+      expect(fetchUsers.mock.calls.length).toBeGreaterThan(belumBefore);
       expect(
         fetchManualPayments.mock.calls.filter((c) => c[0].state === "receipt_uploaded")
           .length,

@@ -2,21 +2,21 @@ import { useQuery } from "@tanstack/react-query";
 import { Cell, Pie, PieChart, Tooltip } from "recharts";
 import {
   VERIFIED_STATUS,
-  fetchVerificationStatusCount,
-  verificationUsersKeys,
+  fetchUsersCount,
+  usersKeys,
 } from "../../../lib/api/index.js";
 
 function useSubscriptionTotal(subscription) {
   return useQuery({
     queryKey: [
-      ...verificationUsersKeys.page(VERIFIED_STATUS.APPROVED, 1, {
+      ...usersKeys.page(VERIFIED_STATUS.APPROVED, 1, {
         limit: 1,
         subscription,
       }),
       "count",
     ],
     queryFn: () =>
-      fetchVerificationStatusCount(VERIFIED_STATUS.APPROVED, { subscription }),
+      fetchUsersCount(VERIFIED_STATUS.APPROVED, { subscription }),
     staleTime: 60_000,
   });
 }

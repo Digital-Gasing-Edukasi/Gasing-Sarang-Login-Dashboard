@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import {
-  fetchVerificationStatusCount,
-  verificationUsersKeys,
+  fetchUsersCount,
+  usersKeys,
 } from "../../../lib/api/index.js";
 import { getVerifiedStatusMeta } from "../../../lib/verificationStatus.js";
 import { cn } from "../../../lib/utils.js";
@@ -14,8 +14,8 @@ export function StatusCard({ filter, status = null, title = null, Icon, cardClas
   const meta = status == null ? null : getVerifiedStatusMeta(status);
   const label = title ?? meta?.label ?? filter;
   const { data, isLoading, isError, refetch } = useQuery({
-    queryKey: [...verificationUsersKeys.page(filter, 1, { limit: 1 }), "count"],
-    queryFn: () => fetchVerificationStatusCount(filter),
+    queryKey: [...usersKeys.page(filter, 1, { limit: 1 }), "count"],
+    queryFn: () => fetchUsersCount(filter),
     staleTime: 60_000,
   });
 

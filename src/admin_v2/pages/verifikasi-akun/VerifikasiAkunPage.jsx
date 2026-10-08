@@ -4,8 +4,8 @@ import { Search } from "lucide-react";
 import { cn } from "../../lib/utils.js";
 import {
   VERIFIED_STATUS,
-  fetchVerificationUsers,
-  verificationUsersKeys,
+  fetchUsers,
+  usersKeys,
 } from "../../lib/api/index.js";
 import { useDebouncedValue } from "../../hooks/useDebouncedValue.js";
 import { Input } from "../../components/ui/input.jsx";
@@ -34,8 +34,8 @@ const TABS = [
 
 function useUserList(status, page, limit, keyword) {
   return useQuery({
-    queryKey: verificationUsersKeys.page(status, page, { limit, keyword }),
-    queryFn: () => fetchVerificationUsers({ status, page, limit, keyword }),
+    queryKey: usersKeys.page(status, page, { limit, keyword }),
+    queryFn: () => fetchUsers({ status, page, limit, keyword }),
     staleTime: 30_000,
     placeholderData: keepPreviousData,
   });
@@ -44,8 +44,8 @@ function useUserList(status, page, limit, keyword) {
 function TabCountBadge({ status }) {
   return (
     <CountBadge
-      queryKey={verificationUsersKeys.page(status, 1, { limit: DEFAULT_LIMIT })}
-      queryFn={() => fetchVerificationUsers({ status, page: 1, limit: DEFAULT_LIMIT })}
+      queryKey={usersKeys.page(status, 1, { limit: DEFAULT_LIMIT })}
+      queryFn={() => fetchUsers({ status, page: 1, limit: DEFAULT_LIMIT })}
     />
   );
 }
@@ -97,7 +97,7 @@ export default function VerifikasiAkunPage() {
         : "Akun telah diproses.",
     });
     queryClient.invalidateQueries({
-      queryKey: verificationUsersKeys.byStatus(VERIFIED_STATUS.WAITING),
+      queryKey: usersKeys.byStatus(VERIFIED_STATUS.WAITING),
     });
   };
 
@@ -111,7 +111,7 @@ export default function VerifikasiAkunPage() {
         : "Voucher telah dikonfirmasi.",
     });
     queryClient.invalidateQueries({
-      queryKey: verificationUsersKeys.byStatus(VERIFIED_STATUS.PENDING_VOUCHER),
+      queryKey: usersKeys.byStatus(VERIFIED_STATUS.PENDING_VOUCHER),
     });
   };
 
@@ -126,10 +126,10 @@ export default function VerifikasiAkunPage() {
         : "Akun kini menunggu setup voucher.",
     });
     queryClient.invalidateQueries({
-      queryKey: verificationUsersKeys.byStatus(VERIFIED_STATUS.WAITING),
+      queryKey: usersKeys.byStatus(VERIFIED_STATUS.WAITING),
     });
     queryClient.invalidateQueries({
-      queryKey: verificationUsersKeys.byStatus(VERIFIED_STATUS.PENDING_VOUCHER),
+      queryKey: usersKeys.byStatus(VERIFIED_STATUS.PENDING_VOUCHER),
     });
   };
 
@@ -178,7 +178,7 @@ export default function VerifikasiAkunPage() {
             <Input
               value={keyword}
               onChange={(e) => setKeyword(e.target.value)}
-              placeholder="Cari nama, email, username…"
+              placeholder="Cari nama, email…"
               aria-label="Cari pengguna"
               className="pl-9"
             />

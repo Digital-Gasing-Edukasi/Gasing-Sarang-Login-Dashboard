@@ -10,9 +10,9 @@ export {
 export { adminV2Tokens } from "./tokens.js";
 export {
   VERIFIED_STATUS,
-  fetchVerificationUsers,
-  fetchVerificationStatusCount,
-  verificationUsersKeys,
+  fetchUsers,
+  fetchUsersCount,
+  usersKeys,
   verifyUser,
   requestAccountDeletion,
 } from "./users.js";
