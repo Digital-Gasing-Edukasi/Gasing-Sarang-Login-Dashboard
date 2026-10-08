@@ -9,7 +9,7 @@ import {
 import { DataTable } from "../../components/DataTable.jsx";
 import { Pagination } from "../../components/Pagination.jsx";
 import { OverflowText } from "../../components/OverflowText.jsx";
-import { formatShortDate } from "../../lib/format.js";
+import { formatSessionDate } from "../../lib/format.js";
 import {
   fetchTrainingHistory,
   trainingHistoryKeys,
@@ -42,7 +42,7 @@ const HISTORY_COLUMNS = [
     header: "Tgl. Mulai",
     render: (s) => (
       <span className="whitespace-nowrap text-sm text-foreground">
-        {formatShortDate(s.startDate?.utc?.formatted)}
+        {formatSessionDate(s.startDate?.utc?.formatted)}
       </span>
     ),
   },

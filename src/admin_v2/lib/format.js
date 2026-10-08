@@ -60,6 +60,48 @@ export function formatShortDate(formatted) {
   return `${day} ${abbr} ${year}`;
 }
 
+// Birthdate → "1-Jan-98". Prefers the ISO date (deterministic),
+// falls back to parsing the display string.
+export function formatBirthdate(value) {
+  if (!value) return FALLBACK_TEXT;
+  if (typeof value === "object") {
+    const iso = /^(\d{4})-(\d{2})-(\d{2})/.exec(value.date || "");
+    if (iso) {
+      const abbr = ID_MONTH_ABBR[ID_MONTHS[Number(iso[2]) - 1]];
+      if (abbr) return `${Number(iso[3])}-${abbr}-${iso[1].slice(2)}`;
+    }
+    return formatBirthdate(value.formatted);
+  }
+  const parts = String(value).split(" ");
+  if (parts.length < 3) return String(value);
+  const [day, month, year] = parts;
+  const abbr = ID_MONTH_ABBR[month];
+  if (!abbr) return String(value);
+  return `${Number(day) || day}-${abbr}-${String(year).slice(-2)}`;
+}
+
+// Training session start → "18 Nov 2025".
+export function formatSessionDate(formatted) {
+  if (!formatted) return FALLBACK_TEXT;
+  const parts = String(formatted).split(" ");
+  if (parts.length < 3) return String(formatted);
+  const [day, month, year] = parts;
+  const abbr = ID_MONTH_ABBR[month];
+  if (!abbr) return `${day} ${month} ${year}`;
+  return `${Number(day) || day} ${abbr} ${year}`;
+}
+
+// Last updated → "23 Sep 2026, 15:06".
+export function formatUpdatedAt(formatted) {
+  if (!formatted) return FALLBACK_TEXT;
+  const parts = String(formatted).split(" ");
+  if (parts.length < 4) return String(formatted);
+  const [day, month, year, time] = parts;
+  const abbr = ID_MONTH_ABBR[month];
+  if (!abbr) return String(formatted);
+  return `${Number(day) || day} ${abbr} ${year}, ${String(time).slice(0, 5)}`;
+}
+
 // Date → "02 Okt 2026 13:54" (Indonesian abbrev months, local timezone).
 export function formatDateTime(date) {
   const d = date instanceof Date ? date : new Date(date);

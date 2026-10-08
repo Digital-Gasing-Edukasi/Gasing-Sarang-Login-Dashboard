@@ -4,7 +4,12 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import userEvent from "@testing-library/user-event";
 import disetujuiFixture from "../../../dev/responses/disetujui.json";
 import deletionFixture from "../../../dev/responses/user-deletion.json";
-import { formatShortDate } from "../lib/format.js";
+import {
+  formatBirthdate,
+  formatSessionDate,
+  formatShortDate,
+  formatUpdatedAt,
+} from "../lib/format.js";
 import { ROLE_META_BY_ID } from "../lib/roles.js";
 
 vi.mock("../lib/api/users.js", async (importOriginal) => {
@@ -126,17 +131,17 @@ describe("ManajemenAkunPage", () => {
       screen.getAllByText(ROLE_META_BY_ID[U0.discourseGroupId].fullName).length,
     ).toBeGreaterThan(0);
     expect(screen.getAllByText("Lihat Detail").length).toBeGreaterThan(0);
-    expect(screen.getByText(U0.birthdate.formatted)).toBeInTheDocument();
+    expect(screen.getByText(formatBirthdate(U0.birthdate))).toBeInTheDocument();
     expect(screen.getAllByText(U0.region.regionName).length).toBeGreaterThan(0);
     expect(screen.getByText(U0.firstTrainingSession.name)).toBeInTheDocument();
     expect(
       screen.getByText(
-        formatShortDate(U0.firstTrainingSession.startDate.utc.formatted),
+        formatSessionDate(U0.firstTrainingSession.startDate.utc.formatted),
       ),
     ).toBeInTheDocument();
     expect(screen.getByText(U0.schoolName)).toBeInTheDocument();
     expect(
-      screen.getAllByText(formatShortDate(U0.updatedAt.utc.formatted)).length,
+      screen.getAllByText(formatUpdatedAt(U0.updatedAt.utc.formatted)).length,
     ).toBeGreaterThan(0);
     expect(
       screen.getByText(

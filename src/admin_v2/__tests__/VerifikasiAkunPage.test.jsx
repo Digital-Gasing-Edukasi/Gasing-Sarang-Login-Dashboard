@@ -4,7 +4,11 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import userEvent from "@testing-library/user-event";
 import verifFixture from "../../../dev/responses/verif.json";
 import sessionsFixture from "../../../dev/responses/training-sessions.json";
-import { formatTrainingPeriod, formatShortDate } from "../lib/format.js";
+import {
+  formatSessionDate,
+  formatShortDate,
+  formatTrainingPeriod,
+} from "../lib/format.js";
 import { ROLE_META_BY_ID } from "../lib/roles.js";
 
 // Radix Select calls DOM APIs jsdom doesn't implement.
@@ -428,7 +432,7 @@ describe("VerifikasiAkunPage", () => {
       within(dialog).getByText(firstSession.region.full_name),
     ).toBeInTheDocument();
     expect(
-      within(dialog).getByText(formatShortDate(firstSession.startDate.utc.formatted)),
+      within(dialog).getByText(formatSessionDate(firstSession.startDate.utc.formatted)),
     ).toBeInTheDocument();
 
     // More than one page → pagination fetches page 2.

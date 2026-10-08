@@ -9,7 +9,12 @@ import { OverflowText } from "../../../components/OverflowText.jsx";
 import { DeadlineCell } from "./DeadlineCell.jsx";
 import { RoleBadge } from "../../../components/RoleBadge.jsx";
 import { UserCell } from "../../../components/UserCell.jsx";
-import { formatShortDate } from "../../../lib/format.js";
+import {
+  formatBirthdate,
+  formatSessionDate,
+  formatShortDate,
+  formatUpdatedAt,
+} from "../../../lib/format.js";
 
 const text = (value) => (
   <OverflowText value={value} className="text-sm text-foreground" />
@@ -69,7 +74,7 @@ const unsubscribedColumns = [
   {
     key: "birthdate",
     header: "Tgl. Lahir",
-    render: (u) => text(u.birthdate?.formatted),
+    render: (u) => text(formatBirthdate(u.birthdate)),
   },
   { key: "region", header: "Lokasi", wrap: true, render: (u) => text(u.region?.regionName) },
   {
@@ -90,13 +95,13 @@ const unsubscribedColumns = [
     key: "session-start",
     header: "Tanggal Mulai",
     sub: "Alumni Pelatihan",
-    render: (u) => text(formatShortDate(u.firstTrainingSession?.startDate?.utc?.formatted)),
+    render: (u) => text(formatSessionDate(u.firstTrainingSession?.startDate?.utc?.formatted)),
   },
   { key: "school", header: "Asal Sekolah", wrap: true, render: (u) => text(u.schoolName) },
   {
     key: "updated",
     header: "Last Updated",
-    render: (u) => text(formatShortDate(u.updatedAt?.utc?.formatted)),
+    render: (u) => text(formatUpdatedAt(u.updatedAt?.utc?.formatted)),
   },
 ];
 

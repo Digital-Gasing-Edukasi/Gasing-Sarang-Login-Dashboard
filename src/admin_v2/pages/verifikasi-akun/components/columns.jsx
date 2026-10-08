@@ -1,7 +1,12 @@
 import { CheckCircle2, XCircle } from "lucide-react";
 import { Button } from "../../../components/ui/button.jsx";
 import { OverflowText } from "../../../components/OverflowText.jsx";
-import { formatShortDate, formatTrainingPeriod } from "../../../lib/format.js";
+import {
+  formatBirthdate,
+  formatSessionDate,
+  formatShortDate,
+  formatTrainingPeriod,
+} from "../../../lib/format.js";
 import { RoleBadge } from "../../../components/RoleBadge.jsx";
 import { StatusPill } from "../../../components/StatusPill.jsx";
 import { UserCell } from "../../../components/UserCell.jsx";
@@ -26,7 +31,7 @@ const pendingColumns = [
   {
     key: "birthdate",
     header: "Tgl. Lahir",
-    render: (u) => text(u.birthdate?.formatted),
+    render: (u) => text(formatBirthdate(u.birthdate)),
   },
   { key: "region", header: "Lokasi", wrap: true, render: (u) => text(u.region?.regionName) },
   {
@@ -38,7 +43,8 @@ const pendingColumns = [
   },
   {
     key: "training-period",
-    header: "Bulan & Tahun",
+    header: "Tanggal Mulai",
+    sub: "Alumni Pelatihan",
     render: (u) => text(formatTrainingPeriod(u.firstTrainingYear, u.firstTrainingMonth)),
   },
   { key: "school", header: "Asal Sekolah", wrap: true, render: (u) => text(u.schoolName) },
@@ -120,7 +126,7 @@ const voucherColumns = [
   {
     key: "birthdate",
     header: "Tgl. Lahir",
-    render: (u) => text(u.birthdate?.formatted),
+    render: (u) => text(formatBirthdate(u.birthdate)),
   },
   { key: "region", header: "Lokasi", wrap: true, render: (u) => text(u.region?.regionName) },
   {
@@ -141,7 +147,7 @@ const voucherColumns = [
     key: "session-start",
     header: "Tanggal Mulai",
     sub: "Alumni Pelatihan",
-    render: (u) => text(formatShortDate(u.firstTrainingSession?.startDate?.utc?.formatted)),
+    render: (u) => text(formatSessionDate(u.firstTrainingSession?.startDate?.utc?.formatted)),
   },
   { key: "school", header: "Asal Sekolah", wrap: true, render: (u) => text(u.schoolName) },
   {

@@ -13,7 +13,12 @@ import {
   PopoverTrigger,
 } from "../../../components/ui/popover.jsx";
 import { OverflowText } from "../../../components/OverflowText.jsx";
-import { formatShortDate } from "../../../lib/format.js";
+import {
+  formatBirthdate,
+  formatSessionDate,
+  formatShortDate,
+  formatUpdatedAt,
+} from "../../../lib/format.js";
 import { RoleBadge } from "../../../components/RoleBadge.jsx";
 import { StatusPill } from "../../../components/StatusPill.jsx";
 import { UserCell } from "../../../components/UserCell.jsx";
@@ -82,7 +87,7 @@ const alumniColumns = [
     key: "session-start",
     header: "Tanggal Mulai",
     sub: "Alumni Pelatihan",
-    render: (u) => text(formatShortDate(u.firstTrainingSession?.startDate?.utc?.formatted)),
+    render: (u) => text(formatSessionDate(u.firstTrainingSession?.startDate?.utc?.formatted)),
   },
 ];
 
@@ -100,7 +105,7 @@ const accountColumns = [
   {
     key: "birthdate",
     header: "Tgl. Lahir",
-    render: (u) => text(u.birthdate?.formatted),
+    render: (u) => text(formatBirthdate(u.birthdate)),
   },
   { key: "region", header: "Lokasi", wrap: true, render: (u) => text(u.region?.regionName) },
   ...alumniColumns,
@@ -108,7 +113,7 @@ const accountColumns = [
   {
     key: "updated",
     header: "Last Updated",
-    render: (u) => text(formatShortDate(u.updatedAt?.utc?.formatted)),
+    render: (u) => text(formatUpdatedAt(u.updatedAt?.utc?.formatted)),
   },
 ];
 
@@ -221,14 +226,14 @@ const ditolakColumns = [
   {
     key: "birthdate",
     header: "Tgl. Lahir",
-    render: (u) => text(u.birthdate?.formatted),
+    render: (u) => text(formatBirthdate(u.birthdate)),
   },
   { key: "region", header: "Lokasi", wrap: true, render: (u) => text(u.region?.regionName) },
   { key: "school", header: "Asal Sekolah", wrap: true, render: (u) => text(u.schoolName) },
   {
     key: "updated",
     header: "Last Updated",
-    render: (u) => text(formatShortDate(u.updatedAt?.utc?.formatted)),
+    render: (u) => text(formatUpdatedAt(u.updatedAt?.utc?.formatted)),
   },
   actionColumn([
     {

@@ -5,7 +5,11 @@ import userEvent from "@testing-library/user-event";
 import unsubFixture from "../../../dev/responses/not-subscribed.json";
 import paymentFixture from "../../../dev/responses/payment-manual-receiptuploaded.json";
 import historyFixture from "../../../dev/responses/training-user.json";
-import { formatDateTime, formatShortDate } from "../lib/format.js";
+import {
+  formatDateTime,
+  formatShortDate,
+  formatUpdatedAt,
+} from "../lib/format.js";
 import { ROLE_META_BY_ID } from "../lib/roles.js";
 
 vi.mock("../lib/api/users.js", async (importOriginal) => {
@@ -135,7 +139,7 @@ describe("VerifikasiPembayaranPage", () => {
       screen.getAllByText(ROLE_META_BY_ID[U0.discourseGroupId].fullName).length,
     ).toBeGreaterThan(0);
     expect(
-      screen.getAllByText(formatShortDate(U0.updatedAt.utc.formatted)).length,
+      screen.getAllByText(formatUpdatedAt(U0.updatedAt.utc.formatted)).length,
     ).toBeGreaterThan(0);
     // Last Updated is the frozen last column.
     const lastTh = screen.getByText("Last Updated").closest("th");
