@@ -15,6 +15,8 @@ export {
   usersKeys,
   verifyUser,
   requestAccountDeletion,
+  deleteUserPermanently,
+  updateDiscourseGroup,
 } from "./users.js";
 export {
   fetchTrainingSessions,

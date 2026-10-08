@@ -14,10 +14,10 @@ import { Search } from "lucide-react";
 import { Input } from "../../components/ui/input.jsx";
 import { useDebouncedValue } from "../../hooks/useDebouncedValue.js";
 import { Pagination } from "../../components/index.js";
+import { DeleteAccountDialog } from "../../components/index.js";
 import { ExportButton } from "../../components/downloads/index.js";
 import { TrainingHistoryDialog } from "../../components/index.js";
 import {
-  DeleteAccountDialog,
   PaymentConfirmDialog,
   PaymentRejectDialog,
   getPembayaranColumns,
@@ -152,13 +152,13 @@ export default function VerifikasiPembayaranPage() {
     });
   };
 
-  const handleAccountDeleted = (deletedPayment) => {
+  const handleAccountDeleted = (deletedUser) => {
     setDeletePayment(null);
     setPage(1);
     toast({
       title: "Akun dihapus",
-      description: deletedPayment?.user?.email
-        ? `Akun ${deletedPayment.user.email} telah dihapus.`
+      description: deletedUser?.email
+        ? `Akun ${deletedUser.email} telah dihapus.`
         : "Akun telah dihapus.",
     });
     queryClient.invalidateQueries({
@@ -290,7 +290,7 @@ export default function VerifikasiPembayaranPage() {
         onRejected={handlePaymentRejected}
       />
       <DeleteAccountDialog
-        payment={deletePayment}
+        user={deletePayment?.user}
         onClose={() => setDeletePayment(null)}
         onDeleted={handleAccountDeleted}
       />

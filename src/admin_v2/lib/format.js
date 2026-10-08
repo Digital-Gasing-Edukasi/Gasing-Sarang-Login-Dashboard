@@ -13,6 +13,29 @@ const ID_MONTHS = [
   "Desember",
 ];
 
+const EN_MONTHS = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+];
+
+const MONTH_INDEX = {};
+ID_MONTHS.forEach((m, i) => {
+  MONTH_INDEX[m] = i;
+});
+EN_MONTHS.forEach((m, i) => {
+  if (!(m in MONTH_INDEX)) MONTH_INDEX[m] = i;
+});
+
 // Backend sends ENGLISH month names ("October", "December", ...); display
 // uses Indonesian abbreviations ("Okt", "Des", ...). Indonesian spellings
 // kept as aliases for tolerance.
@@ -91,15 +114,26 @@ export function formatSessionDate(formatted) {
   return `${Number(day) || day} ${abbr} ${year}`;
 }
 
-// Last updated → "23 Sep 2026, 15:06".
-export function formatUpdatedAt(formatted) {
+// Last updated → "23 Sep 2026, 15:06" — time only ("15:06") when still
+// today. Compared in UTC, the frame of the `utc` timestamps we render.
+export function formatUpdatedAt(formatted, now = new Date()) {
   if (!formatted) return FALLBACK_TEXT;
   const parts = String(formatted).split(" ");
   if (parts.length < 4) return String(formatted);
   const [day, month, year, time] = parts;
   const abbr = ID_MONTH_ABBR[month];
   if (!abbr) return String(formatted);
-  return `${Number(day) || day} ${abbr} ${year}, ${String(time).slice(0, 5)}`;
+  const hhmm = String(time).slice(0, 5);
+  const t = now instanceof Date ? now : new Date(now);
+  if (
+    !Number.isNaN(t.getTime()) &&
+    t.getUTCFullYear() === Number(year) &&
+    t.getUTCMonth() === MONTH_INDEX[month] &&
+    t.getUTCDate() === Number(day)
+  ) {
+    return hhmm;
+  }
+  return `${Number(day) || day} ${abbr} ${year}, ${hhmm}`;
 }
 
 // Date → "02 Okt 2026 13:54" (Indonesian abbrev months, local timezone).

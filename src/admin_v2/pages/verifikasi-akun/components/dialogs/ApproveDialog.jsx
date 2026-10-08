@@ -11,7 +11,7 @@ import {
 import { Label } from "../../../../components/ui/label.jsx";
 import { verifyUser } from "../../../../lib/api/index.js";
 import { RegionSelect } from "../RegionSelect.jsx";
-import { RoleSelect } from "../RoleSelect.jsx";
+import { RoleSelect } from "../../../../components/index.js";
 import { TrainingSessionSelect } from "../TrainingSessionSelect.jsx";
 
 export function ApproveDialog({ user, onClose, onApproved }) {

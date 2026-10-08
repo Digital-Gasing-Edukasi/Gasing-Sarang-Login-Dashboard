@@ -1,22 +1,24 @@
 import { useMutation } from "@tanstack/react-query";
-import { Button } from "../../../../components/ui/button.jsx";
+import { Button } from "../ui/button.jsx";
 import {
   Dialog,
   DialogContent,
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "../../../../components/ui/dialog.jsx";
-import { requestAccountDeletion } from "../../../../lib/api/index.js";
+} from "../ui/dialog.jsx";
+import { requestAccountDeletion } from "../../lib/api/index.js";
 
-export function DeleteAccountDialog({ payment, onClose, onDeleted }) {
-  const open = !!payment;
-  const email = payment?.user?.email;
-  const userId = payment?.user?.id;
+// Shared delete-account flow: POST /admin/users/:id/deletion-request
+// (soft delete, recoverable for 30 days). `user` is the account itself
+// ({ id, email }) — callers with nested users pass `row.user`.
+export function DeleteAccountDialog({ user, onClose, onDeleted }) {
+  const open = !!user;
+  const userId = user?.id;
 
   const remove = useMutation({
     mutationFn: () => requestAccountDeletion({ userId }),
-    onSuccess: () => onDeleted?.(payment),
+    onSuccess: () => onDeleted?.(user),
   });
 
   // Fresh state every time the dialog closes (stale errors included).
@@ -33,7 +35,7 @@ export function DeleteAccountDialog({ payment, onClose, onDeleted }) {
         </DialogHeader>
 
         <p className="text-sm text-foreground">
-          Akun {email} akan dihapus. Kamu masih dapat memulihkannya sebelum 30
+          Akun {user?.email} akan dihapus. Kamu masih dapat memulihkannya sebelum 30
           hari.
         </p>
 

@@ -5,6 +5,8 @@ export { OverflowText } from "./OverflowText.jsx";
 export { Pagination, PAGE_LIMIT_OPTIONS } from "./Pagination.jsx";
 export { StatusPill } from "./StatusPill.jsx";
 export { TrainingHistoryDialog } from "./dialogs/TrainingHistoryDialog.jsx";
+export { DeleteAccountDialog } from "./dialogs/DeleteAccountDialog.jsx";
 export { RoleBadge } from "./RoleBadge.jsx";
 export { UserCell } from "./UserCell.jsx";
 export { CountBadge } from "./CountBadge.jsx";
+export { RoleSelect } from "./RoleSelect.jsx";

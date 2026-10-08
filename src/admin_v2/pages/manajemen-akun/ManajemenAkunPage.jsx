@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Search } from "lucide-react";
 import { cn } from "../../lib/utils.js";
 import {
@@ -9,10 +9,14 @@ import {
 } from "../../lib/api/index.js";
 import { useDebouncedValue } from "../../hooks/useDebouncedValue.js";
 import { Input } from "../../components/ui/input.jsx";
+import { toast } from "../../components/ui/use-toast.js";
 import { CountBadge, DataTable } from "../../components/index.js";
 import { Pagination } from "../../components/index.js";
+import { DeleteAccountDialog } from "../../components/index.js";
 import { TrainingHistoryDialog } from "../../components/index.js";
 import { getManajemenColumns } from "./components/index.js";
+import { ChangeRoleDialog } from "./components/index.js";
+import { PermanentDeleteDialog } from "./components/index.js";
 
 const DEFAULT_LIMIT = 20;
 
@@ -86,11 +90,15 @@ function TabCountBadge({ tab }) {
 }
 
 export default function ManajemenAkunPage() {
+  const queryClient = useQueryClient();
   const [tab, setTab] = useState(TABS[0].key);
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(DEFAULT_LIMIT);
   const [keyword, setKeyword] = useState("");
   const [historyUser, setHistoryUser] = useState(null);
+  const [deleteUser, setDeleteUser] = useState(null);
+  const [deletePermanentUser, setDeletePermanentUser] = useState(null);
+  const [changeRoleUser, setChangeRoleUser] = useState(null);
   const debouncedKeyword = useDebouncedValue(keyword, 500);
   const current = TABS.find((t) => t.key === tab) ?? TABS[0];
 
@@ -117,16 +125,52 @@ export default function ManajemenAkunPage() {
     setPage(1);
   };
 
+  const handleAccountDeleted = (deletedUser) => {
+    setDeleteUser(null);
+    setPage(1);
+    toast({
+      title: "Akun dihapus",
+      description: deletedUser?.email
+        ? `Akun ${deletedUser.email} telah dihapus.`
+        : "Akun telah dihapus.",
+    });
+    queryClient.invalidateQueries({ queryKey: usersKeys.all });
+  };
+
+  const handlePermanentDeleted = (deletedUser) => {
+    setDeletePermanentUser(null);
+    setPage(1);
+    toast({
+      title: "Akun dihapus permanen",
+      description: deletedUser?.email
+        ? `Akun ${deletedUser.email} telah dihapus permanen.`
+        : "Akun telah dihapus permanen.",
+    });
+    queryClient.invalidateQueries({ queryKey: usersKeys.all });
+  };
+
+  const handleRoleSaved = (savedUser) => {
+    setChangeRoleUser(null);
+    toast({
+      title: "Role diubah",
+      description: savedUser?.name
+        ? `Role ${savedUser.name} telah diperbarui.`
+        : "Role telah diperbarui.",
+    });
+    queryClient.invalidateQueries({ queryKey: usersKeys.all });
+  };
+
   const columns = useMemo(
     () =>
       getManajemenColumns({
         onShowHistory: setHistoryUser,
+        onChangeRole: setChangeRoleUser,
         // Wired for the next iteration — no dialogs yet.
-        onChangeRole: () => {},
         onSuspendAccount: () => {},
         onRestoreAccount: () => {},
         onReverify: () => {},
-        onDeleteAccount: () => {},
+        onDeleteAccount: setDeleteUser,
+        onDeletePermanent: setDeletePermanentUser,
       }),
     [],
   );
@@ -200,6 +244,21 @@ export default function ManajemenAkunPage() {
       <TrainingHistoryDialog
         user={historyUser}
         onClose={() => setHistoryUser(null)}
+      />
+      <DeleteAccountDialog
+        user={deleteUser}
+        onClose={() => setDeleteUser(null)}
+        onDeleted={handleAccountDeleted}
+      />
+      <PermanentDeleteDialog
+        user={deletePermanentUser}
+        onClose={() => setDeletePermanentUser(null)}
+        onDeleted={handlePermanentDeleted}
+      />
+      <ChangeRoleDialog
+        user={changeRoleUser}
+        onClose={() => setChangeRoleUser(null)}
+        onSaved={handleRoleSaved}
       />
     </div>
   );

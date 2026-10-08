@@ -61,6 +61,17 @@ describe("formatUpdatedAt", () => {
     expect(formatUpdatedAt("01 October 2026 19:00:00")).toBe("1 Okt 2026, 19:00");
     expect(formatUpdatedAt(null)).toBe("—");
   });
+
+  it("time only when still today (UTC)", () => {
+    const now = new Date(Date.UTC(2026, 8, 23, 20, 0));
+    expect(formatUpdatedAt("23 September 2026 15:06:00", now)).toBe("15:06");
+    expect(formatUpdatedAt("23 September 2025 15:06:00", now)).toBe(
+      "23 Sep 2025, 15:06",
+    );
+    expect(formatUpdatedAt("22 September 2026 15:06:00", now)).toBe(
+      "22 Sep 2026, 15:06",
+    );
+  });
 });
 
 describe("formatTrainingPeriod", () => {

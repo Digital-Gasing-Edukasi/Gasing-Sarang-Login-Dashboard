@@ -12,9 +12,25 @@ import {
 } from "../lib/format.js";
 import { ROLE_META_BY_ID } from "../lib/roles.js";
 
+// Radix Select calls DOM APIs jsdom doesn't implement.
+if (!window.HTMLElement.prototype.hasPointerCapture) {
+  window.HTMLElement.prototype.hasPointerCapture = () => false;
+  window.HTMLElement.prototype.setPointerCapture = () => {};
+  window.HTMLElement.prototype.releasePointerCapture = () => {};
+}
+if (!window.HTMLElement.prototype.scrollIntoView) {
+  window.HTMLElement.prototype.scrollIntoView = () => {};
+}
+
 vi.mock("../lib/api/users.js", async (importOriginal) => {
   const actual = await importOriginal();
-  return { ...actual, fetchUsers: vi.fn() };
+  return {
+    ...actual,
+    fetchUsers: vi.fn(),
+    requestAccountDeletion: vi.fn(async () => ({})),
+    deleteUserPermanently: vi.fn(async () => ({})),
+    updateDiscourseGroup: vi.fn(async () => ({})),
+  };
 });
 
 vi.mock("../lib/api/training-histories.js", async (importOriginal) => {
@@ -43,7 +59,7 @@ vi.mock("../components/ui/dialog.jsx", async () => {
   };
 });
 
-import { fetchUsers } from "../lib/api/users.js";
+import { fetchUsers, requestAccountDeletion, deleteUserPermanently, updateDiscourseGroup } from "../lib/api/users.js";
 import { fetchTrainingHistory } from "../lib/api/training-histories.js";
 import historyFixture from "../../../dev/responses/training-user.json";
 import ManajemenAkunPage from "../pages/manajemen-akun/ManajemenAkunPage.jsx";
@@ -150,7 +166,7 @@ describe("ManajemenAkunPage", () => {
     ).toBeInTheDocument();
   });
 
-  it("action popover: three noop menus", async () => {
+  it("action popover: remaining noop menu", async () => {
     const user = userEvent.setup();
     renderPage();
     await screen.findByText(U0.name);
@@ -158,15 +174,79 @@ describe("ManajemenAkunPage", () => {
     await user.click(screen.getByRole("button", { name: `Aksi akun ${U0.name}` }));
     expect(await screen.findByText("Ubah Role")).toBeInTheDocument();
     expect(screen.getByText("Tangguhkan Akun")).toBeInTheDocument();
-    expect(screen.getByText("Hapus Akun")).toBeInTheDocument();
 
-    // Noops — clicking opens nothing and throws nothing (menu stays open).
-    await user.click(screen.getByText("Ubah Role"));
+    // Noop — clicking opens nothing and throws nothing (menu stays open).
     await user.click(screen.getByText("Tangguhkan Akun"));
-    await user.click(screen.getByText("Hapus Akun"));
     // PopoverContent itself is role="dialog" — close it, then assert no modal.
     await user.keyboard("{Escape}");
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("Ubah Role preselects current role and saves on change", async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await screen.findByText(U0.name);
+
+    await user.click(screen.getByRole("button", { name: `Aksi akun ${U0.name}` }));
+    await user.click(await screen.findByText("Ubah Role"));
+
+    const heading = await screen.findByRole("heading", { name: "Ubah Role?" });
+    const dialog = heading.closest('[role="dialog"]');
+    expect(dialog).not.toBeNull();
+    // Preselected with the current role; no change → Simpan disabled.
+    expect(
+      within(dialog).getByText(ROLE_META_BY_ID[U0.discourseGroupId].fullName),
+    ).toBeInTheDocument();
+    expect(within(dialog).getByRole("button", { name: "Simpan" })).toBeDisabled();
+
+    await user.click(within(dialog).getByRole("combobox", { name: "Role" }));
+    await user.click(await screen.findByRole("option", { name: "Guru" }));
+    expect(within(dialog).getByRole("button", { name: "Simpan" })).not.toBeDisabled();
+
+    const callsBefore = fetchUsers.mock.calls.length;
+    await user.click(within(dialog).getByRole("button", { name: "Simpan" }));
+
+    expect(updateDiscourseGroup).toHaveBeenCalledWith({
+      userId: U0.id,
+      discourseGroupId: 49,
+    });
+    await waitFor(() => {
+      expect(fetchUsers.mock.calls.length).toBeGreaterThan(callsBefore);
+    });
+    await waitFor(() => {
+      expect(screen.queryByRole("heading", { name: "Ubah Role?" })).not.toBeInTheDocument();
+    });
+  });
+
+  it("Hapus Akun opens the shared delete dialog and invalidates lists", async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await screen.findByText(U0.name);
+
+    await user.click(screen.getByRole("button", { name: `Aksi akun ${U0.name}` }));
+    await user.click(await screen.findByText("Hapus Akun"));
+
+    const heading = await screen.findByRole("heading", {
+      name: "Yakin Hapus Akun Ini?",
+    });
+    const dialog = heading.closest('[role="dialog"]');
+    expect(dialog).not.toBeNull();
+    expect(
+      within(dialog).getByText(
+        `Akun ${U0.email} akan dihapus. Kamu masih dapat memulihkannya sebelum 30 hari.`,
+      ),
+    ).toBeInTheDocument();
+
+    const callsBefore = fetchUsers.mock.calls.length;
+    await user.click(within(dialog).getByRole("button", { name: "Hapus Akun" }));
+
+    expect(requestAccountDeletion).toHaveBeenCalledWith({ userId: U0.id });
+    await waitFor(() => {
+      expect(fetchUsers.mock.calls.length).toBeGreaterThan(callsBefore);
+    });
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    });
   });
 
   it("Lihat Detail opens the shared history dialog", async () => {
@@ -272,7 +352,44 @@ describe("ManajemenAkunPage", () => {
 
     await user.click(screen.getAllByRole("button", { name: `Aksi akun ${D0.name}` })[0]);
     expect(await screen.findByText("Pulihkan Akun")).toBeInTheDocument();
-    expect(screen.getByText("Hapus Akun")).toBeInTheDocument();
+    expect(screen.getByText("Hapus Akun Selamanya")).toBeInTheDocument();
+    expect(screen.queryByText("Hapus Akun")).not.toBeInTheDocument();
+  });
+
+  it("Hapus Akun Selamanya deletes permanently via DELETE", async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await screen.findByText(U0.name);
+
+    await user.click(screen.getByRole("button", { name: /Baru Dihapus/ }));
+    const D0 = deletionFixture.data.find((u) => u.deletion && u.name !== u.email);
+    await screen.findByText(D0.name);
+
+    await user.click(screen.getAllByRole("button", { name: `Aksi akun ${D0.name}` })[0]);
+    await user.click(await screen.findByText("Hapus Akun Selamanya"));
+
+    const heading = await screen.findByRole("heading", {
+      name: "Hapus Akun Permanen?",
+    });
+    const dialog = heading.closest('[role="dialog"]');
+    expect(dialog).not.toBeNull();
+    expect(
+      within(dialog).getByText(
+        `Akun ${D0.email} akan dihapus permanen. Tindakan ini tidak dapat dibatalkan.`,
+      ),
+    ).toBeInTheDocument();
+
+    const callsBefore = fetchUsers.mock.calls.length;
+    await user.click(within(dialog).getByRole("button", { name: "Hapus Permanen" }));
+
+    expect(deleteUserPermanently).toHaveBeenCalledWith({ userId: D0.id });
+    expect(requestAccountDeletion).not.toHaveBeenCalled();
+    await waitFor(() => {
+      expect(fetchUsers.mock.calls.length).toBeGreaterThan(callsBefore);
+    });
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    });
   });
 
   it("search shows on every user table; dihapus hides its count", async () => {

@@ -285,7 +285,7 @@ const dihapusColumns = [
   ...accountColumns,
   actionColumn([
     { key: "restore", label: "Pulihkan Akun", Icon: Undo2, tone: "green", onSelect: (u, a) => a?.onRestoreAccount?.(u) },
-    { key: "delete", label: "Hapus Akun", Icon: Trash2, tone: "red", onSelect: (u, a) => a?.onDeleteAccount?.(u) },
+    { key: "delete-permanent", label: "Hapus Akun Selamanya", Icon: Trash2, tone: "red", onSelect: (u, a) => a?.onDeletePermanent?.(u) },
   ]),
 ];
 

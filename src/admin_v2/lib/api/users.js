@@ -1,4 +1,4 @@
-import { apiGet, apiPatch, apiPost } from "./client.js";
+import { apiDelete, apiGet, apiPatch, apiPost } from "./client.js";
 
 // Backend-validated filter buckets: "waiting"|"pending_voucher"|"approved"|"rejected"|"all".
 // (Numeric verifiedStatus on user objects is display-only — see verificationStatus.js.)
@@ -83,4 +83,14 @@ export function verifyUser({ userId, ...payload }) {
 // recoverable for 30 days.
 export function requestAccountDeletion({ userId }) {
   return apiPost(`/admin/users/${userId}/deletion-request`);
+}
+
+// DELETE /admin/users/:userId — permanent, irreversible.
+export function deleteUserPermanently({ userId }) {
+  return apiDelete(`/admin/users/${userId}`);
+}
+
+// PATCH /admin/users/:userId/discourse-group — change the user's role.
+export function updateDiscourseGroup({ userId, discourseGroupId }) {
+  return apiPatch(`/admin/users/${userId}/discourse-group`, { discourseGroupId });
 }

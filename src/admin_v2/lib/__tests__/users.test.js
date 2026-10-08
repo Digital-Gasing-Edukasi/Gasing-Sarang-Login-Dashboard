@@ -1,12 +1,19 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-vi.mock("../api/client.js", () => ({ apiGet: vi.fn(), apiPost: vi.fn() }));
+vi.mock("../api/client.js", () => ({
+  apiDelete: vi.fn(),
+  apiGet: vi.fn(),
+  apiPatch: vi.fn(),
+  apiPost: vi.fn(),
+}));
 
-import { apiGet, apiPost } from "../api/client.js";
+import { apiDelete, apiGet, apiPatch, apiPost } from "../api/client.js";
 import {
+  deleteUserPermanently,
   fetchUsersCount,
   fetchUsers,
   requestAccountDeletion,
+  updateDiscourseGroup,
 } from "../api/users.js";
 
 beforeEach(() => vi.clearAllMocks());
@@ -128,5 +135,27 @@ describe("requestAccountDeletion", () => {
     await requestAccountDeletion({ userId: "u-9" });
 
     expect(apiPost).toHaveBeenCalledWith("/admin/users/u-9/deletion-request");
+  });
+});
+
+describe("deleteUserPermanently", () => {
+  it("DELETEs the user endpoint", async () => {
+    apiDelete.mockResolvedValue({});
+
+    await deleteUserPermanently({ userId: "u-9" });
+
+    expect(apiDelete).toHaveBeenCalledWith("/admin/users/u-9");
+  });
+});
+
+describe("updateDiscourseGroup", () => {
+  it("PATCHes the discourse-group endpoint with the group id", async () => {
+    apiPatch.mockResolvedValue({});
+
+    await updateDiscourseGroup({ userId: "u-9", discourseGroupId: 49 });
+
+    expect(apiPatch).toHaveBeenCalledWith("/admin/users/u-9/discourse-group", {
+      discourseGroupId: 49,
+    });
   });
 });

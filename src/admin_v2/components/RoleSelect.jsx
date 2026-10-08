@@ -1,10 +1,10 @@
-import { ROLE_META_BY_ID } from "../../../lib/roles.js";
+import { ROLE_META_BY_ID } from "../lib/roles.js";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
-} from "../../../components/ui/select.jsx";
+} from "./ui/select.jsx";
 
 const ROLE_OPTIONS = Object.entries(ROLE_META_BY_ID).map(([id, meta]) => ({
   value: String(id),
