@@ -17,6 +17,7 @@ import { TrainingHistoryDialog } from "../../components/index.js";
 import { getManajemenColumns } from "./components/index.js";
 import { ChangeRoleDialog } from "./components/index.js";
 import { PermanentDeleteDialog } from "./components/index.js";
+import { SuspendAccountDialog } from "./components/index.js";
 
 const DEFAULT_LIMIT = 20;
 
@@ -99,6 +100,7 @@ export default function ManajemenAkunPage() {
   const [deleteUser, setDeleteUser] = useState(null);
   const [deletePermanentUser, setDeletePermanentUser] = useState(null);
   const [changeRoleUser, setChangeRoleUser] = useState(null);
+  const [suspendUser, setSuspendUser] = useState(null);
   const debouncedKeyword = useDebouncedValue(keyword, 500);
   const current = TABS.find((t) => t.key === tab) ?? TABS[0];
 
@@ -160,13 +162,24 @@ export default function ManajemenAkunPage() {
     queryClient.invalidateQueries({ queryKey: usersKeys.all });
   };
 
+  const handleSuspended = (suspendedAccount) => {
+    setSuspendUser(null);
+    setPage(1);
+    toast({
+      title: "Akun ditangguhkan",
+      description: suspendedAccount?.name
+        ? `Akun ${suspendedAccount.name} telah ditangguhkan.`
+        : "Akun telah ditangguhkan.",
+    });
+    queryClient.invalidateQueries({ queryKey: usersKeys.all });
+  };
+
   const columns = useMemo(
     () =>
       getManajemenColumns({
         onShowHistory: setHistoryUser,
         onChangeRole: setChangeRoleUser,
-        // Wired for the next iteration — no dialogs yet.
-        onSuspendAccount: () => {},
+        onSuspendAccount: setSuspendUser,
         onRestoreAccount: () => {},
         onReverify: () => {},
         onDeleteAccount: setDeleteUser,
@@ -259,6 +272,11 @@ export default function ManajemenAkunPage() {
         user={changeRoleUser}
         onClose={() => setChangeRoleUser(null)}
         onSaved={handleRoleSaved}
+      />
+      <SuspendAccountDialog
+        user={suspendUser}
+        onClose={() => setSuspendUser(null)}
+        onSuspended={handleSuspended}
       />
     </div>
   );

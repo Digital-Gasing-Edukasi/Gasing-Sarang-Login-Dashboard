@@ -95,13 +95,13 @@ const unsubscribedColumns = [
     key: "session-start",
     header: "Tanggal Mulai",
     sub: "Alumni Pelatihan",
-    render: (u) => text(formatSessionDate(u.firstTrainingSession?.startDate?.utc?.formatted)),
+    render: (u) => text(formatSessionDate(u.firstTrainingSession?.startDate?.local?.formatted)),
   },
   { key: "school", header: "Asal Sekolah", wrap: true, render: (u) => text(u.schoolName) },
   {
     key: "updated",
     header: "Last Updated",
-    render: (u) => text(formatUpdatedAt(u.updatedAt?.utc?.formatted)),
+    render: (u) => text(formatUpdatedAt(u.updatedAt?.local?.formatted)),
   },
 ];
 
@@ -131,7 +131,7 @@ const paymentColumns = (withMenu) => [
   {
     key: "period-end",
     header: "Tgl. Berakhir",
-    render: (p) => text(formatShortDate(p.periodeEnd?.utc?.formatted)),
+    render: (p) => text(formatShortDate(p.periodeEnd?.local?.formatted)),
   },
   {
     key: "uploaded",

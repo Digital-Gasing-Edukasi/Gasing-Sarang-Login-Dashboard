@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import userEvent from "@testing-library/user-event";
 import disetujuiFixture from "../../../dev/responses/disetujui.json";
 import deletionFixture from "../../../dev/responses/user-deletion.json";
+import bannedFixture from "../../../dev/responses/user-banned.json";
 import {
   formatBirthdate,
   formatSessionDate,
@@ -30,6 +31,8 @@ vi.mock("../lib/api/users.js", async (importOriginal) => {
     requestAccountDeletion: vi.fn(async () => ({})),
     deleteUserPermanently: vi.fn(async () => ({})),
     updateDiscourseGroup: vi.fn(async () => ({})),
+    fetchSuspendReasons: vi.fn(),
+    suspendUser: vi.fn(async () => ({})),
   };
 });
 
@@ -59,9 +62,10 @@ vi.mock("../components/ui/dialog.jsx", async () => {
   };
 });
 
-import { fetchUsers, requestAccountDeletion, deleteUserPermanently, updateDiscourseGroup } from "../lib/api/users.js";
+import { fetchUsers, requestAccountDeletion, deleteUserPermanently, updateDiscourseGroup, fetchSuspendReasons, suspendUser } from "../lib/api/users.js";
 import { fetchTrainingHistory } from "../lib/api/training-histories.js";
 import historyFixture from "../../../dev/responses/training-user.json";
+import reasonsFixture from "../../../dev/responses/ban-reason.json";
 import ManajemenAkunPage from "../pages/manajemen-akun/ManajemenAkunPage.jsx";
 
 // Everything derives from fixtures — never hardcode names/ids.
@@ -83,6 +87,9 @@ function mockLists() {
   fetchUsers.mockImplementation(async (params = {}) => {
     if (params.deletionPending === 1) {
       return { data: deletionFixture.data, meta: deletionFixture.meta };
+    }
+    if (params.suspended === 1) {
+      return { data: bannedFixture.data, meta: bannedFixture.meta };
     }
     if (params.status === "rejected") {
       // Same user shape — rejected variants differ only in verifiedStatus.
@@ -110,6 +117,7 @@ function mockLists() {
       total: 3,
     },
   }));
+  fetchSuspendReasons.mockImplementation(async () => reasonsFixture);
 }
 
 beforeEach(() => {
@@ -166,20 +174,103 @@ describe("ManajemenAkunPage", () => {
     ).toBeInTheDocument();
   });
 
-  it("action popover: remaining noop menu", async () => {
+  it("action popover: no remaining noops", async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await screen.findByText(U0.name);
+
+    // Every menu now opens a dialog: Ubah Role, Tangguhkan Akun, Hapus Akun.
+    await user.click(screen.getByRole("button", { name: `Aksi akun ${U0.name}` }));
+    for (const label of ["Ubah Role", "Tangguhkan Akun", "Hapus Akun"]) {
+      expect(await screen.findByText(label)).toBeInTheDocument();
+    }
+    await user.keyboard("{Escape}");
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("Tangguhkan Akun suspends with preset duration + reason + remarks", async () => {
     const user = userEvent.setup();
     renderPage();
     await screen.findByText(U0.name);
 
     await user.click(screen.getByRole("button", { name: `Aksi akun ${U0.name}` }));
-    expect(await screen.findByText("Ubah Role")).toBeInTheDocument();
-    expect(screen.getByText("Tangguhkan Akun")).toBeInTheDocument();
+    await user.click(await screen.findByText("Tangguhkan Akun"));
 
-    // Noop — clicking opens nothing and throws nothing (menu stays open).
-    await user.click(screen.getByText("Tangguhkan Akun"));
-    // PopoverContent itself is role="dialog" — close it, then assert no modal.
-    await user.keyboard("{Escape}");
-    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    const heading = await screen.findByRole("heading", { name: "Tangguhkan Akun" });
+    const dialog = heading.closest('[role="dialog"]');
+    expect(dialog).not.toBeNull();
+    expect(
+      within(dialog).getByText(/tidak dapat mengakses akunnya sampai waktu yang ditentukan/),
+    ).toBeInTheDocument();
+    // Submit blocked until duration + reason are set.
+    expect(within(dialog).getByRole("button", { name: "Tangguhkan" })).toBeDisabled();
+
+    await user.click(within(dialog).getByRole("combobox", { name: "Pilih durasi" }));
+    await user.click(await screen.findByRole("option", { name: "3 hari" }));
+    expect(await within(dialog).findByText(/Berakhir:/)).toBeInTheDocument();
+
+    const R0 = reasonsFixture[0];
+    await user.click(within(dialog).getByRole("combobox", { name: "Alasan penangguhan pengguna" }));
+    await user.click(await screen.findByRole("option", { name: R0.title }));
+    await user.type(
+      within(dialog).getByPlaceholderText("Tulis pesan tambahan untuk pengguna (opsional)"),
+      "Melakukan interaksi tidak pantas",
+    );
+
+    const callsBefore = fetchUsers.mock.calls.length;
+    await user.click(within(dialog).getByRole("button", { name: "Tangguhkan" }));
+
+    expect(suspendUser).toHaveBeenCalledWith({
+      userId: U0.id,
+      suspendedUntil: expect.stringMatching(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:00$/),
+      reason: [R0.code],
+      remarks: "Melakukan interaksi tidak pantas",
+    });
+    await waitFor(() => {
+      expect(fetchUsers.mock.calls.length).toBeGreaterThan(callsBefore);
+    });
+    await waitFor(() => {
+      expect(screen.queryByRole("heading", { name: "Tangguhkan Akun" })).not.toBeInTheDocument();
+    });
+  });
+
+  it("Manual mode shows calendar + time input and forever sends null", async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await screen.findByText(U0.name);
+
+    await user.click(screen.getByRole("button", { name: `Aksi akun ${U0.name}` }));
+    await user.click(await screen.findByText("Tangguhkan Akun"));
+    const heading = await screen.findByRole("heading", { name: "Tangguhkan Akun" });
+    const dialog = heading.closest('[role="dialog"]');
+
+    await user.click(within(dialog).getByRole("button", { name: "Manual" }));
+    expect(
+      within(dialog).getByRole("grid", { name: "Pilih tanggal" }),
+    ).toBeInTheDocument();
+    expect(within(dialog).getByLabelText("Jam aktif kembali")).toBeInTheDocument();
+    // Today preselected → preview shows immediately.
+    expect(await within(dialog).findByText(/Berakhir:/)).toBeInTheDocument();
+
+    // Forever preset → no end datetime.
+    await user.click(within(dialog).getByRole("button", { name: "Preset" }));
+    await user.click(within(dialog).getByRole("combobox", { name: "Pilih durasi" }));
+    await user.click(await screen.findByRole("option", { name: "selamanya" }));
+    expect(
+      within(dialog).getByText((_, el) => el?.textContent === "Berakhir: selamanya"),
+    ).toBeInTheDocument();
+
+    const R0 = reasonsFixture[0];
+    await user.click(within(dialog).getByRole("combobox", { name: "Alasan penangguhan pengguna" }));
+    await user.click(await screen.findByRole("option", { name: R0.title }));
+    await user.click(within(dialog).getByRole("button", { name: "Tangguhkan" }));
+
+    expect(suspendUser).toHaveBeenCalledWith({
+      userId: U0.id,
+      suspendedUntil: null,
+      reason: [R0.code],
+      remarks: "",
+    });
   });
 
   it("Ubah Role preselects current role and saves on change", async () => {
@@ -294,13 +385,15 @@ describe("ManajemenAkunPage", () => {
     expect(await screen.findByText("Verifikasi Ulang")).toBeInTheDocument();
   });
 
-  it("ditangguhkan tab: suspended filter, orange pill, restore menu", async () => {
+  it("ditangguhkan tab: suspended filter, orange pill, lifted date, restore menu", async () => {
     const user = userEvent.setup();
     renderPage();
     await screen.findByText(U0.name);
 
     await user.click(screen.getByRole("button", { name: /Ditangguhkan/ }));
-    await screen.findByText(U0.name);
+    // B1's name differs from its email (B0 uses email as name).
+    const B1 = bannedFixture.data.find((u) => u.name !== u.email);
+    await screen.findByText(B1.name);
 
     const call = fetchUsers.mock.calls.find((c) => c[0].suspended === 1);
     expect(call).toBeDefined();
@@ -310,9 +403,13 @@ describe("ManajemenAkunPage", () => {
     const pills = table.getAllByText("Ditangguhkan");
     expect(pills.length).toBeGreaterThan(0);
     for (const pill of pills) expect(pill.className).toMatch(/orange/);
-    expect(screen.getByText("Tahunan")).toBeInTheDocument();
 
-    await user.click(screen.getAllByRole("button", { name: `Aksi akun ${U0.name}` })[0]);
+    const B0 = bannedFixture.data[0];
+    expect(
+      table.getByText(formatUpdatedAt(B0.suspended.lifted_at.utc.formatted)),
+    ).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: `Aksi akun ${B1.name}` }));
     expect(await screen.findByText("Pulihkan Akun")).toBeInTheDocument();
     expect(screen.getByText("Hapus Akun")).toBeInTheDocument();
     expect(screen.queryByText("Ubah Role")).not.toBeInTheDocument();

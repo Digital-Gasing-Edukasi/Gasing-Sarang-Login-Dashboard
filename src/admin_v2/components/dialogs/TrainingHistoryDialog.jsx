@@ -42,7 +42,7 @@ const HISTORY_COLUMNS = [
     header: "Tgl. Mulai",
     render: (s) => (
       <span className="whitespace-nowrap text-sm text-foreground">
-        {formatSessionDate(s.startDate?.utc?.formatted)}
+        {formatSessionDate(s.startDate?.local?.formatted)}
       </span>
     ),
   },

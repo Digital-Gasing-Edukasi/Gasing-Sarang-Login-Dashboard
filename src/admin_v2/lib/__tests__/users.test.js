@@ -9,10 +9,13 @@ vi.mock("../api/client.js", () => ({
 
 import { apiDelete, apiGet, apiPatch, apiPost } from "../api/client.js";
 import {
+  SUSPEND_REASONS_CACHE,
   deleteUserPermanently,
+  fetchSuspendReasons,
   fetchUsersCount,
   fetchUsers,
   requestAccountDeletion,
+  suspendUser,
   updateDiscourseGroup,
 } from "../api/users.js";
 
@@ -156,6 +159,41 @@ describe("updateDiscourseGroup", () => {
 
     expect(apiPatch).toHaveBeenCalledWith("/admin/users/u-9/discourse-group", {
       discourseGroupId: 49,
+    });
+  });
+});
+
+describe("fetchSuspendReasons", () => {
+  it("GETs the reasons as a bare array", async () => {
+    apiGet.mockResolvedValue([{ code: "spam", title: "Spam" }]);
+
+    await expect(fetchSuspendReasons()).resolves.toEqual([
+      { code: "spam", title: "Spam" },
+    ]);
+    expect(apiGet).toHaveBeenCalledWith("/admin/users/suspend-reasons");
+  });
+
+  it("reasons are cached for the session", () => {
+    expect(SUSPEND_REASONS_CACHE.staleTime).toBe(Infinity);
+    expect(SUSPEND_REASONS_CACHE.gcTime).toBe(Infinity);
+  });
+});
+
+describe("suspendUser", () => {
+  it("POSTs until/reason/remarks to the suspend endpoint", async () => {
+    apiPost.mockResolvedValue({});
+
+    await suspendUser({
+      userId: "u-9",
+      suspendedUntil: "2026-09-14 21:00:00",
+      reason: ["community_guidelines"],
+      remarks: "note",
+    });
+
+    expect(apiPost).toHaveBeenCalledWith("/admin/users/u-9/suspend", {
+      suspendedUntil: "2026-09-14 21:00:00",
+      reason: ["community_guidelines"],
+      remarks: "note",
     });
   });
 });

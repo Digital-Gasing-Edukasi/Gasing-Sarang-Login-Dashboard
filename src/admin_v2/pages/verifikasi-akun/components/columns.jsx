@@ -147,7 +147,7 @@ const voucherColumns = [
     key: "session-start",
     header: "Tanggal Mulai",
     sub: "Alumni Pelatihan",
-    render: (u) => text(formatSessionDate(u.firstTrainingSession?.startDate?.utc?.formatted)),
+    render: (u) => text(formatSessionDate(u.firstTrainingSession?.startDate?.local?.formatted)),
   },
   { key: "school", header: "Asal Sekolah", wrap: true, render: (u) => text(u.schoolName) },
   {

@@ -94,3 +94,25 @@ export function deleteUserPermanently({ userId }) {
 export function updateDiscourseGroup({ userId, discourseGroupId }) {
   return apiPatch(`/admin/users/${userId}/discourse-group`, { discourseGroupId });
 }
+
+// Suspend reasons rarely change — keep for the whole session.
+export const SUSPEND_REASONS_CACHE = { staleTime: Infinity, gcTime: Infinity };
+
+// GET /admin/users/suspend-reasons → [{ code, title, desc }] (bare array).
+export async function fetchSuspendReasons() {
+  const res = await apiGet("/admin/users/suspend-reasons");
+  return Array.isArray(res) ? res : (res?.data ?? res?.items ?? []);
+}
+
+export const suspendReasonsKeys = {
+  all: ["admin_v2", "suspend-reasons"],
+};
+
+// POST /admin/users/:userId/suspend — reason is a single-element array (for now).
+export function suspendUser({ userId, suspendedUntil, reason, remarks }) {
+  return apiPost(`/admin/users/${userId}/suspend`, {
+    suspendedUntil,
+    reason,
+    remarks,
+  });
+}

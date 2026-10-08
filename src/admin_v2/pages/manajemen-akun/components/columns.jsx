@@ -87,7 +87,7 @@ const alumniColumns = [
     key: "session-start",
     header: "Tanggal Mulai",
     sub: "Alumni Pelatihan",
-    render: (u) => text(formatSessionDate(u.firstTrainingSession?.startDate?.utc?.formatted)),
+    render: (u) => text(formatSessionDate(u.firstTrainingSession?.startDate?.local?.formatted)),
   },
 ];
 
@@ -113,7 +113,7 @@ const accountColumns = [
   {
     key: "updated",
     header: "Last Updated",
-    render: (u) => text(formatUpdatedAt(u.updatedAt?.utc?.formatted)),
+    render: (u) => text(formatUpdatedAt(u.updatedAt?.local?.formatted)),
   },
 ];
 
@@ -132,7 +132,7 @@ const subscriptionColumns = [
   {
     key: "period-end",
     header: "Tgl. Berakhir",
-    render: (u) => text(formatShortDate(u.subscription?.endDate?.utc?.formatted)),
+    render: (u) => text(formatShortDate(u.subscription?.endDate?.local?.formatted)),
   },
   {
     key: "voucher",
@@ -233,7 +233,7 @@ const ditolakColumns = [
   {
     key: "updated",
     header: "Last Updated",
-    render: (u) => text(formatUpdatedAt(u.updatedAt?.utc?.formatted)),
+    render: (u) => text(formatUpdatedAt(u.updatedAt?.local?.formatted)),
   },
   actionColumn([
     {
@@ -255,6 +255,11 @@ const ditangguhkanColumns = [
     header: "Status Member",
     render: () =>
       memberPill("Ditangguhkan", "border-orange-300 bg-orange-100 text-orange-700"),
+  },
+  {
+    key: "suspended-until",
+    header: "Ditangguhkan Hingga",
+    render: (u) => text(formatUpdatedAt(u.suspended?.lifted_at?.local?.formatted)),
   },
   ...subscriptionColumns,
   {
@@ -280,7 +285,7 @@ const dihapusColumns = [
   {
     key: "delete-at",
     header: "Akan Dihapus pada",
-    render: (u) => text(formatShortDate(u.deletion?.will_be_deleted_at?.utc?.formatted)),
+    render: (u) => text(formatShortDate(u.deletion?.will_be_deleted_at?.local?.formatted)),
   },
   ...accountColumns,
   actionColumn([

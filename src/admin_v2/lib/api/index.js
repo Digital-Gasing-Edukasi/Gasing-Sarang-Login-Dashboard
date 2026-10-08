@@ -17,6 +17,10 @@ export {
   requestAccountDeletion,
   deleteUserPermanently,
   updateDiscourseGroup,
+  fetchSuspendReasons,
+  suspendReasonsKeys,
+  suspendUser,
+  SUSPEND_REASONS_CACHE,
 } from "./users.js";
 export {
   fetchTrainingSessions,
