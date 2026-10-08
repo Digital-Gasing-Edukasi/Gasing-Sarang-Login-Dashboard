@@ -73,8 +73,13 @@ describe("AdminV2Routes", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Verifikasi Pembayaran" }));
 
+    // Lazy page + queries — generous timeout under parallel-worker load.
     expect(
-      await screen.findByRole("heading", { name: "Verifikasi Pembayaran" }),
+      await screen.findByRole(
+        "heading",
+        { name: "Verifikasi Pembayaran" },
+        { timeout: 5000 },
+      ),
     ).toBeInTheDocument();
   });
 

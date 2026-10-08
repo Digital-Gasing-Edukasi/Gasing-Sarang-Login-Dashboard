@@ -25,8 +25,12 @@ export {
   trainingHistoryKeys,
 } from "./training-histories.js";
 export {
+  EXPORT_CATEGORIES,
   EXPORT_ENDPOINTS,
   EXPORT_LABELS,
+  OTHER_EXPORT_CATEGORY,
+  exportCategoryOf,
+  exportCategoryTitle,
   requestExport,
   fetchExportJob,
   exportJobKeys,

@@ -14,6 +14,7 @@ import { Search } from "lucide-react";
 import { Input } from "../../components/ui/input.jsx";
 import { useDebouncedValue } from "../../hooks/useDebouncedValue.js";
 import { Pagination } from "../../components/index.js";
+import { ExportButton } from "../../components/downloads/index.js";
 import { TrainingHistoryDialog } from "../../components/index.js";
 import {
   DeleteAccountDialog,
@@ -25,9 +26,9 @@ import {
 const DEFAULT_LIMIT = 20;
 
 const TABS = [
-  { key: "belum", title: "Belum Langganan" },
-  { key: "verifikasi", title: "Menunggu Verifikasi" },
-  { key: "ditolak", title: "Pembayaran Ditolak" },
+  { key: "belum", title: "Belum Langganan", exportScope: "belum_langganan" },
+  { key: "verifikasi", title: "Menunggu Verifikasi", exportScope: "menunggu_verifikasi" },
+  { key: "ditolak", title: "Pembayaran Ditolak", exportScope: "pembayaran_ditolak" },
 ];
 
 function TabCountBadge({ tabKey }) {
@@ -230,18 +231,21 @@ export default function VerifikasiPembayaranPage() {
           })}
         </div>
 
-        {tab === "belum" && (
-          <div className="relative w-full sm:w-64">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              value={keyword}
-              onChange={(e) => setKeyword(e.target.value)}
-              placeholder="Cari nama, email…"
-              aria-label="Cari pengguna"
-              className="pl-9"
-            />
-          </div>
-        )}
+        <div className="flex w-full gap-2 sm:w-auto">
+          {tab === "belum" && (
+            <div className="relative flex-1 sm:w-64">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={keyword}
+                onChange={(e) => setKeyword(e.target.value)}
+                placeholder="Cari nama, email…"
+                aria-label="Cari pengguna"
+                className="pl-9"
+              />
+            </div>
+          )}
+          <ExportButton scope={TABS.find((t) => t.key === tab)?.exportScope} />
+        </div>
       </div>
 
       <DataTable

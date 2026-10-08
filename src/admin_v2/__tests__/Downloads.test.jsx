@@ -95,7 +95,9 @@ describe("DownloadsDialog", () => {
     const link = screen.getByRole("link", { name: "Unduh" });
     expect(link).toHaveAttribute("href", "https://x/y.xlsx");
     expect(link.className).toMatch(/rounded-full/);
-    expect(link.className).toMatch(/border-blue-500/);
+    expect(link.className).toMatch(/text-blue-600/);
+    // Completed rows hide the status badge.
+    expect(screen.queryByText("COMPLETED")).not.toBeInTheDocument();
   });
 
   it("delete removes the record after confirm", async () => {
@@ -186,7 +188,9 @@ describe("DownloadsDialog delete-all", () => {
     render(<DownloadsDialog />);
 
     await user.click(screen.getByRole("button", { name: "Hapus semua" }));
-    expect(screen.getByText("Yakin hapus semua?")).toBeInTheDocument();
+    expect(
+      screen.getByText("Yakin hapus semua unduhan Verifikasi Akun?"),
+    ).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Ya, hapus semua" }));
     expect(screen.getByText("Belum ada unduhan.")).toBeInTheDocument();
@@ -201,5 +205,75 @@ describe("DownloadsDialog delete-all", () => {
     await user.click(screen.getByRole("button", { name: "Hapus semua" }));
     await user.click(screen.getByRole("button", { name: "Batal" }));
     expect(store().order).toHaveLength(3);
+  });
+});
+
+describe("DownloadsDialog categories", () => {
+  function seedMixed() {
+    seed();
+    useDownloads.setState({
+      jobs: {
+        ...store().jobs,
+        t_pay: {
+          trackId: "t_pay",
+          scope: "menunggu_verifikasi",
+          label: "Menunggu Verifikasi",
+          status: "COMPLETED",
+          progress: 100,
+          currentAction: null,
+          fileName: "menunggu_verifikasi-2026-10-05.xlsx",
+          downloadUrl: "https://x/z.xlsx",
+          error: null,
+          createdAt: 4,
+        },
+      },
+      order: [...store().order, "t_pay"],
+    });
+  }
+
+  it("tabs per menu with counts filter the list", async () => {
+    const user = userEvent.setup();
+    seedMixed();
+    render(<DownloadsDialog />);
+
+    expect(
+      screen.getByRole("button", { name: "Verifikasi Akun 3" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Verifikasi Pembayaran 1" }),
+    ).toBeInTheDocument();
+
+    // First category active — other menu's file hidden.
+    expect(screen.getByText("pending_voucher-2026-10-05.xlsx")).toBeInTheDocument();
+    expect(
+      screen.queryByText("menunggu_verifikasi-2026-10-05.xlsx"),
+    ).not.toBeInTheDocument();
+
+    await user.click(
+      screen.getByRole("button", { name: "Verifikasi Pembayaran 1" }),
+    );
+    expect(
+      screen.getByText("menunggu_verifikasi-2026-10-05.xlsx"),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText("pending_voucher-2026-10-05.xlsx"),
+    ).not.toBeInTheDocument();
+  });
+
+  it("clear removes only the active category", async () => {
+    const user = userEvent.setup();
+    seedMixed();
+    render(<DownloadsDialog />);
+
+    await user.click(screen.getByRole("button", { name: "Hapus semua" }));
+    await user.click(screen.getByRole("button", { name: "Ya, hapus semua" }));
+
+    expect(store().order).toEqual(["t_pay"]);
+    expect(
+      screen.queryByText("pending_voucher-2026-10-05.xlsx"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByText("menunggu_verifikasi-2026-10-05.xlsx"),
+    ).toBeInTheDocument();
   });
 });

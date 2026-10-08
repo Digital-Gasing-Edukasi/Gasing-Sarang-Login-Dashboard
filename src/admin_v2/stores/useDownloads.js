@@ -2,6 +2,7 @@ import * as React from "react";
 import { create } from "zustand";
 import {
   EXPORT_LABELS,
+  exportCategoryOf,
   fetchExportJob,
   requestExport,
 } from "../lib/api/index.js";
@@ -212,10 +213,24 @@ export const useDownloads = create((set, get) => ({
     persist(jobs, order, get().hasNew);
   },
 
-  clearJobs: () => {
-    for (const id of [...timers.keys()]) stopPolling(id);
-    set({ jobs: {}, order: [], hasNew: false });
-    persist({}, [], false);
+  // Without a category clears everything; with one only that menu's jobs.
+  clearJobs: (category) => {
+    if (!category) {
+      for (const id of [...timers.keys()]) stopPolling(id);
+      set({ jobs: {}, order: [], hasNew: false });
+      persist({}, [], false);
+      return;
+    }
+    const { jobs, order } = get();
+    const kept = order.filter((id) => exportCategoryOf(jobs[id]?.scope) !== category);
+    for (const id of order) {
+      if (!kept.includes(id)) stopPolling(id);
+    }
+    const keptJobs = {};
+    for (const id of kept) keptJobs[id] = jobs[id];
+    const hasNew = kept.length ? get().hasNew : false;
+    set({ jobs: keptJobs, order: kept, hasNew });
+    persist(keptJobs, kept, hasNew);
   },
 
   setDialogOpen: (open) => {

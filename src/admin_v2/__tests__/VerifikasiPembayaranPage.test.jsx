@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, waitFor, within } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import userEvent from "@testing-library/user-event";
@@ -32,6 +32,15 @@ vi.mock("../lib/api/training-histories.js", async (importOriginal) => {
   return { ...actual, fetchTrainingHistory: vi.fn() };
 });
 
+vi.mock("../lib/api/exports.js", async (importOriginal) => {
+  const actual = await importOriginal();
+  return {
+    ...actual,
+    requestExport: vi.fn(),
+    fetchExportJob: vi.fn(async () => ({ status: "PENDING", progress: 0 })),
+  };
+});
+
 // Same inline-dialog mock as the verifikasi-akun suite (jsdom + Radix traps).
 vi.mock("../components/ui/dialog.jsx", async () => {
   const React = await import("react");
@@ -60,6 +69,8 @@ import {
   rejectManualPayment,
 } from "../lib/api/payments.js";
 import { fetchTrainingHistory } from "../lib/api/training-histories.js";
+import { requestExport } from "../lib/api/exports.js";
+import { useDownloads } from "../stores/useDownloads.js";
 import VerifikasiPembayaranPage from "../pages/verifikasi-pembayaran/VerifikasiPembayaranPage.jsx";
 
 const U0 = unsubFixture.data[0];
@@ -78,6 +89,7 @@ function renderPage() {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  useDownloads.getState().reset();
   fetchUsers.mockImplementation(({ keyword = "" } = {}) => {
     const kw = keyword.trim().toLowerCase();
     const data = kw
@@ -100,6 +112,10 @@ beforeEach(() => {
     data: historyFixture.data,
     meta: historyFixture.meta,
   }));
+});
+
+afterEach(() => {
+  useDownloads.getState().reset();
 });
 
 describe("VerifikasiPembayaranPage", () => {
@@ -362,5 +378,25 @@ describe("VerifikasiPembayaranPage", () => {
     await waitFor(() => {
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     });
+  });
+
+  it("export per tab hits the scoped endpoint", async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await screen.findByText(U0.name);
+    requestExport.mockResolvedValue("t-x");
+
+    await user.click(screen.getByRole("button", { name: "Export" }));
+    expect(requestExport).toHaveBeenCalledWith("belum_langganan");
+
+    fireEvent.click(screen.getByRole("button", { name: /Menunggu Verifikasi/ }));
+    await screen.findByText(`@${P0.user.username}`);
+    await user.click(screen.getByRole("button", { name: "Export" }));
+    expect(requestExport).toHaveBeenCalledWith("menunggu_verifikasi");
+
+    fireEvent.click(screen.getByRole("button", { name: /Pembayaran Ditolak/ }));
+    await screen.findByText(`@${P0.user.username}`);
+    await user.click(screen.getByRole("button", { name: "Export" }));
+    expect(requestExport).toHaveBeenCalledWith("pembayaran_ditolak");
   });
 });
