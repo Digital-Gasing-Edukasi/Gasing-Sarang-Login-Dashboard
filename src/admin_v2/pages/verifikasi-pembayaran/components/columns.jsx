@@ -158,7 +158,7 @@ const paymentColumns = (withMenu) => [
             <button
               type="button"
               onClick={() => actions?.onApprovePayment?.(p)}
-              className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-left text-sm text-green-700 hover:bg-accent"
+              className="w-full items-center gap-2 rounded-sm px-2 py-1.5 text-left text-sm text-green-700 hover:bg-accent hidden"
             >
               <CheckCircle2 size={16} className="shrink-0" />
               Setujui Pembayaran
