@@ -15,6 +15,7 @@ import { Pagination } from "../../components/index.js";
 import { DeleteAccountDialog } from "../../components/index.js";
 import { TrainingHistoryDialog } from "../../components/index.js";
 import { getManajemenColumns } from "./components/index.js";
+import { CancelDeletionDialog } from "./components/index.js";
 import { ChangeRoleDialog } from "./components/index.js";
 import { PermanentDeleteDialog } from "./components/index.js";
 import { ReverifyDialog } from "./components/index.js";
@@ -105,6 +106,7 @@ export default function ManajemenAkunPage() {
   const [suspendUser, setSuspendUser] = useState(null);
   const [reverifyUser, setReverifyUser] = useState(null);
   const [unsuspendUser, setUnsuspendUser] = useState(null);
+  const [cancelDeletionUser, setCancelDeletionUser] = useState(null);
   const debouncedKeyword = useDebouncedValue(keyword, 500);
   const current = TABS.find((t) => t.key === tab) ?? TABS[0];
 
@@ -214,6 +216,24 @@ export default function ManajemenAkunPage() {
     });
   };
 
+  // Baru Dihapus only: pending deletion cancelled (via confirm dialog).
+  const handleDeletionCancelled = (restoredUser) => {
+    setCancelDeletionUser(null);
+    setPage(1);
+    toast({
+      title: "Akun dipulihkan",
+      description: restoredUser?.name
+        ? `Akun ${restoredUser.name} telah dipulihkan.`
+        : "Akun telah dipulihkan.",
+    });
+    queryClient.invalidateQueries({
+      queryKey: usersKeys.byStatus(current.status),
+    });
+    queryClient.invalidateQueries({
+      queryKey: usersKeys.byStatus(VERIFIED_STATUS.APPROVED),
+    });
+  };
+
   const columns = useMemo(
     () =>
       getManajemenColumns({
@@ -221,6 +241,7 @@ export default function ManajemenAkunPage() {
         onChangeRole: setChangeRoleUser,
         onSuspendAccount: setSuspendUser,
         onRestoreAccount: () => {},
+        onCancelDeletion: setCancelDeletionUser,
         onUnsuspendAccount: setUnsuspendUser,
         onReverify: setReverifyUser,
         onDeleteAccount: setDeleteUser,
@@ -328,6 +349,11 @@ export default function ManajemenAkunPage() {
         user={unsuspendUser}
         onClose={() => setUnsuspendUser(null)}
         onConfirmed={handleUnsuspended}
+      />
+      <CancelDeletionDialog
+        user={cancelDeletionUser}
+        onClose={() => setCancelDeletionUser(null)}
+        onConfirmed={handleDeletionCancelled}
       />
     </div>
   );

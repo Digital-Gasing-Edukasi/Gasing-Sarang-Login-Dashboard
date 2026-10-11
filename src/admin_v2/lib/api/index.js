@@ -15,6 +15,7 @@ export {
   usersKeys,
   verifyUser,
   requestAccountDeletion,
+  cancelAccountDeletion,
   deleteUserPermanently,
   updateDiscourseGroup,
   fetchSuspendReasons,

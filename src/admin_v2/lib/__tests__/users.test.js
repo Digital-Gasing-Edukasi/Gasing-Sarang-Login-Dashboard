@@ -10,6 +10,7 @@ vi.mock("../api/client.js", () => ({
 import { apiDelete, apiGet, apiPatch, apiPost } from "../api/client.js";
 import {
   SUSPEND_REASONS_CACHE,
+  cancelAccountDeletion,
   deleteUserPermanently,
   fetchSuspendReasons,
   fetchUsersCount,
@@ -139,6 +140,16 @@ describe("requestAccountDeletion", () => {
     await requestAccountDeletion({ userId: "u-9" });
 
     expect(apiPost).toHaveBeenCalledWith("/admin/users/u-9/deletion-request");
+  });
+});
+
+describe("cancelAccountDeletion", () => {
+  it("DELETEs the deletion-request endpoint with no payload", async () => {
+    apiDelete.mockResolvedValue({});
+
+    await cancelAccountDeletion({ userId: "u-9" });
+
+    expect(apiDelete).toHaveBeenCalledWith("/admin/users/u-9/deletion-request");
   });
 });
 

@@ -1,7 +1,7 @@
 export default function PendaftaranTrainerPage() {
   return (
     <p className="text-sm text-muted-foreground">
-      Konten Pendaftaran Trainer — coming soon.
+      Pendaftaran Trainer — coming soon, gunakan V1
     </p>
   );
 }

@@ -34,6 +34,7 @@ vi.mock("../lib/api/users.js", async (importOriginal) => {
     fetchSuspendReasons: vi.fn(),
     suspendUser: vi.fn(async () => ({})),
     unsuspendUser: vi.fn(async () => ({})),
+    cancelAccountDeletion: vi.fn(async () => ({})),
     verifyUser: vi.fn(async () => ({})),
   };
 });
@@ -64,7 +65,7 @@ vi.mock("../components/ui/dialog.jsx", async () => {
   };
 });
 
-import { fetchUsers, requestAccountDeletion, deleteUserPermanently, updateDiscourseGroup, fetchSuspendReasons, suspendUser, unsuspendUser, verifyUser } from "../lib/api/users.js";
+import { fetchUsers, requestAccountDeletion, deleteUserPermanently, updateDiscourseGroup, fetchSuspendReasons, suspendUser, unsuspendUser, cancelAccountDeletion, verifyUser } from "../lib/api/users.js";
 import { fetchTrainingHistory } from "../lib/api/training-histories.js";
 import historyFixture from "../../../dev/responses/training-user.json";
 import reasonsFixture from "../../../dev/responses/ban-reason.json";
@@ -541,6 +542,51 @@ describe("ManajemenAkunPage", () => {
     expect(await screen.findByText("Pulihkan Akun")).toBeInTheDocument();
     expect(screen.getByText("Hapus Akun Selamanya")).toBeInTheDocument();
     expect(screen.queryByText("Hapus Akun")).not.toBeInTheDocument();
+  });
+
+  it("Pulihkan Akun cancels the deletion via DELETE deletion-request", async () => {
+    const user = userEvent.setup();
+    const { client } = renderPage();
+    const invalidate = vi.spyOn(client, "invalidateQueries");
+    await screen.findByText(U0.name);
+
+    await user.click(screen.getByRole("button", { name: /Baru Dihapus/ }));
+    const D0 = deletionFixture.data.find((u) => u.deletion && u.name !== u.email);
+    await screen.findByText(D0.name);
+
+    await user.click(screen.getAllByRole("button", { name: `Aksi akun ${D0.name}` })[0]);
+    await user.click(await screen.findByText("Pulihkan Akun"));
+
+    const heading = await screen.findByRole("heading", { name: "Pulihkan Akun" });
+    const dialog = heading.closest('[role="dialog"]');
+    expect(dialog).not.toBeNull();
+    expect(
+      within(dialog).getByText(
+        `Akun ${D0.email} akan dipulihkan dan diaktifkan kembali.`,
+      ),
+    ).toBeInTheDocument();
+
+    const callsBefore = fetchUsers.mock.calls.length;
+    await user.click(within(dialog).getByRole("button", { name: "Pulihkan Akun" }));
+
+    // DELETE .../deletion-request — not POST (soft delete), not .../suspend.
+    expect(cancelAccountDeletion).toHaveBeenCalledWith({ userId: D0.id });
+    expect(requestAccountDeletion).not.toHaveBeenCalled();
+    expect(unsuspendUser).not.toHaveBeenCalled();
+    await waitFor(() => {
+      expect(fetchUsers.mock.calls.length).toBeGreaterThan(callsBefore);
+    });
+    expect(invalidate).toHaveBeenCalledWith({
+      queryKey: ["admin_v2", "users", undefined],
+    });
+    expect(invalidate).toHaveBeenCalledWith({
+      queryKey: ["admin_v2", "users", "approved"],
+    });
+    await waitFor(() => {
+      expect(
+        screen.queryByRole("heading", { name: "Pulihkan Akun" }),
+      ).not.toBeInTheDocument();
+    });
   });
 
   it("Hapus Akun Selamanya deletes permanently via DELETE", async () => {

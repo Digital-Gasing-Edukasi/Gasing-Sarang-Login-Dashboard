@@ -4,3 +4,4 @@ export { ChangeRoleDialog } from "./dialogs/ChangeRoleDialog.jsx";
 export { SuspendAccountDialog } from "./dialogs/SuspendAccountDialog.jsx";
 export { ReverifyDialog } from "./dialogs/ReverifyDialog.jsx";
 export { UnsuspendDialog } from "./dialogs/UnsuspendDialog.jsx";
+export { CancelDeletionDialog } from "./dialogs/CancelDeletionDialog.jsx";

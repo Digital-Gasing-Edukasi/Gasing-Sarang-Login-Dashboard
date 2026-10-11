@@ -85,6 +85,13 @@ export function requestAccountDeletion({ userId }) {
   return apiPost(`/admin/users/${userId}/deletion-request`);
 }
 
+// DELETE /admin/users/:userId/deletion-request (no payload) — cancel a
+// pending deletion, the account stays. NOTE: same path as the soft delete,
+// different method; and distinct from DELETE .../:userId/suspend (unsuspend).
+export function cancelAccountDeletion({ userId }) {
+  return apiDelete(`/admin/users/${userId}/deletion-request`);
+}
+
 // DELETE /admin/users/:userId — permanent, irreversible.
 export function deleteUserPermanently({ userId }) {
   return apiDelete(`/admin/users/${userId}`);
