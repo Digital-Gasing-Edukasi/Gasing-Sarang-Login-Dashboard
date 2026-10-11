@@ -19,6 +19,7 @@ import { ChangeRoleDialog } from "./components/index.js";
 import { PermanentDeleteDialog } from "./components/index.js";
 import { ReverifyDialog } from "./components/index.js";
 import { SuspendAccountDialog } from "./components/index.js";
+import { UnsuspendDialog } from "./components/index.js";
 
 const DEFAULT_LIMIT = 20;
 
@@ -103,6 +104,7 @@ export default function ManajemenAkunPage() {
   const [changeRoleUser, setChangeRoleUser] = useState(null);
   const [suspendUser, setSuspendUser] = useState(null);
   const [reverifyUser, setReverifyUser] = useState(null);
+  const [unsuspendUser, setUnsuspendUser] = useState(null);
   const debouncedKeyword = useDebouncedValue(keyword, 500);
   const current = TABS.find((t) => t.key === tab) ?? TABS[0];
 
@@ -194,6 +196,24 @@ export default function ManajemenAkunPage() {
     });
   };
 
+  // Ditangguhkan only: suspension lifted (via confirm dialog).
+  const handleUnsuspended = (restoredUser) => {
+    setUnsuspendUser(null);
+    setPage(1);
+    toast({
+      title: "Akun dipulihkan",
+      description: restoredUser?.name
+        ? `Akun ${restoredUser.name} telah dipulihkan.`
+        : "Akun telah dipulihkan.",
+    });
+    queryClient.invalidateQueries({
+      queryKey: usersKeys.byStatus(current.status),
+    });
+    queryClient.invalidateQueries({
+      queryKey: usersKeys.byStatus(VERIFIED_STATUS.APPROVED),
+    });
+  };
+
   const columns = useMemo(
     () =>
       getManajemenColumns({
@@ -201,6 +221,7 @@ export default function ManajemenAkunPage() {
         onChangeRole: setChangeRoleUser,
         onSuspendAccount: setSuspendUser,
         onRestoreAccount: () => {},
+        onUnsuspendAccount: setUnsuspendUser,
         onReverify: setReverifyUser,
         onDeleteAccount: setDeleteUser,
         onDeletePermanent: setDeletePermanentUser,
@@ -302,6 +323,11 @@ export default function ManajemenAkunPage() {
         user={reverifyUser}
         onClose={() => setReverifyUser(null)}
         onConfirmed={handleReverified}
+      />
+      <UnsuspendDialog
+        user={unsuspendUser}
+        onClose={() => setUnsuspendUser(null)}
+        onConfirmed={handleUnsuspended}
       />
     </div>
   );

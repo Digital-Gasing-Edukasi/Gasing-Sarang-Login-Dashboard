@@ -16,6 +16,7 @@ import {
   fetchUsers,
   requestAccountDeletion,
   suspendUser,
+  unsuspendUser,
   updateDiscourseGroup,
 } from "../api/users.js";
 
@@ -195,5 +196,15 @@ describe("suspendUser", () => {
       reason: ["community_guidelines"],
       remarks: "note",
     });
+  });
+});
+
+describe("unsuspendUser", () => {
+  it("DELETEs the suspend endpoint with no payload", async () => {
+    apiDelete.mockResolvedValue({});
+
+    await unsuspendUser({ userId: "u-9" });
+
+    expect(apiDelete).toHaveBeenCalledWith("/admin/users/u-9/suspend");
   });
 });

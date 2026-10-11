@@ -116,3 +116,8 @@ export function suspendUser({ userId, suspendedUntil, reason, remarks }) {
     remarks,
   });
 }
+
+// DELETE /admin/users/:userId/suspend (no payload) — lift the suspension.
+export function unsuspendUser({ userId }) {
+  return apiDelete(`/admin/users/${userId}/suspend`);
+}

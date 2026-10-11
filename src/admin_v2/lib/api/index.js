@@ -20,6 +20,7 @@ export {
   fetchSuspendReasons,
   suspendReasonsKeys,
   suspendUser,
+  unsuspendUser,
   SUSPEND_REASONS_CACHE,
 } from "./users.js";
 export {

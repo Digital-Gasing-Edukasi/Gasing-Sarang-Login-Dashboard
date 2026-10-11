@@ -33,6 +33,7 @@ vi.mock("../lib/api/users.js", async (importOriginal) => {
     updateDiscourseGroup: vi.fn(async () => ({})),
     fetchSuspendReasons: vi.fn(),
     suspendUser: vi.fn(async () => ({})),
+    unsuspendUser: vi.fn(async () => ({})),
     verifyUser: vi.fn(async () => ({})),
   };
 });
@@ -63,7 +64,7 @@ vi.mock("../components/ui/dialog.jsx", async () => {
   };
 });
 
-import { fetchUsers, requestAccountDeletion, deleteUserPermanently, updateDiscourseGroup, fetchSuspendReasons, suspendUser, verifyUser } from "../lib/api/users.js";
+import { fetchUsers, requestAccountDeletion, deleteUserPermanently, updateDiscourseGroup, fetchSuspendReasons, suspendUser, unsuspendUser, verifyUser } from "../lib/api/users.js";
 import { fetchTrainingHistory } from "../lib/api/training-histories.js";
 import historyFixture from "../../../dev/responses/training-user.json";
 import reasonsFixture from "../../../dev/responses/ban-reason.json";
@@ -460,6 +461,48 @@ describe("ManajemenAkunPage", () => {
     expect(await screen.findByText("Pulihkan Akun")).toBeInTheDocument();
     expect(screen.getByText("Hapus Akun")).toBeInTheDocument();
     expect(screen.queryByText("Ubah Role")).not.toBeInTheDocument();
+  });
+
+  it("Pulihkan Akun unsuspends via DELETE and refreshes ditangguhkan + disetujui", async () => {
+    const user = userEvent.setup();
+    const { client } = renderPage();
+    const invalidate = vi.spyOn(client, "invalidateQueries");
+    await screen.findByText(U0.name);
+
+    await user.click(screen.getByRole("button", { name: /Ditangguhkan/ }));
+    const B1 = bannedFixture.data.find((u) => u.name !== u.email);
+    await screen.findByText(B1.name);
+
+    await user.click(screen.getByRole("button", { name: `Aksi akun ${B1.name}` }));
+    await user.click(await screen.findByText("Pulihkan Akun"));
+
+    const heading = await screen.findByRole("heading", { name: "Pulihkan Akun" });
+    const dialog = heading.closest('[role="dialog"]');
+    expect(dialog).not.toBeNull();
+    expect(
+      within(dialog).getByText(
+        `Akun ${B1.email} akan dipulihkan dan diaktifkan kembali.`,
+      ),
+    ).toBeInTheDocument();
+
+    const callsBefore = fetchUsers.mock.calls.length;
+    await user.click(within(dialog).getByRole("button", { name: "Pulihkan Akun" }));
+
+    expect(unsuspendUser).toHaveBeenCalledWith({ userId: B1.id });
+    await waitFor(() => {
+      expect(fetchUsers.mock.calls.length).toBeGreaterThan(callsBefore);
+    });
+    expect(invalidate).toHaveBeenCalledWith({
+      queryKey: ["admin_v2", "users", undefined],
+    });
+    expect(invalidate).toHaveBeenCalledWith({
+      queryKey: ["admin_v2", "users", "approved"],
+    });
+    await waitFor(() => {
+      expect(
+        screen.queryByRole("heading", { name: "Pulihkan Akun" }),
+      ).not.toBeInTheDocument();
+    });
   });
 
   it("dihapus tab: deletion filter, null rows dropped, red pill, delete date", async () => {
