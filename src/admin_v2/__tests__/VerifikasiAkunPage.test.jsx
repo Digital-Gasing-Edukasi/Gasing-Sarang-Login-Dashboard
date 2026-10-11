@@ -278,6 +278,7 @@ describe("VerifikasiAkunPage", () => {
   it("reject normal flow: reason builder, fields payload, pending invalidated only", async () => {
     const user = userEvent.setup();
     renderPage();
+    const invalidate = vi.spyOn(client, "invalidateQueries");
     await screen.findByText(U0.name);
 
     await user.click(screen.getByRole("button", { name: `Tolak ${U0.name}` }));
@@ -303,6 +304,10 @@ describe("VerifikasiAkunPage", () => {
       expect(waitingCalls().length).toBeGreaterThan(waitingBefore);
     });
     expect(voucherCalls().length).toBe(voucherBefore);
+    // The account lands on the manajemen-akun Ditolak tab.
+    expect(invalidate).toHaveBeenCalledWith({
+      queryKey: ["admin_v2", "users", "rejected"],
+    });
   });
 
   it("reject lainnya flow: exclusive, textarea, session id payload", async () => {
@@ -432,7 +437,7 @@ describe("VerifikasiAkunPage", () => {
       within(dialog).getByText(firstSession.region.full_name),
     ).toBeInTheDocument();
     expect(
-      within(dialog).getByText(formatSessionDate(firstSession.startDate.utc.formatted)),
+      within(dialog).getByText(formatSessionDate(firstSession.startDate.local.formatted)),
     ).toBeInTheDocument();
 
     // More than one page → pagination fetches page 2.

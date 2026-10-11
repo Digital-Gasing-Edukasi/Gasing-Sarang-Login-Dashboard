@@ -17,6 +17,7 @@ import { TrainingHistoryDialog } from "../../components/index.js";
 import { getManajemenColumns } from "./components/index.js";
 import { ChangeRoleDialog } from "./components/index.js";
 import { PermanentDeleteDialog } from "./components/index.js";
+import { ReverifyDialog } from "./components/index.js";
 import { SuspendAccountDialog } from "./components/index.js";
 
 const DEFAULT_LIMIT = 20;
@@ -101,6 +102,7 @@ export default function ManajemenAkunPage() {
   const [deletePermanentUser, setDeletePermanentUser] = useState(null);
   const [changeRoleUser, setChangeRoleUser] = useState(null);
   const [suspendUser, setSuspendUser] = useState(null);
+  const [reverifyUser, setReverifyUser] = useState(null);
   const debouncedKeyword = useDebouncedValue(keyword, 500);
   const current = TABS.find((t) => t.key === tab) ?? TABS[0];
 
@@ -174,6 +176,24 @@ export default function ManajemenAkunPage() {
     queryClient.invalidateQueries({ queryKey: usersKeys.all });
   };
 
+  // Ditolak -1 only: back to the verification queue (via confirm dialog).
+  const handleReverified = (reverifiedUser) => {
+    setReverifyUser(null);
+    setPage(1);
+    toast({
+      title: "Verifikasi ulang",
+      description: reverifiedUser?.name
+        ? `Akun ${reverifiedUser.name} kembali ke antrean verifikasi.`
+        : "Akun kembali ke antrean verifikasi.",
+    });
+    queryClient.invalidateQueries({
+      queryKey: usersKeys.byStatus(VERIFIED_STATUS.REJECTED),
+    });
+    queryClient.invalidateQueries({
+      queryKey: usersKeys.byStatus(VERIFIED_STATUS.WAITING),
+    });
+  };
+
   const columns = useMemo(
     () =>
       getManajemenColumns({
@@ -181,7 +201,7 @@ export default function ManajemenAkunPage() {
         onChangeRole: setChangeRoleUser,
         onSuspendAccount: setSuspendUser,
         onRestoreAccount: () => {},
-        onReverify: () => {},
+        onReverify: setReverifyUser,
         onDeleteAccount: setDeleteUser,
         onDeletePermanent: setDeletePermanentUser,
       }),
@@ -277,6 +297,11 @@ export default function ManajemenAkunPage() {
         user={suspendUser}
         onClose={() => setSuspendUser(null)}
         onSuspended={handleSuspended}
+      />
+      <ReverifyDialog
+        user={reverifyUser}
+        onClose={() => setReverifyUser(null)}
+        onConfirmed={handleReverified}
       />
     </div>
   );

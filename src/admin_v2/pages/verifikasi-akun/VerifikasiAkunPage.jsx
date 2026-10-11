@@ -99,6 +99,10 @@ export default function VerifikasiAkunPage() {
     queryClient.invalidateQueries({
       queryKey: usersKeys.byStatus(VERIFIED_STATUS.WAITING),
     });
+    // The account lands on the manajemen-akun Ditolak tab.
+    queryClient.invalidateQueries({
+      queryKey: usersKeys.byStatus(VERIFIED_STATUS.REJECTED),
+    });
   };
 
   const handleVoucherConfirmed = (confirmedUser) => {

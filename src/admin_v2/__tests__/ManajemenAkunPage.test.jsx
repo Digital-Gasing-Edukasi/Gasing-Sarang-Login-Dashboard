@@ -33,6 +33,7 @@ vi.mock("../lib/api/users.js", async (importOriginal) => {
     updateDiscourseGroup: vi.fn(async () => ({})),
     fetchSuspendReasons: vi.fn(),
     suspendUser: vi.fn(async () => ({})),
+    verifyUser: vi.fn(async () => ({})),
   };
 });
 
@@ -62,7 +63,7 @@ vi.mock("../components/ui/dialog.jsx", async () => {
   };
 });
 
-import { fetchUsers, requestAccountDeletion, deleteUserPermanently, updateDiscourseGroup, fetchSuspendReasons, suspendUser } from "../lib/api/users.js";
+import { fetchUsers, requestAccountDeletion, deleteUserPermanently, updateDiscourseGroup, fetchSuspendReasons, suspendUser, verifyUser } from "../lib/api/users.js";
 import { fetchTrainingHistory } from "../lib/api/training-histories.js";
 import historyFixture from "../../../dev/responses/training-user.json";
 import reasonsFixture from "../../../dev/responses/ban-reason.json";
@@ -76,11 +77,12 @@ function renderPage() {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
-  return render(
+  const view = render(
     <QueryClientProvider client={client}>
       <ManajemenAkunPage />
     </QueryClientProvider>,
   );
+  return { client, ...view };
 }
 
 function mockLists() {
@@ -147,7 +149,7 @@ describe("ManajemenAkunPage", () => {
     expect(screen.getByText("Tahunan")).toBeInTheDocument();
     expect(screen.getByText("Bulanan")).toBeInTheDocument();
     expect(
-      screen.getAllByText(formatShortDate(U0.subscription.endDate.utc.formatted))
+      screen.getAllByText(formatShortDate(U0.subscription.endDate.local.formatted))
         .length,
     ).toBe(2);
     expect(screen.getByText(U0.lastVoucher.code)).toBeInTheDocument();
@@ -160,12 +162,12 @@ describe("ManajemenAkunPage", () => {
     expect(screen.getByText(U0.firstTrainingSession.name)).toBeInTheDocument();
     expect(
       screen.getByText(
-        formatSessionDate(U0.firstTrainingSession.startDate.utc.formatted),
+        formatSessionDate(U0.firstTrainingSession.startDate.local.formatted),
       ),
     ).toBeInTheDocument();
     expect(screen.getByText(U0.schoolName)).toBeInTheDocument();
     expect(
-      screen.getAllByText(formatUpdatedAt(U0.updatedAt.utc.formatted)).length,
+      screen.getAllByText(formatUpdatedAt(U0.updatedAt.local.formatted)).length,
     ).toBeGreaterThan(0);
     expect(
       screen.getByText(
@@ -385,6 +387,51 @@ describe("ManajemenAkunPage", () => {
     expect(await screen.findByText("Verifikasi Ulang")).toBeInTheDocument();
   });
 
+  it("Verifikasi Ulang confirms, unrejects, and refreshes both tabs", async () => {
+    const user = userEvent.setup();
+    const { client } = renderPage();
+    const invalidate = vi.spyOn(client, "invalidateQueries");
+    await screen.findByText(U0.name);
+
+    await user.click(screen.getByRole("button", { name: /Ditolak/ }));
+    await screen.findByText("Ditolak - Permanen");
+
+    const permanenRow = disetujuiFixture.data[1];
+    await user.click(screen.getByRole("button", { name: `Aksi akun ${permanenRow.name}` }));
+    await user.click(await screen.findByText("Verifikasi Ulang"));
+
+    const heading = await screen.findByRole("heading", { name: "Verifikasi Ulang" });
+    const dialog = heading.closest('[role="dialog"]');
+    expect(dialog).not.toBeNull();
+    expect(
+      within(dialog).getByText(
+        `Akun ${permanenRow.email} akan diverifikasi ulang dan akan dikembalikan ke Verifikasi Akun.`,
+      ),
+    ).toBeInTheDocument();
+
+    const callsBefore = fetchUsers.mock.calls.length;
+    await user.click(within(dialog).getByRole("button", { name: "Verifikasi Ulang" }));
+
+    expect(verifyUser).toHaveBeenCalledWith({
+      userId: permanenRow.id,
+      status: "unreject",
+    });
+    await waitFor(() => {
+      expect(fetchUsers.mock.calls.length).toBeGreaterThan(callsBefore);
+    });
+    expect(invalidate).toHaveBeenCalledWith({
+      queryKey: ["admin_v2", "users", "rejected"],
+    });
+    expect(invalidate).toHaveBeenCalledWith({
+      queryKey: ["admin_v2", "users", "waiting"],
+    });
+    await waitFor(() => {
+      expect(
+        screen.queryByRole("heading", { name: "Verifikasi Ulang" }),
+      ).not.toBeInTheDocument();
+    });
+  });
+
   it("ditangguhkan tab: suspended filter, orange pill, lifted date, restore menu", async () => {
     const user = userEvent.setup();
     renderPage();
@@ -406,7 +453,7 @@ describe("ManajemenAkunPage", () => {
 
     const B0 = bannedFixture.data[0];
     expect(
-      table.getByText(formatUpdatedAt(B0.suspended.lifted_at.utc.formatted)),
+      table.getByText(formatUpdatedAt(B0.suspended.lifted_at.local.formatted)),
     ).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: `Aksi akun ${B1.name}` }));
@@ -443,7 +490,7 @@ describe("ManajemenAkunPage", () => {
     for (const pill of pills) expect(pill.className).toMatch(/red/);
     expect(
       table.getAllByText(
-        formatShortDate(D0.deletion.will_be_deleted_at.utc.formatted),
+        formatShortDate(D0.deletion.will_be_deleted_at.local.formatted),
       ).length,
     ).toBeGreaterThan(0);
 

@@ -62,8 +62,9 @@ describe("formatUpdatedAt", () => {
     expect(formatUpdatedAt(null)).toBe("—");
   });
 
-  it("time only when still today (UTC)", () => {
-    const now = new Date(Date.UTC(2026, 8, 23, 20, 0));
+  it("time only when still today (local calendar)", () => {
+    // Local components — passes in any timezone.
+    const now = new Date(2026, 8, 23, 20, 0);
     expect(formatUpdatedAt("23 September 2026 15:06:00", now)).toBe("15:06");
     expect(formatUpdatedAt("23 September 2025 15:06:00", now)).toBe(
       "23 Sep 2025, 15:06",

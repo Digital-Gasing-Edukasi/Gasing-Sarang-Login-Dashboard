@@ -139,7 +139,7 @@ describe("VerifikasiPembayaranPage", () => {
       screen.getAllByText(ROLE_META_BY_ID[U0.discourseGroupId].fullName).length,
     ).toBeGreaterThan(0);
     expect(
-      screen.getAllByText(formatUpdatedAt(U0.updatedAt.utc.formatted)).length,
+      screen.getAllByText(formatUpdatedAt(U0.updatedAt.local.formatted)).length,
     ).toBeGreaterThan(0);
     // Last Updated is the frozen last column.
     const lastTh = screen.getByText("Last Updated").closest("th");
@@ -180,7 +180,7 @@ describe("VerifikasiPembayaranPage", () => {
     ).toBeGreaterThan(0);
     expect(screen.getByText("Tahunan")).toBeInTheDocument();
     expect(
-      screen.getByText(formatShortDate(P0.periodeEnd.utc.formatted)),
+      screen.getByText(formatShortDate(P0.periodeEnd.local.formatted)),
     ).toBeInTheDocument();
     // Fixture deadline is in the future → live HH:MM:SS countdown.
     expect(await screen.findByText(/\d{2}:\d{2}:\d{2}/)).toBeInTheDocument();

@@ -115,7 +115,8 @@ export function formatSessionDate(formatted) {
 }
 
 // Last updated → "23 Sep 2026, 15:06" — time only ("15:06") when still
-// today. Compared in UTC, the frame of the `utc` timestamps we render.
+// today. Compared on the viewer's local calendar, the frame of the `local`
+// timestamps we render.
 export function formatUpdatedAt(formatted, now = new Date()) {
   if (!formatted) return FALLBACK_TEXT;
   const parts = String(formatted).split(" ");
@@ -127,9 +128,9 @@ export function formatUpdatedAt(formatted, now = new Date()) {
   const t = now instanceof Date ? now : new Date(now);
   if (
     !Number.isNaN(t.getTime()) &&
-    t.getUTCFullYear() === Number(year) &&
-    t.getUTCMonth() === MONTH_INDEX[month] &&
-    t.getUTCDate() === Number(day)
+    t.getFullYear() === Number(year) &&
+    t.getMonth() === MONTH_INDEX[month] &&
+    t.getDate() === Number(day)
   ) {
     return hhmm;
   }
