@@ -62,6 +62,16 @@ describe("fetchUsers", () => {
     );
   });
 
+  it("joins a status array into a comma filter", async () => {
+    apiGet.mockResolvedValue({ data: [], meta: {} });
+
+    await fetchUsers({ status: ["rejected", "revise"] });
+    expect(apiGet).toHaveBeenLastCalledWith(
+      "/admin/users",
+      expect.objectContaining({ "filter[verifiedStatus]": "rejected,revise" }),
+    );
+  });
+
   it("defaults filter[deletionPending] and filter[suspended] to 0, passes through when set", async () => {
     apiGet.mockResolvedValue({ data: [], meta: {} });
 

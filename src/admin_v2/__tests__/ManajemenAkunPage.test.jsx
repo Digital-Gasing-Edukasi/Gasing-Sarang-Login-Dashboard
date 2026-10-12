@@ -95,7 +95,7 @@ function mockLists() {
     if (params.suspended === 1) {
       return { data: bannedFixture.data, meta: bannedFixture.meta };
     }
-    if (params.status === "rejected") {
+    if (Array.isArray(params.status) && params.status.join(",") === "rejected,revise") {
       // Same user shape — rejected variants differ only in verifiedStatus.
       return {
         data: disetujuiFixture.data.map((u, i) => ({
@@ -216,10 +216,24 @@ describe("ManajemenAkunPage", () => {
     const R0 = reasonsFixture[0];
     await user.click(within(dialog).getByRole("combobox", { name: "Alasan penangguhan pengguna" }));
     await user.click(await screen.findByRole("option", { name: R0.title }));
-    await user.type(
-      within(dialog).getByPlaceholderText("Tulis pesan tambahan untuk pengguna (opsional)"),
-      "Melakukan interaksi tidak pantas",
+    // Selected value wraps instead of truncating.
+    expect(
+      within(dialog).getByRole("combobox", { name: "Alasan penangguhan pengguna" }).className,
+    ).not.toMatch(/line-clamp/);
+    expect(within(dialog).getByText(R0.title)).toBeInTheDocument();
+    // Reason prefills the email message with its desc (editable).
+    const message = within(dialog).getByPlaceholderText(
+      "Tulis pesan tambahan untuk pengguna (opsional)",
     );
+    expect(message).toHaveValue(R0.desc);
+
+    // Message required — clearing it blocks submit.
+    await user.clear(message);
+    expect(within(dialog).getByRole("button", { name: "Tangguhkan" })).toBeDisabled();
+    await user.type(message, R0.desc);
+    expect(
+      within(dialog).getByRole("button", { name: "Tangguhkan" }),
+    ).not.toBeDisabled();
 
     const callsBefore = fetchUsers.mock.calls.length;
     await user.click(within(dialog).getByRole("button", { name: "Tangguhkan" }));
@@ -228,7 +242,7 @@ describe("ManajemenAkunPage", () => {
       userId: U0.id,
       suspendedUntil: expect.stringMatching(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:00$/),
       reason: [R0.code],
-      remarks: "Melakukan interaksi tidak pantas",
+      remarks: R0.desc,
     });
     await waitFor(() => {
       expect(fetchUsers.mock.calls.length).toBeGreaterThan(callsBefore);
@@ -273,7 +287,40 @@ describe("ManajemenAkunPage", () => {
       userId: U0.id,
       suspendedUntil: null,
       reason: [R0.code],
-      remarks: "",
+      remarks: R0.desc,
+    });
+  });
+
+  it("other reason prefills its desc and sends edits as remarks", async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await screen.findByText(U0.name);
+
+    await user.click(screen.getByRole("button", { name: `Aksi akun ${U0.name}` }));
+    await user.click(await screen.findByText("Tangguhkan Akun"));
+    const heading = await screen.findByRole("heading", { name: "Tangguhkan Akun" });
+    const dialog = heading.closest('[role="dialog"]');
+
+    await user.click(within(dialog).getByRole("combobox", { name: "Pilih durasi" }));
+    await user.click(await screen.findByRole("option", { name: "6 jam" }));
+
+    const other = reasonsFixture.find((r) => r.code === "other");
+    await user.click(within(dialog).getByRole("combobox", { name: "Alasan penangguhan pengguna" }));
+    await user.click(await screen.findByRole("option", { name: other.title }));
+
+    const input = within(dialog).getByPlaceholderText(
+      "Tulis pesan tambahan untuk pengguna (opsional)",
+    );
+    expect(input).toHaveValue(other.desc);
+    await user.clear(input);
+    await user.type(input, "Pesan khusus untukmu");
+
+    await user.click(within(dialog).getByRole("button", { name: "Tangguhkan" }));
+    expect(suspendUser).toHaveBeenCalledWith({
+      userId: U0.id,
+      suspendedUntil: expect.stringMatching(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:00$/),
+      reason: ["other"],
+      remarks: "Pesan khusus untukmu",
     });
   });
 
@@ -365,7 +412,10 @@ describe("ManajemenAkunPage", () => {
     await screen.findByText("Ditolak - Registrasi Ulang");
 
     expect(
-      fetchUsers.mock.calls.some((c) => c[0].status === "rejected"),
+      fetchUsers.mock.calls.some(
+        (c) =>
+          Array.isArray(c[0].status) && c[0].status.join(",") === "rejected,revise",
+      ),
     ).toBe(true);
     expect(screen.getByText("Ditolak - Permanen")).toBeInTheDocument();
     expect(
@@ -422,7 +472,7 @@ describe("ManajemenAkunPage", () => {
       expect(fetchUsers.mock.calls.length).toBeGreaterThan(callsBefore);
     });
     expect(invalidate).toHaveBeenCalledWith({
-      queryKey: ["admin_v2", "users", "rejected"],
+      queryKey: ["admin_v2", "users", "rejected,revise"],
     });
     expect(invalidate).toHaveBeenCalledWith({
       queryKey: ["admin_v2", "users", "waiting"],

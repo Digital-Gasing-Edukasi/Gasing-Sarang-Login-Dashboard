@@ -306,7 +306,7 @@ describe("VerifikasiAkunPage", () => {
     expect(voucherCalls().length).toBe(voucherBefore);
     // The account lands on the manajemen-akun Ditolak tab.
     expect(invalidate).toHaveBeenCalledWith({
-      queryKey: ["admin_v2", "users", "rejected"],
+      queryKey: ["admin_v2", "users", "rejected,revise"],
     });
   });
 

@@ -3,6 +3,7 @@ import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-quer
 import { Search } from "lucide-react";
 import { cn } from "../../lib/utils.js";
 import {
+  REJECTED_STATUSES,
   VERIFIED_STATUS,
   fetchUsers,
   usersKeys,
@@ -101,7 +102,7 @@ export default function VerifikasiAkunPage() {
     });
     // The account lands on the manajemen-akun Ditolak tab.
     queryClient.invalidateQueries({
-      queryKey: usersKeys.byStatus(VERIFIED_STATUS.REJECTED),
+      queryKey: usersKeys.byStatus(REJECTED_STATUSES),
     });
   };
 

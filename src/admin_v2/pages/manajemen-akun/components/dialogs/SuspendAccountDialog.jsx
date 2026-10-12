@@ -204,7 +204,13 @@ export function SuspendAccountDialog({ user, onClose, onSuspended }) {
     return d;
   };
   const until = computeUntil();
-  const valid = until !== null && !!reason;
+  const valid = until !== null && !!reason && remarks.trim() !== "";
+
+  // Picking a reason prefills the email message with its desc (editable).
+  const handleReasonChange = (code) => {
+    setReason(code);
+    setRemarks(reasons.find((r) => r.code === code)?.desc ?? "");
+  };
 
   const suspend = useMutation({
     mutationFn: () =>
@@ -236,7 +242,7 @@ export function SuspendAccountDialog({ user, onClose, onSuspended }) {
           <DialogTitle>Tangguhkan Akun</DialogTitle>
         </DialogHeader>
 
-        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto pr-1">
+        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-1">
           <div className="flex items-start gap-3 rounded-md border border-orange-300 bg-orange-100 p-3">
             <AlertTriangle size={18} className="mt-0.5 shrink-0 text-orange-500" />
             <p className="text-xs leading-relaxed text-orange-700">
@@ -320,25 +326,25 @@ export function SuspendAccountDialog({ user, onClose, onSuspended }) {
                 </button>
               </div>
             ) : (
-              <OptionSelect
-                label="Alasan penangguhan pengguna"
-                value={reason}
-                onValueChange={setReason}
-                placeholder="Pilih alasan"
-                options={reasons.map((r) => ({ value: r.code, label: r.title }))}
-              />
-            )}
-          </div>
-
-          <div className="space-y-2">
-            <Label>Pesan email (opsional)</Label>
-            <Textarea
-              value={remarks}
-              onChange={(e) => setRemarks(e.target.value)}
-              placeholder="Tulis pesan tambahan untuk pengguna (opsional)"
-              rows={3}
+            <OptionSelect
+              label="Alasan penangguhan pengguna"
+              value={reason}
+              onValueChange={handleReasonChange}
+              placeholder="Pilih alasan"
+              options={reasons.map((r) => ({ value: r.code, label: r.title }))}
             />
-          </div>
+          )}
+        </div>
+
+        <div className="space-y-2">
+          <Label>Pesan email</Label>
+          <Textarea
+            value={remarks}
+            onChange={(e) => setRemarks(e.target.value)}
+            placeholder="Tulis pesan tambahan untuk pengguna (opsional)"
+            rows={3}
+          />
+        </div>
 
           {suspend.isError && (
             <p className="text-sm text-red-600">
