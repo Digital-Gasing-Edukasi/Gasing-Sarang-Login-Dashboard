@@ -393,6 +393,9 @@ export function useAuthSession({ setIsRetry, setCheckoutPlan, setManualPayment, 
 
       // User biasa: cek status langganan untuk menentukan halaman.
       try {
+        // Freemium feature
+        webAppApi.redirectWithTokens();
+        return;
         const sub = await subscriptionApi.getStatus();
         const isActive =
           sub?.hasActiveSubscription === true ||

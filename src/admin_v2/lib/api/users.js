@@ -1,13 +1,23 @@
 import { apiDelete, apiGet, apiPatch, apiPost } from "./client.js";
 
-// Backend-validated filter buckets: "waiting"|"pending_voucher"|"approved"|"rejected"|"all".
+// Backend-validated filter buckets: "waiting"|"pending_voucher"|"approved"|"rejected"|"revise"|"all".
 // (Numeric verifiedStatus on user objects is display-only — see verificationStatus.js.)
 export const VERIFIED_STATUS = {
   WAITING: "waiting",
   PENDING_VOUCHER: "pending_voucher",
   APPROVED: "approved",
   REJECTED: "rejected",
+  REVISE: "revise",
 };
+
+// `status` accepts a single bucket or an array (sent comma-joined).
+// It is optional (omitted when undefined — e.g. suspended/deleted tabs).
+const normalizeStatus = (status) =>
+  Array.isArray(status) ? status.join(",") : status;
+
+// The Ditolak tab covers both backend buckets — share this everywhere
+// (list queries AND invalidations) so the keys coincide.
+export const REJECTED_STATUSES = [VERIFIED_STATUS.REJECTED, VERIFIED_STATUS.REVISE];
 
 // `subscription` accepts a single status or an array (sent comma-joined).
 // `status` is optional (omitted when undefined — e.g. suspended/deleted tabs).
@@ -22,7 +32,7 @@ export function fetchUsers({ status, page = 1, limit = 20, keyword = "", subscri
   return apiGet("/admin/users", {
     page,
     limit,
-    "filter[verifiedStatus]": status,
+    "filter[verifiedStatus]": normalizeStatus(status),
     "filter[confirmed]": confirmed,
     "filter[subscriptionStatus]": normalizeSubscription(subscription) || undefined,
     "filter[deletionPending]": deletionPending,
@@ -42,11 +52,11 @@ export function fetchUsers({ status, page = 1, limit = 20, keyword = "", subscri
 //   queryClient.invalidateQueries({ queryKey: usersKeys.all })
 export const usersKeys = {
   all: ["admin_v2", "users"],
-  byStatus: (status) => ["admin_v2", "users", status],
+  byStatus: (status) => ["admin_v2", "users", normalizeStatus(status)],
   page: (status, page, { limit = 20, keyword = "", subscription, deletionPending = 0, suspended = 0, confirmed = "yes" } = {}) => [
     "admin_v2",
     "users",
-    status,
+    normalizeStatus(status),
     {
       page,
       limit,

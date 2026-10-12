@@ -3,6 +3,7 @@ import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-quer
 import { Search } from "lucide-react";
 import { cn } from "../../lib/utils.js";
 import {
+  REJECTED_STATUSES,
   VERIFIED_STATUS,
   fetchUsers,
   usersKeys,
@@ -36,7 +37,7 @@ const TABS = [
   {
     key: "ditolak",
     title: "Ditolak",
-    status: VERIFIED_STATUS.REJECTED,
+    status: REJECTED_STATUSES,
   },
   {
     key: "ditangguhkan",
@@ -191,7 +192,7 @@ export default function ManajemenAkunPage() {
         : "Akun kembali ke antrean verifikasi.",
     });
     queryClient.invalidateQueries({
-      queryKey: usersKeys.byStatus(VERIFIED_STATUS.REJECTED),
+      queryKey: usersKeys.byStatus(REJECTED_STATUSES),
     });
     queryClient.invalidateQueries({
       queryKey: usersKeys.byStatus(VERIFIED_STATUS.WAITING),
