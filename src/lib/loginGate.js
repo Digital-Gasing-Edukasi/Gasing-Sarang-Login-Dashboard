@@ -109,15 +109,12 @@ export function isSubscriptionExpired(latestPayment) {
 const GRACE_MS = 24 * 60 * 60 * 1000;
 export function isPaymentGraceActive(payment) {
   const p = payment?.payment || payment?.data || payment || {}
-  console.log({p});
   
   // Audit #60: manual transfer memakai 'receipt_uploaded' — perlakukan sama dgn 'pending'.
   const st = String(p.status || '').toLowerCase()
-  console.log({st});
   if (st !== 'pending' && st !== 'receipt_uploaded' && st !== 'waiting_verification' && st !== 'uploaded' && st !== 'waiting') return false
 
   const raw = p.createdAt || p.created_at || p.paidAt || p.paid_at || null
-  console.log({raw});
   if (!raw) return false
   // Bentuk waktu BE: objek { unix, utc:{raw|iso}, local:{raw|iso} } ATAU string
   // "YYYY-MM-DD HH:mm:ss"/ISO ATAU epoch. Objek langsung di-new Date() → NaN,

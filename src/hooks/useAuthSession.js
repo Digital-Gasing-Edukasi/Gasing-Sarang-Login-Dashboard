@@ -17,6 +17,7 @@ import {
   PROVISIONAL_FALLBACK_SECS,
 } from "@/lib/loginGate";
 import { buildRevisionFixData } from "@/lib/revisionFixData";
+import { resolveBootPath } from "@/lib/boot/resolveBootPath";
 import { readOtpSession, writeOtpSession, clearOtpSession } from "@/lib/otpSession";
 
 // Sesi OTP registrasi (token + email) — in-memory useState hilang saat reload
@@ -394,7 +395,14 @@ export function useAuthSession({ setIsRetry, setCheckoutPlan, setManualPayment, 
       // User biasa: cek status langganan untuk menentukan halaman.
       try {
         // Freemium feature
-        webAppApi.redirectWithTokens();
+        // Kecuali user MEMANG sedang membuka halaman langganan (mis. tombol
+        // "beli langganan" dari komunitas yang membuka /login/subscription
+        // fresh) — jangan tendang balik ke komunitas, biarkan tinggal.
+        // resolveBootPath sudah menanggalkan prefix base (staging sub-path).
+        const { pathname } = resolveBootPath();
+        if (!pathname.startsWith("/login/subscription")) {
+          webAppApi.redirectWithTokens();
+        }
         return;
         const sub = await subscriptionApi.getStatus();
         const isActive =
