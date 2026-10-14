@@ -282,11 +282,17 @@ export function LoginPage({ onNavigate, onLoginSuccess, isSsoMode = false }) {
         {/* Fake login: masuk sebagai tamu → halaman komunitas statis (ADR-0004).
             Desktop: icon button di kiri-atas placeholder image (LeftPanel, audit #7).
             Tombol teks ini khusus mobile. */}
+
+        <div className='items-center gap-2 text-gray-500 text-xs mt-4 leading-none hidden md:flex'>
+          <div className='bg-gray-300 h-[1px] flex-1' />
+          <div>atau</div>
+          <div className='bg-gray-300 h-[1px] flex-1' />
+        </div>
         <button
           onClick={() => onNavigate("komunitas")}
-          className="lg:hidden mt-4 text-[14px] font-semibold text-[#424857] transition-opacity hover:opacity-70"
+          className="mt-4 text-sm font-semibold text-[#424857] transition-opacity hover:opacity-70 underline underline-offset-2"
         >
-          Lanjut Sebagai Tamu
+          Masuk Sebagai Tamu
         </button>
       </div>
 

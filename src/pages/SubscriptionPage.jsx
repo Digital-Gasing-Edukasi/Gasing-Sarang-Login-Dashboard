@@ -4,10 +4,10 @@ import bgDark from "@/assets/dark-mode/Background.png";
 import { Logo } from "@/components/shared/Logo";
 import { ProfileMenu } from "@/components/shared/ProfileMenu";
 import { useXenditCheckout } from "@/hooks/useXenditCheckout";
-import { subscriptionApi, tokenStorage } from "@/lib/api";
+import { subscriptionApi, tokenStorage, webAppApi } from "@/lib/api";
 import { formatRp, localizePlanName } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import { AlertCircle, BookOpen, Clock3, ExternalLink, Loader2, RotateCcw, Users, Video } from "lucide-react";
+import { AlertCircle, BookOpenCheck, ChevronLeft, ChevronRight, Clock3, ExternalLink, Loader2, Presentation, RotateCcw, Sparkles } from "lucide-react";
 import { useEffect, useState } from "react";
 // Ambil angka positif pertama dari beberapa kemungkinan field (nama field
 // diskon backend belum final — coba beberapa alias umum).
@@ -96,7 +96,14 @@ function withComparison(plans) {
   const monthly = plans.find((p) => p.billingCycle === "monthly");
   if (!monthly) return plans;
 
+  // TODO(be): hardcode sementara sampai backend kirim originalPrice paket
+  // bulanan — hapus fallback ini kalau backend sudah menyediakannya.
+  const HARDCODED_MONTHLY_ORIGINAL = 79900;
+
   return plans.map((p) => {
+    if (p.billingCycle === "monthly" && p.originalPrice == null) {
+      return { ...p, originalPrice: HARDCODED_MONTHLY_ORIGINAL };
+    }
     if (p.billingCycle !== "annual") return p;
 
     const originalPrice = p.originalPrice ?? monthly.priceMonthly;
@@ -134,7 +141,7 @@ const DUMMY_PLANS = [
     billingCycle: "monthly",
     priceMonthly: 39900,
     priceTotal: null,
-    originalPrice: null,
+    originalPrice: 79900, // TODO(be): samakan dengan hardcode withComparison
     discount: null,
     label: null,
     recommended: false,
@@ -144,28 +151,19 @@ const DUMMY_PLANS = [
 
 const BENEFITS = [
   {
-    icon: Users,
-    text: (
-      <>
-        Gabung dengan <span className="text-[#1DF5FF] font-semibold">komunitas guru</span> seluruh Indonesia dan diskusi materi <span className="text-[#1DF5FF] font-semibold">matematika</span> dan AI.
-      </>
-    ),
+    icon: BookOpenCheck,
+    title: "Perdalam metode Gasing",
+    subtitle: "Akses modul dan materi Gasing untuk memperkaya strategi mengajar matematika.",
   },
   {
-    icon: Video,
-    text: (
-      <>
-        Hadiri <span className="text-[#1DF5FF] font-semibold">webinar interaktif</span> dan bahas topik edukasi terkini bersama guru-guru terbaik Indonesia.
-      </>
-    ),
+    icon: Sparkles,
+    title: "Temukan inspirasi setiap bulan",
+    subtitle: "Dapatkan konten eksklusif sebagai referensi untuk menghadirkan pembelajaran yang lebih menarik.",
   },
   {
-    icon: BookOpen,
-    text: (
-      <>
-        Akses berbagai <span className="text-[#1DF5FF] font-semibold">konten eksklusif</span> untuk mengajar <span className="text-[#1DF5FF] font-semibold">matematika</span> dengan <span className="text-[#1DF5FF] font-semibold">asyik dan menyenangkan</span>.
-      </>
-    ),
+    icon: Presentation,
+    title: "Lengkapi Persiapan dengan Alat Bantu Ajar",
+    subtitle: "Akses sumber pendukung untuk membantu menjelaskan konsep matematika kepada murid.",
   },
 ];
 
@@ -435,6 +433,10 @@ export default function SubscriptionPage({ user, onSignOut, onPaymentSuccess, on
       .finally(() => setLoadingPlans(false));
   }, []);
 
+  const handleBackToKomunitas = () => {
+    webAppApi.redirectWithTokens();
+  };
+
   const handleCheckout = async () => {
     if (!selectedPlan) return;
     setError("");
@@ -476,21 +478,28 @@ export default function SubscriptionPage({ user, onSignOut, onPaymentSuccess, on
         </div>
 
         <div className="flex-1 px-4 pt-4 pb-4 overflow-y-auto">
-          <h1 className="text-[32px] font-bold leading-[130%] mb-6 font-cera-pro">
-            Ada apa di Sarang Gasing?
-          </h1>
+          <div className="text-[28px] font-extrabold leading-[130%] mb-6 font-cera-pro">
+            Akses Penuh Sarang Gasing, Perkaya Bekal Mengajar Kamu!
+          </div>
           <ul className="space-y-6 mb-[43px]">
             {BENEFITS.map((b, i) => {
               const Icon = b.icon;
               return (
                 <li key={i} className="flex items-center gap-4">
-                  <Icon
-                    className="w-6 h-6 text-[#ffffff] shrink-0"
-                    strokeWidth={2}
-                  />
-                  <p className="text-white  text-base leading-snug">
-                    {b.text}
-                  </p>
+                  <div className="w-12 h-12 rounded-full bg-[#1DF5FF]/10 flex items-center justify-center shrink-0">
+                    <Icon
+                      className="w-6 h-6 text-[#1DF5FF]"
+                      strokeWidth={2}
+                    />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-white font-semibold text-base">
+                      {b.title}
+                    </p>
+                    <p className="text-white/50 text-sm leading-snug">
+                      {b.subtitle}
+                    </p>
+                  </div>
                 </li>
               );
             })}
@@ -593,24 +602,38 @@ export default function SubscriptionPage({ user, onSignOut, onPaymentSuccess, on
 
         {/* ── CONTENT ── */}
         <div className="relative z-10 flex-1 flex items-center">
-          <div className="w-full max-w-[1150px] mx-auto px-8 grid lg:grid-cols-2 gap-16 xl:gap-24 items-center">
+          <div className="w-full max-w-[1150px] mx-auto px-8 flex gap-16 xl:gap-24 items-center">
             {/* Kiri — copywriting */}
-            <div className="animate-fade-in-up">
-              <h1 className="text-[48px] font-cera-pro xl:text-[48px] font-bold text-white leading-[150%] mb-10">
-                Ada apa di Sarang Gasing?
+            <div className="animate-fade-in-up w-[55%]">
+              <button
+                onClick={handleBackToKomunitas}
+                className="flex items-center gap-1.5 text-white/60 hover:text-white text-sm font-medium mb-6 transition-colors"
+              >
+                <ChevronLeft size={16} /> Kembali ke Home
+              </button>
+              <h1 className="text-4xl font-cera-pro font-extrabold text-white leading-[150%]">
+                Akses Penuh Sarang Gasing,<br />Perkaya Bekal Mengajar Kamu!
               </h1>
-              <ul className="space-y-6">
+              <div className="text-sm text-white/80 mt-2">Berlangganan untuk menikmati seluruh fitur dan manfaat eksklusif Sarang Gasing.</div>
+              <ul className="space-y-6 mt-10">
                 {BENEFITS.map((b, i) => {
                   const Icon = b.icon;
                   return (
                     <li key={i} className="flex items-center gap-4">
-                      <Icon
-                        className="w-8 h-8 text-[#ffffff] shrink-0"
-                        strokeWidth={2}
-                      />
-                      <p className="text-white text-base leading-relaxed">
-                        {b.text}
-                      </p>
+                      <div className="w-12 h-12 rounded-full bg-[#1DF5FF]/10 flex items-center justify-center shrink-0">
+                        <Icon
+                          className="w-6 h-6 text-[#1DF5FF]"
+                          strokeWidth={2}
+                        />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-white font-semibold text-base">
+                          {b.title}
+                        </p>
+                        <p className="text-white/50 text-base leading-snug">
+                          {b.subtitle}
+                        </p>
+                      </div>
                     </li>
                   );
                 })}
@@ -618,7 +641,7 @@ export default function SubscriptionPage({ user, onSignOut, onPaymentSuccess, on
             </div>
 
             {/* Kanan — plan cards */}
-            <div className="animate-fade-in-up delay-200 space-y-6">
+            <div className="animate-fade-in-up delay-200 space-y-6 w-[45%]">
               <div className="space-y-6">
                 {loadingPlans ? (
                   <div className="flex items-center justify-center py-12 text-white/40">

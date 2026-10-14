@@ -20,17 +20,6 @@ export function LeftPanel() {
         className="pointer-events-none absolute inset-0 h-full w-full select-none object-cover object-bottom"
       />
 
-      {/* Masuk sebagai tamu → halaman komunitas (publik, tanpa auth). */}
-      <button
-        type="button"
-        onClick={() => navigate(PAGE_PATHS.komunitas)}
-        aria-label="Masuk sebagai tamu"
-        title="Masuk sebagai tamu"
-        className="absolute top-6 right-6 z-20 flex h-[38px] w-[38px] items-center rounded-full justify-center transition hover:bg-white/20 active:scale-95"
-      >
-        <img src={tamuIcon} alt="" draggable="false" className="h-[38px] w-[38px] select-none" />
-      </button>
-
       {/* judul */}
       <div className="relative z-10 px-20 pt-20 lg:pt-16">
         <p className="font-cera-pro text-[20px] fhd:text-[28px] font-light lg:font-regular leading-tight text-white mb-2">Sudah ikut pelatihan Gasing?</p>

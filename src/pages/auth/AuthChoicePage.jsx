@@ -9,9 +9,6 @@ import { ArrowRight, LayoutDashboard, LogIn, LogOut } from 'lucide-react'
 export function AuthChoicePage({ user, onNavigate, onSignOut }) {
   // Superadmin dapat tombol tambahan ke Dashboard Admin.
   const showDashboard = isSuperAdmin(user)
-  const isProduction = import.meta.env.VITE_ENV === "production"
-  // Dashboard V2 masih dalam pengembangan — hanya tampil di luar production.
-  const showDashboardV2 = showDashboard && !isProduction
   const [ssoError, setSsoError] = useState(false)
 
   const handleGoDashboard = () => {
@@ -62,7 +59,7 @@ export function AuthChoicePage({ user, onNavigate, onSignOut }) {
         <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center mb-6">
           <LogIn className="w-6 h-6 text-blue-600" />
         </div>
-        
+
         <h1 className="text-2xl font-bold text-foreground mb-3 text-center">
           Pilih Tujuan Login
         </h1>
@@ -85,20 +82,18 @@ export function AuthChoicePage({ user, onNavigate, onSignOut }) {
                 <ArrowRight size={18} />
               </Button>
 
-              {showDashboardV2 && (
-                <Button
-                  onClick={handleGoDashboardV2}
-                  variant="outline"
-                  className="w-full flex items-center justify-between"
-                  size="lg"
-                >
-                  <span className="flex items-center gap-2">
-                    <LayoutDashboard size={18} />
-                    Dashboard V2
-                  </span>
-                  <ArrowRight size={18} />
-                </Button>
-              )}
+              <Button
+                onClick={handleGoDashboardV2}
+                variant="outline"
+                className="w-full flex items-center justify-between"
+                size="lg"
+              >
+                <span className="flex items-center gap-2">
+                  <LayoutDashboard size={18} />
+                  Dashboard V2
+                </span>
+                <ArrowRight size={18} />
+              </Button>
             </>
           )}
 
@@ -122,9 +117,9 @@ export function AuthChoicePage({ user, onNavigate, onSignOut }) {
             <ArrowRight size={18} />
           </Button>
 
-          <Button 
-            onClick={handleLogout} 
-            variant="ghost" 
+          <Button
+            onClick={handleLogout}
+            variant="ghost"
             className="w-full flex items-center justify-center text-red-500 hover:text-red-600 hover:bg-red-50 mt-4"
             size="lg"
           >
