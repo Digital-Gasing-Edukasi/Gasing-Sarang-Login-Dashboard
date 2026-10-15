@@ -43,25 +43,33 @@ function transformPlan(pkg) {
   // (Rp396.000/bln, bukan Rp33.000/bln) dan diskon gagal dihitung.
   if (isAnnual && months < 12) months = 12;
 
-  // Field diskon/harga-coret bila backend menyediakannya (fallback: dihitung
-  // di withComparison dengan membandingkan paket tahunan vs bulanan).
+  // Kontrak backend (dev/responses/packages.json): `price` = harga yang
+  // dibayar, `displayPrice` = harga coret. Diskon ada bila displayPrice
+  // tidak null. Alias lama dipertahankan sebagai fallback.
   const explicitDiscount = pickNumber(
     pkg.discountPercentage, pkg.discountPercent, pkg.discount, pkg.savePercentage
   );
   const explicitOriginal = pickNumber(
-    pkg.originalPrice, pkg.normalPrice, pkg.strikePrice, pkg.priceBeforeDiscount
+    pkg.displayPrice, pkg.originalPrice, pkg.normalPrice, pkg.strikePrice, pkg.priceBeforeDiscount
   );
 
   if (isAnnual) {
+    // Tampilkan harga per-bulan (= price / 12), begitu pula harga coret
+    // (= displayPrice / 12) supaya sejajar dengan kartu bulanan.
+    const displayMonthly = explicitOriginal != null ? Math.round(explicitOriginal / months) : null;
+    let discount = explicitDiscount;
+    if (!discount && explicitOriginal != null && explicitOriginal > pkg.price) {
+      discount = Math.ceil((1 - pkg.price / explicitOriginal) * 100);
+    }
     return {
       id: pkg.id,
       name: localizePlanName(pkg.name),
       billingCycle: "annual",
       priceMonthly: Math.round(pkg.price / months),
       priceTotal: pkg.price,
-      originalPrice: explicitOriginal,
-      discount: explicitDiscount,
-      label: explicitDiscount ? `Kamu Hemat ${explicitDiscount}%` : null,
+      originalPrice: displayMonthly,
+      discount: discount || null,
+      label: discount ? `Kamu Hemat ${discount}%` : null,
       recommended: true,
       planLabel: localizePlanName(pkg.name),
     };
@@ -89,26 +97,19 @@ function sortAnnualFirst(plans) {
   });
 }
 
-// Lengkapi harga-coret & label "Kamu Hemat X%" paket tahunan dengan
-// membandingkan harga per-bulan efektifnya terhadap paket bulanan. Hanya
-// mengisi bila backend belum menyediakan angka diskon eksplisit.
+// Lengkapi harga-coret & label "Kamu Hemat X%" paket tahunan bila backend
+// tidak mengirim displayPrice: bandingkan harga per-bulan efektifnya terhadap
+// paket bulanan. Kalau displayPrice ada, transformPlan sudah menghitungnya.
 function withComparison(plans) {
   const monthly = plans.find((p) => p.billingCycle === "monthly");
-  if (!monthly) return plans;
-
-  // TODO(be): hardcode sementara sampai backend kirim originalPrice paket
-  // bulanan — hapus fallback ini kalau backend sudah menyediakannya.
-  const HARDCODED_MONTHLY_ORIGINAL = 79900;
 
   return plans.map((p) => {
-    if (p.billingCycle === "monthly" && p.originalPrice == null) {
-      return { ...p, originalPrice: HARDCODED_MONTHLY_ORIGINAL };
-    }
     if (p.billingCycle !== "annual") return p;
+    if (p.discount && p.label) return p;
 
-    const originalPrice = p.originalPrice ?? monthly.priceMonthly;
+    const originalPrice = p.originalPrice ?? monthly?.priceMonthly ?? null;
     let discount = p.discount;
-    if (!discount && originalPrice > p.priceMonthly) {
+    if (!discount && originalPrice != null && originalPrice > p.priceMonthly) {
       // Bulatkan ke atas: hemat 17,3% ditampilkan "18%" sesuai desain.
       discount = Math.ceil((1 - p.priceMonthly / originalPrice) * 100);
     }
@@ -141,7 +142,7 @@ const DUMMY_PLANS = [
     billingCycle: "monthly",
     priceMonthly: 39900,
     priceTotal: null,
-    originalPrice: 79900, // TODO(be): samakan dengan hardcode withComparison
+    originalPrice: 79900, // samakan dengan displayPrice backend (Monthly)
     discount: null,
     label: null,
     recommended: false,
@@ -411,6 +412,8 @@ export default function SubscriptionPage({ user, onSignOut, onPaymentSuccess, on
   useEffect(() => {
     subscriptionApi.getPlans()
       .then((data) => {
+        console.log("Plans", { data });
+
         const pkgs = Array.isArray(data) ? data : (data.data || []);
         const mapped = sortAnnualFirst(
           withComparison(
@@ -426,9 +429,9 @@ export default function SubscriptionPage({ user, onSignOut, onPaymentSuccess, on
       })
       .catch(() => {
         // Jika API tidak bisa diakses (backend tidak jalan), gunakan data dummy
-        setPlans(DUMMY_PLANS);
-        const recommended = DUMMY_PLANS.find((p) => p.recommended) || DUMMY_PLANS[0];
-        if (recommended) setSelectedPlan(recommended.id);
+        // setPlans(DUMMY_PLANS);
+        // const recommended = DUMMY_PLANS.find((p) => p.recommended) || DUMMY_PLANS[0];
+        // if (recommended) setSelectedPlan(recommended.id);
       })
       .finally(() => setLoadingPlans(false));
   }, []);
