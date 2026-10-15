@@ -84,11 +84,12 @@ function renderPage() {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
-  return render(
+  const view = render(
     <QueryClientProvider client={client}>
       <VerifikasiPembayaranPage />
     </QueryClientProvider>,
   );
+  return { client, ...view };
 }
 
 beforeEach(() => {
@@ -297,7 +298,8 @@ describe("VerifikasiPembayaranPage", () => {
 
   it("payment approve submit: no payload, close, belum + verifikasi invalidated", async () => {
     const user = userEvent.setup();
-    renderPage();
+    const { client } = renderPage();
+    const invalidate = vi.spyOn(client, "invalidateQueries");
     await screen.findByText(U0.name);
 
     fireEvent.click(screen.getByRole("button", { name: /Menunggu Verifikasi/ }));
@@ -330,6 +332,10 @@ describe("VerifikasiPembayaranPage", () => {
     expect(
       fetchManualPayments.mock.calls.filter((c) => c[0].state === "rejected").length,
     ).toBe(ditolakBefore);
+    // Approving mints vouchers — pending voucher table refreshes too.
+    expect(invalidate).toHaveBeenCalledWith({
+      queryKey: ["admin_v2", "pending-vouchers"],
+    });
     await waitFor(() => {
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     });

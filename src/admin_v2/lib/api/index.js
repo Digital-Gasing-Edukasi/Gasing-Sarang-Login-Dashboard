@@ -58,3 +58,8 @@ export {
   regionsKeys,
   REGION_CACHE,
 } from "./regions.js";
+export {
+  fetchPendingVouchers,
+  confirmVoucher,
+  pendingVouchersKeys,
+} from "./vouchers.js";

@@ -11,18 +11,20 @@ import {
 } from "../../../../components/ui/dialog.jsx";
 import { copyText } from "../../../../lib/clipboard.js";
 import { toast } from "../../../../components/ui/use-toast.js";
-import { verifyUser } from "../../../../lib/api/index.js";
+import { confirmVoucher } from "../../../../lib/api/index.js";
 
-export function VoucherConfirmDialog({ user, onClose, onConfirmed }) {
+// Confirm a pending voucher: PATCH /admin/vouchers/:voucherId/ready.
+// Copy-gated like before — the code must be copied before confirming.
+export function VoucherConfirmDialog({ voucher, onClose, onConfirmed }) {
   const [copied, setCopied] = useState(false);
-  const open = !!user;
-  const code = user?.lastVoucher?.code ?? "";
+  const open = !!voucher;
+  const code = voucher?.code ?? "";
 
   const confirm = useMutation({
-    mutationFn: () => verifyUser({ userId: user.id, status: "approved" }),
+    mutationFn: () => confirmVoucher({ voucherId: voucher.id }),
     onSuccess: () => {
       setCopied(false);
-      onConfirmed?.(user);
+      onConfirmed?.(voucher);
     },
   });
 
@@ -50,13 +52,13 @@ export function VoucherConfirmDialog({ user, onClose, onConfirmed }) {
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && handleClose()}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Konfirmasi Voucher?</DialogTitle>
+          <DialogTitle>Konfirmasi voucher ini?</DialogTitle>
         </DialogHeader>
 
         <p className="text-sm text-foreground">
-          {user?.name}
-          {user?.email && (
-            <span className="text-muted-foreground"> ({user.email})</span>
+          {voucher?.user?.name}
+          {voucher?.user?.email && (
+            <span className="text-muted-foreground"> ({voucher.user.email})</span>
           )}
         </p>
 

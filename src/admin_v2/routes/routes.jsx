@@ -3,6 +3,7 @@ import {
   Calendar,
   ClipboardList,
   LayoutDashboard,
+  Ticket,
   UserSearch,
   Users,
   Wallet,
@@ -14,6 +15,9 @@ const VerifikasiAkunPage = lazy(() =>
 );
 const VerifikasiPembayaranPage = lazy(() =>
   import("../pages/verifikasi-pembayaran/VerifikasiPembayaranPage.jsx"),
+);
+const PendingVoucherPage = lazy(() =>
+  import("../pages/pending-voucher/PendingVoucherPage.jsx"),
 );
 const ManajemenAkunPage = lazy(() =>
   import("../pages/manajemen-akun/ManajemenAkunPage.jsx"),
@@ -50,6 +54,13 @@ export const ADMIN_V2_ROUTES = [
     path: "verifikasi-pembayaran",
     icon: Wallet,
     element: <VerifikasiPembayaranPage />,
+  },
+  {
+    key: "pending-voucher",
+    title: "Pending Voucher Setup",
+    path: "pending-voucher",
+    icon: Ticket,
+    element: <PendingVoucherPage />,
   },
   {
     key: "manajemen-akun",

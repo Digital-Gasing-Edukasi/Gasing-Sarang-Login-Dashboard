@@ -5,11 +5,9 @@ import userEvent from "@testing-library/user-event";
 import verifFixture from "../../../dev/responses/verif.json";
 import sessionsFixture from "../../../dev/responses/training-sessions.json";
 import {
-  formatSessionDate,
   formatShortDate,
   formatTrainingPeriod,
 } from "../lib/format.js";
-import { ROLE_META_BY_ID } from "../lib/roles.js";
 
 // Radix Select calls DOM APIs jsdom doesn't implement.
 if (!window.HTMLElement.prototype.hasPointerCapture) {
@@ -43,11 +41,6 @@ vi.mock("../lib/api/regions.js", async (importOriginal) => {
     fetchRegencies: vi.fn(),
     fetchRegion: vi.fn(),
   };
-});
-
-vi.mock("../lib/api/training-histories.js", async (importOriginal) => {
-  const actual = await importOriginal();
-  return { ...actual, fetchTrainingHistory: vi.fn() };
 });
 
 vi.mock("../lib/clipboard.js", () => ({ copyText: vi.fn(async () => true) }));
@@ -91,9 +84,6 @@ import {
   fetchRegencies,
   fetchRegion,
 } from "../lib/api/regions.js";
-import { fetchTrainingHistory } from "../lib/api/training-histories.js";
-import historyFixture from "../../../dev/responses/training-user.json";
-import { copyText } from "../lib/clipboard.js";
 import { requestExport } from "../lib/api/exports.js";
 import { useDownloads } from "../stores/useDownloads.js";
 import VerifikasiAkunPage from "../pages/verifikasi-akun/VerifikasiAkunPage.jsx";
@@ -102,7 +92,6 @@ import VerifikasiAkunPage from "../pages/verifikasi-akun/VerifikasiAkunPage.jsx"
 const waitingPool = verifFixture.data
   .slice(0, 2)
   .map((u) => ({ ...u, verifiedStatus: 0 }));
-const voucherPool = verifFixture.data;
 const U0 = waitingPool[0];
 
 // Province of the user's first training region (from the regency detail).
@@ -125,17 +114,15 @@ function renderPage() {
 
 function mockLists() {
   fetchUsers.mockImplementation(
-    ({ status, page = 1, limit = 20, keyword = "" }) => {
-      const pool = status === "waiting" ? waitingPool : voucherPool;
+    ({ page = 1, limit = 20, keyword = "" }) => {
       const kw = keyword.trim().toLowerCase();
       const data = kw
-        ? pool.filter((u) =>
+        ? waitingPool.filter((u) =>
             [u.name, u.username, u.email].some((f) =>
               (f || "").toLowerCase().includes(kw),
             ),
           )
-        : pool;
-      const fullTotal = status === "waiting" ? 2 : 4;
+        : waitingPool;
       return Promise.resolve({
         data,
         meta: {
@@ -144,7 +131,7 @@ function mockLists() {
           per_page: limit,
           from: data.length ? 1 : 0,
           to: data.length,
-          total: kw ? data.length : fullTotal,
+          total: kw ? data.length : 2,
         },
       });
     },
@@ -171,17 +158,6 @@ function mockLists() {
     level: "REGENCY",
     parentId: PROVINCE.id,
   }));
-  fetchTrainingHistory.mockImplementation(async ({ page = 1 }) => ({
-    data: page === 1 ? historyFixture.data : [historyFixture.data[0]],
-    meta: {
-      current_page: page,
-      last_page: 2,
-      per_page: 100,
-      from: page === 1 ? 1 : 3,
-      to: page === 1 ? 2 : 3,
-      total: 3,
-    },
-  }));
 }
 
 beforeEach(() => {
@@ -196,15 +172,11 @@ afterEach(() => {
 
 const waitingCalls = () =>
   fetchUsers.mock.calls.filter((c) => c[0].status === "waiting");
-const voucherCalls = () =>
-  fetchUsers.mock.calls.filter((c) => c[0].status === "pending_voucher");
 
 describe("VerifikasiAkunPage", () => {
   it("pending tab: totals, user cells, status pill, actions", async () => {
     renderPage();
 
-    expect(await screen.findByText("2")).toBeInTheDocument();
-    expect(await screen.findByText("4")).toBeInTheDocument();
     expect(await screen.findByText(U0.name)).toBeInTheDocument();
     expect(screen.getByText(`@${U0.username}`)).toBeInTheDocument();
     expect(screen.getByText(U0.email)).toBeInTheDocument();
@@ -221,7 +193,7 @@ describe("VerifikasiAkunPage", () => {
     ).toBeInTheDocument();
   });
 
-  it("approve flow: dialog, role, session search, submit, tab switch, invalidate both", async () => {
+  it("approve flow: dialog, role, session search, submit, list refetch", async () => {
     const user = userEvent.setup();
     renderPage();
     await screen.findByText(U0.name);
@@ -257,7 +229,6 @@ describe("VerifikasiAkunPage", () => {
     expect(submit).not.toBeDisabled();
 
     const waitingBefore = waitingCalls().length;
-    const voucherBefore = voucherCalls().length;
     await user.click(submit);
 
     expect(verifyUser).toHaveBeenCalledWith({
@@ -267,12 +238,14 @@ describe("VerifikasiAkunPage", () => {
       firstTrainingSessionId: GUNUNG.id,
     });
 
-    // Success: modal closes, voucher tab activates, both lists refetch.
-    expect(await screen.findByText("Kode Voucher")).toBeInTheDocument();
+    // Success: modal closes, stays on the pending list, list refetches.
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    });
     await waitFor(() => {
       expect(waitingCalls().length).toBeGreaterThan(waitingBefore);
-      expect(voucherCalls().length).toBeGreaterThan(voucherBefore);
     });
+    expect(screen.getByText(U0.name)).toBeInTheDocument();
   });
 
   it("reject normal flow: reason builder, fields payload, pending invalidated only", async () => {
@@ -290,7 +263,6 @@ describe("VerifikasiAkunPage", () => {
     await user.click(within(dialog).getByRole("checkbox", { name: "Nama Sekolah" }));
 
     const waitingBefore = waitingCalls().length;
-    const voucherBefore = voucherCalls().length;
     await user.click(within(dialog).getByRole("button", { name: "Tolak" }));
 
     expect(verifyUser).toHaveBeenCalledWith({
@@ -303,7 +275,6 @@ describe("VerifikasiAkunPage", () => {
     await waitFor(() => {
       expect(waitingCalls().length).toBeGreaterThan(waitingBefore);
     });
-    expect(voucherCalls().length).toBe(voucherBefore);
     // The account lands on the manajemen-akun Ditolak tab.
     expect(invalidate).toHaveBeenCalledWith({
       queryKey: ["admin_v2", "users", "rejected,revise"],
@@ -347,42 +318,6 @@ describe("VerifikasiAkunPage", () => {
     });
   });
 
-  it("voucher flow: copy gate, confirm payload, voucher invalidated only", async () => {
-    const user = userEvent.setup();
-    renderPage();
-    await screen.findByText(U0.name);
-
-    fireEvent.click(screen.getByRole("button", { name: /Pending Voucher Setup/ }));
-    await screen.findByText("Kode Voucher");
-    const voucherCode = voucherPool[0].lastVoucher.code;
-    expect(screen.getByText(voucherCode)).toBeInTheDocument();
-    expect(
-      screen.getAllByText(ROLE_META_BY_ID[voucherPool[0].discourseGroupId].fullName).length,
-    ).toBeGreaterThan(0);
-
-    await user.click(screen.getAllByRole("button", { name: "Konfirmasi" })[0]);
-    const dialog = await screen.findByRole("dialog");
-    expect(within(dialog).getByText(voucherCode)).toBeInTheDocument();
-    expect(within(dialog).getByRole("button", { name: "Konfirmasi" })).toBeDisabled();
-
-    await user.click(within(dialog).getByRole("button", { name: "Salin" }));
-    await waitFor(() => {
-      expect(copyText).toHaveBeenCalledWith(voucherCode);
-    });
-    const submit = within(dialog).getByRole("button", { name: "Konfirmasi" });
-    expect(submit).not.toBeDisabled();
-
-    const waitingBefore = waitingCalls().length;
-    const voucherBefore = voucherCalls().length;
-    await user.click(submit);
-
-    expect(verifyUser).toHaveBeenCalledWith({ userId: voucherPool[0].id, status: "approved" });
-    await waitFor(() => {
-      expect(voucherCalls().length).toBeGreaterThan(voucherBefore);
-    });
-    expect(waitingCalls().length).toBe(waitingBefore);
-  });
-
   it("search filters by keyword after debounce (no button)", async () => {
     const user = userEvent.setup();
     renderPage();
@@ -414,55 +349,13 @@ describe("VerifikasiAkunPage", () => {
     });
   });
 
-  it("history flow: Lihat Detail opens dialog with name, email, sessions, paginated", async () => {
+  it("export button starts the waiting-scope export", async () => {
     const user = userEvent.setup();
     renderPage();
     await screen.findByText(U0.name);
 
-    fireEvent.click(screen.getByRole("button", { name: /Pending Voucher Setup/ }));
-    await screen.findByText("Kode Voucher");
-
-    fireEvent.click(screen.getAllByText("Lihat Detail")[0]);
-    const dialog = await screen.findByRole("dialog");
-    const historyUser = voucherPool[0];
-    expect(within(dialog).getByText(historyUser.name)).toBeInTheDocument();
-    expect(within(dialog).getByText(historyUser.email)).toBeInTheDocument();
-    expect(fetchTrainingHistory).toHaveBeenCalledWith(
-      expect.objectContaining({ userId: historyUser.id, page: 1, limit: 100 }),
-    );
-
-    const firstSession = historyFixture.data[0];
-    expect(await within(dialog).findByText(firstSession.name)).toBeInTheDocument();
-    expect(
-      within(dialog).getByText(firstSession.region.full_name),
-    ).toBeInTheDocument();
-    expect(
-      within(dialog).getByText(formatSessionDate(firstSession.startDate.local.formatted)),
-    ).toBeInTheDocument();
-
-    // More than one page → pagination fetches page 2.
-    await user.click(within(dialog).getByRole("button", { name: "Halaman berikutnya" }));
-    await waitFor(() => {
-      expect(
-        fetchTrainingHistory.mock.calls.some((c) => c[0].page === 2),
-      ).toBe(true);
-    });
-  });
-
-  it("export buttons on both tabs start scoped exports", async () => {
-    const user = userEvent.setup();
-    renderPage();
-    await screen.findByText(U0.name);
-
-    // Pending tab → verifikasi-akun scope.
     await user.click(screen.getByRole("button", { name: "Export" }));
     expect(requestExport).toHaveBeenCalledWith("waiting");
-
-    // Voucher tab → pending-voucher scope.
-    fireEvent.click(screen.getByRole("button", { name: /Pending Voucher Setup/ }));
-    await screen.findByText("Kode Voucher");
-    await user.click(screen.getByRole("button", { name: "Export" }));
-    expect(requestExport).toHaveBeenCalledWith("pending_voucher");
   });
 
   it("alumni region preselects province+regency and refetches sessions on change", async () => {

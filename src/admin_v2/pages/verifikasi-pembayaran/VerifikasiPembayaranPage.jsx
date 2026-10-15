@@ -6,6 +6,7 @@ import {
   fetchManualPayments,
   fetchUsers,
   manualPaymentKeys,
+  pendingVouchersKeys,
   usersKeys,
 } from "../../lib/api/index.js";
 import { CountBadge, DataTable } from "../../components/index.js";
@@ -149,6 +150,10 @@ export default function VerifikasiPembayaranPage() {
     });
     queryClient.invalidateQueries({
       queryKey: manualPaymentKeys.byState("receipt_uploaded"),
+    });
+    // An approved payment mints vouchers — refresh the pending list too.
+    queryClient.invalidateQueries({
+      queryKey: pendingVouchersKeys.all,
     });
   };
 

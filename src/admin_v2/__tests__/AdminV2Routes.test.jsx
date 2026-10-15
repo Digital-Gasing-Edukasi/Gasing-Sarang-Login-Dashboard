@@ -8,6 +8,7 @@ const MENU_TITLES = [
   "Dashboard",
   "Verifikasi Akun",
   "Verifikasi Pembayaran",
+  "Pending Voucher Setup",
   "Manajemen Akun",
   "Riwayat Pelatihan",
   "Pendaftaran Trainer",
@@ -87,6 +88,14 @@ describe("AdminV2Routes", () => {
     renderAt("/dashboard-v2/manajemen-akun");
 
     expect(screen.getByRole("heading", { name: "Manajemen Akun" })).toBeInTheDocument();
+  });
+
+  it("deep link opens Pending Voucher Setup directly", async () => {
+    renderAt("/dashboard-v2/pending-voucher");
+
+    expect(
+      screen.getByRole("heading", { name: "Pending Voucher Setup" }),
+    ).toBeInTheDocument();
   });
 
   it("unknown sub-path redirects back to Dashboard", async () => {
