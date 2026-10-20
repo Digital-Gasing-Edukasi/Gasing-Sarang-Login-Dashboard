@@ -384,13 +384,14 @@ export function useAuthSession({ setIsRetry, setCheckoutPlan, setManualPayment, 
 
       // User biasa: cek expired dari payment terakhir (subscription ter-embed —
       // GET /subscription/me hanya mengembalikan {hasActiveSubscription:false}
-      // tanpa detail, jadi tidak bisa dipakai). Dibypass bila ada payment
-      // pending (menunggu verifikasi admin) — sama seperti gate expired profil.
-      if (isSubscriptionExpired(latestPayment) && !paymentPending) {
-        setGate({ type: "expired", profile: user });
-        navigate("/login", { replace: true });
-        return;
-      }
+      // pop up muncul di komunitas
+      /* 
+        if (isSubscriptionExpired(latestPayment) && !paymentPending) {
+          setGate({ type: "expired", profile: user });
+          navigate("/login", { replace: true });
+          return;
+        }
+      */
 
       // User biasa: cek status langganan untuk menentukan halaman.
       try {
