@@ -52,15 +52,9 @@ export function buildRevisionFixData(profile, fields = []) {
     regionId: u.regionId || u.region_id || u.region?.id || '',
     firstTrainingYear,
     firstTrainingMonth,
-    // Region pelatihan asal — dipakai FixDataPage untuk auto-cocokkan sesi
-    // "Dimana" (profil tak membawa session id, hanya region + tahun).
+    // Region pelatihan asal — prefill "Daerah pelatihan pertama?" (user-side
+    // sudah pakai region, bukan id session; field session tak diteruskan).
     firstTrainingRegionId: u.firstTrainingRegionId ?? u.first_training_region_id ?? null,
-    lastTrainingSessionId:
-      u.lastTrainingSessionId ||
-      u.firstTrainingSessionId ||
-      u.firstTrainingSession?.id ||
-      u.lastTrainingSession?.id ||
-      '',
     invalid,
     notes,
   };

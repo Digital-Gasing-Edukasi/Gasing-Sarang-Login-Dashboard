@@ -130,6 +130,7 @@ export function DateField({
   value,
   onChange,
   className,
+  iconClassName,
   id,
   // Batas atas tanggal terpilih. Default: kemarin (Tanggal Lahir).
   maxDate = yesterday,
@@ -261,7 +262,7 @@ export function DateField({
           className
         )}
       >
-        <Calendar size={16} className="shrink-0 text-[#030B1F]" />
+        <Calendar size={16} className={cn("shrink-0", iconClassName || "text-[#030B1F]")} />
         <span className={cn(value ? "text-current" : "opacity-40")}>
           {value ? formatDateID(value) : "Pilih Tanggal"}
         </span>

@@ -1,9 +1,11 @@
-import { useState, useEffect } from "react";
-import { Loader2, LogIn, UserSearch, HelpCircle } from "lucide-react";
+import { RightPanel } from "@/components/layout/RightPanel";
+import { StepBar } from "@/components/layout/StepIndicator";
+import { DATE_MAX, DateField } from "@/components/shared/DateField";
+import { ErrorAlert } from "@/components/shared/ErrorAlert";
+import { MobileReviewNotice } from "@/components/shared/MobileReviewNotice";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { MobileReviewNotice } from "@/components/shared/MobileReviewNotice";
 import {
   Select,
   SelectContent,
@@ -11,13 +13,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { RightPanel } from "@/components/layout/RightPanel";
-import { StepBar } from "@/components/layout/StepIndicator";
-import { DateField, DATE_MAX } from "@/components/shared/DateField";
-import { ErrorAlert } from "@/components/shared/ErrorAlert";
-import { cn } from "@/lib/utils";
+import { authApi, regionsApi, tokenStorage } from "@/lib/api";
 import { abbrevRegion } from "@/lib/format";
-import { authApi, regionsApi, trainingSessionsApi, tokenStorage } from "@/lib/api";
+import { cn } from "@/lib/utils";
+import { HelpCircle, Loader2, LogIn, UserSearch } from "lucide-react";
+import { useEffect, useState } from "react";
 
 const asList = (data) =>
   Array.isArray(data) ? data : data?.data || data?.items || [];
@@ -26,21 +26,6 @@ const MONTHS = [
   "Januari", "Februari", "Maret", "April", "Mei", "Juni",
   "Juli", "Agustus", "September", "Oktober", "November", "Desember",
 ];
-
-const sessionDate = (s) => {
-  const sd = s.startDate;
-  const raw = sd?.utc?.raw ?? (typeof sd === "string" ? sd : null);
-  const d = sd?.unix ? new Date(sd.unix * 1000) : raw ? new Date(raw) : null;
-  return d && !isNaN(d) ? d : null;
-};
-const sessionYear = (s) => {
-  const d = sessionDate(s);
-  return d ? String(d.getFullYear()) : "";
-};
-const sessionMonth = (s) => {
-  const d = sessionDate(s);
-  return d ? String(d.getMonth()) : "";
-};
 
 // Style border merah saat field invalid (dipakai Input & SelectTrigger).
 const errCls = "border-red-500 focus-visible:border-red-500 focus-visible:ring-red-500/30 focus:border-red-500 focus:ring-red-500/30";
@@ -95,17 +80,22 @@ export function FixDataPage({ fixData, reviseToken, onNavigate }) {
   const [regencyLoading, setRegencyLoading] = useState(false);
   const [regionId, setRegionId] = useState(fixData?.regionId || "");
 
-  // Pelatihan Gasing
-  const [sessions, setSessions] = useState([]);
-  const [sessionsLoading, setSessionsLoading] = useState(true);
+  // Pelatihan Gasing — Kapan (tahun & bulan, independen) + Daerah pelatihan
+  // pertama (Provinsi → Kab/Kota = firstTrainingRegionId), sama seperti
+  // SignUpPage (sesi pelatihan digantikan region).
   const [kapanYear, setKapanYear] = useState(
     fixData?.firstTrainingYear ? String(fixData.firstTrainingYear) : ""
   );
   const [kapanMonth, setKapanMonth] = useState(
     fixData?.firstTrainingMonth ? String(fixData.firstTrainingMonth - 1) : ""
   );
-  const [lastTrainingSessionId, setLastTrainingSessionId] = useState(
-    fixData?.lastTrainingSessionId || ""
+  const [trainingProvinceId, setTrainingProvinceId] = useState(
+    fixData?.trainingProvinceId || ""
+  );
+  const [trainingRegencies, setTrainingRegencies] = useState([]);
+  const [trainingRegencyLoading, setTrainingRegencyLoading] = useState(false);
+  const [trainingRegionId, setTrainingRegionId] = useState(
+    fixData?.firstTrainingRegionId || ""
   );
 
   // Hapus error field begitu user mengeditnya (bubble dinamis hilang).
@@ -119,12 +109,14 @@ export function FixDataPage({ fixData, reviseToken, onNavigate }) {
 
   useEffect(() => {
     regionsApi.list().then((d) => setProvinces(asList(d))).catch(() => setProvinces([]));
-    trainingSessionsApi
-      .list({ limit: 100 })
-      .then((d) => setSessions(asList(d)))
-      .catch(() => setSessions([]))
-      .finally(() => setSessionsLoading(false));
   }, []);
+
+  // Daftar kab/kota anak suatu provinsi (dipakai Lokasi + Daerah pelatihan).
+  const fetchRegencies = (parentId) =>
+    regionsApi
+      .list({ type: "REGENCY", parentId })
+      .then((d) => asList(d))
+      .catch(() => []);
 
   // Prefill kab/kota kalau provinsi sudah diketahui dari payload.
   // Audit #93: payload kadang hanya bawa regionId tanpa provinceId → resolve
@@ -152,29 +144,42 @@ export function FixDataPage({ fixData, reviseToken, onNavigate }) {
   useEffect(() => {
     if (!provinceId) return;
     setRegencyLoading(true);
-    regionsApi
-      .list({ type: "REGENCY", parentId: provinceId })
-      .then((d) => setRegencies(asList(d)))
-      .catch(() => setRegencies([]))
-      .finally(() => setRegencyLoading(false));
+    fetchRegencies(provinceId).then((d) => {
+      setRegencies(d);
+      setRegencyLoading(false);
+    });
   }, [provinceId]);
 
-  // Auto-cocokkan sesi "Dimana" dari tahun + region pelatihan asal (aliran
-  // Daftar Ulang: profil tak membawa session id, hanya firstTrainingYear/
-  // Month/RegionId). Hanya saat sesi selesai load dan user belum pilih manual.
+  // Prefill "Daerah pelatihan pertama": dari payload (firstTrainingRegionId),
+  // resolve provinsi induknya kalau belum ada, lalu muat daftar kab/kotanya.
   useEffect(() => {
-    if (lastTrainingSessionId || !kapanYear || !fixData?.firstTrainingRegionId || sessionsLoading) return;
-    const hit = sessions.find((s) => {
-      if (sessionYear(s) !== String(kapanYear)) return false;
-      const rid = s.regionId ?? s.region?.id ?? null;
-      return rid != null && String(rid) === String(fixData.firstTrainingRegionId);
-    });
-    if (hit) {
-      setLastTrainingSessionId(hit.id);
-      clearErr("riwayatPelatihan");
-    }
+    if (!trainingRegionId) return;
+    let cancelled = false;
+    const load = async () => {
+      let parentId = trainingProvinceId;
+      if (!parentId) {
+        try {
+          const d = await regionsApi.get(trainingRegionId);
+          const r = d?.data || d || {};
+          parentId = String(r.parentId || r.parent?.id || "");
+        } catch {
+          parentId = "";
+        }
+      }
+      if (cancelled) return;
+      if (parentId) setTrainingProvinceId(parentId);
+      setTrainingRegencyLoading(true);
+      const list = await fetchRegencies(parentId);
+      if (cancelled) return;
+      setTrainingRegencies(list);
+      setTrainingRegencyLoading(false);
+    };
+    load();
+    return () => {
+      cancelled = true;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sessionsLoading]);
+  }, [trainingRegionId]);
 
   const handleProvinceChange = (v) => {
     setProvinceId(v);
@@ -185,33 +190,45 @@ export function FixDataPage({ fixData, reviseToken, onNavigate }) {
   const handleYearChange = (v) => {
     setKapanYear(v);
     setKapanMonth("");
-    setLastTrainingSessionId("");
   };
   const handleMonthChange = (v) => {
     setKapanMonth(v);
-    setLastTrainingSessionId("");
   };
-  const handleSessionChange = (v) => {
-    setLastTrainingSessionId(v);
+
+  const handleTrainingProvinceChange = (v) => {
+    setTrainingProvinceId(v);
+    setTrainingRegionId("");
+    clearErr("riwayatPelatihan");
+    setTrainingRegencies([]);
+    setTrainingRegencyLoading(true);
+    fetchRegencies(v).then((d) => {
+      setTrainingRegencies(d);
+      setTrainingRegencyLoading(false);
+    });
+  };
+
+  const handleTrainingRegionChange = (v) => {
+    setTrainingRegionId(v);
     clearErr("riwayatPelatihan");
   };
 
-  const yearOptions = [...new Set([...sessions.map(sessionYear).filter(Boolean), kapanYear].filter(Boolean))]
-    .sort()
-    .reverse();
-  // Audit #93: bulan tampil penuh (12 bulan) seperti SignUp agar prefill dari
-  // payload selalu cocok, bukan hanya bulan yang ada sesi.
+  // Tahun pelatihan: 2024 → tahun berjalan (independen, sama seperti SignUp).
+  // Kalau prefill dari payload di luar rentang itu, tetap ikut ditampilkan
+  // supaya nilai lama user tidak hilang.
+  const yearOptions = (() => {
+    const current = Math.max(new Date().getFullYear(), 2024);
+    const years = new Set();
+    for (let y = current; y >= 2024; y -= 1) years.add(String(y));
+    if (kapanYear) years.add(kapanYear);
+    return [...years].sort().reverse();
+  })();
+  // Bulan tampil penuh (12 bulan) agar prefill dari payload selalu cocok.
   const monthOptions = Array.from({ length: 12 }, (_, i) => String(i));
-  // Audit #93: opsi daerah difilter tahun saja (seperti SignUp), bukan tahun+bulan,
-  // supaya prefill tidak kosong saat sesi belum load / bulan tak cocok.
-  const dimanaOptions = sessions.filter(
-    (s) => sessionYear(s) === kapanYear
-  );
 
   // Validasi lalu langsung submit (tanpa modal konfirmasi — sesuai desain terbaru).
   const handleSubmit = () => {
     setError("");
-    if (!birthdate || !regionId || !lastTrainingSessionId || !schoolName) {
+    if (!birthdate || !regionId || !trainingRegionId || !schoolName) {
       setError("Semua field wajib diisi");
       return;
     }
@@ -225,7 +242,6 @@ export function FixDataPage({ fixData, reviseToken, onNavigate }) {
   const doSubmit = async () => {
     setLoading(true);
     try {
-      const selectedSession = sessions.find((s) => s.id === lastTrainingSessionId);
       const payload = {
         // Nama/Username/Email tidak diedit di halaman ini — dikirim ulang apa adanya.
         name,
@@ -235,9 +251,7 @@ export function FixDataPage({ fixData, reviseToken, onNavigate }) {
         regionId,
         firstTrainingYear: Number(kapanYear),
         firstTrainingMonth: Number(kapanMonth) + 1,
-        firstTrainingRegionId:
-          selectedSession?.regionId ?? selectedSession?.region?.id ?? null,
-        lastTrainingSessionId,
+        firstTrainingRegionId: trainingRegionId,
         schoolName,
       };
       // Token revise (JWT dari email) diutamakan; aliran Daftar Ulang tak punya
@@ -319,7 +333,7 @@ export function FixDataPage({ fixData, reviseToken, onNavigate }) {
       <Button
         className="w-full rounded-full"
         onClick={handleSubmit}
-        disabled={loading || !birthdate || !regionId || !lastTrainingSessionId || !schoolName}
+        disabled={loading || !birthdate || !regionId || !trainingRegionId || !schoolName}
       >
         {loading ? (
           <><Loader2 size={16} className="animate-spin" /> Mengirim...</>
@@ -400,9 +414,9 @@ export function FixDataPage({ fixData, reviseToken, onNavigate }) {
         <div className="space-y-1.5">
           <Label className="text-[13px] font-semibold">Kapan kamu mendapat pelatihan Gasing pertama?</Label>
           <div className="grid grid-cols-2 gap-3">
-            <Select value={kapanYear} onValueChange={handleYearChange} disabled={sessionsLoading}>
+            <Select value={kapanYear} onValueChange={handleYearChange}>
               <SelectTrigger className={cn(fieldErrors.riwayatPelatihan && errCls)}>
-                <SelectValue placeholder={sessionsLoading ? "Memuat..." : "Tahun"} />
+                <SelectValue placeholder="Tahun" />
               </SelectTrigger>
               <SelectContent>
                 {yearOptions.map((year) => (
@@ -429,17 +443,47 @@ export function FixDataPage({ fixData, reviseToken, onNavigate }) {
         </div>
 
         <div className="space-y-1.5">
-          <Label className="text-[13px] font-semibold">Dimana kamu mendapat pelatihan Gasing pertama?</Label>
-          <Select value={lastTrainingSessionId} onValueChange={handleSessionChange} disabled={!kapanMonth}>
-            <SelectTrigger className={cn(fieldErrors.riwayatPelatihan && errCls)}>
-              <SelectValue placeholder="Pilih Daerah" />
-            </SelectTrigger>
-            <SelectContent>
-              {dimanaOptions.map((s) => (
-                <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <Label className="text-[13px] font-semibold">
+            Daerah pelatihan pertama? <span className="text-red-500">*</span>
+          </Label>
+          <div className="grid grid-cols-2 gap-3">
+            <Select
+              value={trainingProvinceId}
+              onValueChange={handleTrainingProvinceChange}
+            >
+              <SelectTrigger className={cn(fieldErrors.riwayatPelatihan && errCls)}>
+                <SelectValue placeholder="Pilih Provinsi" />
+              </SelectTrigger>
+              <SelectContent>
+                {provinces.map((p) => (
+                  <SelectItem key={p.id} value={p.id}>{p.regionName || p.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select
+              value={trainingRegionId}
+              onValueChange={handleTrainingRegionChange}
+              disabled={!trainingProvinceId || trainingRegencyLoading}
+            >
+              <SelectTrigger
+                className={cn(
+                  fieldErrors.riwayatPelatihan && errCls,
+                  trainingProvinceId && !trainingRegionId && PLACEHOLDER_HINT,
+                )}
+              >
+                <SelectValue
+                  placeholder={trainingRegencyLoading ? "Memuat..." : "Pilih Kab./Kota"}
+                />
+              </SelectTrigger>
+              <SelectContent>
+                {trainingRegencies.map((r) => (
+                  <SelectItem key={r.id} value={r.id}>
+                    {abbrevRegion(r.regionName || r.name)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
           <FieldError message={fieldErrors.riwayatPelatihan} />
         </div>
 

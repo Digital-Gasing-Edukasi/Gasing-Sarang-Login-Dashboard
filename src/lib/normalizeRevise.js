@@ -8,15 +8,16 @@ export function normalizeRevise(res) {
   const fields = res?.reviseFields || u.reviseFields || u.fieldsToRevise || [];
   const reason = res?.reviseReason || u.reviseReason || "";
 
-  // Tahun/bulan pelatihan diturunkan dari firstTrainingSession.startDate bila ada
-  // (nama kanonik baru; lastTrainingSession dipertahankan sbg fallback respons lama).
+  // Tahun/bulan pelatihan: prefer field datar profil (firstTrainingYear/Month,
+  // month 1-based); fallback ke firstTrainingSession.startDate.unix (pola lama)
+  // bila field datar kosong.
   const startUnix = (u.firstTrainingSession || u.lastTrainingSession)?.startDate?.unix;
-  let firstTrainingYear = "";
-  let firstTrainingMonth = "";
-  if (startUnix) {
+  let firstTrainingYear = u.firstTrainingYear ?? u.first_training_year ?? "";
+  let firstTrainingMonth = u.firstTrainingMonth ?? u.first_training_month ?? "";
+  if ((firstTrainingYear == null || firstTrainingMonth == null) && startUnix) {
     const d = new Date(startUnix * 1000);
-    firstTrainingYear = String(d.getFullYear());
-    firstTrainingMonth = d.getMonth() + 1; // 1-based (FixDataPage mengurangi 1)
+    if (!firstTrainingYear) firstTrainingYear = d.getFullYear();
+    if (!firstTrainingMonth) firstTrainingMonth = d.getMonth() + 1; // 1-based (FixDataPage mengurangi 1)
   }
 
   return {
@@ -33,7 +34,10 @@ export function normalizeRevise(res) {
     provinceId: u.provinceId || u.region?.parentId || "",
     firstTrainingYear,
     firstTrainingMonth,
-    lastTrainingSessionId: u.firstTrainingSessionId || u.firstTrainingSession?.id || u.lastTrainingSessionId || u.lastTrainingSession?.id || "",
+    // Region pelatihan pertama (kab/kota) — prefill "Daerah pelatihan pertama?".
+    // Sesi pelatihan tak lagi dipakai (pengganti region), jadi field session
+    // sengaja tidak diteruskan.
+    firstTrainingRegionId: u.firstTrainingRegionId ?? u.first_training_region_id ?? null,
     schoolName: u.schoolName || "",
     // reviseFields (kosakata FE: tanggalLahir/lokasi/riwayatPelatihan/namaSekolah)
     invalid: Array.isArray(fields) ? fields : [],

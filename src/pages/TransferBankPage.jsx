@@ -505,6 +505,7 @@ export default function TransferBankPage({
                       d: new Date().getDate(),
                     }}
                     dialogLabel="Pilih tanggal transfer"
+                    iconClassName="text-white"
                     className="!h-[47px] !rounded-full !bg-white/[0.05] !border-white/20 !px-4 !text-[14px] !text-white hover:!border-white/20 transition-colors [&.border-primary]:!border-[#22d3ee]/60 [&.ring-2]:!ring-0"
                   />
                 </div>

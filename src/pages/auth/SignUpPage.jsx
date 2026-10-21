@@ -331,19 +331,25 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
         Lanjutkan
       </Button>
     ) : (
-      <Button
-        className="w-full rounded-full"
-        onClick={handleRegister}
-        disabled={loading || !step2Complete}
-      >
-        {loading ? (
-          <>
-            <Loader2 size={16} className="animate-spin" /> Mendaftarkan...
-          </>
-        ) : (
-          "Lanjutkan"
-        )}
-      </Button>
+      <>
+        <Button
+          className="w-full rounded-full"
+          onClick={handleRegister}
+          disabled={loading || !step2Complete}
+        >
+          {loading ? (
+            <>
+              <Loader2 size={16} className="animate-spin" /> Mendaftarkan...
+            </>
+          ) : (
+            "Konfirmasi"
+          )}
+        </Button>
+
+        {step === 2 &&
+          <div className="font-medium text-center text-xs text-[#81858F]">Sebelum konfirmasi, pastikan semua data yang kamu masukkan sudah benar.</div>
+        }
+      </>
     );
 
   // Link "Log In" (step 1 saja). Desktop app-shell menaruhnya di footer sticky
@@ -372,7 +378,7 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
       >
         {step === 1 ? loginLink : <p className="text-sm text-center invisible">{"\u00A0"}</p>}
       </div>
-    </div>
+    </div >
   );
 
   // Spacer fleksibel desktop app-shell (flex item area scroll). Ngisi ruang kosong:

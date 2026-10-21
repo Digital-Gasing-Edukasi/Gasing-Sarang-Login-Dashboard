@@ -71,7 +71,8 @@ describe("buildRevisionFixData", () => {
     expect(out.firstTrainingYear).toBe(2026);
     expect(out.firstTrainingMonth).toBe(3);
     expect(out.firstTrainingRegionId).toBe("019e6cb1-f181");
-    expect(out.lastTrainingSessionId).toBe("");
+    // Sesi pelatihan tak lagi dipakai (digantikan region) → field tak ada.
+    expect(out.lastTrainingSessionId).toBeUndefined();
   });
 
   it("kosakata backend ala normalizeRevise: region objek, birthdate objek, firstTrainingSession", () => {
@@ -90,6 +91,6 @@ describe("buildRevisionFixData", () => {
     expect(out.birthdate).toBe("1999-05-20");
     expect(out.firstTrainingYear).toBe(2026);
     expect(out.firstTrainingMonth).toBe(7);
-    expect(out.lastTrainingSessionId).toBe("s-9");
+    expect(out.lastTrainingSessionId).toBeUndefined();
   });
 });

@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { FixDataPage } from '../FixDataPage'
-import { authApi, regionsApi, trainingSessionsApi, tokenStorage } from '@/lib/api'
+import { authApi, regionsApi, tokenStorage } from '@/lib/api'
 
 // submitRevise butuh token: reviseToken (JWT email) diutamakan; aliran Daftar
 // Ulang tak punya itu → fallback accessToken sesi saat ini.
@@ -25,7 +25,6 @@ if (!Element.prototype.scrollIntoView) {
 vi.mock('@/lib/api', () => ({
   authApi: { submitRevise: vi.fn() },
   regionsApi: { list: vi.fn(), get: vi.fn() },
-  trainingSessionsApi: { list: vi.fn() },
   tokenStorage: { getAccess: vi.fn() },
 }))
 
@@ -40,7 +39,7 @@ const FIX_DATA = {
   regionId: 'r-1',
   firstTrainingYear: 2026,
   firstTrainingMonth: 3,
-  lastTrainingSessionId: 's-1',
+  firstTrainingRegionId: 'r-1',
   invalid: [],
   notes: {},
 }
@@ -53,9 +52,6 @@ function setupMocks() {
     return Promise.resolve({ data: [{ id: 'p-1', regionName: 'Prov Test' }] })
   })
   regionsApi.get.mockResolvedValue({ data: { id: 'r-1', parentId: 'p-1' } })
-  trainingSessionsApi.list.mockResolvedValue({
-    data: [{ id: 's-1', name: 'Kab Test', startDate: '2026-03-10', regionId: 'r-1' }],
-  })
   authApi.submitRevise.mockResolvedValue({})
 }
 
@@ -77,8 +73,13 @@ describe('FixDataPage — token submitRevise', () => {
 
     await waitFor(() => expect(authApi.submitRevise).toHaveBeenCalledTimes(1))
     expect(authApi.submitRevise).toHaveBeenCalledWith(
-      expect.objectContaining({ token: 'access-123' })
+      expect.objectContaining({
+        token: 'access-123',
+        // Region pelatihan (bukan id session) — sama seperti SignUpPage.
+        firstTrainingRegionId: 'r-1',
+      })
     )
+    expect(authApi.submitRevise.mock.calls[0][0]).not.toHaveProperty('lastTrainingSessionId')
   })
 
   it('dengan reviseToken → token email dipakai (bukan accessToken)', async () => {
