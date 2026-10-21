@@ -4,6 +4,8 @@ import bgDark from "@/assets/dark-mode/Background.png";
 import { Logo } from "@/components/shared/Logo";
 import { ProfileMenu } from "@/components/shared/ProfileMenu";
 import { useXenditCheckout } from "@/hooks/useXenditCheckout";
+import { usePendingPaymentCheck } from "@/hooks/usePendingPaymentCheck";
+import TransferBankPage from "@/pages/TransferBankPage";
 import { subscriptionApi, tokenStorage, webAppApi } from "@/lib/api";
 import { formatRp, localizePlanName } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -390,6 +392,13 @@ function XenditStatusBox({ state, onRetry, onRecheck, onOpenLink }) {
 // ─── MAIN PAGE ────────────────────────────────────────────────────────────────
 export default function SubscriptionPage({ user, onSignOut, onPaymentSuccess, onPaymentPending, onCheckoutManual }) {
   const isProduction = import.meta.env.VITE_ENV === "production";
+  const {
+    loading: checkingPending,
+    isPending,
+    pendingPayment,
+    plan: pendingPlan,
+    receiptFileId: pendingReceiptFileId,
+  } = usePendingPaymentCheck();
   const [selectedPlan, setSelectedPlan] = useState(null);
   const [plans, setPlans] = useState([]);
   const [loadingPlans, setLoadingPlans] = useState(true);
@@ -463,6 +472,20 @@ export default function SubscriptionPage({ user, onSignOut, onPaymentSuccess, on
       setLoading(false);
     }
   };
+
+  if (isPending && pendingPayment) {
+    return (
+      <TransferBankPage
+        user={user}
+        plan={pendingPlan}
+        payment={pendingPayment}
+        onSignOut={onSignOut}
+        onBack={null}
+        initialSubmitted={true}
+        initialReceiptFileId={pendingReceiptFileId}
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen relative overflow-hidden font-sans z-0">
