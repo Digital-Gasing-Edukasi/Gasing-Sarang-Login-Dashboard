@@ -3,6 +3,9 @@ import { request } from "./client.js";
 
 // ─── AUTH ─────────────────────────────────────────────────────────────────────
 export const authApi = {
+  checkEmail: (email) =>
+    request("/auth/check-email", { method: "POST", body: { email }, noAuth: true }),
+
   register: (data) =>
     request("/auth/register", { method: "POST", body: data, noAuth: true }),
 

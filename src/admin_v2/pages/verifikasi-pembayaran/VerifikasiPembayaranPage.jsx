@@ -1,6 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
 import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
-import { cn } from "../../lib/utils.js";
+import { useEffect, useMemo, useState } from "react";
+import { ExportButton } from "../../components/downloads/index.js";
+import { CountBadge, DataTable, DeleteAccountDialog, Pagination, TrainingHistoryDialog } from "../../components/index.js";
+import { toast } from "../../components/ui/use-toast.js";
+import { useDebouncedValue } from "../../hooks/useDebouncedValue.js";
 import {
   VERIFIED_STATUS,
   fetchManualPayments,
@@ -9,15 +12,7 @@ import {
   pendingVouchersKeys,
   usersKeys,
 } from "../../lib/api/index.js";
-import { CountBadge, DataTable } from "../../components/index.js";
-import { toast } from "../../components/ui/use-toast.js";
-import { Search } from "lucide-react";
-import { Input } from "../../components/ui/input.jsx";
-import { useDebouncedValue } from "../../hooks/useDebouncedValue.js";
-import { Pagination } from "../../components/index.js";
-import { DeleteAccountDialog } from "../../components/index.js";
-import { ExportButton } from "../../components/downloads/index.js";
-import { TrainingHistoryDialog } from "../../components/index.js";
+import { cn } from "../../lib/utils.js";
 import {
   PaymentConfirmDialog,
   PaymentRejectDialog,
@@ -27,30 +22,11 @@ import {
 const DEFAULT_LIMIT = 20;
 
 const TABS = [
-  { key: "belum", title: "Belum Langganan", exportScope: "belum_langganan" },
   { key: "verifikasi", title: "Menunggu Verifikasi", exportScope: "menunggu_verifikasi" },
   { key: "ditolak", title: "Pembayaran Ditolak", exportScope: "pembayaran_ditolak" },
 ];
 
 function TabCountBadge({ tabKey }) {
-  if (tabKey === "belum") {
-    return (
-      <CountBadge
-        queryKey={usersKeys.page(VERIFIED_STATUS.APPROVED, 1, {
-          limit: DEFAULT_LIMIT,
-          subscription: "not_subscribed",
-        })}
-        queryFn={() =>
-          fetchUsers({
-            status: VERIFIED_STATUS.APPROVED,
-            page: 1,
-            limit: DEFAULT_LIMIT,
-            subscription: "not_subscribed",
-          })
-        }
-      />
-    );
-  }
   const state = tabKey === "verifikasi" ? "receipt_uploaded" : "rejected";
   return (
     <CountBadge
@@ -108,7 +84,6 @@ export default function VerifikasiPembayaranPage() {
     setPage(1);
   }, [debouncedKeyword]);
 
-  const belum = useUnsubscribed(page, limit, debouncedKeyword, tab === "belum");
   const verifikasi = useManualList(
     "receipt_uploaded",
     page,
@@ -123,7 +98,7 @@ export default function VerifikasiPembayaranPage() {
   );
 
   const current =
-    tab === "belum" ? belum : tab === "verifikasi" ? verifikasi : ditolak;
+    tab === "verifikasi" ? verifikasi : ditolak;
   const { data, isLoading, isError, error, refetch } = current;
 
   const handleTab = (key) => {
@@ -200,7 +175,7 @@ export default function VerifikasiPembayaranPage() {
         onShowHistory: setHistoryUser,
         onConfirmPayment: setPayment,
         // Approve/delete payment flows come later — no-ops for now.
-        onApprovePayment: () => {},
+        onApprovePayment: () => { },
         onDeleteAccount: setDeletePayment,
       }),
     [],
@@ -237,18 +212,6 @@ export default function VerifikasiPembayaranPage() {
         </div>
 
         <div className="flex w-full gap-2 sm:w-auto">
-          {tab === "belum" && (
-            <div className="relative flex-1 sm:w-64">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                value={keyword}
-                onChange={(e) => setKeyword(e.target.value)}
-                placeholder="Cari nama, email…"
-                aria-label="Cari pengguna"
-                className="pl-9"
-              />
-            </div>
-          )}
           <ExportButton scope={TABS.find((t) => t.key === tab)?.exportScope} />
         </div>
       </div>
@@ -260,11 +223,7 @@ export default function VerifikasiPembayaranPage() {
         loading={isLoading}
         error={isError ? error : null}
         onRetry={() => refetch()}
-        emptyText={
-          debouncedKeyword && tab === "belum"
-            ? `Tidak ada hasil untuk "${debouncedKeyword}".`
-            : "Tidak ada data pada tab ini."
-        }
+        emptyText={"Tidak ada data pada tab ini."}
       />
 
       {!isLoading && !isError && (

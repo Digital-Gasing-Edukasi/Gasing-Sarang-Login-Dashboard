@@ -218,7 +218,7 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
   // setelah blur walau ada isi). onBlur ikon mata dijaga preventDefault → tak kedip.
   const showPasswordRules = passwordFocused;
 
-  const handleNextToData = () => {
+  const handleNextToData = async () => {
     const next = {};
     if (!name) next.name = "Nama lengkap wajib diisi.";
     else if (filter.isProfane(name))
@@ -256,7 +256,19 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
     }
 
     setErrors({});
-    setStep(2);
+    setLoading(true);
+    try {
+      const result = await authApi.checkEmail(email);
+      if (result?.exists) {
+        setErrors({ email: "Email sudah terdaftar. Silakan login atau gunakan email lain." });
+        return;
+      }
+      setStep(2);
+    } catch (e) {
+      setErrors({ email: translateApiError(e.message || "") });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleRegister = async () => {
@@ -326,7 +338,7 @@ export function SignUpPage({ onNavigate, onOtpToken }) {
       <Button
         className="w-full rounded-full"
         onClick={handleNextToData}
-        disabled={!step1Complete}
+        disabled={loading || !step1Complete}
       >
         Lanjutkan
       </Button>

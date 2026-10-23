@@ -14,7 +14,7 @@ const text = (value) => (
   <OverflowText value={value} className="text-sm text-foreground" />
 );
 
-const pendingColumns = [
+const baseColumns = [
   {
     key: "user",
     header: "Nama Pengguna",
@@ -47,36 +47,42 @@ const pendingColumns = [
     render: (u) => text(formatTrainingPeriod(u.firstTrainingYear, u.firstTrainingMonth)),
   },
   { key: "school", header: "Asal Sekolah", wrap: true, render: (u) => text(u.schoolName) },
-  {
-    key: "approve",
-    header: "Setuju?",
-    render: (u, actions) => (
-      <div className="flex items-center gap-2">
-        <button
-          type="button"
-          onClick={() => actions?.onApprove?.(u)}
-          aria-label={`Setujui ${u.name}`}
-          title="Setujui"
-          className="text-green-600 hover:bg-green-50 hover:text-green-700 rounded-full"
-        >
-          <CheckCircle2 size={24} />
-        </button>
-        <button
-          type="button"
-          onClick={() => actions?.onReject?.(u)}
-          aria-label={`Tolak ${u.name}`}
-          title="Tolak"
-          className="text-red-600 hover:bg-red-50 hover:text-red-700 rounded-full"
-        >
-          <XCircle size={24} />
-        </button>
-      </div>
-    ),
-  },
 ];
+
+const actionsColumn = {
+  key: "approve",
+  header: "Setuju?",
+  render: (u, actions) => (
+    <div className="flex items-center gap-2">
+      <button
+        type="button"
+        onClick={() => actions?.onApprove?.(u)}
+        aria-label={`Setujui ${u.name}`}
+        title="Setujui"
+        className="text-green-600 hover:bg-green-50 hover:text-green-700 rounded-full"
+      >
+        <CheckCircle2 size={24} />
+      </button>
+      <button
+        type="button"
+        onClick={() => actions?.onReject?.(u)}
+        aria-label={`Tolak ${u.name}`}
+        title="Tolak"
+        className="text-red-600 hover:bg-red-50 hover:text-red-700 rounded-full"
+      >
+        <XCircle size={24} />
+      </button>
+    </div>
+  ),
+};
 
 export function getVerifikasiColumns(actions) {
   const bind = (cols) =>
     cols.map((col) => ({ ...col, render: (row) => col.render(row, actions) }));
-  return bind(pendingColumns);
+  return bind([...baseColumns, actionsColumn]);
+}
+
+// Email-confirmation table: same columns without status or actions.
+export function getUnconfirmedColumns() {
+  return baseColumns.filter((col) => col.key !== "status");
 }

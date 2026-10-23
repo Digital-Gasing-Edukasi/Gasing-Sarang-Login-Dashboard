@@ -134,20 +134,20 @@ describe("ManajemenAkunPage", () => {
     renderPage();
     await screen.findByText(U0.name);
 
-    // List scoped to approved accounts with active/expired subscriptions.
+    // List scoped to approved accounts with every subscription status.
     expect(
       fetchUsers.mock.calls.some(
         (c) =>
           c[0].status === "approved" &&
           Array.isArray(c[0].subscription) &&
-          c[0].subscription.join(",") === "active,expired",
+          c[0].subscription.join(",") === "active,expired,not_subscribed",
       ),
     ).toBe(true);
 
     expect(screen.getByText(U1.name)).toBeInTheDocument();
     expect(screen.getByText(U0.email)).toBeInTheDocument();
     expect(screen.getAllByText("Disetujui").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("active").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Aktif").length).toBeGreaterThan(0);
     expect(screen.getByText("Tahunan")).toBeInTheDocument();
     expect(screen.getByText("Bulanan")).toBeInTheDocument();
     expect(
@@ -176,6 +176,58 @@ describe("ManajemenAkunPage", () => {
         `Menampilkan ${disetujuiFixture.meta.from}–${disetujuiFixture.meta.to} dari ${disetujuiFixture.meta.total} data`,
       ),
     ).toBeInTheDocument();
+  });
+
+  it("subscription filter: multi-select, reset, approved tab only", async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await screen.findByText(U0.name);
+
+    // Every status starts checked.
+    await user.click(screen.getByRole("button", { name: "Filter langganan" }));
+    for (const label of ["Aktif", "Expired", "Belum Langganan"]) {
+      expect(screen.getByRole("checkbox", { name: label })).toHaveAttribute(
+        "aria-checked",
+        "true",
+      );
+    }
+
+    // Unchecking narrows the query to the remaining statuses.
+    await user.click(screen.getByRole("checkbox", { name: "Aktif" }));
+    await waitFor(() => {
+      expect(
+        fetchUsers.mock.calls.some(
+          (c) =>
+            c[0].status === "approved" &&
+            Array.isArray(c[0].subscription) &&
+            c[0].subscription.join(",") === "expired,not_subscribed",
+        ),
+      ).toBe(true);
+    });
+
+    // Reset restores the unfiltered scope.
+    await user.click(screen.getByRole("button", { name: "Tampilkan semua" }));
+    await waitFor(() => {
+      expect(
+        fetchUsers.mock.calls.some(
+          (c) =>
+            c[0].status === "approved" &&
+            Array.isArray(c[0].subscription) &&
+            c[0].subscription.join(",") === "active,expired,not_subscribed",
+        ),
+      ).toBe(true);
+    });
+    expect(screen.getByRole("checkbox", { name: "Aktif" })).toHaveAttribute(
+      "aria-checked",
+      "true",
+    );
+
+    // Other tabs have no subscription filter.
+    await user.keyboard("{Escape}");
+    await user.click(screen.getByRole("button", { name: /Ditolak/ }));
+    expect(
+      screen.queryByRole("button", { name: "Filter langganan" }),
+    ).not.toBeInTheDocument();
   });
 
   it("action popover: no remaining noops", async () => {
@@ -704,11 +756,11 @@ describe("ManajemenAkunPage", () => {
     renderPage();
 
     expect(await screen.findByText(U0.name)).toBeInTheDocument();
-    const pills = await screen.findAllByText("expired");
+    const pills = await screen.findAllByText("Expired");
     expect(pills.length).toBeGreaterThan(0);
     expect(pills[0].className).toMatch(/red/);
     await waitFor(() => {
-      expect(screen.queryByText("active")).not.toBeInTheDocument();
+      expect(screen.queryByText("Aktif")).not.toBeInTheDocument();
     });
   });
 });

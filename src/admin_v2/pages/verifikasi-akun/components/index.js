@@ -1,4 +1,4 @@
-export { getVerifikasiColumns } from "./columns.jsx";
+export { getUnconfirmedColumns, getVerifikasiColumns } from "./columns.jsx";
 export { ApproveDialog } from "./dialogs/ApproveDialog.jsx";
 export { RejectDialog } from "./dialogs/RejectDialog.jsx";
 export { TrainingSessionSelect } from "./TrainingSessionSelect.jsx";

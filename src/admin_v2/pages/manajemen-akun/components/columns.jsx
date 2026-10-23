@@ -47,8 +47,9 @@ const memberPill = (label, className) => (
 const PACKAGE_NAMES = { Yearly: "Tahunan", Monthly: "Bulanan" };
 
 const SUBSCRIPTION_META = {
-  active: { label: "active", className: "border-green-300 bg-green-100 text-green-700" },
-  expired: { label: "expired", className: "border-red-300 bg-red-100 text-red-700" },
+  active: { label: "Aktif", className: "border-green-300 bg-green-100 text-green-700" },
+  not_subscribed: { label: "Belum Langganan", className: "border-orange-300 bg-orange-100 text-orange-700" },
+  expired: { label: "Expired", className: "border-red-300 bg-red-100 text-red-700" },
 };
 
 const subscriptionPill = (status) => {
@@ -121,7 +122,7 @@ const subscriptionColumns = [
   {
     key: "subscription",
     header: "Langganan",
-    render: (u) => subscriptionPill(u.subscription?.status),
+    render: (u) => subscriptionPill(u.subscription?.status ?? "not_subscribed"),
   },
   {
     key: "package",

@@ -15,7 +15,11 @@ import { CountBadge, DataTable } from "../../components/index.js";
 import { Pagination } from "../../components/index.js";
 import { DeleteAccountDialog } from "../../components/index.js";
 import { TrainingHistoryDialog } from "../../components/index.js";
-import { getManajemenColumns } from "./components/index.js";
+import {
+  ALL_SUBSCRIPTIONS,
+  SubscriptionFilter,
+  getManajemenColumns,
+} from "./components/index.js";
 import { CancelDeletionDialog } from "./components/index.js";
 import { ChangeRoleDialog } from "./components/index.js";
 import { PermanentDeleteDialog } from "./components/index.js";
@@ -25,7 +29,7 @@ import { UnsuspendDialog } from "./components/index.js";
 
 const DEFAULT_LIMIT = 20;
 
-const APPROVED_SUBSCRIPTIONS = ["active", "expired"];
+const APPROVED_SUBSCRIPTIONS = ALL_SUBSCRIPTIONS;
 
 const TABS = [
   {
@@ -59,24 +63,24 @@ const TABS = [
 ];
 
 // One object drives the list query, the count badge, and the request params.
-function listParams(tab, { page, limit, keyword }) {
+function listParams(tab, { page, limit, keyword, subscription }) {
   return {
     status: tab.status,
     page,
     limit,
     keyword,
-    subscription: tab.subscription,
+    subscription,
     deletionPending: tab.deletionPending,
     suspended: tab.suspended,
     confirmed: tab.confirmed,
   };
 }
 
-function keyParams(tab, { limit, keyword }) {
+function keyParams(tab, { limit, keyword, subscription }) {
   return {
     limit,
     keyword,
-    subscription: tab.subscription,
+    subscription,
     deletionPending: tab.deletionPending,
     suspended: tab.suspended,
     confirmed: tab.confirmed,
@@ -86,9 +90,9 @@ function keyParams(tab, { limit, keyword }) {
 function TabCountBadge({ tab }) {
   return (
     <CountBadge
-      queryKey={usersKeys.page(tab.status, 1, keyParams(tab, { limit: DEFAULT_LIMIT, keyword: "" }))}
+      queryKey={usersKeys.page(tab.status, 1, keyParams(tab, { limit: DEFAULT_LIMIT, keyword: "", subscription: tab.subscription }))}
       queryFn={() =>
-        fetchUsers(listParams(tab, { page: 1, limit: DEFAULT_LIMIT, keyword: "" }))
+        fetchUsers(listParams(tab, { page: 1, limit: DEFAULT_LIMIT, keyword: "", subscription: tab.subscription }))
       }
     />
   );
@@ -100,6 +104,7 @@ export default function ManajemenAkunPage() {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(DEFAULT_LIMIT);
   const [keyword, setKeyword] = useState("");
+  const [subscriptions, setSubscriptions] = useState(ALL_SUBSCRIPTIONS);
   const [historyUser, setHistoryUser] = useState(null);
   const [deleteUser, setDeleteUser] = useState(null);
   const [deletePermanentUser, setDeletePermanentUser] = useState(null);
@@ -110,15 +115,29 @@ export default function ManajemenAkunPage() {
   const [cancelDeletionUser, setCancelDeletionUser] = useState(null);
   const debouncedKeyword = useDebouncedValue(keyword, 500);
   const current = TABS.find((t) => t.key === tab) ?? TABS[0];
+  const isApprovedTab = current.key === "disetujui";
+  // Only the Disetujui tab exposes the subscription filter; empty = no filter.
+  const subscription = isApprovedTab
+    ? (subscriptions.length ? subscriptions : undefined)
+    : current.subscription;
 
   // New search term → back to first page.
   useEffect(() => {
     setPage(1);
   }, [debouncedKeyword]);
 
-  const params = listParams(current, { page, limit, keyword: debouncedKeyword });
+  const params = listParams(current, {
+    page,
+    limit,
+    keyword: debouncedKeyword,
+    subscription,
+  });
   const { data, isLoading, isError, error, refetch } = useQuery({
-    queryKey: usersKeys.page(current.status, page, keyParams(current, { limit, keyword: debouncedKeyword })),
+    queryKey: usersKeys.page(
+      current.status,
+      page,
+      keyParams(current, { limit, keyword: debouncedKeyword, subscription }),
+    ),
     queryFn: () => fetchUsers(params),
     staleTime: 30_000,
     placeholderData: keepPreviousData,
@@ -126,6 +145,11 @@ export default function ManajemenAkunPage() {
 
   const handleTab = (key) => {
     setTab(key);
+    setPage(1);
+  };
+
+  const handleSubscriptions = (next) => {
+    setSubscriptions(next);
     setPage(1);
   };
 
@@ -282,15 +306,23 @@ export default function ManajemenAkunPage() {
         </div>
 
         {/* Every user-API table is searchable — empty keyword is omitted. */}
-        <div className="relative w-full sm:w-64">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            value={keyword}
-            onChange={(e) => setKeyword(e.target.value)}
-            placeholder="Cari nama, email…"
-            aria-label="Cari pengguna"
-            className="pl-9"
-          />
+        <div className="flex w-full items-center gap-2 sm:w-auto">
+          {isApprovedTab && (
+            <SubscriptionFilter
+              value={subscriptions}
+              onChange={handleSubscriptions}
+            />
+          )}
+          <div className="relative w-full sm:w-64">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={keyword}
+              onChange={(e) => setKeyword(e.target.value)}
+              placeholder="Cari nama, email…"
+              aria-label="Cari pengguna"
+              className="pl-9"
+            />
+          </div>
         </div>
       </div>
 

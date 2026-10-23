@@ -114,7 +114,21 @@ function renderPage() {
 
 function mockLists() {
   fetchUsers.mockImplementation(
-    ({ page = 1, limit = 20, keyword = "" }) => {
+    ({ page = 1, limit = 20, keyword = "", confirmed = "yes" }) => {
+      // The email-confirmation table is empty unless a test opts in.
+      if (confirmed === "no") {
+        return Promise.resolve({
+          data: [],
+          meta: {
+            current_page: page,
+            last_page: 1,
+            per_page: limit,
+            from: 0,
+            to: 0,
+            total: 0,
+          },
+        });
+      }
       const kw = keyword.trim().toLowerCase();
       const data = kw
         ? waitingPool.filter((u) =>
@@ -177,6 +191,9 @@ describe("VerifikasiAkunPage", () => {
   it("pending tab: totals, user cells, status pill, actions", async () => {
     renderPage();
 
+    expect(
+      await screen.findByRole("button", { name: /Menunggu Verifikasi/ }),
+    ).toBeInTheDocument();
     expect(await screen.findByText(U0.name)).toBeInTheDocument();
     expect(screen.getByText(`@${U0.username}`)).toBeInTheDocument();
     expect(screen.getByText(U0.email)).toBeInTheDocument();
@@ -190,6 +207,72 @@ describe("VerifikasiAkunPage", () => {
     ).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: `Tolak ${U0.name}` }),
+    ).toBeInTheDocument();
+  });
+
+  it("email tab: only filter[confirmed]=no, same columns, no actions", async () => {
+    const user = userEvent.setup();
+    const emailPool = waitingPool.map((u) => ({ ...u, id: `${u.id}-email` }));
+    fetchUsers.mockImplementation(
+      ({ page = 1, limit = 20, confirmed = "yes" }) => {
+        const data = confirmed === "no" ? emailPool : waitingPool;
+        return Promise.resolve({
+          data,
+          meta: {
+            current_page: page,
+            last_page: 1,
+            per_page: limit,
+            from: 1,
+            to: data.length,
+            total: data.length,
+          },
+        });
+      },
+    );
+
+    renderPage();
+    await screen.findByText(U0.name);
+
+    await user.click(
+      screen.getByRole("button", { name: /Menunggu Konfirmasi Email/ }),
+    );
+    expect(await screen.findByText(U0.email)).toBeInTheDocument();
+
+    // The unconfirmed query is scoped ONLY on confirmed=no.
+    expect(
+      fetchUsers.mock.calls.some(
+        (c) =>
+          c[0].confirmed === "no" &&
+          c[0].status === undefined &&
+          c[0].deletionPending === null &&
+          c[0].suspended === null,
+      ),
+    ).toBe(true);
+
+    // Same columns as Menunggu Verifikasi, minus Status and the actions.
+    expect(screen.getByText(U0.name)).toBeInTheDocument();
+    expect(screen.getByText(`@${U0.username}`)).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        formatTrainingPeriod(U0.firstTrainingYear, U0.firstTrainingMonth),
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("columnheader", { name: "Status" }),
+    ).not.toBeInTheDocument();
+
+    // ...minus the approve/reject actions.
+    expect(
+      screen.queryByRole("button", { name: `Setujui ${U0.name}` }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: `Tolak ${U0.name}` }),
+    ).not.toBeInTheDocument();
+
+    // The waiting tab keeps them.
+    await user.click(screen.getByRole("button", { name: /Menunggu Verifikasi/ }));
+    expect(
+      await screen.findByRole("button", { name: `Setujui ${U0.name}` }),
     ).toBeInTheDocument();
   });
 
