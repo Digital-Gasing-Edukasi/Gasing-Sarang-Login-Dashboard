@@ -9,33 +9,31 @@
 //   1. checkoutManual(packageId) → payment pending (idempotent per user).
 //   2. fileManagerApi.upload(file) → dapat fileId.
 //   3. uploadReceipt(paymentId, fileId) → payment menunggu review admin.
-import { useState, useRef, useEffect } from "react";
-import {
-  Copy,
-  Check,
-  Upload,
-  Loader2,
-  AlertCircle,
-  FileText,
-  ArrowRight,
-  ChevronLeft,
-  ChevronDown,
-  Download,
-  Trash2,
-  LogOut,
-} from "lucide-react";
-import { cn } from "@/lib/utils";
-import { subscriptionApi, fileManagerApi, webAppApi } from "@/lib/api";
-import { translateApiError } from "@/lib/errorMessages";
 import mandiriLogo from "@/assets/subscription/mandiri-logo.png";
+import { DATE_MAX, DateField } from "@/components/shared/DateField";
 import { Logo } from "@/components/shared/Logo";
 import { ProfileMenu } from "@/components/shared/ProfileMenu";
-import { DateField, DATE_MAX } from "@/components/shared/DateField";
+import { fileManagerApi, subscriptionApi, webAppApi } from "@/lib/api";
+import { DEFAULT_BANK, fetchBankAccount } from "@/lib/bankAccount";
+import { translateApiError } from "@/lib/errorMessages";
 import { formatRp, localizePlanName } from "@/lib/format";
-import { fetchBankAccount, DEFAULT_BANK } from "@/lib/bankAccount";
+import { cn } from "@/lib/utils";
+import {
+  AlertCircle,
+  Check,
+  ChevronDown,
+  ChevronLeft,
+  ClipboardCheck,
+  Copy,
+  FileText,
+  Loader2,
+  Trash2,
+  Upload,
+} from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 
-import bgDark from "@/assets/dark-mode/Background.png";
 import bgDesktop from "@/assets/dark-mode/Background-Desktop.png";
+import bgDark from "@/assets/dark-mode/Background.png";
 
 const MAX_FILE_MB = 5;
 const ACCEPTED = ["image/jpeg", "image/png", "application/pdf"];
@@ -88,15 +86,15 @@ export default function TransferBankPage({
   payment,
   onSignOut,
   onBack,
+  // onHome: tujuan tombol "Kembali ke Home" di layar "Sedang Ditinjau"
+  // (fallback ke onBack bila tidak diberikan).
+  onHome,
   initialSubmitted = false,
   initialReceiptFileId = null,
   // isRetry: true bila user sampai sini lewat gate "Pembayaran Ditolak"
   // (Attempt ke-2+, lihat App.jsx handler onRenew/onReupload). Dipakai di
-  // layar "Pembayaran Berhasil!" (submitted) utk beda tombol: Attempt #1 →
-  // "Jelajahi Sarang Gasing" (auto-login web app), Attempt #2+ → "Log Out"
-  // (pakai `onSignOut` yg sudah ada, jangan bikin fungsi baru).
-  // TODO(UI dev): belum dipakai di JSX — swap CTA di blok `submitted` (baris
-  // ~316) berdasarkan flag ini.
+  // layar "Pembayaran Sedang Ditinjau" (submitted). Saat ini belum dipakai
+  // di JSX karena desain baru tidak membedakan Attempt #1 vs #2+.
   isRetry = false,
 }) {
   // Rekening tujuan aktif dari master data BE (fetchBankAccount, ganti
@@ -283,80 +281,106 @@ export default function TransferBankPage({
       {/* ── CONTENT (scroll di tengah pada mobile app-shell) ── */}
       <div className="relative z-10 flex-1 min-h-0 overflow-y-auto lg:overflow-visible lg:flex-none">
         {submitted ? (
-          <div className="relative z-10 max-w-xl mx-auto px-4 pt-[42px] lg:pt-6 pb-24 flex flex-col items-center text-center animate-fade-in-up">
-            {/* Ceklis hijau */}
-            <div className="w-[52px] h-[52px] rounded-full bg-[#2BDE6D] flex items-center justify-center mb-6 shadow-[0_0_40px_rgba(34,197,94,0.4)]">
-              <Check size={24} strokeWidth={4} className="text-[#210965]" />
-            </div>
-
-            <h1 className="text-[28px] font-bold tracking-tight mb-2">
-              Pembayaran Berhasil!
-            </h1>
-            <p className="text-white/80 text-[14px] leading-[150%]] max-w-md mb-9">
-              Terima kasih, pembayaran kamu telah kami terima dan sedang diproses.
-            </p>
-
-            {/* Rincian Transaksi */}
-            <div className="w-full rounded-3xl border border-white/10 bg-white/[0.03] p-6 text-left mb-6">
-              <div className="flex items-center justify-between mb-5">
-                <span className="text-sm font-semibold text-[#B5A3C7]">Rincian Transaksi</span>
-                <span className="text-sm text-white/90 text-right pl-2 ">
-                  ID: {txnId || orderId}
-                </span>
-              </div>
-              <div className="border-t border-white/10 mb-5" />
-              <SummaryRow label="Paket Langganan" value={packageLabel} valueClassName="font-semibold" />
-              <SummaryRow label="Durasi" value={`${durationMonths} Bulan`} />
-              <SummaryRow label="Metode Pembayaran" value="Transfer Bank" />
-              <div className="border-t border-white/10 mt-5 mb-5" />
-              <div className="flex items-center justify-between">
-                <span className="text-[15px] font-bold">Total Bayar</span>
-                <span className="text-2xl font-bold text-[#1DF5FF]">
-                  Rp{formatRp(total)}
-                </span>
-              </div>
-            </div>
-
-            {/* Aksi — audit #57: container max 500px, tiap tombol h-12 (48px), gap 16px, fill responsive */}
-            <div className="flex flex-col sm:flex-row gap-4 w-full justify-center">
-              {receiptFileId && (
-                <a
-                  href={fileManagerApi.getDownloadUrl(receiptFileId)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex md:flex-1 h-12 items-center justify-center px-8 rounded-full border border-white/25 font-semibold text-[14px] hover:bg-white/10 active:scale-[0.98] transition-all"
-                >
-                  Unduh Bukti
-                </a>
-              )}
-
-
+          <div className="relative z-10 max-w-[1128px] mx-auto px-4 lg:px-10 pt-4 lg:pt-10 pb-10 lg:pb-24 grid lg:grid-cols-[1.15fr_1fr] gap-8 lg:gap-12 items-start animate-fade-in-up">
+            {/* ── KIRI ── */}
+            <div className="min-w-0">
               <button
                 onClick={handleRedirectDefault}
-                className="flex md:flex-1 h-12 items-center justify-center px-8 rounded-full bg-white text-[#0b0a1f] font-bold text-[15px] hover:bg-white/90 active:scale-[0.98] transition-all"
+                className="flex items-center gap-2 text-[14px] text-white/70 hover:text-white transition-colors mb-4"
               >
-                Jelajahi Sarang Gasing
+                <ChevronLeft size={18} />
+                Kembali ke Home
               </button>
+              <h1 className="text-[32px] lg:text-[36px] font-bold leading-[130%] tracking-tight mb-3">
+                Pembayaran Sedang Ditinjau
+              </h1>
+              <p className="text-white/60 text-[14px] lg:text-[15px] leading-[150%] max-w-[520px] mb-8">
+                Pembayaranmu sedang kami tinjau. Proses peninjauan membutuhkan
+                waktu maksimal 1x24 jam.
+              </p>
 
-              {/* walau retry tetep boleh */}
-              {false && <>
-                {isRetry ? (
-                  <button
-                    onClick={onSignOut}
-                    className="flex md:flex-1 h-12 items-center justify-center gap-2 px-8 rounded-full bg-white text-[#0b0a1f] font-bold text-[15px] hover:bg-white/90 active:scale-[0.98] transition-all"
-                  >
-                    <LogOut size={18} />
-                    Log Out
-                  </button>
-                ) : (
-                  <button
-                    onClick={handleRedirectDefault}
-                    className="flex md:flex-1 h-12 items-center justify-center px-8 rounded-full bg-white text-[#0b0a1f] font-bold text-[15px] hover:bg-white/90 active:scale-[0.98] transition-all"
-                  >
-                    Jelajahi Sarang Gasing
-                  </button>
-                )}
-              </>}
+              {/* Tahapan Pembayaran */}
+              <div className="rounded-3xl border border-white/15 bg-white/[0.06] backdrop-blur-md p-5 lg:p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <p className="text-[14px] font-medium">Tahapan Pembayaran</p>
+                  <span className="rounded-full border border-white/25 bg-white/10 px-3 py-1 text-[12px] text-white/90">
+                    Sedang Ditinjau
+                  </span>
+                </div>
+
+                <ol>
+                  {REVIEW_STEPS.map((step, i) => {
+                    const isLast = i === REVIEW_STEPS.length - 1;
+                    return (
+                      <li key={step.title} className="relative flex gap-4">
+                        {/* Garis penghubung antar tahap */}
+                        {!isLast && (
+                          <span
+                            aria-hidden="true"
+                            className="absolute left-[16px] top-[40px] bottom-[2px] w-px bg-white/25"
+                          />
+                        )}
+                        <ReviewStepIcon state={step.state} />
+                        <div className={cn("min-w-0", !isLast && "pb-7")}>
+                          <p
+                            className={cn(
+                              "text-[16px] font-semibold leading-[32px]",
+                              step.state === "pending" && "text-white/60"
+                            )}
+                          >
+                            {step.title}
+                          </p>
+                          <p className="text-[13px] text-white/60 leading-[150%]">
+                            {step.desc}
+                          </p>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ol>
+              </div>
+            </div>
+
+            {/* ── KANAN ── */}
+            <div className="min-w-0 space-y-8 lg:pt-[52px]">
+              {/* Ringkasan Pembayaran */}
+              <div className="rounded-3xl border border-white/15 bg-white/[0.06] backdrop-blur-md p-5 lg:p-6">
+                <p className="text-[16px] font-semibold mb-3">Ringkasan Pembayaran</p>
+                <SummaryRow
+                  label="Paket Langganan"
+                  value={packageLabel}
+                  valueClassName="font-semibold"
+                />
+                <SummaryRow label="Durasi Langganan" value={`${durationMonths} Bulan`} />
+                <div className="border-t border-white/15 my-5" />
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-[14px] text-white/80">Total pembayaran</span>
+                  <span className="text-[28px] lg:text-[30px] font-bold text-[#1DF5FF]">
+                    Rp{formatRp(total)}
+                  </span>
+                </div>
+                <p className="mt-5 text-[12px] leading-[160%] text-white/60">
+                  <span className="font-semibold text-white/80">Catatan:</span>{" "}
+                  Akses langgananmu belum aktif dan akan diaktifkan setelah
+                  pembayaran berhasil diverifikasi.
+                </p>
+              </div>
+
+              {/* Bantuan */}
+              <div className="px-1">
+                <p className="text-[14px] font-semibold mb-1">Sudah lebih dari 1×24 jam?</p>
+                <p className="text-[12px] text-white/60 leading-[160%] max-w-[360px] mb-4">
+                  Hubungi tim bantuan agar kami dapat membantu memeriksa pembayaranmu.
+                </p>
+                <a
+                  href={`mailto:${ADMIN_EMAIL}?subject=${encodeURIComponent(
+                    `Bantuan Pembayaran ${txnId || orderId}`
+                  )}`}
+                  className="inline-flex w-full md:w-fit h-12 items-center justify-center px-10 rounded-full border border-white/25 bg-[#4A1D8F]/30 font-semibold text-[14px] hover:bg-[#4A1D8F]/80 active:scale-[0.98] transition-all"
+                >
+                  Hubungi Kami
+                </a>
+              </div>
             </div>
           </div>
         ) : (
@@ -601,6 +625,48 @@ export default function TransferBankPage({
           {cta}
         </div>
       )}
+    </div>
+  );
+}
+
+// ─── TAHAPAN PEMBAYARAN (layar "Sedang Ditinjau") ────────────────────────────
+const REVIEW_STEPS = [
+  {
+    title: "Pengajuan pembayaran",
+    desc: "Informasi pembayaran masuk ke proses peninjauan.",
+    state: "done",
+  },
+  {
+    title: "Peninjauan Oleh Tim Sarang Gasing",
+    desc: "Sedang berlangsung, maksimal 1x24 jam.",
+    state: "active",
+  },
+  {
+    title: "Hasil Peninjauan",
+    desc: "Menunggu peninjauan selesai. Langganan belum aktif.",
+    state: "pending",
+  },
+];
+
+function ReviewStepIcon({ state }) {
+  const base = "relative z-10 w-8 h-8 rounded-full flex items-center justify-center shrink-0";
+  if (state === "done") {
+    return (
+      <div className={cn(base, "bg-[#E4DAFF] text-[#210965]")}>
+        <Check size={18} strokeWidth={3} />
+      </div>
+    );
+  }
+  if (state === "active") {
+    return (
+      <div className={cn(base, "bg-[#E4DAFF] text-[#210965]")}>
+        <Loader2 size={18} strokeWidth={2.5} className="animate-spin" />
+      </div>
+    );
+  }
+  return (
+    <div className={cn(base, "bg-white/10 text-white/60")}>
+      <ClipboardCheck size={16} />
     </div>
   );
 }
