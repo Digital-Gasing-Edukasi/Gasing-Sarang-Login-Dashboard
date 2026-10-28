@@ -1,6 +1,7 @@
 // Reject Nucleo: field definitions + payload builders for PATCH verify.
 
 export const FIELD_DEFS = [
+  { key: "namaLengkap", label: "Nama Lengkap" },
   { key: "tanggalLahir", label: "Tanggal Lahir" },
   { key: "lokasi", label: "Lokasi" },
   { key: "riwayatPelatihan", label: "Riwayat Pelatihan" },
@@ -14,8 +15,8 @@ const isLainnya = (checkedKeys) => checkedKeys.includes(LAINNYA_KEY);
 
 // Normal reason: "Tanggal lahir dan lokasi tidak sesuai dengan KTP".
 export function buildReviseReason(checkedKeys) {
-  const labels = FIELD_DEFS.filter((f) => checkedKeys.includes(f.key)).map((f) =>
-    f.label.toLowerCase(),
+  const labels = FIELD_DEFS.filter((f) => checkedKeys.includes(f.key)).map(
+    (f) => f.label.toLowerCase(),
   );
   if (labels.length === 0) return "";
   const head = labels.join(" dan ");

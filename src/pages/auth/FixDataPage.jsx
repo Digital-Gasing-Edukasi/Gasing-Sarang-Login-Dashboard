@@ -23,12 +23,23 @@ const asList = (data) =>
   Array.isArray(data) ? data : data?.data || data?.items || [];
 
 const MONTHS = [
-  "Januari", "Februari", "Maret", "April", "Mei", "Juni",
-  "Juli", "Agustus", "September", "Oktober", "November", "Desember",
+  "Januari",
+  "Februari",
+  "Maret",
+  "April",
+  "Mei",
+  "Juni",
+  "Juli",
+  "Agustus",
+  "September",
+  "Oktober",
+  "November",
+  "Desember",
 ];
 
 // Style border merah saat field invalid (dipakai Input & SelectTrigger).
-const errCls = "border-red-500 focus-visible:border-red-500 focus-visible:ring-red-500/30 focus:border-red-500 focus:ring-red-500/30";
+const errCls =
+  "border-red-500 focus-visible:border-red-500 focus-visible:ring-red-500/30 focus:border-red-500 focus:ring-red-500/30";
 
 // Placeholder dropdown "langkah berikutnya" (Kab/Kota atau Bulan) saat
 // pasangannya (Provinsi / Tahun) sudah terisi tapi field ini belum.
@@ -38,12 +49,20 @@ const PLACEHOLDER_HINT =
 // Field yang BISA diperbaiki user di halaman ini (lihat desain — Nama/Username/Email
 // tidak ditampilkan, hanya dikirim ulang apa adanya dari payload). Penanda error
 // hanya untuk key di sini agar submit tidak tersangkut field yang tak punya input.
-const CORRECTABLE_KEYS = ["tanggalLahir", "lokasi", "riwayatPelatihan", "namaSekolah"];
+const CORRECTABLE_KEYS = [
+  "namaLengkap",
+  "tanggalLahir",
+  "lokasi",
+  "riwayatPelatihan",
+  "namaSekolah",
+];
 
 // Pesan error merah di bawah field yang salah (border merah + teks, gap 4px audit #10).
 function FieldError({ message }) {
   if (!message) return null;
-  return <p className="mt-1 text-[13px] text-red-500 animate-fade-in">{message}</p>;
+  return (
+    <p className="mt-1 text-[13px] text-red-500 animate-fade-in">{message}</p>
+  );
 }
 
 export function FixDataPage({ fixData, reviseToken, onNavigate }) {
@@ -70,6 +89,7 @@ export function FixDataPage({ fixData, reviseToken, onNavigate }) {
   const name = fixData?.name || "";
   const username = fixData?.username || "";
   const email = fixData?.email || "";
+  const [nameValue, setNameValue] = useState(name);
   const [birthdate, setBirthdate] = useState(fixData?.birthdate || "");
   const [schoolName, setSchoolName] = useState(fixData?.schoolName || "");
 
@@ -84,18 +104,18 @@ export function FixDataPage({ fixData, reviseToken, onNavigate }) {
   // pertama (Provinsi → Kab/Kota = firstTrainingRegionId), sama seperti
   // SignUpPage (sesi pelatihan digantikan region).
   const [kapanYear, setKapanYear] = useState(
-    fixData?.firstTrainingYear ? String(fixData.firstTrainingYear) : ""
+    fixData?.firstTrainingYear ? String(fixData.firstTrainingYear) : "",
   );
   const [kapanMonth, setKapanMonth] = useState(
-    fixData?.firstTrainingMonth ? String(fixData.firstTrainingMonth - 1) : ""
+    fixData?.firstTrainingMonth ? String(fixData.firstTrainingMonth - 1) : "",
   );
   const [trainingProvinceId, setTrainingProvinceId] = useState(
-    fixData?.trainingProvinceId || ""
+    fixData?.trainingProvinceId || "",
   );
   const [trainingRegencies, setTrainingRegencies] = useState([]);
   const [trainingRegencyLoading, setTrainingRegencyLoading] = useState(false);
   const [trainingRegionId, setTrainingRegionId] = useState(
-    fixData?.firstTrainingRegionId || ""
+    fixData?.firstTrainingRegionId || "",
   );
 
   // Hapus error field begitu user mengeditnya (bubble dinamis hilang).
@@ -108,7 +128,10 @@ export function FixDataPage({ fixData, reviseToken, onNavigate }) {
     });
 
   useEffect(() => {
-    regionsApi.list().then((d) => setProvinces(asList(d))).catch(() => setProvinces([]));
+    regionsApi
+      .list()
+      .then((d) => setProvinces(asList(d)))
+      .catch(() => setProvinces([]));
   }, []);
 
   // Daftar kab/kota anak suatu provinsi (dipakai Lokasi + Daerah pelatihan).
@@ -133,7 +156,7 @@ export function FixDataPage({ fixData, reviseToken, onNavigate }) {
         const parent = r.parentId || r.parent?.id || null;
         if (parent) setProvinceId(String(parent));
       })
-      .catch(() => { });
+      .catch(() => {});
     return () => {
       cancelled = true;
     };
@@ -228,12 +251,20 @@ export function FixDataPage({ fixData, reviseToken, onNavigate }) {
   // Validasi lalu langsung submit (tanpa modal konfirmasi — sesuai desain terbaru).
   const handleSubmit = () => {
     setError("");
-    if (!birthdate || !regionId || !trainingRegionId || !schoolName) {
+    if (
+      !nameValue ||
+      !birthdate ||
+      !regionId ||
+      !trainingRegionId ||
+      !schoolName
+    ) {
       setError("Semua field wajib diisi");
       return;
     }
     if (Object.keys(fieldErrors).length > 0) {
-      setError("Masih ada data yang ditandai salah. Perbaiki dulu sebelum mengirim.");
+      setError(
+        "Masih ada data yang ditandai salah. Perbaiki dulu sebelum mengirim.",
+      );
       return;
     }
     doSubmit();
@@ -244,7 +275,7 @@ export function FixDataPage({ fixData, reviseToken, onNavigate }) {
     try {
       const payload = {
         // Nama/Username/Email tidak diedit di halaman ini — dikirim ulang apa adanya.
-        name,
+        name: nameValue,
         username,
         email,
         birthdate,
@@ -279,7 +310,8 @@ export function FixDataPage({ fixData, reviseToken, onNavigate }) {
           Terima kasih telah mengajukan perbaikan data. Tim kami akan segera
           memeriksa informasi yang kamu kirimkan. Proses peninjauan akan memakan
           waktu <span className="font-semibold text-white">24 - 48 jam</span>.
-          <br /><br />
+          <br />
+          <br />
           Mohon cek email secara berkala untuk status perbaikan akunmu.
         </MobileReviewNotice>
 
@@ -288,18 +320,27 @@ export function FixDataPage({ fixData, reviseToken, onNavigate }) {
           <RightPanel>
             <div className="animate-fade-in-up text-center space-y-5 max-w-[380px] mx-auto">
               <div className="mx-auto w-16 h-16 rounded-full bg-orange-50 border border-dashed border-orange-400 flex items-center justify-center">
-                <UserSearch className="text-orange-500" size={28} strokeWidth={1.5} />
+                <UserSearch
+                  className="text-orange-500"
+                  size={28}
+                  strokeWidth={1.5}
+                />
               </div>
-              <h1 className="text-[22px] font-bold text-foreground">Akunmu Sedang Ditinjau Kembali</h1>
+              <h1 className="text-[22px] font-bold text-foreground">
+                Akunmu Sedang Ditinjau Kembali
+              </h1>
               <p className="text-[13px] text-muted-foreground px-2 leading-relaxed">
-                Terima kasih telah mengajukan perbaikan data diri. Tim kami akan segera
-                memeriksa informasi yang kamu kirimkan.{" "}
+                Terima kasih telah mengajukan perbaikan data diri. Tim kami akan
+                segera memeriksa informasi yang kamu kirimkan.{" "}
                 <span className="font-semibold text-foreground">
                   Proses peninjauan akan memakan waktu 24 - 48 jam.
                 </span>
               </p>
               <div className="flex items-start gap-2.5 text-left bg-blue-50 rounded-xl px-4 py-3">
-                <HelpCircle className="text-blue-500 shrink-0 mt-0.5" size={18} />
+                <HelpCircle
+                  className="text-blue-500 shrink-0 mt-0.5"
+                  size={18}
+                />
                 <p className="text-[13px] text-slate-600">
                   Mohon cek email secara berkala untuk melihat status akunmu.
                 </p>
@@ -333,10 +374,14 @@ export function FixDataPage({ fixData, reviseToken, onNavigate }) {
       <Button
         className="w-full rounded-full"
         onClick={handleSubmit}
-        disabled={loading || !birthdate || !regionId || !trainingRegionId || !schoolName}
+        disabled={
+          loading || !birthdate || !regionId || !trainingRegionId || !schoolName
+        }
       >
         {loading ? (
-          <><Loader2 size={16} className="animate-spin" /> Mengirim...</>
+          <>
+            <Loader2 size={16} className="animate-spin" /> Mengirim...
+          </>
         ) : (
           "Kirim Perbaikan Data"
         )}
@@ -355,12 +400,30 @@ export function FixDataPage({ fixData, reviseToken, onNavigate }) {
 
       {/* DESKTOP: header inline judul saja (audit #90 tanpa X, #91 tanpa subtitle). */}
       <div className="hidden lg:block animate-fade-in-up delay-100 relative mb-2">
-        <h1 className="text-[22px] font-bold text-foreground text-center mb-1.5">Perbaikan Data</h1>
+        <h1 className="text-[22px] font-bold text-foreground text-center mb-1.5">
+          Perbaikan Data
+        </h1>
       </div>
 
       <div className="space-y-4 animate-fade-in-up delay-200">
         <ErrorAlert message={error} />
 
+        <div className="space-y-1.5">
+          <Label className="text-[13px] font-semibold">
+            Nama Lengkap <span className="text-red-500"> *</span>
+          </Label>
+          <Input
+            placeholder="Nama lengkap"
+            value={nameValue}
+            onChange={(e) => {
+              setNameValue(e.target.value);
+              clearErr("namaLengkap");
+            }}
+            className={cn(fieldErrors.namaLengkap && errCls)}
+          />
+          <FieldError message={fieldErrors.namaLengkap} />
+        </div>
+        <button onClick={() => console.log({ fieldErrors })}>log</button>
         <div className="space-y-1.5">
           <Label className="text-[13px] font-semibold">
             Tanggal lahir <span className="text-red-500">*</span>
@@ -369,14 +432,19 @@ export function FixDataPage({ fixData, reviseToken, onNavigate }) {
           <DateField
             value={birthdate}
             maxDate={DATE_MAX.yesterday()}
-            onChange={(e) => { setBirthdate(e.target.value); clearErr("tanggalLahir"); }}
+            onChange={(e) => {
+              setBirthdate(e.target.value);
+              clearErr("tanggalLahir");
+            }}
             className={cn(fieldErrors.tanggalLahir && errCls)}
           />
           <FieldError message={fieldErrors.tanggalLahir} />
         </div>
 
         <div className="space-y-1.5">
-          <Label className="text-[13px] font-semibold">Lokasi kamu saat ini</Label>
+          <Label className="text-[13px] font-semibold">
+            Lokasi kamu saat ini
+          </Label>
           <div className="grid grid-cols-2 gap-3">
             <Select value={provinceId} onValueChange={handleProvinceChange}>
               <SelectTrigger className={cn(fieldErrors.lokasi && errCls)}>
@@ -384,13 +452,18 @@ export function FixDataPage({ fixData, reviseToken, onNavigate }) {
               </SelectTrigger>
               <SelectContent>
                 {provinces.map((p) => (
-                  <SelectItem key={p.id} value={p.id}>{p.regionName || p.name}</SelectItem>
+                  <SelectItem key={p.id} value={p.id}>
+                    {p.regionName || p.name}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
             <Select
               value={regionId}
-              onValueChange={(v) => { setRegionId(v); clearErr("lokasi"); }}
+              onValueChange={(v) => {
+                setRegionId(v);
+                clearErr("lokasi");
+              }}
               disabled={!provinceId || regencyLoading}
             >
               <SelectTrigger
@@ -399,11 +472,15 @@ export function FixDataPage({ fixData, reviseToken, onNavigate }) {
                   provinceId && !regionId && PLACEHOLDER_HINT,
                 )}
               >
-                <SelectValue placeholder={regencyLoading ? "Memuat..." : "Pilih Kab./Kota"} />
+                <SelectValue
+                  placeholder={regencyLoading ? "Memuat..." : "Pilih Kab./Kota"}
+                />
               </SelectTrigger>
               <SelectContent>
                 {regencies.map((r) => (
-                  <SelectItem key={r.id} value={r.id}>{abbrevRegion(r.regionName || r.name)}</SelectItem>
+                  <SelectItem key={r.id} value={r.id}>
+                    {abbrevRegion(r.regionName || r.name)}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -412,19 +489,29 @@ export function FixDataPage({ fixData, reviseToken, onNavigate }) {
         </div>
 
         <div className="space-y-1.5">
-          <Label className="text-[13px] font-semibold">Kapan kamu mendapat pelatihan Gasing pertama?</Label>
+          <Label className="text-[13px] font-semibold">
+            Kapan kamu mendapat pelatihan Gasing pertama?
+          </Label>
           <div className="grid grid-cols-2 gap-3">
             <Select value={kapanYear} onValueChange={handleYearChange}>
-              <SelectTrigger className={cn(fieldErrors.riwayatPelatihan && errCls)}>
+              <SelectTrigger
+                className={cn(fieldErrors.riwayatPelatihan && errCls)}
+              >
                 <SelectValue placeholder="Tahun" />
               </SelectTrigger>
               <SelectContent>
                 {yearOptions.map((year) => (
-                  <SelectItem key={year} value={year}>{year}</SelectItem>
+                  <SelectItem key={year} value={year}>
+                    {year}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
-            <Select value={kapanMonth} onValueChange={handleMonthChange} disabled={!kapanYear}>
+            <Select
+              value={kapanMonth}
+              onValueChange={handleMonthChange}
+              disabled={!kapanYear}
+            >
               <SelectTrigger
                 className={cn(
                   fieldErrors.riwayatPelatihan && errCls,
@@ -435,7 +522,9 @@ export function FixDataPage({ fixData, reviseToken, onNavigate }) {
               </SelectTrigger>
               <SelectContent>
                 {monthOptions.map((m) => (
-                  <SelectItem key={m} value={m}>{MONTHS[Number(m)]}</SelectItem>
+                  <SelectItem key={m} value={m}>
+                    {MONTHS[Number(m)]}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -451,12 +540,16 @@ export function FixDataPage({ fixData, reviseToken, onNavigate }) {
               value={trainingProvinceId}
               onValueChange={handleTrainingProvinceChange}
             >
-              <SelectTrigger className={cn(fieldErrors.riwayatPelatihan && errCls)}>
+              <SelectTrigger
+                className={cn(fieldErrors.riwayatPelatihan && errCls)}
+              >
                 <SelectValue placeholder="Pilih Provinsi" />
               </SelectTrigger>
               <SelectContent>
                 {provinces.map((p) => (
-                  <SelectItem key={p.id} value={p.id}>{p.regionName || p.name}</SelectItem>
+                  <SelectItem key={p.id} value={p.id}>
+                    {p.regionName || p.name}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -472,7 +565,9 @@ export function FixDataPage({ fixData, reviseToken, onNavigate }) {
                 )}
               >
                 <SelectValue
-                  placeholder={trainingRegencyLoading ? "Memuat..." : "Pilih Kab./Kota"}
+                  placeholder={
+                    trainingRegencyLoading ? "Memuat..." : "Pilih Kab./Kota"
+                  }
                 />
               </SelectTrigger>
               <SelectContent>
@@ -489,12 +584,16 @@ export function FixDataPage({ fixData, reviseToken, onNavigate }) {
 
         <div className="space-y-1.5">
           <Label className="text-[13px] font-semibold">
-            Sekolah asal kamu saat pelatihan Gasing pertama? <span className="text-red-500">*</span>
+            Sekolah asal kamu saat pelatihan Gasing pertama?{" "}
+            <span className="text-red-500">*</span>
           </Label>
           <Input
             placeholder="Nama sekolah"
             value={schoolName}
-            onChange={(e) => { setSchoolName(e.target.value); clearErr("namaSekolah"); }}
+            onChange={(e) => {
+              setSchoolName(e.target.value);
+              clearErr("namaSekolah");
+            }}
             className={cn(fieldErrors.namaSekolah && errCls)}
           />
           <FieldError message={fieldErrors.namaSekolah} />
