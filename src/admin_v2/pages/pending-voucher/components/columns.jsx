@@ -33,16 +33,34 @@ const pendingVoucherColumns = [
     wrap: true,
     render: (v) => <UserCell name={v.user?.name} username={v.user?.username} />,
   },
-  { key: "email", header: "Email", wrap: true, render: (v) => text(v.user?.email) },
+  {
+    key: "email",
+    header: "Email",
+    wrap: true,
+    render: (v) => text(v.user?.email),
+  },
   {
     key: "deadline",
     header: "Deadline",
-    render: (v) => <DeadlineCell createdAtUnix={v.createdAt?.unix} hours={72} />,
+    render: (v) => (
+      <DeadlineCell createdAtUnix={v.createdAt?.unix} hours={72} />
+    ),
   },
   {
     key: "code",
     header: "Kode Voucher",
     render: (v) => codePill(v.code),
+  },
+  {
+    key: "jenisPaket",
+    header: "Jenis Paket",
+    render: (v) => text(v.membership?.package?.name),
+  },
+  {
+    key: "tglBerakhir",
+    header: "Tgl. Berakhir",
+    render: (v) =>
+      text(formatShortDate(v.membership?.endDate?.local?.formatted)),
   },
   { key: "label", header: "Label", wrap: true, render: (v) => text(v.label) },
   { key: "type", header: "Tipe", render: (v) => text(v.type) },
@@ -65,7 +83,11 @@ const pendingVoucherColumns = [
     key: "action",
     header: "Action",
     render: (v, actions) => (
-      <Button size="sm" type="button" onClick={() => actions?.onConfirmVoucher?.(v)}>
+      <Button
+        size="sm"
+        type="button"
+        onClick={() => actions?.onConfirmVoucher?.(v)}
+      >
         Konfirmasi
       </Button>
     ),
