@@ -6,7 +6,7 @@ import {
   PopoverTrigger,
 } from "../../../components/ui/popover.jsx";
 import { OverflowText } from "../../../components/OverflowText.jsx";
-import { DeadlineCell } from "./DeadlineCell.jsx";
+import { DeadlineCell } from "../../../components/index.js";
 import { RoleBadge } from "../../../components/RoleBadge.jsx";
 import { UserCell } from "../../../components/UserCell.jsx";
 import {
@@ -116,7 +116,7 @@ const paymentColumns = (withMenu) => [
   {
     key: "deadline",
     header: "Deadline",
-    render: (p) => <DeadlineCell createdAtUnix={p.createdAt?.unix} />,
+    render: (p) => <DeadlineCell createdAtUnix={p.createdAt?.unix} hours={24} />,
   },
   {
     key: "member",

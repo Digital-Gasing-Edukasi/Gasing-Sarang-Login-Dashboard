@@ -2,6 +2,7 @@ import { Button } from "../../../components/ui/button.jsx";
 import { OverflowText } from "../../../components/OverflowText.jsx";
 import { formatShortDate, formatUpdatedAt } from "../../../lib/format.js";
 import { UserCell } from "../../../components/UserCell.jsx";
+import { DeadlineCell } from "../../../components/index.js";
 
 const text = (value) => (
   <OverflowText value={value} className="text-sm text-foreground" />
@@ -33,6 +34,11 @@ const pendingVoucherColumns = [
     render: (v) => <UserCell name={v.user?.name} username={v.user?.username} />,
   },
   { key: "email", header: "Email", wrap: true, render: (v) => text(v.user?.email) },
+  {
+    key: "deadline",
+    header: "Deadline",
+    render: (v) => <DeadlineCell createdAtUnix={v.createdAt?.unix} hours={72} />,
+  },
   {
     key: "code",
     header: "Kode Voucher",

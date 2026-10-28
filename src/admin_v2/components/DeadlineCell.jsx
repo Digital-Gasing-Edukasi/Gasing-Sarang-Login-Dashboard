@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
-import { cn } from "../../../lib/utils.js";
-import { FALLBACK_TEXT, formatCountdown, formatDateTime } from "../../../lib/format.js";
+import { cn } from "../lib/utils.js";
+import { FALLBACK_TEXT, formatCountdown, formatDateTime } from "../lib/format.js";
 
-// 24h payment deadline from createdAt (unix seconds). While in the future it
-// ticks down client-side (no refetch); at zero it flips to the red date.
-export function DeadlineCell({ createdAtUnix }) {
+// Countdown cell for deadlines relative to createdAt.
+// While in the future it ticks down client-side (no refetch); at zero it flips to the red date.
+// Default deadline is 24h, but can be customized via the `hours` prop.
+export function DeadlineCell({ createdAtUnix, hours = 24 }) {
   const deadlineMs =
-    typeof createdAtUnix === "number" ? (createdAtUnix + 24 * 3600) * 1000 : NaN;
+    typeof createdAtUnix === "number" ? (createdAtUnix + hours * 3600) * 1000 : NaN;
   const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {

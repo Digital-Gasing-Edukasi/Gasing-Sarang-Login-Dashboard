@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen } from "@testing-library/react";
-import { DeadlineCell } from "../pages/verifikasi-pembayaran/components/DeadlineCell.jsx";
+import { DeadlineCell } from "../components/index.js";
 
 beforeEach(() => vi.useFakeTimers());
 afterEach(() => vi.useRealTimers());

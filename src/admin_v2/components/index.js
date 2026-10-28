@@ -10,3 +10,4 @@ export { RoleBadge } from "./RoleBadge.jsx";
 export { UserCell } from "./UserCell.jsx";
 export { CountBadge } from "./CountBadge.jsx";
 export { RoleSelect } from "./RoleSelect.jsx";
+export { DeadlineCell } from "./DeadlineCell.jsx";
