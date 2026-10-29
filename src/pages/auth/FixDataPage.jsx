@@ -423,7 +423,6 @@ export function FixDataPage({ fixData, reviseToken, onNavigate }) {
           />
           <FieldError message={fieldErrors.namaLengkap} />
         </div>
-        <button onClick={() => console.log({ fieldErrors })}>log</button>
         <div className="space-y-1.5">
           <Label className="text-[13px] font-semibold">
             Tanggal lahir <span className="text-red-500">*</span>
