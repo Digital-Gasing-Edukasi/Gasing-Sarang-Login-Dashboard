@@ -7,7 +7,7 @@
 @font-face {
   font-family: 'Cera Pro';
   src: url('/fonts/CeraPro-Bold.woff') format('woff'),
-       url('/fonts/CeraPro-Bold.ttf') format('truetype');
+    url('/fonts/CeraPro-Bold.ttf') format('truetype');
   font-weight: 700;
   font-style: normal;
   font-display: swap;
@@ -38,61 +38,122 @@
     --link: 227 100% 46%;
     --radius: 0.5rem;
   }
-  * { border-color: hsl(var(--border)); box-sizing: border-box; }
+
+  * {
+    border-color: hsl(var(--border));
+    box-sizing: border-box;
+  }
+
   body {
     background-color: hsl(var(--background));
     color: hsl(var(--foreground));
     font-family: 'Poppins', sans-serif;
     -webkit-font-smoothing: antialiased;
-    margin: 0; padding: 0;
+    margin: 0;
+    padding: 0;
+  }
+
+  .xendit-dialog-backdrop {
+    z-index: 100;
   }
 }
 
 @keyframes fadeInUp {
-  from { opacity: 0; transform: translateY(16px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to   { opacity: 1; }
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-.animate-fade-in-up { animation: fadeInUp 0.4s ease forwards; }
-.animate-fade-in    { animation: fadeIn   0.3s ease forwards; }
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.4s ease forwards;
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease forwards;
+}
+
 /* Dialog-specific: uses CSS `translate` property so it doesn't override
    Tailwind's transform-based centering (translateX/Y -50%). */
 @keyframes dialogIn {
-  from { opacity: 0; }
-  to   { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
-.animate-dialog-in  { animation: dialogIn 0.25s ease forwards; }
-.delay-100 { animation-delay: 0.1s; opacity: 0; }
-.delay-200 { animation-delay: 0.2s; opacity: 0; }
-.delay-300 { animation-delay: 0.3s; opacity: 0; }
-.delay-400 { animation-delay: 0.4s; opacity: 0; }
+
+.animate-dialog-in {
+  animation: dialogIn 0.25s ease forwards;
+}
+
+.delay-100 {
+  animation-delay: 0.1s;
+  opacity: 0;
+}
+
+.delay-200 {
+  animation-delay: 0.2s;
+  opacity: 0;
+}
+
+.delay-300 {
+  animation-delay: 0.3s;
+  opacity: 0;
+}
+
+.delay-400 {
+  animation-delay: 0.4s;
+  opacity: 0;
+}
 
 .otp-input {
-  width: 48px; height: 48px;
-  text-align: center; font-size: 1.25rem; font-weight: 600;
+  width: 48px;
+  height: 48px;
+  text-align: center;
+  font-size: 1.25rem;
+  font-weight: 600;
   border: 1.5px solid hsl(var(--border));
   border-radius: 12px;
   outline: none;
   transition: border-color 0.2s, box-shadow 0.2s;
   font-family: 'Poppins', sans-serif;
-  background: white; color: hsl(var(--primary));
+  background: white;
+  color: hsl(var(--primary));
 }
+
 .otp-input:focus {
   border-color: hsl(var(--primary));
   box-shadow: 0 0 0 3px hsl(var(--ring) / 0.08);
 }
+
 .otp-input.filled {
   border-color: hsl(var(--primary));
   background: hsl(var(--white));
 }
+
 .otp-input.error {
   border-color: #ef4444;
   background: white;
 }
+
 .otp-input.error:focus {
   border-color: #ef4444;
   box-shadow: 0 0 0 3px rgb(239 68 68 / 0.12);
@@ -103,6 +164,7 @@
   scrollbar-width: none;
   -ms-overflow-style: none;
 }
+
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
@@ -112,22 +174,25 @@
   scrollbar-width: thin;
   scrollbar-color: rgb(0 0 0 / 0.2) transparent;
 }
+
 .thin-scrollbar::-webkit-scrollbar {
   height: 4px;
   width: 4px;
 }
+
 .thin-scrollbar::-webkit-scrollbar-thumb {
   background-color: rgb(0 0 0 / 0.2);
   border-radius: 9999px;
 }
+
 .thin-scrollbar::-webkit-scrollbar-track {
   background: transparent;
 }
 
 .grid-pattern {
   background-image:
-    linear-gradient(rgba(0,0,0,0.06) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0,0,0,0.06) 1px, transparent 1px);
+    linear-gradient(rgba(0, 0, 0, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 0, 0, 0.06) 1px, transparent 1px);
   background-size: 48px 48px;
 }
 
@@ -142,6 +207,7 @@
   pointer-events: none;
   user-select: none;
 }
+
 .blur-effect-mobile::before,
 .blur-effect-mobile::after {
   content: "";
@@ -149,12 +215,14 @@
   inset: 0;
   z-index: 10;
 }
+
 .blur-effect-mobile::before {
   backdrop-filter: blur(3px);
   -webkit-backdrop-filter: blur(3px);
   -webkit-mask-image: linear-gradient(to bottom, transparent var(--blur-start), black calc(var(--blur-start) + 140px));
   mask-image: linear-gradient(to bottom, transparent var(--blur-start), black calc(var(--blur-start) + 140px));
 }
+
 .blur-effect-mobile::after {
   background: rgb(255 255 255 / 0.25);
   backdrop-filter: blur(8px);
@@ -168,4 +236,8 @@
   filter: blur(5px);
   pointer-events: none;
   user-select: none;
+}
+
+.xendit-dialog-backdrop {
+  z-index: 100;
 }

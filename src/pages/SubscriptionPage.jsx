@@ -3,14 +3,13 @@ import bgDesktop from "@/assets/dark-mode/Background-Desktop.png";
 import bgDark from "@/assets/dark-mode/Background.png";
 import { Logo } from "@/components/shared/Logo";
 import { ProfileMenu } from "@/components/shared/ProfileMenu";
-import { useXenditCheckout } from "@/hooks/useXenditCheckout";
 import { usePendingPaymentCheck } from "@/hooks/usePendingPaymentCheck";
-import TransferBankPage from "@/pages/TransferBankPage";
 import { subscriptionApi, tokenStorage, webAppApi } from "@/lib/api";
 import { formatRp, localizePlanName } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { AlertCircle, BookOpenCheck, ChevronLeft, ChevronRight, Clock3, ExternalLink, Loader2, Presentation, RotateCcw, Sparkles } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 // Ambil angka positif pertama dari beberapa kemungkinan field (nama field
 // diskon backend belum final — coba beberapa alias umum).
 function pickNumber(...vals) {
@@ -390,33 +389,19 @@ function XenditStatusBox({ state, onRetry, onRecheck, onOpenLink }) {
 }
 
 // ─── MAIN PAGE ────────────────────────────────────────────────────────────────
-export default function SubscriptionPage({ user, onSignOut, onPaymentSuccess, onPaymentPending, onCheckoutManual }) {
+export default function SubscriptionPage({ user, onSignOut, onPaymentSuccess, onPaymentPending, onCheckoutManual, onSelectPayment }) {
+  const navigate = useNavigate();
   const isProduction = import.meta.env.VITE_ENV === "production";
   const {
     loading: checkingPending,
     isPending,
     pendingPayment,
-    plan: pendingPlan,
-    receiptFileId: pendingReceiptFileId,
   } = usePendingPaymentCheck();
   const [selectedPlan, setSelectedPlan] = useState(null);
   const [plans, setPlans] = useState([]);
   const [loadingPlans, setLoadingPlans] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  // Alur Xendit one-time (state + network di hook biar file ramping).
-  const {
-    xenditLoading,
-    xendit,
-    xenditBusy,
-    handleXendit,
-    handleXenditRetry,
-    handleXenditRecheck,
-  } = useXenditCheckout({
-    getSelectedPlan: () => plans.find((p) => p.id === selectedPlan) || null,
-    onPaymentSuccess,
-    onError: setError,
-  });
 
   useEffect(() => {
     subscriptionApi.getPlans()
@@ -449,6 +434,10 @@ export default function SubscriptionPage({ user, onSignOut, onPaymentSuccess, on
     webAppApi.redirectWithTokens();
   };
 
+  useEffect(() => {
+    if (isPending) navigate("/login/subscription/history", { replace: true });
+  }, [isPending, navigate]);
+
   const handleCheckout = async () => {
     if (!selectedPlan) return;
     setError("");
@@ -465,7 +454,7 @@ export default function SubscriptionPage({ user, onSignOut, onPaymentSuccess, on
       // di TransferBankPage, supaya user yang batal di tengah jalan tidak
       // meninggalkan payment pending yang tidak pernah dibayar.
       const plan = plans.find((p) => p.id === selectedPlan) || null;
-      onCheckoutManual?.(plan, null);
+      onSelectPayment?.(plan);
     } catch (e) {
       setError(e.message || "Gagal memproses pembayaran, coba lagi");
     } finally {
@@ -473,19 +462,10 @@ export default function SubscriptionPage({ user, onSignOut, onPaymentSuccess, on
     }
   };
 
-  if (isPending && pendingPayment) {
-    return (
-      <TransferBankPage
-        user={user}
-        plan={pendingPlan}
-        payment={pendingPayment}
-        onSignOut={onSignOut}
-        onBack={null}
-        initialSubmitted={true}
-        initialReceiptFileId={pendingReceiptFileId}
-      />
-    );
+  if (checkingPending) {
+    return <div className="min-h-screen flex items-center justify-center bg-[#0D0B2E] text-white"><Loader2 size={28} className="animate-spin" aria-label="Memuat" /></div>;
   }
+  if (isPending && pendingPayment) return null;
 
   return (
     <div className="min-h-screen relative overflow-hidden font-sans z-0">
@@ -555,15 +535,6 @@ export default function SubscriptionPage({ user, onSignOut, onPaymentSuccess, on
             </div>
           )}
 
-          {xendit && (
-            <div className="mt-5">
-              <XenditStatusBox
-                state={xendit}
-                onRetry={handleXenditRetry}
-                onRecheck={handleXenditRecheck}
-              />
-            </div>
-          )}
         </div>
 
         <div className="sticky bottom-0 px-6 pb-6 pt-3 bg-gradient-to-t from-[#120833] via-[#120833]/95 to-transparent shrink-0">
@@ -582,28 +553,7 @@ export default function SubscriptionPage({ user, onSignOut, onPaymentSuccess, on
                 <Loader2 size={18} className="animate-spin" /> Memproses...
               </>
             ) : (
-              "Mulai Berlangganan"
-            )}
-          </button>
-          <button
-            onClick={handleXendit}
-            disabled={xenditLoading || xenditBusy || isProduction}
-            className={cn(
-              "mt-3 w-full py-4 rounded-full font-bold text-[15px] transition-all duration-200",
-              "border border-white/25 text-white hover:bg-white/10 active:scale-[0.98]",
-              "disabled:opacity-60 disabled:cursor-not-allowed",
-              "flex items-center justify-center gap-2",
-              isProduction && "hidden"
-            )}
-          >
-            {xenditLoading ? (
-              <>
-                <Loader2 size={18} className="animate-spin" /> Memproses...
-              </>
-            ) : (
-              <>
-                <ExternalLink size={18} /> Bayar menggunakan Xendit
-              </>
+              "Mulai Langganan"
             )}
           </button>
         </div>
@@ -696,14 +646,6 @@ export default function SubscriptionPage({ user, onSignOut, onPaymentSuccess, on
                 </div>
               )}
 
-              {xendit && (
-                <XenditStatusBox
-                  state={xendit}
-                  onRetry={handleXenditRetry}
-                  onRecheck={handleXenditRecheck}
-                />
-              )}
-
               <div className="pt-2">
                 <button
                   onClick={handleCheckout}
@@ -721,29 +663,7 @@ export default function SubscriptionPage({ user, onSignOut, onPaymentSuccess, on
                       Memproses...
                     </>
                   ) : (
-                    "Mulai Berlangganan"
-                  )}
-                </button>
-                <button
-                  onClick={handleXendit}
-                  disabled={xenditLoading || xenditBusy || isProduction}
-                  className={cn(
-                    "mt-3 w-full py-4 rounded-full font-bold text-white text-base transition-all duration-200",
-                    "border border-white/25 hover:bg-white/10 active:scale-[0.98]",
-                    "disabled:opacity-60 disabled:cursor-not-allowed",
-                    "flex items-center justify-center gap-2",
-                    isProduction && "hidden"
-                  )}
-                >
-                  {xenditLoading ? (
-                    <>
-                      <Loader2 size={18} className="animate-spin" />{" "}
-                      Memproses...
-                    </>
-                  ) : (
-                    <>
-                      <ExternalLink size={18} /> Bayar menggunakan Xendit
-                    </>
+                    "Mulai Langganan"
                   )}
                 </button>
               </div>

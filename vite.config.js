@@ -4,6 +4,7 @@ import path from "path";
 import fs from "fs";
 import { execSync } from "child_process";
 import { fileURLToPath } from "url";
+import basicSsl from '@vitejs/plugin-basic-ssl';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -51,44 +52,44 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, __dirname, '');
   const appVersion = env.VITE_APP_VERSION || PKG_VERSION;
   return {
-  base: mode === 'production' ? '/' : '/register',
-  define: {
-    __BUILD_DATE__: JSON.stringify(BUILD_DATE),
-    __APP_MODE__: JSON.stringify(mode),
-    __BUILD_ID__: JSON.stringify(BUILD_ID),
-  },
-  plugins: [react(), versionJsonPlugin(appVersion)],
-  resolve: {
-    alias: {
-      "@": path.resolve(__dirname, "./src"),
+    base: mode === 'production' ? '/' : '/register',
+    define: {
+      __BUILD_DATE__: JSON.stringify(BUILD_DATE),
+      __APP_MODE__: JSON.stringify(mode),
+      __BUILD_ID__: JSON.stringify(BUILD_ID),
     },
-  },
-  build: {
-    chunkSizeWarningLimit: 1000,
-    rollupOptions: {
-      output: {
-        manualChunks(id) {
-          if (id.includes("node_modules")) {
-            return "vendor";
-          }
+    plugins: [react(), versionJsonPlugin(appVersion), basicSsl()],
+    resolve: {
+      alias: {
+        "@": path.resolve(__dirname, "./src"),
+      },
+    },
+    build: {
+      chunkSizeWarningLimit: 1000,
+      rollupOptions: {
+        output: {
+          manualChunks(id) {
+            if (id.includes("node_modules")) {
+              return "vendor";
+            }
+          },
         },
       },
     },
-  },
-  test: {
-    environment: "jsdom",
-    globals: true,
-    setupFiles: ["./vitest.setup.js"],
-    include: ["src/**/*.test.{js,jsx}"],
-  },
-  server: {
-    proxy: {
-      "/api": {
-        target: "https://dev-dge-comunity.baka.work",
-        changeOrigin: true,
-        secure: true,
+    test: {
+      environment: "jsdom",
+      globals: true,
+      setupFiles: ["./vitest.setup.js"],
+      include: ["src/**/*.test.{js,jsx}"],
+    },
+    server: {
+      proxy: {
+        "/api": {
+          target: "https://dev-dge-comunity.baka.work",
+          changeOrigin: true,
+          secure: true,
+        },
       },
     },
-  },
   };
 });

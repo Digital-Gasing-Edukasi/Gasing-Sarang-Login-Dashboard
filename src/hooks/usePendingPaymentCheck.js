@@ -33,13 +33,23 @@ export function usePendingPaymentCheck() {
       return;
     }
 
-    subscriptionApi
-      .getLatestPayment()
+    const loadPayments = subscriptionApi.paymentHistory
+      ? subscriptionApi.paymentHistory(1, 100)
+      : subscriptionApi.getLatestPayment();
+    Promise.resolve(loadPayments)
       .then((res) => {
         if (cancelled) return;
-        const p = Array.isArray(res?.data)
-          ? res.data[0]
-          : res?.payment || res?.data || res || null;
+        const all = Array.isArray(res)
+          ? res
+          : Array.isArray(res?.items)
+            ? res.items
+            : Array.isArray(res?.data)
+              ? res.data
+              : [res?.payment || res?.data || res].filter(Boolean);
+        const p = all.find((candidate) => {
+          const st = String(candidate?.status || "").toLowerCase();
+          return ["pending", "receipt_uploaded", "waiting_verification", "uploaded", "waiting"].includes(st);
+        }) || null;
 
         if (!p || (!p.id && !p.status)) {
           setPendingPayment(null);

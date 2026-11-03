@@ -1,20 +1,12 @@
 // src/pages/PaymentSuccessPage.jsx
 import { useEffect, useState } from 'react'
-import { LogOut, ArrowRight } from 'lucide-react'
+import { ArrowRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { subscriptionApi, discourseApi, webAppApi } from '@/lib/api'
 import bgDark from '@/assets/dark-mode/Background.png'
 import bgDesktop from '@/assets/dark-mode/Background-Desktop.png'
 import { Logo } from '@/components/shared/Logo'
-
-function Avatar({ name = '' }) {
-  const initials = name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()
-  return (
-    <div className="w-9 h-9 rounded-full bg-[#ef4444] text-white flex items-center justify-center text-sm font-semibold">
-      {initials || 'U'}
-    </div>
-  )
-}
+import { ProfileMenu } from '@/components/shared/ProfileMenu'
 
 // isRetry: penanda Attempt ke-2+ (lihat App.jsx / TransferBankPage.jsx untuk
 // kontrak lengkap). Halaman ini landing Midtrans Snap Redirect — belum ada
@@ -102,20 +94,11 @@ export default function PaymentSuccessPage({ user, onSignOut, activePlanName, is
         {/* ── NAVBAR ── */}
         <nav className="relative z-10 flex items-center justify-between px-6 pt-6 pb-5 shrink-0">
           <Logo variant="full" />
-          <div className="flex items-center gap-4">
-            <button
-              onClick={onSignOut}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-white/5 border border-white/15 text-sm font-medium text-white/80 hover:bg-white/10 transition-colors"
-            >
-              <LogOut size={16} />
-              Sign Out
-            </button>
-            <Avatar name={user?.name || user?.profile?.namaLengkap || 'HK'} />
-          </div>
+          <ProfileMenu user={user} onSignOut={onSignOut} />
         </nav>
 
         {/* ── CONTENT ── */}
-        <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-8 pb-24 animate-fade-in-up">
+        <div className="relative flex-1 flex flex-col items-center justify-center px-8 pb-24 animate-fade-in-up">
           {/* Ceklis hijau */}
           <div className="w-20 h-20 rounded-full bg-[#22c55e] flex items-center justify-center mb-8 shadow-[0_0_40px_rgba(34,197,94,0.4)]">
             <svg className="w-10 h-10 text-[#210965]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
