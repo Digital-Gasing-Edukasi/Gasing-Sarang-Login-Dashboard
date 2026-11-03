@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { Headphones, LogOut } from 'lucide-react'
+import { History } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 
 // Email admin default (mailto) — sama seperti TransferBankPage.
@@ -18,6 +20,7 @@ function initials(name = '') {
 //   onSignOut  : handler logout (wajib).
 //   onContact  : handler "Hubungi Kami" (opsional; default → mailto admin).
 export function ProfileMenu({ user, onSignOut, onContact, className }) {
+  const navigate = useNavigate()
   const [open, setOpen] = useState(false)
   const ref = useRef(null)
   const sheetRef = useRef(null) // bottom-sheet mobile di-portal ke body → di luar ref
@@ -50,11 +53,26 @@ export function ProfileMenu({ user, onSignOut, onContact, className }) {
     onSignOut?.()
   }
 
+  const handleHistory = () => {
+    setOpen(false)
+    navigate('/login/subscription/history')
+  }
+
   const name = user?.name || user?.profile?.namaLengkap || 'HK'
 
   // Isi menu (dipakai bersama dropdown desktop & bottom-sheet mobile).
   const items = (
     <>
+      <button
+        type="button"
+        role="menuitem"
+        onClick={handleHistory}
+        className="flex w-full items-center gap-3 px-4 py-3 text-sm font-medium text-black hover:bg-white/5 transition-colors"
+      >
+        <History size={18} className="text-black/50" />
+        Riwayat Pembayaran
+      </button>
+      <div className="mx-3 border-t border-white/10" />
       <button
         type="button"
         role="menuitem"
@@ -86,7 +104,7 @@ export function ProfileMenu({ user, onSignOut, onContact, className }) {
         aria-expanded={open}
         aria-label="Menu profil"
         className={cn(
-          "flex h-10 w-10 items-center justify-center rounded-full bg-[#ef4444] text-white text-sm font-semibold transition-transform hover:scale-105",
+          "flex h-10 w-10 items-center justify-center rounded-full bg-[#ef4444] text-white text-sm font-semibold transition-transform hover:scale-105 z-10",
           className
         )}
       >
@@ -98,6 +116,7 @@ export function ProfileMenu({ user, onSignOut, onContact, className }) {
           {/* Desktop: dropdown kanan-atas */}
           <div
             role="menu"
+            onMouseDown={(event) => event.stopPropagation()}
             className="absolute right-0 top-full mt-3 hidden w-[220px] rounded-2xl border border-[#334D80]/30 bg-white py-1.5 text-left shadow-xl shadow-black/30 animate-fade-in-up z-50 lg:block"
           >
             {items}
@@ -114,7 +133,8 @@ export function ProfileMenu({ user, onSignOut, onContact, className }) {
               />
               <div
                 role="menu"
-                className="absolute inset-x-0 bottom-0 flex h-[152px] flex-col rounded-t-3xl bg-white pb-[env(safe-area-inset-bottom)] text-left shadow-[0_-8px_30px_rgba(0,0,0,0.3)] animate-in slide-in-from-bottom duration-200"
+                onMouseDown={(event) => event.stopPropagation()}
+                className="absolute inset-x-0 bottom-0 flex h-[204px] flex-col rounded-t-3xl bg-white pb-[env(safe-area-inset-bottom)] text-left shadow-[0_-8px_30px_rgba(0,0,0,0.3)] animate-in slide-in-from-bottom duration-200"
               >
                 <div className="mx-auto mt-3 h-1.5 w-10 shrink-0 rounded-full bg-black/50" />
                 <div className="flex flex-1 flex-col justify-center pb-1.5">

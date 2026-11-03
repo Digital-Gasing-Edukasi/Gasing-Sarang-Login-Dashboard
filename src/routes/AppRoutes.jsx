@@ -1,6 +1,6 @@
 import { lazy, Suspense } from "react";
 import { Routes, Route, Navigate, useNavigate, useLocation } from "react-router-dom";
-import { tokenStorage } from "@/lib/api";
+import { tokenStorage, webAppApi } from "@/lib/api";
 import { SplitLayout } from "@/components/layout/SplitLayout";
 import { DashboardSpinner } from "@/components/layout/DashboardSpinner";
 import { ReviseErrorPage } from "@/pages/auth/ReviseErrorPage";
@@ -20,6 +20,8 @@ import { TermsPage } from "@/pages/legal/TermsPage";
 import { PrivacyPage } from "@/pages/legal/PrivacyPage";
 
 import SubscriptionPage from "@/pages/SubscriptionPage";
+import XenditPaymentPage from "@/pages/XenditPaymentPage";
+import HistoryPage from "@/pages/HistoryPage";
 import TransferBankPage from "@/pages/TransferBankPage";
 import PaymentSuccessPage from "@/pages/PaymentSuccessPage";
 import PaymentFinishPage from "@/pages/PaymentFinishPage";
@@ -161,6 +163,7 @@ export function AppRoutes({
             onPaymentSuccess={onPaymentSuccess}
             onPaymentPending={() => navigate("/dashboard-admin")}
             onCheckoutManual={onCheckoutManual}
+            onSelectPayment={(plan) => navigate(`/login/subscription/payment/${plan.id}`)}
           />,
         )}
       />
@@ -179,12 +182,26 @@ export function AppRoutes({
               onSignOut={onSignOut}
               onBack={() => navigate("/login/subscription")}
               isRetry={isRetry}
+              initialSubmitted={Boolean(manualPayment)}
+              initialReceiptFileId={
+                manualPayment?.receiptFileId ||
+                manualPayment?.receipt_file_id ||
+                manualPayment?.receiptFile?.id ||
+                null
+              }
             />
           ) : (
             <Navigate to="/login/subscription" replace />
           ),
         )}
       />
+      <Route
+        path="/login/subscription/payment/:packageId"
+        element={requireAuth(
+          <XenditPaymentPage user={currentUser} onSignOut={onSignOut} onBack={() => navigate("/login/subscription")} onPaymentSuccess={onPaymentSuccess} onCheckoutManual={onCheckoutManual} packageId={location.pathname.split("/").pop()} paymentId={new URLSearchParams(location.search).get("paymentId")} resumeMethod={new URLSearchParams(location.search).get("method")} />,
+        )}
+      />
+      <Route path="/login/subscription/history" element={requireAuth(<HistoryPage user={currentUser} onSignOut={onSignOut} onBack={() => webAppApi.redirectWithTokens()} onCheckoutManual={onCheckoutManual} />)} />
 
       {/* ── Pendaftaran (signup) & turunannya ───────────────────────────── */}
       <Route
@@ -312,6 +329,7 @@ export function AppRoutes({
                 onPaymentSuccess={() => navigate("/payment/success")}
                 onPaymentPending={() => navigate("/test-menu")}
                 onCheckoutManual={() => navigate("/test-menu/transfer")}
+                onSelectPayment={(plan) => navigate(`/test-menu/payment/${plan.id}`)}
               />
             }
           />

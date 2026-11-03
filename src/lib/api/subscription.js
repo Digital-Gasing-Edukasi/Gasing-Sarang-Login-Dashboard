@@ -24,6 +24,16 @@ export const subscriptionApi = {
   checkoutXendit: (packageId) =>
     request("/one-time/checkout/xendit", { method: "POST", body: { packageId } }),
 
+  // Xendit Components flow: create an order for a selected channel, then
+  // retrieve the provider session through the owner-checked resume endpoint.
+  checkoutXenditComponents: (body) =>
+    request("/one-time/custom/xendit/checkout", { method: "POST", body }),
+  getXenditOrder: (orderId) =>
+    request(`/one-time/custom/orders/${encodeURIComponent(orderId)}`),
+  resumeXenditOrder: (orderId) =>
+    request(`/one-time/custom/orders/${encodeURIComponent(orderId)}/resume`, { method: "POST" }),
+  getXenditChannels: () => request("/one-time/custom/xendit/channels"),
+
   // ── Manual Transfer (dipakai sementara selama Midtrans belum siap) ──────────
   // Idempotent per user: bila sudah ada payment pending tanpa bukti, endpoint ini
   // meng-update payment yang sama (bukan bikin baru). Balik detail payment.
@@ -46,6 +56,8 @@ export const subscriptionApi = {
 
   // Detail satu payment milik user. 404 bila bukan milik user / tidak ada.
   getPayment: (paymentId) => request(`/subscription/payments/${paymentId}`),
+  cancelPending: () =>
+    request("/subscription/payments/cancel-pending", { method: "POST" }),
 
   subscribe: (packageId) =>
     request("/subscription/subscribe", { method: "POST", body: { packageId } }),
