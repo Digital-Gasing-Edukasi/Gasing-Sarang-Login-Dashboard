@@ -454,6 +454,15 @@ export default function SubscriptionPage({ user, onSignOut, onPaymentSuccess, on
       // di TransferBankPage, supaya user yang batal di tengah jalan tidak
       // meninggalkan payment pending yang tidak pernah dibayar.
       const plan = plans.find((p) => p.id === selectedPlan) || null;
+
+      // Di production, gunakan alur transfer manual secara langsung.
+      // Environment lain tetap menampilkan pilihan metode pembayaran untuk
+      // pengujian Xendit.
+      if (isProduction) {
+        onCheckoutManual?.(plan);
+        return;
+      }
+
       onSelectPayment?.(plan);
     } catch (e) {
       setError(e.message || "Gagal memproses pembayaran, coba lagi");

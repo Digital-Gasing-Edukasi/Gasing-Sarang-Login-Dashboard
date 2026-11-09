@@ -1,106 +1,117 @@
-import { MobileHero } from '@/components/layout/MobileHero'
-import { RightPanel } from '@/components/layout/RightPanel'
-import { IconInput, TogglePassword } from '@/components/shared/IconInput'
-import { LoginFailedToast } from '@/components/shared/LoginFailedToast'
-import { LoginStatusModal } from '@/components/shared/LoginStatusModal'
-import { Logo } from '@/components/shared/Logo'
-import { NoConnectionBanner } from '@/components/shared/NoConnectionBanner'
-import { RateLimitBanner } from '@/components/shared/RateLimitBanner'
-import { Button } from '@/components/ui/button'
-import { Checkbox } from '@/components/ui/checkbox'
-import { Label } from '@/components/ui/label'
-import { useAppNavigation } from "@/hooks/useAppNavigation"
-import { authApi, profileApi, tokenStorage } from '@/lib/api'
-import { parseWaitSecs } from '@/lib/loginGate'
-import { Loader2, Lock, Mail } from 'lucide-react'
-import { useState } from 'react'
+import { MobileHero } from "@/components/layout/MobileHero";
+import { RightPanel } from "@/components/layout/RightPanel";
+import { IconInput, TogglePassword } from "@/components/shared/IconInput";
+import { LoginFailedToast } from "@/components/shared/LoginFailedToast";
+import { LoginStatusModal } from "@/components/shared/LoginStatusModal";
+import { Logo } from "@/components/shared/Logo";
+import { NoConnectionBanner } from "@/components/shared/NoConnectionBanner";
+import { RateLimitBanner } from "@/components/shared/RateLimitBanner";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import { useAppNavigation } from "@/hooks/useAppNavigation";
+import { authApi, profileApi, tokenStorage } from "@/lib/api";
+import { parseWaitSecs } from "@/lib/loginGate";
+import { Loader2, Lock, Mail } from "lucide-react";
+import { useState } from "react";
 
-const ERR_INPUT = '!border-red-500 focus-visible:!border-red-500 focus-visible:ring-red-200'
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+const ERR_INPUT =
+  "!border-red-500 focus-visible:!border-red-500 focus-visible:ring-red-200";
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 // Deteksi kegagalan jaringan (offline / server tak terjangkau) → banner flow 5.
 const isNetworkError = (e) =>
   e instanceof TypeError ||
-  (typeof navigator !== 'undefined' && navigator.onLine === false) ||
-  /failed to fetch|networkerror|load failed|fetch/i.test(e?.message || '')
+  (typeof navigator !== "undefined" && navigator.onLine === false) ||
+  /failed to fetch|networkerror|load failed|fetch/i.test(e?.message || "");
 
 export function LoginPage({ onNavigate, onLoginSuccess, isSsoMode = false }) {
   const { go } = useAppNavigation();
 
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [showPass, setShowPass] = useState(false)
-  const [remember, setRemember] = useState(false)
-  const [loading, setLoading] = useState(false)
-  const [errors, setErrors] = useState({})
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPass, setShowPass] = useState(false);
+  const [remember, setRemember] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState({});
   // gate: modal saat proses login gagal — 'error' (server 5xx) atau 'suspended'
   // (backend tolak akun ditangguhkan). Status pending/expired (login sukses tapi
   // profil diblokir) di-guard terpusat di App.handleLoginSuccess.
-  const [gate, setGate] = useState(null)
+  const [gate, setGate] = useState(null);
   // noConn: banner "Tidak Ada Koneksi" (flow 5).
-  const [noConn, setNoConn] = useState(false)
+  const [noConn, setNoConn] = useState(false);
   // rateLimit: sisa detik cooldown dari 429 (Retry-After). null = tidak kena limit.
-  const [rateLimit, setRateLimit] = useState(null)
+  const [rateLimit, setRateLimit] = useState(null);
   // loginFailed: toast merah "Login gagal" untuk 401 Invalid credentials (Figma 9047).
-  const [loginFailed, setLoginFailed] = useState(false)
+  const [loginFailed, setLoginFailed] = useState(false);
 
   const clearFieldError = (field) =>
-    setErrors(prev => ({ ...prev, [field]: '' }))
+    setErrors((prev) => ({ ...prev, [field]: "" }));
 
   // Pemetaan error login → UI (dipakai login awal & login ulang verifikasi).
   const handleLoginError = (e) => {
     if (isNetworkError(e)) {
-      setNoConn(true)                    // flow 5 — tidak ada koneksi
+      setNoConn(true); // flow 5 — tidak ada koneksi
     } else if (e?.status === 429) {
       // Rate limit backend (ThrottlerException). Banner merah + hitung mundur;
       // tombol Login ikut terkunci sampai cooldown habis.
-      setRateLimit(e.retryAfter || 60)
-    } else if (e?.status === 403 && /rejected|ditolak/i.test(e?.message || '')) {
+      setRateLimit(e.retryAfter || 60);
+    } else if (
+      e?.status === 403 &&
+      /rejected|ditolak/i.test(e?.message || "")
+    ) {
       // Backend tolak login akun ditolak (mis. "Your account verification was rejected: ...").
-      const msg = e?.message || ''
-      const match = msg.match(/rejected:\s*(.+)$/i)
-      let reasons = undefined
+      const msg = e?.message || "";
+      const match = msg.match(/rejected:\s*(.+)$/i);
+      let reasons = undefined;
       if (match) {
-        const rawReason = match[1].trim()
-        if (rawReason && rawReason !== 'null') {
-          reasons = rawReason.split(',').map(r => r.trim()).filter(Boolean)
+        const rawReason = match[1].trim();
+        if (rawReason && rawReason !== "null") {
+          reasons = rawReason
+            .split(",")
+            .map((r) => r.trim())
+            .filter(Boolean);
         }
       }
       setGate({
-        type: 'rejected',
+        type: "rejected",
         reasons: reasons,
-      })
-    } else if (/suspend|ditangguhkan/i.test(e?.message || '')) {
+      });
+    } else if (/suspend|ditangguhkan/i.test(e?.message || "")) {
       // Backend tolak login akun ditangguhkan (mis. "Account is suspended").
-      const d = e?.data || {}
+      const d = e?.data || {};
       setGate({
-        type: 'suspended',
+        type: "suspended",
         until: d.suspendedUntil || d.until || d.suspended?.until || null,
-        reason: d.suspendReason || d.reason || d.suspended?.reason || 'Melanggar panduan komunitas',
-      })
+        reason:
+          d.suspendReason ||
+          d.reason ||
+          d.suspended?.reason ||
+          "Melanggar panduan komunitas",
+      });
     } else if (e?.status >= 500) {
-      setGate({ type: 'error' })         // flow 4 — server bermasalah
+      setGate({ type: "error" }); // flow 4 — server bermasalah
     } else {
       // 401 Invalid credentials (desain Figma 9047): toast merah "Login gagal" di
       // pojok atas tengah — bukan inline error. Tidak membocorkan field mana yang
       // salah (email/password) demi keamanan.
-      setLoginFailed(true)
+      setLoginFailed(true);
     }
-  }
+  };
 
   // Cabang sessionType dari respons /auth/login (aliran verifikasi email).
   // Provisional/email_confirmation tidak punya profil penuh (getMe tak jalan)
   // → penentu dialog = handleLoginSuccess via session-status. Return true bila
   // sudah ditangani (jangan lanjut ke getMe).
   const handleSessionType = (data, creds) => {
-    if (data?.sessionType === 'provisional') {
+    if (data?.sessionType === "provisional") {
       // Token sementara disimpan agar session-status bisa dibaca; penentu
       // dialog (email_unconfirmed/revision/payment/dll) ada di gate terpusat.
       // Kredensial ikut diteruskan HANYA untuk login ulang verifikasi email —
       // dibersihkan begitu gate ditutup / alur selesai.
       // Kecuali: OTP baru saja dikirim (otpToken ada) → langsung halaman OTP,
       // tanpa dialog/session-status. Timer proteksi ikut dari additionalInfo.
-      tokenStorage.setTokens(data.accessToken, null, remember)
+      tokenStorage.setTokens(data.accessToken, null, remember);
       if (data?.otpToken) {
         onLoginSuccess(null, {
           otpDirect: {
@@ -109,55 +120,59 @@ export function LoginPage({ onNavigate, onLoginSuccess, isSsoMode = false }) {
             cooldownSecs: parseWaitSecs(data?.additionalInfo),
           },
         });
-        return true
+        return true;
       }
       onLoginSuccess(null, {
         pendingCreds: { email: creds.email, password: creds.password },
         waitSecs: parseWaitSecs(data?.additionalInfo),
-      })
-      return true
+      });
+      return true;
     }
-    if (data?.sessionType === 'email_confirmation' && data?.accessToken) {
+    if (data?.sessionType === "email_confirmation" && data?.accessToken) {
       // Token konfirmasi langsung → dialog email aktif via gate (tanpa timer).
       onLoginSuccess(null, {
         emailConfirmation: { token: data.accessToken, email: creds.email },
-      })
-      return true
+      });
+      return true;
     }
-    return false
-  }
+    return false;
+  };
 
   const handleLogin = async () => {
-    const next = {}
-    if (!email) next.email = 'Pastikan email tidak kosong.'
+    const next = {};
+    if (!email) next.email = "Pastikan email tidak kosong.";
     else if (!EMAIL_RE.test(email)) next.email = "Format email tidak sesuai.";
-    if (!password) next.password = 'Pastikan password tidak kosong.'
-    if (Object.keys(next).length) { setErrors(next); return }
+    if (!password) next.password = "Pastikan password tidak kosong.";
+    if (Object.keys(next).length) {
+      setErrors(next);
+      return;
+    }
 
-    if (rateLimit) return   // masih cooldown 429 — jangan nembak backend lagi
+    if (rateLimit) return; // masih cooldown 429 — jangan nembak backend lagi
 
-    setErrors({}); setNoConn(false); setLoginFailed(false); setLoading(true)
+    setErrors({});
+    setNoConn(false);
+    setLoginFailed(false);
+    setLoading(true);
     try {
-      const data = await authApi.login(email, password)
+      const data = await authApi.login(email, password);
       console.log("authApi.login", { data });
 
-      if (handleSessionType(data, { email, password })) return
-      tokenStorage.setTokens(data.accessToken, data.refreshToken, remember)
-      const profile = await profileApi.getMe()
+      if (handleSessionType(data, { email, password })) return;
+      tokenStorage.setTokens(data.accessToken, data.refreshToken, remember);
+      const profile = await profileApi.getMe();
       // Guard status akun (pending/expired/suspended) ditangani terpusat di
       // App.handleLoginSuccess — berlaku juga saat restore sesi (reload).
-      onLoginSuccess(profile)
+      onLoginSuccess(profile);
     } catch (e) {
-      handleLoginError(e)
+      handleLoginError(e);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   return (
-    <RightPanel
-      mobileHero={<MobileHero />}
-    >
+    <RightPanel mobileHero={<MobileHero />}>
       {rateLimit && (
         <RateLimitBanner
           seconds={rateLimit}
@@ -168,7 +183,9 @@ export function LoginPage({ onNavigate, onLoginSuccess, isSsoMode = false }) {
 
       {noConn && <NoConnectionBanner onClose={() => setNoConn(false)} />}
 
-      {loginFailed && <LoginFailedToast onClose={() => setLoginFailed(false)} />}
+      {loginFailed && (
+        <LoginFailedToast onClose={() => setLoginFailed(false)} />
+      )}
 
       <div className="hidden lg:flex items-center justify-center mb-9 animate-fade-in-up">
         <Logo variant="split" />
@@ -282,7 +299,7 @@ export function LoginPage({ onNavigate, onLoginSuccess, isSsoMode = false }) {
         {/* Fake login: masuk sebagai tamu → halaman komunitas statis (ADR-0004).
             Desktop: icon button di kiri-atas placeholder image (LeftPanel, audit #7).
             Tombol teks ini khusus mobile. */}
-
+        {/* 
         <div className='items-center gap-2 text-gray-500 text-xs mt-4 leading-none hidden md:flex'>
           <div className='bg-gray-300 h-[1px] flex-1' />
           <div>atau</div>
@@ -294,6 +311,7 @@ export function LoginPage({ onNavigate, onLoginSuccess, isSsoMode = false }) {
         >
           Masuk Sebagai Tamu
         </button>
+         */}
       </div>
 
       {gate && (
