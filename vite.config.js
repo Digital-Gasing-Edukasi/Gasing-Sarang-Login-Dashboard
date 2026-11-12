@@ -58,7 +58,11 @@ export default defineConfig(({ mode }) => {
       __APP_MODE__: JSON.stringify(mode),
       __BUILD_ID__: JSON.stringify(BUILD_ID),
     },
-    plugins: [react(), versionJsonPlugin(appVersion), basicSsl()],
+    plugins: [
+      react(),
+      versionJsonPlugin(appVersion),
+      basicSsl()
+    ],
     resolve: {
       alias: {
         "@": path.resolve(__dirname, "./src"),
