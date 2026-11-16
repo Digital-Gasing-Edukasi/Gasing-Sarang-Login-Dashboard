@@ -61,7 +61,7 @@ export default defineConfig(({ mode }) => {
     plugins: [
       react(),
       versionJsonPlugin(appVersion),
-      basicSsl()
+      // basicSsl()
     ],
     resolve: {
       alias: {

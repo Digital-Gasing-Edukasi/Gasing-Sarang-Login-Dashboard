@@ -745,6 +745,21 @@ describe("ManajemenAkunPage", () => {
     expect(dihapusTab.querySelector("span")).toBeNull();
   });
 
+  it("renders export button for each tab with corresponding scope", async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await screen.findByText(U0.name);
+
+    expect(screen.getByRole("button", { name: /export/i })).toBeInTheDocument();
+
+    for (const title of ["Disetujui", "Ditolak", "Ditangguhkan", "Baru Dihapus"]) {
+      await user.click(screen.getByRole("button", { name: new RegExp(title) }));
+      await waitFor(() => {
+        expect(screen.getByRole("button", { name: /export/i })).toBeInTheDocument();
+      });
+    }
+  });
+
   it("expired subscription renders the red pill", async () => {
     fetchUsers.mockImplementation(async () => ({
       data: disetujuiFixture.data.map((u) => ({

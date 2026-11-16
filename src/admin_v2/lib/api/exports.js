@@ -7,6 +7,10 @@ export const EXPORT_ENDPOINTS = {
   belum_langganan: "/admin/users/export/belum-langganan",
   menunggu_verifikasi: "/admin/users/export/menunggu-verifikasi",
   pembayaran_ditolak: "/admin/users/export/pembayaran-ditolak",
+  disetujui: "/admin/users/export/disetujui",
+  ditolak: "/admin/users/export/ditolak",
+  ditangguhkan: "/admin/users/export/ditangguhkan",
+  dihapus: "/admin/users/export/dihapus",
 };
 
 export const EXPORT_LABELS = {
@@ -15,6 +19,10 @@ export const EXPORT_LABELS = {
   belum_langganan: "Belum Langganan",
   menunggu_verifikasi: "Menunggu Verifikasi",
   pembayaran_ditolak: "Pembayaran Ditolak",
+  disetujui: "Disetujui",
+  ditolak: "Ditolak",
+  ditangguhkan: "Ditangguhkan",
+  dihapus: "Baru Dihapus",
 };
 
 // Download history grouping (one tab per menu). Scopes map to their menu;
@@ -29,6 +37,11 @@ export const EXPORT_CATEGORIES = [
     key: "verifikasi-pembayaran",
     title: "Verifikasi Pembayaran",
     scopes: ["belum_langganan", "menunggu_verifikasi", "pembayaran_ditolak"],
+  },
+  {
+    key: "manajemen-akun",
+    title: "Manajemen Akun",
+    scopes: ["disetujui", "ditolak", "ditangguhkan", "dihapus"],
   },
 ];
 

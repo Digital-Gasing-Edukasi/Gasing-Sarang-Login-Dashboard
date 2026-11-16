@@ -16,14 +16,21 @@ vi.mock("../lib/api/payments.js", async (importOriginal) => {
   return { ...actual, fetchManualPayments: vi.fn() };
 });
 
+vi.mock("../lib/api/vouchers.js", async (importOriginal) => {
+  const actual = await importOriginal();
+  return { ...actual, fetchPendingVouchers: vi.fn() };
+});
+
 import {
   fetchUsersCount,
   fetchUsers,
 } from "../lib/api/users.js";
 import { fetchManualPayments } from "../lib/api/payments.js";
+import { fetchPendingVouchers } from "../lib/api/vouchers.js";
 import DashboardPage from "../pages/dashboard/DashboardPage.jsx";
 
-const TOTALS = { waiting: 12, pending_voucher: 7, approved: 34, rejected: 6 };
+const TOTALS = { waiting: 12, approved: 34, rejected: 6 };
+const VOUCHER_TOTAL = 7;
 
 const SUBSCRIPTION_TOTALS = { active: 50, not_subscribed: 18 };
 
@@ -40,6 +47,7 @@ beforeEach(() => {
     meta: { total: SUBSCRIPTION_TOTALS[subscription] ?? 0 },
   }));
   fetchManualPayments.mockResolvedValue({ data: [], meta: { total: 7 } });
+  fetchPendingVouchers.mockResolvedValue({ data: [], meta: { total: VOUCHER_TOTAL } });
 });
 
 describe("DashboardPage", () => {
@@ -66,21 +74,26 @@ describe("DashboardPage", () => {
       expect((await screen.findAllByText(String(total))).length).toBeGreaterThan(0);
     }
 
-    // 4 status cards + 2 subscription slices.
-    expect(fetchUsersCount).toHaveBeenCalledTimes(6);
+    // 3 status cards (waiting, approved, rejected) + 2 subscription slices.
+    // pending_voucher now goes through fetchPendingVouchers, not fetchUsersCount.
+    expect(fetchUsersCount).toHaveBeenCalledTimes(5);
     const asked = fetchUsersCount.mock.calls.map((c) => c[0]).sort();
     expect(asked).toEqual([
       "approved",
       "approved",
       "approved",
-      "pending_voucher",
       "rejected",
       "waiting",
     ]);
     const slices = fetchUsersCount.mock.calls
       .map((c) => c[1]?.subscription)
       .sort();
-    expect(slices).toEqual(["active", "not_subscribed", undefined, undefined, undefined, undefined]);
+    expect(slices).toEqual(["active", "not_subscribed", undefined, undefined, undefined]);
+
+    // pending_voucher card uses fetchPendingVouchers.
+    expect(fetchPendingVouchers).toHaveBeenCalledWith(
+      expect.objectContaining({ page: 1, limit: 1 }),
+    );
   });
 
   it("renders Users and Subscription sections with pie + pending card", async () => {

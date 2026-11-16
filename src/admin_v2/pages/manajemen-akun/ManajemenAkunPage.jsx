@@ -11,6 +11,7 @@ import {
 import { useDebouncedValue } from "../../hooks/useDebouncedValue.js";
 import { Input } from "../../components/ui/input.jsx";
 import { toast } from "../../components/ui/use-toast.js";
+import { ExportButton } from "../../components/downloads/index.js";
 import { CountBadge, DataTable } from "../../components/index.js";
 import { Pagination } from "../../components/index.js";
 import { DeleteAccountDialog } from "../../components/index.js";
@@ -37,17 +38,20 @@ const TABS = [
     title: "Disetujui",
     status: VERIFIED_STATUS.APPROVED,
     subscription: APPROVED_SUBSCRIPTIONS,
+    exportScope: "disetujui",
   },
   {
     key: "ditolak",
     title: "Ditolak",
     status: REJECTED_STATUSES,
+    exportScope: "ditolak",
   },
   {
     key: "ditangguhkan",
     title: "Ditangguhkan",
     status: undefined,
     suspended: 1,
+    exportScope: "ditangguhkan",
   },
   {
     key: "dihapus",
@@ -56,9 +60,10 @@ const TABS = [
     confirmed: null,
     suspended: null,
     deletionPending: 1,
-    onlyDeletion: true,
+    onlyDeletion: false,
     // meta.total counts unfiltered rows — the real number is unknowable.
     showCount: false,
+    exportScope: "dihapus",
   },
 ];
 
@@ -323,6 +328,7 @@ export default function ManajemenAkunPage() {
               className="pl-9"
             />
           </div>
+          <ExportButton scope={current.exportScope} />
         </div>
       </div>
 

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Clock, UserSearch, UserX, ShieldAlert, LogOut, AlertCircle, ServerCrash, Copy, Check, MailCheck, Loader2 } from 'lucide-react'
+import { Clock, UserSearch, UserX, ShieldAlert, LogOut, AlertCircle, ServerCrash, Copy, Check, MailCheck, Loader2, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { WA_URL } from '@/components/shared/PaymentStatusLayout'
 import { DEFAULT_BANK } from '@/lib/bankAccount'
@@ -480,9 +480,19 @@ function PaymentPendingTimeoutModal({ meta = {}, onClose }) {
 
 // Tulang bersama RejectedModal & RevisionRequiredModal (gaya sama, isi beda
 // via props): Shell merah + judul + intro + kotak list + footer + actions.
-function DecisionModal({ icon, title, intro, listHeading, items, footer, actions }) {
+function DecisionModal({ icon, title, intro, listHeading, items, footer, actions, onClose }) {
   return (
-    <Shell tone="red" icon={icon}>
+    <Shell tone="red" icon={icon} showMobileDragHandle={!onClose}>
+      {onClose && (
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Close"
+          className="absolute right-5 top-5 text-muted-foreground transition-colors hover:text-foreground"
+        >
+          <X size={22} />
+        </button>
+      )}
       <h2 className="text-2xl font-bold text-foreground lg:mb-3">{title}</h2>
       {intro}
       {items?.length > 0 && (
@@ -606,10 +616,10 @@ function RejectedModal({ meta = {}, onClose }) {
           </p>
         </>
       }
+      onClose={() => onClose?.()}
       actions={
-        <div className="flex flex-col gap-3 w-full lg:flex-row-reverse lg:items-center lg:gap-4">
+        <div className="flex w-full items-center justify-center">
           <ActionButton label="Hubungi Admin" variant="primary" href={WA_URL} />
-          <ActionButton label="Log Out" variant="outline" icon={LogOut} onClick={() => onClose?.()} />
         </div>
       }
     />
@@ -636,7 +646,7 @@ const TONES = {
 //   'sheet'  (default) → mobile: bottom-sheet (naik dari bawah, rounded-top, ada handle);
 //                        desktop: kartu tengah.
 //   'center'          → kartu tengah di semua ukuran (dipakai modal error).
-function Shell({ tone, icon: Icon, showMobileIcon = true, children, variant = 'sheet', sheetClass, contentGap = 'gap-5 lg:gap-0' }) {
+function Shell({ tone, icon: Icon, showMobileIcon = true, showMobileDragHandle = true, children, variant = 'sheet', sheetClass, contentGap = 'gap-5 lg:gap-0' }) {
   const t = TONES[tone] || TONES.orange
   const sheet = variant === 'sheet'
 
@@ -650,6 +660,7 @@ function Shell({ tone, icon: Icon, showMobileIcon = true, children, variant = 's
       <div
         className={cn(
           'bg-white shadow-2xl text-center animate-fade-in-up',
+          'relative',
           sheet
             ? 'w-full rounded-t-[28px] px-6 pb-8 pt-5 flex flex-col items-center gap-5 lg:block lg:w-full lg:max-w-[520px] lg:rounded-[24px] lg:px-8 lg:pt-16'
             : 'w-full max-w-[520px] rounded-[24px] px-8 pt-16 pb-8',
@@ -657,7 +668,7 @@ function Shell({ tone, icon: Icon, showMobileIcon = true, children, variant = 's
         )}
       >
         {/* Drag handle — hanya bottom-sheet mobile */}
-        {sheet && <div className="mx-auto h-1.5 w-11 rounded-full bg-gray-200 lg:hidden" />}
+        {sheet && showMobileDragHandle && <div className="mx-auto h-1.5 w-11 rounded-full bg-gray-200 lg:hidden" />}
 
         <div className={cn('mx-auto w-[68px] h-[68px] rounded-full border-2 border-dashed items-center justify-center', sheet ? 'lg:mb-6' : 'mb-6', showMobileIcon ? 'flex' : 'hidden md:flex', t.ring)}>
           <div className={cn('w-[52px] h-[52px] rounded-full flex items-center justify-center', t.bg)}>

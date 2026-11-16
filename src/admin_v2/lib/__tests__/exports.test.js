@@ -51,6 +51,22 @@ describe("requestExport", () => {
     await expect(requestExport("pembayaran_ditolak")).resolves.toBe("t-4");
     expect(apiPost).toHaveBeenCalledWith("/admin/users/export/pembayaran-ditolak");
   });
+
+  it("POSTs to the account management endpoints", async () => {
+    apiPost.mockResolvedValue({ trackId: "t-5" });
+
+    await expect(requestExport("disetujui")).resolves.toBe("t-5");
+    expect(apiPost).toHaveBeenCalledWith("/admin/users/export/disetujui");
+
+    await expect(requestExport("ditolak")).resolves.toBe("t-5");
+    expect(apiPost).toHaveBeenCalledWith("/admin/users/export/ditolak");
+
+    await expect(requestExport("ditangguhkan")).resolves.toBe("t-5");
+    expect(apiPost).toHaveBeenCalledWith("/admin/users/export/ditangguhkan");
+
+    await expect(requestExport("dihapus")).resolves.toBe("t-5");
+    expect(apiPost).toHaveBeenCalledWith("/admin/users/export/dihapus");
+  });
 });
 
 describe("fetchExportJob", () => {
@@ -69,12 +85,17 @@ describe("export categories", () => {
     expect(exportCategoryOf("belum_langganan")).toBe("verifikasi-pembayaran");
     expect(exportCategoryOf("menunggu_verifikasi")).toBe("verifikasi-pembayaran");
     expect(exportCategoryOf("pembayaran_ditolak")).toBe("verifikasi-pembayaran");
+    expect(exportCategoryOf("disetujui")).toBe("manajemen-akun");
+    expect(exportCategoryOf("ditolak")).toBe("manajemen-akun");
+    expect(exportCategoryOf("ditangguhkan")).toBe("manajemen-akun");
+    expect(exportCategoryOf("dihapus")).toBe("manajemen-akun");
     expect(exportCategoryOf("whatever")).toBe("lainnya");
   });
 
   it("titles resolve per category", () => {
     expect(exportCategoryTitle("verifikasi-akun")).toBe("Verifikasi Akun");
     expect(exportCategoryTitle("verifikasi-pembayaran")).toBe("Verifikasi Pembayaran");
+    expect(exportCategoryTitle("manajemen-akun")).toBe("Manajemen Akun");
     expect(exportCategoryTitle("lainnya")).toBe("Lainnya");
     expect(exportCategoryTitle("whatever")).toBe("Lainnya");
   });

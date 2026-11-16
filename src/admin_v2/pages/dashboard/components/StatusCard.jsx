@@ -1,6 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
 import {
+  VERIFIED_STATUS,
+  fetchPendingVouchers,
   fetchUsersCount,
+  pendingVouchersKeys,
   usersKeys,
 } from "../../../lib/api/index.js";
 import { getVerifiedStatusMeta } from "../../../lib/verificationStatus.js";
@@ -13,9 +16,19 @@ import { cn } from "../../../lib/utils.js";
 export function StatusCard({ filter, status = null, title = null, Icon, cardClass }) {
   const meta = status == null ? null : getVerifiedStatusMeta(status);
   const label = title ?? meta?.label ?? filter;
+  const isPendingVoucher = filter === VERIFIED_STATUS.PENDING_VOUCHER;
+
   const { data, isLoading, isError, refetch } = useQuery({
-    queryKey: [...usersKeys.page(filter, 1, { limit: 1 }), "count"],
-    queryFn: () => fetchUsersCount(filter),
+    queryKey: isPendingVoucher
+      ? [...pendingVouchersKeys.page(1, { limit: 1 }), "count"]
+      : [...usersKeys.page(filter, 1, { limit: 1 }), "count"],
+    queryFn: async () => {
+      if (isPendingVoucher) {
+        const res = await fetchPendingVouchers({ page: 1, limit: 1 });
+        return res?.meta?.total ?? 0;
+      }
+      return fetchUsersCount(filter);
+    },
     staleTime: 60_000,
   });
 
