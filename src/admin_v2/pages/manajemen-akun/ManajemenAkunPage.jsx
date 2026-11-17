@@ -60,9 +60,6 @@ const TABS = [
     confirmed: null,
     suspended: null,
     deletionPending: 1,
-    onlyDeletion: false,
-    // meta.total counts unfiltered rows — the real number is unknowable.
-    showCount: false,
     exportScope: "dihapus",
   },
 ];

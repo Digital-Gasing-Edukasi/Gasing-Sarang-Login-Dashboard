@@ -619,7 +619,7 @@ function RejectedModal({ meta = {}, onClose }) {
       onClose={() => onClose?.()}
       actions={
         <div className="flex w-full items-center justify-center">
-          <ActionButton label="Hubungi Admin" variant="primary" href={WA_URL} />
+          <ActionButton label="Hubungi Admin" variant="primary" block={true} href={WA_URL} />
         </div>
       }
     />
