@@ -7,7 +7,18 @@ import { usePendingPaymentCheck } from "@/hooks/usePendingPaymentCheck";
 import { subscriptionApi, tokenStorage, webAppApi } from "@/lib/api";
 import { formatRp, localizePlanName } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import { AlertCircle, BookOpenCheck, ChevronLeft, ChevronRight, Clock3, ExternalLink, Loader2, Presentation, RotateCcw, Sparkles } from "lucide-react";
+import {
+  AlertCircle,
+  BookOpenCheck,
+  ChevronLeft,
+  ChevronRight,
+  Clock3,
+  ExternalLink,
+  Loader2,
+  Presentation,
+  RotateCcw,
+  Sparkles,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 // Ambil angka positif pertama dari beberapa kemungkinan field (nama field
@@ -48,16 +59,24 @@ function transformPlan(pkg) {
   // dibayar, `displayPrice` = harga coret. Diskon ada bila displayPrice
   // tidak null. Alias lama dipertahankan sebagai fallback.
   const explicitDiscount = pickNumber(
-    pkg.discountPercentage, pkg.discountPercent, pkg.discount, pkg.savePercentage
+    pkg.discountPercentage,
+    pkg.discountPercent,
+    pkg.discount,
+    pkg.savePercentage,
   );
   const explicitOriginal = pickNumber(
-    pkg.displayPrice, pkg.originalPrice, pkg.normalPrice, pkg.strikePrice, pkg.priceBeforeDiscount
+    pkg.displayPrice,
+    pkg.originalPrice,
+    pkg.normalPrice,
+    pkg.strikePrice,
+    pkg.priceBeforeDiscount,
   );
 
   if (isAnnual) {
     // Tampilkan harga per-bulan (= price / 12), begitu pula harga coret
     // (= displayPrice / 12) supaya sejajar dengan kartu bulanan.
-    const displayMonthly = explicitOriginal != null ? Math.round(explicitOriginal / months) : null;
+    const displayMonthly =
+      explicitOriginal != null ? Math.round(explicitOriginal / months) : null;
     let discount = explicitDiscount;
     if (!discount && explicitOriginal != null && explicitOriginal > pkg.price) {
       discount = Math.ceil((1 - pkg.price / explicitOriginal) * 100);
@@ -155,17 +174,20 @@ const BENEFITS = [
   {
     icon: BookOpenCheck,
     title: "Perdalam metode Gasing",
-    subtitle: "Akses modul dan materi Gasing untuk memperkaya strategi mengajar matematika.",
+    subtitle:
+      "Akses modul dan materi Gasing untuk memperkaya strategi mengajar matematika.",
   },
   {
     icon: Sparkles,
     title: "Temukan inspirasi setiap bulan",
-    subtitle: "Dapatkan konten eksklusif sebagai referensi untuk menghadirkan pembelajaran yang lebih menarik.",
+    subtitle:
+      "Dapatkan konten eksklusif sebagai referensi untuk menghadirkan pembelajaran yang lebih menarik.",
   },
   {
     icon: Presentation,
     title: "Lengkapi Persiapan dengan Alat Bantu Ajar",
-    subtitle: "Akses sumber pendukung untuk membantu menjelaskan konsep matematika kepada murid.",
+    subtitle:
+      "Akses sumber pendukung untuk membantu menjelaskan konsep matematika kepada murid.",
   },
 ];
 
@@ -181,7 +203,7 @@ function PlanCard({ plan, selected, onSelect }) {
           ? "border-[#8b7bff]/70 bg-gradient-to-b from-[#382274] to-[#180840]"
           : selected
             ? "border-[#8b7bff]/70 bg-gradient-to-b from-[#382274] to-[#180840]"
-            : "border-[#D1D3DA]/30 bg-gradient-to-b from-[#382274] to-[#180840] hover:border-white/30"
+            : "border-[#D1D3DA]/30 bg-gradient-to-b from-[#382274] to-[#180840] hover:border-white/30",
       )}
     >
       {/* Gradient glow wrapper behind content */}
@@ -226,7 +248,9 @@ function PlanCard({ plan, selected, onSelect }) {
         <div
           className={cn(
             "w-8 h-8 rounded-md flex items-center justify-center border-2 transition-all shrink-0 ml-4",
-            selected ? "bg-white border-white" : "border-[#BBB6C7] bg-transparent"
+            selected
+              ? "bg-white border-white"
+              : "border-[#BBB6C7] bg-transparent",
           )}
         >
           {selected && (
@@ -237,7 +261,11 @@ function PlanCard({ plan, selected, onSelect }) {
               stroke="currentColor"
               strokeWidth={3.5}
             >
-              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M5 13l4 4L19 7"
+              />
             </svg>
           )}
         </div>
@@ -258,7 +286,7 @@ function MobilePlanCard({ plan, selected, onSelect }) {
           ? "border-[#8b7bff]/70 bg-gradient-to-b from-[#382274] to-[#180840] shadow-[0_0_30px_rgba(124,58,237,0.25)]"
           : featured
             ? "border-[#D1D3DA]/50 bg-gradient-to-b from-[#382274] to-[#180840]"
-            : "border-[#D1D3DA]/30 bg-gradient-to-b from-[#382274] to-[#180840]"
+            : "border-[#D1D3DA]/30 bg-gradient-to-b from-[#382274] to-[#180840]",
       )}
     >
       {/* Gradient glow wrapper behind content */}
@@ -272,7 +300,9 @@ function MobilePlanCard({ plan, selected, onSelect }) {
       )}
       <div className="flex items-center justify-between">
         <div className="min-w-0">
-          <p className="text-white/70 text-[14px] font-semibold mb-1">{plan.name}</p>
+          <p className="text-white/70 text-[14px] font-semibold mb-1">
+            {plan.name}
+          </p>
           <div className="flex items-baseline gap-1.5 flex-wrap">
             <span className="text-[26px] font-bold text-white leading-none">
               Rp{formatRp(plan.priceMonthly)}
@@ -293,12 +323,24 @@ function MobilePlanCard({ plan, selected, onSelect }) {
         <div
           className={cn(
             "w-8 h-8 rounded-md flex items-center justify-center border transition-all shrink-0 ml-3",
-            selected ? "bg-white border-white" : "border-[#BBB6C7] bg-transparent"
+            selected
+              ? "bg-white border-white"
+              : "border-[#BBB6C7] bg-transparent",
           )}
         >
           {selected && (
-            <svg className="w-4 h-4 text-[#180841]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={4}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+            <svg
+              className="w-4 h-4 text-[#180841]"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={4}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M5 13l4 4L19 7"
+              />
             </svg>
           )}
         </div>
@@ -311,27 +353,40 @@ function MobilePlanCard({ plan, selected, onSelect }) {
 function XenditStatusBox({ state, onRetry, onRecheck, onOpenLink }) {
   if (!state) return null;
 
-  const box = "rounded-3xl border border-white/20 bg-white/[0.05] p-5 text-left";
-  const linkBtn = "flex items-center justify-center gap-2 px-6 py-3 rounded-full border border-white/25 font-semibold text-[14px] hover:bg-white/10 active:scale-[0.98] transition-all";
-  const retryBtn = "flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-white text-[#0b0a1f] font-bold text-[14px] hover:bg-white/90 active:scale-[0.98] transition-all";
+  const box =
+    "rounded-3xl border border-white/20 bg-white/[0.05] p-5 text-left";
+  const linkBtn =
+    "flex items-center justify-center gap-2 px-6 py-3 rounded-full border border-white/25 font-semibold text-[14px] hover:bg-white/10 active:scale-[0.98] transition-all";
+  const retryBtn =
+    "flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-white text-[#0b0a1f] font-bold text-[14px] hover:bg-white/90 active:scale-[0.98] transition-all";
 
-  if (state.status === 'waiting' || state.status === 'conflict') {
+  if (state.status === "waiting" || state.status === "conflict") {
     return (
       <div className={box}>
         <div className="flex items-center gap-3 mb-2">
           <Loader2 size={18} className="animate-spin text-[#22d3ee] shrink-0" />
           <p className="text-sm font-semibold">
-            {state.status === 'conflict' ? 'Melanjutkan pembayaran tertunda…' : 'Menunggu pembayaran…'}
+            {state.status === "conflict"
+              ? "Melanjutkan pembayaran tertunda…"
+              : "Menunggu pembayaran…"}
           </p>
         </div>
-        {state.status === 'conflict' && state.message && (
-          <p className="text-[13px] text-white/60 leading-relaxed mb-3">{state.message}</p>
+        {state.status === "conflict" && state.message && (
+          <p className="text-[13px] text-white/60 leading-relaxed mb-3">
+            {state.message}
+          </p>
         )}
         <p className="text-[12px] text-white/40 mb-4">
-          Selesaikan pembayaran di tab Xendit yang terbuka. Halaman ini mengecek status otomatis.
+          Selesaikan pembayaran di tab Xendit yang terbuka. Halaman ini mengecek
+          status otomatis.
         </p>
         <div className="flex flex-col sm:flex-row gap-3">
-          <a href={state.redirectUrl} target="_blank" rel="noopener noreferrer" className={linkBtn}>
+          <a
+            href={state.redirectUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={linkBtn}
+          >
             <ExternalLink size={16} /> Buka Laman Pembayaran
           </a>
         </div>
@@ -339,7 +394,7 @@ function XenditStatusBox({ state, onRetry, onRecheck, onOpenLink }) {
     );
   }
 
-  if (state.status === 'declined') {
+  if (state.status === "declined") {
     return (
       <div className={box}>
         <div className="flex items-center gap-3 mb-2">
@@ -347,10 +402,17 @@ function XenditStatusBox({ state, onRetry, onRecheck, onOpenLink }) {
           <p className="text-sm font-semibold">Pembayaran ditolak</p>
         </div>
         {state.failureReason && (
-          <p className="text-[13px] text-white/60 leading-relaxed mb-4">{state.failureReason}</p>
+          <p className="text-[13px] text-white/60 leading-relaxed mb-4">
+            {state.failureReason}
+          </p>
         )}
         <div className="flex flex-col sm:flex-row gap-3">
-          <a href={state.redirectUrl} target="_blank" rel="noopener noreferrer" className={linkBtn}>
+          <a
+            href={state.redirectUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={linkBtn}
+          >
             <ExternalLink size={16} /> Buka Laman Pembayaran
           </a>
           <button onClick={onRecheck} className={retryBtn}>
@@ -362,11 +424,14 @@ function XenditStatusBox({ state, onRetry, onRecheck, onOpenLink }) {
   }
 
   // expired | not-found | timeout → boleh retry (checkout baru).
-  const copy = {
-    expired: 'Masa pembayaran habis. Silakan buat pembayaran baru.',
-    'not-found': 'Data pembayaran tidak ditemukan. Silakan buat pembayaran baru.',
-    timeout: 'Status belum jelas. Silakan cek lagi atau buat pembayaran baru.',
-  }[state.status] || 'Pembayaran belum selesai. Silakan coba lagi.';
+  const copy =
+    {
+      expired: "Masa pembayaran habis. Silakan buat pembayaran baru.",
+      "not-found":
+        "Data pembayaran tidak ditemukan. Silakan buat pembayaran baru.",
+      timeout:
+        "Status belum jelas. Silakan cek lagi atau buat pembayaran baru.",
+    }[state.status] || "Pembayaran belum selesai. Silakan coba lagi.";
   return (
     <div className={box}>
       <div className="flex items-center gap-3 mb-2">
@@ -375,8 +440,13 @@ function XenditStatusBox({ state, onRetry, onRecheck, onOpenLink }) {
       </div>
       <p className="text-[13px] text-white/60 leading-relaxed mb-4">{copy}</p>
       <div className="flex flex-col sm:flex-row gap-3">
-        {state.redirectUrl && (state.status === 'timeout') && (
-          <a href={state.redirectUrl} target="_blank" rel="noopener noreferrer" className={linkBtn}>
+        {state.redirectUrl && state.status === "timeout" && (
+          <a
+            href={state.redirectUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={linkBtn}
+          >
             <ExternalLink size={16} /> Buka Laman Pembayaran
           </a>
         )}
@@ -389,7 +459,14 @@ function XenditStatusBox({ state, onRetry, onRecheck, onOpenLink }) {
 }
 
 // ─── MAIN PAGE ────────────────────────────────────────────────────────────────
-export default function SubscriptionPage({ user, onSignOut, onPaymentSuccess, onPaymentPending, onCheckoutManual, onSelectPayment }) {
+export default function SubscriptionPage({
+  user,
+  onSignOut,
+  onPaymentSuccess,
+  onPaymentPending,
+  onCheckoutManual,
+  onSelectPayment,
+}) {
   const navigate = useNavigate();
   const isProduction = import.meta.env.VITE_ENV === "production";
   const {
@@ -404,21 +481,23 @@ export default function SubscriptionPage({ user, onSignOut, onPaymentSuccess, on
   const [error, setError] = useState("");
 
   useEffect(() => {
-    subscriptionApi.getPlans()
+    subscriptionApi
+      .getPlans()
       .then((data) => {
         console.log("Plans", { data });
 
-        const pkgs = Array.isArray(data) ? data : (data.data || []);
+        const pkgs = Array.isArray(data) ? data : data.data || [];
         const mapped = sortAnnualFirst(
           withComparison(
-            pkgs.filter((p) => p.isActive !== false).map(transformPlan)
-          )
+            pkgs.filter((p) => p.isActive !== false).map(transformPlan),
+          ),
         );
 
         // Jika API berhasil tapi tidak mengembalikan data, gunakan dummy
         const finalPlans = mapped.length > 0 ? mapped : DUMMY_PLANS;
         setPlans(finalPlans);
-        const recommended = finalPlans.find((p) => p.recommended) || finalPlans[0];
+        const recommended =
+          finalPlans.find((p) => p.recommended) || finalPlans[0];
         if (recommended) setSelectedPlan(recommended.id);
       })
       .catch(() => {
@@ -472,7 +551,11 @@ export default function SubscriptionPage({ user, onSignOut, onPaymentSuccess, on
   };
 
   if (checkingPending) {
-    return <div className="min-h-screen flex items-center justify-center bg-[#0D0B2E] text-white"><Loader2 size={28} className="animate-spin" aria-label="Memuat" /></div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#0D0B2E] text-white">
+        <Loader2 size={28} className="animate-spin" aria-label="Memuat" />
+      </div>
+    );
   }
   if (isPending && pendingPayment) return null;
 
@@ -489,7 +572,11 @@ export default function SubscriptionPage({ user, onSignOut, onPaymentSuccess, on
       >
         <div className="flex items-center justify-between px-4 pt-4 pb-4 shrink-0">
           <Logo variant="mobile" />
-          <ProfileMenu user={user} onSignOut={onSignOut} className="h-9 w-9 text-xs" />
+          <ProfileMenu
+            user={user}
+            onSignOut={onSignOut}
+            className="h-9 w-9 text-xs"
+          />
         </div>
 
         <div className="flex-1 px-4 pt-4 pb-4 overflow-y-auto">
@@ -502,10 +589,7 @@ export default function SubscriptionPage({ user, onSignOut, onPaymentSuccess, on
               return (
                 <li key={i} className="flex items-center gap-4">
                   <div className="w-12 h-12 rounded-full bg-[#1DF5FF]/10 flex items-center justify-center shrink-0">
-                    <Icon
-                      className="w-6 h-6 text-[#1DF5FF]"
-                      strokeWidth={2}
-                    />
+                    <Icon className="w-6 h-6 text-[#1DF5FF]" strokeWidth={2} />
                   </div>
                   <div className="min-w-0">
                     <p className="text-white font-semibold text-base">
@@ -543,7 +627,6 @@ export default function SubscriptionPage({ user, onSignOut, onPaymentSuccess, on
               <span>{error}</span>
             </div>
           )}
-
         </div>
 
         <div className="sticky bottom-0 px-6 pb-6 pt-3 bg-gradient-to-t from-[#120833] via-[#120833]/95 to-transparent shrink-0">
@@ -581,7 +664,9 @@ export default function SubscriptionPage({ user, onSignOut, onPaymentSuccess, on
         {/* ── NAVBAR ── (z-20 > content z-10 supaya dropdown ProfileMenu tampil
             & bisa diklik; kalau sama-sama z-10, content nutupin popup) */}
         <nav className="relative z-20 flex items-center justify-between px-6 pt-6 pb-5 shrink-0">
-          <Logo variant="full" />
+          <button onClick={handleBackToKomunitas}>
+            <Logo variant="full" />
+          </button>
           <ProfileMenu user={user} onSignOut={onSignOut} />
         </nav>
 
@@ -597,9 +682,14 @@ export default function SubscriptionPage({ user, onSignOut, onPaymentSuccess, on
                 <ChevronLeft size={16} /> Kembali ke Home
               </button>
               <h1 className="text-4xl font-cera-pro font-extrabold text-white leading-[150%]">
-                Akses Penuh Sarang Gasing,<br />Perkaya Bekal Mengajar Kamu!
+                Akses Penuh Sarang Gasing,
+                <br />
+                Perkaya Bekal Mengajar Kamu!
               </h1>
-              <div className="text-sm text-white/80 mt-2">Berlangganan untuk menikmati seluruh fitur dan manfaat eksklusif Sarang Gasing.</div>
+              <div className="text-sm text-white/80 mt-2">
+                Berlangganan untuk menikmati seluruh fitur dan manfaat eksklusif
+                Sarang Gasing.
+              </div>
               <ul className="space-y-6 mt-10">
                 {BENEFITS.map((b, i) => {
                   const Icon = b.icon;

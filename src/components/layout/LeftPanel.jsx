@@ -33,7 +33,7 @@ export function LeftPanel() {
       </div>
 
       {/* Audit #6/#23/#41: copyright kiri-bawah image, desktop saja */}
-      <div className="absolute bottom-6 left-6 z-20 text-left">
+      <div className="absolute bottom-4 left-0 right-0 flex flex-col items-center justify-center z-20 text-left">
         <p className="text-xs text-white/70">©2026 Gasing Academy. All rights reserved.</p>
         <p className="mt-1 text-[11px] text-white/40 select-all">
           v{" "}
