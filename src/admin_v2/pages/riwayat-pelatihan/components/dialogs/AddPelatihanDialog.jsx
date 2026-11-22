@@ -36,12 +36,13 @@ function downloadTemplate() {
   URL.revokeObjectURL(url);
 }
 
-export function AddPelatihanDialog({ open, onClose, onSave }) {
+export function AddPelatihanDialog({ open, onClose, onSave, isPending = false }) {
   const [name, setName] = useState("");
   const [regionId, setRegionId] = useState("");
   const [dateRange, setDateRange] = useState({ from: undefined, to: undefined });
   const [pesertaFile, setPesertaFile] = useState(null);
   const [dateOpen, setDateOpen] = useState(false);
+  const [error, setError] = useState("");
   const fileInputRef = useRef(null);
 
   const resetForm = () => {
@@ -50,9 +51,11 @@ export function AddPelatihanDialog({ open, onClose, onSave }) {
     setDateRange({ from: undefined, to: undefined });
     setDateOpen(false);
     setPesertaFile(null);
+    setError("");
   };
 
   const handleClose = () => {
+    if (isPending) return;
     resetForm();
     onClose?.();
   };
@@ -74,13 +77,39 @@ export function AddPelatihanDialog({ open, onClose, onSave }) {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    onSave?.({
-      name,
-      regionId,
-      dateRange,
-      pesertaFile,
-    });
-    handleClose();
+    setError("");
+
+    if (!name.trim()) {
+      setError("Nama pelatihan wajib diisi.");
+      return;
+    }
+    if (!regionId) {
+      setError("Daerah pelatihan wajib dipilih.");
+      return;
+    }
+    if (!dateRange?.from || !dateRange?.to) {
+      setError("Tanggal mulai & berakhir wajib dipilih.");
+      return;
+    }
+
+    const startDate = format(dateRange.from, "yyyy-MM-dd");
+    const endDate = format(dateRange.to, "yyyy-MM-dd");
+
+    onSave?.(
+      {
+        name: name.trim(),
+        regionId,
+        startDate,
+        endDate,
+        pesertaFile,
+      },
+      {
+        onSuccess: () => {
+          resetForm();
+          onClose?.();
+        },
+      },
+    );
   };
 
   return (
@@ -200,8 +229,12 @@ export function AddPelatihanDialog({ open, onClose, onSave }) {
             </div>
           </div>
 
+          {error && <p className="text-xs font-medium text-destructive">{error}</p>}
+
           <DialogFooter className="pt-2">
-            <Button type="submit">Tambah Pelatihan Baru</Button>
+            <Button type="submit" disabled={isPending}>
+              {isPending ? "Menambahkan…" : "Tambah Pelatihan Baru"}
+            </Button>
           </DialogFooter>
         </form>
       </DialogContent>

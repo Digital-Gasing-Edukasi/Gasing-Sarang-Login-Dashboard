@@ -1,13 +1,18 @@
 import { useEffect, useMemo, useState } from "react";
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Download, Plus, Search } from "lucide-react";
 import {
+  createTrainingSession,
   fetchTrainingSessions,
+  pushTrainingHistoryImport,
   trainingSessionsKeys,
+  uploadTrainingHistoryImport,
+  waitQueueJob,
 } from "../../lib/api/index.js";
 import { useDebouncedValue } from "../../hooks/useDebouncedValue.js";
 import { Button } from "../../components/ui/button.jsx";
 import { Input } from "../../components/ui/input.jsx";
+import { toast } from "../../components/ui/use-toast.js";
 import { DataTable, Pagination } from "../../components/index.js";
 import {
   AddPelatihanDialog,
@@ -26,6 +31,7 @@ function useTrainingSessionsList(page, limit, keyword) {
 }
 
 export default function RiwayatPelatihanPage() {
+  const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(DEFAULT_LIMIT);
   const [keyword, setKeyword] = useState("");
@@ -41,6 +47,61 @@ export default function RiwayatPelatihanPage() {
     limit,
     debouncedKeyword,
   );
+
+  const addMutation = useMutation({
+    mutationFn: async ({ name, regionId, startDate, endDate, pesertaFile }) => {
+      const res = await createTrainingSession({
+        name,
+        regionId,
+        startDate,
+        endDate,
+      });
+
+      const sessionId = res?.id || res?.data?.id;
+
+      let pesertaWarn = "";
+      if (pesertaFile && sessionId) {
+        try {
+          const up = await uploadTrainingHistoryImport(pesertaFile, sessionId);
+          const upTrackId = up?.trackId ?? up?.data?.trackId;
+          const importId = up?.importId ?? up?.data?.importId;
+
+          if (upTrackId) {
+            await waitQueueJob(upTrackId);
+          }
+
+          if (importId) {
+            const pushRes = await pushTrainingHistoryImport(importId);
+            const pushTrackId = pushRes?.trackId ?? pushRes?.data?.trackId;
+            if (pushTrackId) {
+              await waitQueueJob(pushTrackId);
+            }
+          }
+        } catch (impErr) {
+          pesertaWarn = ` (import peserta gagal: ${impErr.message || "error"})`;
+        }
+      }
+
+      return { name, pesertaWarn };
+    },
+    onSuccess: ({ name, pesertaWarn }) => {
+      setPage(1);
+      queryClient.invalidateQueries({ queryKey: trainingSessionsKeys.all });
+      refetch();
+      toast({
+        title: "Pelatihan berhasil ditambahkan",
+        description: `Pelatihan ${name} berhasil ditambahkan.${pesertaWarn}`,
+      });
+      setIsAddOpen(false);
+    },
+    onError: (err) => {
+      toast({
+        title: "Gagal menambahkan pelatihan",
+        description: err.message || "Terjadi kesalahan saat menambahkan pelatihan.",
+        variant: "destructive",
+      });
+    },
+  });
 
   const handleLimit = (next) => {
     setLimit(next);
@@ -115,7 +176,8 @@ export default function RiwayatPelatihanPage() {
       <AddPelatihanDialog
         open={isAddOpen}
         onClose={() => setIsAddOpen(false)}
-        onSave={() => setIsAddOpen(false)}
+        onSave={(payload) => addMutation.mutate(payload)}
+        isPending={addMutation.isPending}
       />
     </div>
   );

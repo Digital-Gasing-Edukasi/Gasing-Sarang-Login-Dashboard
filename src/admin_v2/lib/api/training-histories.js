@@ -1,9 +1,36 @@
-import { apiGet } from "./client.js";
+import { apiGet, apiPost, apiPostMultipart } from "./client.js";
 
 // GET /admin/users/training-history/:userId?page&limit
 // → { data: [{ name, region, startDate, endDate }], meta: { current_page, last_page, ... } }
 export function fetchTrainingHistory({ userId, page = 1, limit = 100 }) {
   return apiGet(`/admin/users/training-history/${userId}`, { page, limit });
+}
+
+// Upload CSV file (field `file`) + `trainingSessionId` → { importId, trackId }
+export function uploadTrainingHistoryImport(file, trainingSessionId) {
+  const fd = new FormData();
+  fd.append("file", file);
+  fd.append("trainingSessionId", trainingSessionId);
+  return apiPostMultipart("/admin/training-histories/imports", fd);
+}
+
+// Commit import ke tabel training_histories → { trackId }
+export function pushTrainingHistoryImport(importId) {
+  return apiPost(`/admin/training-histories/imports/${importId}/push`);
+}
+
+// Poll async queue job sampai COMPLETED atau FAILED
+export async function waitQueueJob(trackId, { interval = 1000, tries = 60 } = {}) {
+  for (let i = 0; i < tries; i++) {
+    const res = await apiGet(`/queue/jobs/${trackId}`);
+    const job = res?.data || res;
+    if (job?.status === "COMPLETED") return job;
+    if (job?.status === "FAILED") {
+      throw new Error(job.error || "Proses gagal di server.");
+    }
+    await new Promise((r) => setTimeout(r, interval));
+  }
+  throw new Error("Timeout menunggu proses server.");
 }
 
 export const trainingHistoryKeys = {

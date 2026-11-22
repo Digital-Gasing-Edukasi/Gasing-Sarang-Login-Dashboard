@@ -6,6 +6,7 @@ export {
   apiPost,
   apiPatch,
   apiDelete,
+  apiPostMultipart,
 } from "./client.js";
 export { adminV2Tokens } from "./tokens.js";
 export {
@@ -26,11 +27,15 @@ export {
   SUSPEND_REASONS_CACHE,
 } from "./users.js";
 export {
+  createTrainingSession,
   fetchTrainingSessions,
   trainingSessionsKeys,
 } from "./training-sessions.js";
 export {
   fetchTrainingHistory,
+  uploadTrainingHistoryImport,
+  pushTrainingHistoryImport,
+  waitQueueJob,
   trainingHistoryKeys,
 } from "./training-histories.js";
 export {

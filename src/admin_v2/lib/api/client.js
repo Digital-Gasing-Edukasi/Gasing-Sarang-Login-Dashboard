@@ -71,27 +71,29 @@ function buildUrl(endpoint, query) {
   return `${ADMIN_V2_BASE_URL}${endpoint}${search ? `?${search}` : ""}`;
 }
 
-async function doFetch(url, { method, body }) {
+async function doFetch(url, { method, body, formData }) {
   const headers = { Accept: "application/json" };
   const token = adminV2Tokens.getAccess();
   if (token) headers.Authorization = `Bearer ${token}`;
 
   const init = { method, headers };
-  if (body !== undefined) {
+  if (formData !== undefined) {
+    init.body = formData;
+  } else if (body !== undefined) {
     headers["Content-Type"] = "application/json";
     init.body = JSON.stringify(body);
   }
   return fetch(url, init);
 }
 
-export async function apiRequest(endpoint, { method = "GET", query, body } = {}) {
+export async function apiRequest(endpoint, { method = "GET", query, body, formData } = {}) {
   const url = buildUrl(endpoint, query);
-  let res = await doFetch(url, { method, body });
+  let res = await doFetch(url, { method, body, formData });
 
   if (res.status === 401 && adminV2Tokens.getRefresh()) {
     const refreshed = await tryRefreshToken();
     if (refreshed) {
-      res = await doFetch(url, { method, body });
+      res = await doFetch(url, { method, body, formData });
     } else {
       adminV2Tokens.clear();
       window.location.href = "/login";
@@ -115,3 +117,6 @@ export const apiPatch = (endpoint, body, query) =>
 
 export const apiDelete = (endpoint, query) =>
   apiRequest(endpoint, { method: "DELETE", query });
+
+export const apiPostMultipart = (endpoint, formData, query) =>
+  apiRequest(endpoint, { method: "POST", formData, query });
