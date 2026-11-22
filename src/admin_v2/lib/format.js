@@ -72,6 +72,14 @@ export function formatTrainingPeriod(year, month) {
   return `${ID_MONTHS[m - 1]} ${year}`;
 }
 
+// { month, year } → "Mar 2024" (abbreviated).
+export function formatTrainingPeriodAbbr(year, month) {
+  const m = Number(month);
+  if (!year || !Number.isInteger(m) || m < 1 || m > 12) return FALLBACK_TEXT;
+  const abbr = ID_MONTH_ABBR[ID_MONTHS[m - 1]];
+  return `${abbr ?? ID_MONTHS[m - 1]} ${year}`;
+}
+
 // "06 April 2026 00:00:00" → "06 Apr 2026".
 export function formatShortDate(formatted) {
   if (!formatted) return FALLBACK_TEXT;

@@ -6,22 +6,23 @@ import {
   Undo2,
   UserCog,
 } from "lucide-react";
+import { OverflowText } from "../../../components/OverflowText.jsx";
+import { RoleBadge } from "../../../components/RoleBadge.jsx";
+import { StatusPill } from "../../../components/StatusPill.jsx";
 import { Button } from "../../../components/ui/button.jsx";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "../../../components/ui/popover.jsx";
-import { OverflowText } from "../../../components/OverflowText.jsx";
+import { UserCell } from "../../../components/UserCell.jsx";
 import {
   formatBirthdate,
   formatSessionDate,
   formatShortDate,
+  formatTrainingPeriodAbbr,
   formatUpdatedAt,
 } from "../../../lib/format.js";
-import { RoleBadge } from "../../../components/RoleBadge.jsx";
-import { StatusPill } from "../../../components/StatusPill.jsx";
-import { UserCell } from "../../../components/UserCell.jsx";
 
 const text = (value) => (
   <OverflowText value={value} className="text-sm text-foreground" />
@@ -47,9 +48,18 @@ const memberPill = (label, className) => (
 const PACKAGE_NAMES = { Yearly: "Tahunan", Monthly: "Bulanan" };
 
 const SUBSCRIPTION_META = {
-  active: { label: "Aktif", className: "border-green-300 bg-green-100 text-green-700" },
-  not_subscribed: { label: "Belum Langganan", className: "border-orange-300 bg-orange-100 text-orange-700" },
-  expired: { label: "Expired", className: "border-red-300 bg-red-100 text-red-700" },
+  active: {
+    label: "Aktif",
+    className: "border-green-300 bg-green-100 text-green-700",
+  },
+  not_subscribed: {
+    label: "Belum Langganan",
+    className: "border-orange-300 bg-orange-100 text-orange-700",
+  },
+  expired: {
+    label: "Expired",
+    className: "border-red-300 bg-red-100 text-red-700",
+  },
 };
 
 const subscriptionPill = (status) => {
@@ -88,7 +98,35 @@ const alumniColumns = [
     key: "session-start",
     header: "Tanggal Mulai",
     sub: "Alumni Pelatihan",
-    render: (u) => text(formatSessionDate(u.firstTrainingSession?.startDate?.local?.formatted)),
+    render: (u) =>
+      text(
+        formatTrainingPeriodAbbr(
+          u.userSpecifiedFirstTraining?.year,
+          u.userSpecifiedFirstTraining?.month,
+        ),
+      ),
+  },
+];
+
+const alumniRejectedColumns = [
+  {
+    key: "training-region",
+    header: "Daerah",
+    sub: "Alumni Pelatihan",
+    wrap: true,
+    render: (u) => text(u.firstTrainingRegion?.regionName),
+  },
+  {
+    key: "session-start",
+    header: "Tanggal Mulai",
+    sub: "Alumni Pelatihan",
+    render: (u) =>
+      text(
+        formatTrainingPeriodAbbr(
+          u.userSpecifiedFirstTraining?.year,
+          u.userSpecifiedFirstTraining?.month,
+        ),
+      ),
   },
 ];
 
@@ -108,9 +146,19 @@ const accountColumns = [
     header: "Tgl. Lahir",
     render: (u) => text(formatBirthdate(u.birthdate)),
   },
-  { key: "region", header: "Lokasi", wrap: true, render: (u) => text(u.region?.regionName) },
+  {
+    key: "region",
+    header: "Lokasi",
+    wrap: true,
+    render: (u) => text(u.region?.regionName),
+  },
   ...alumniColumns,
-  { key: "school", header: "Asal Sekolah", wrap: true, render: (u) => text(u.schoolName) },
+  {
+    key: "school",
+    header: "Asal Sekolah",
+    wrap: true,
+    render: (u) => text(u.schoolName),
+  },
   {
     key: "updated",
     header: "Last Updated",
@@ -128,12 +176,16 @@ const subscriptionColumns = [
     key: "package",
     header: "Jenis Paket",
     render: (u) =>
-      text(PACKAGE_NAMES[u.subscription?.package?.name] ?? u.subscription?.package?.name),
+      text(
+        PACKAGE_NAMES[u.subscription?.package?.name] ??
+          u.subscription?.package?.name,
+      ),
   },
   {
     key: "period-end",
     header: "Tgl. Berakhir",
-    render: (u) => text(formatShortDate(u.subscription?.endDate?.local?.formatted)),
+    render: (u) =>
+      text(formatShortDate(u.subscription?.endDate?.local?.formatted)),
   },
   {
     key: "voucher",
@@ -144,7 +196,10 @@ const subscriptionColumns = [
     key: "role",
     header: "Role",
     render: (u) => (
-      <RoleBadge groupId={u.discourseGroupId} label={u.discourseGroup?.groupName} />
+      <RoleBadge
+        groupId={u.discourseGroupId}
+        label={u.discourseGroup?.groupName}
+      />
     ),
   },
 ];
@@ -193,7 +248,9 @@ function ActionMenu({ user, actions, items }) {
 const actionColumn = (items) => ({
   key: "action",
   header: "Action",
-  render: (u, actions) => <ActionMenu user={u} actions={actions} items={items} />,
+  render: (u, actions) => (
+    <ActionMenu user={u} actions={actions} items={items} />
+  ),
 });
 
 const disetujuiColumns = [
@@ -211,9 +268,26 @@ const disetujuiColumns = [
   },
   ...accountColumns,
   actionColumn([
-    { key: "change-role", label: "Ubah Role", Icon: UserCog, onSelect: (u, a) => a?.onChangeRole?.(u) },
-    { key: "suspend", label: "Tangguhkan Akun", Icon: PauseCircle, tone: "amber", onSelect: (u, a) => a?.onSuspendAccount?.(u) },
-    { key: "delete", label: "Hapus Akun", Icon: Trash2, tone: "red", onSelect: (u, a) => a?.onDeleteAccount?.(u) },
+    {
+      key: "change-role",
+      label: "Ubah Role",
+      Icon: UserCog,
+      onSelect: (u, a) => a?.onChangeRole?.(u),
+    },
+    {
+      key: "suspend",
+      label: "Tangguhkan Akun",
+      Icon: PauseCircle,
+      tone: "amber",
+      onSelect: (u, a) => a?.onSuspendAccount?.(u),
+    },
+    {
+      key: "delete",
+      label: "Hapus Akun",
+      Icon: Trash2,
+      tone: "red",
+      onSelect: (u, a) => a?.onDeleteAccount?.(u),
+    },
   ]),
 ];
 
@@ -229,8 +303,19 @@ const ditolakColumns = [
     header: "Tgl. Lahir",
     render: (u) => text(formatBirthdate(u.birthdate)),
   },
-  { key: "region", header: "Lokasi", wrap: true, render: (u) => text(u.region?.regionName) },
-  { key: "school", header: "Asal Sekolah", wrap: true, render: (u) => text(u.schoolName) },
+  {
+    key: "region",
+    header: "Lokasi",
+    wrap: true,
+    render: (u) => text(u.region?.regionName),
+  },
+  ...alumniRejectedColumns,
+  {
+    key: "school",
+    header: "Asal Sekolah",
+    wrap: true,
+    render: (u) => text(u.schoolName),
+  },
   {
     key: "updated",
     header: "Last Updated",
@@ -245,7 +330,13 @@ const ditolakColumns = [
       show: (u) => u.verifiedStatus === -1,
       onSelect: (u, a) => a?.onReverify?.(u),
     },
-    { key: "delete", label: "Hapus Akun", Icon: Trash2, tone: "red", onSelect: (u, a) => a?.onDeleteAccount?.(u) },
+    {
+      key: "delete",
+      label: "Hapus Akun",
+      Icon: Trash2,
+      tone: "red",
+      onSelect: (u, a) => a?.onDeleteAccount?.(u),
+    },
   ]),
 ];
 
@@ -255,12 +346,16 @@ const ditangguhkanColumns = [
     key: "member-status",
     header: "Status Member",
     render: () =>
-      memberPill("Ditangguhkan", "border-orange-300 bg-orange-100 text-orange-700"),
+      memberPill(
+        "Ditangguhkan",
+        "border-orange-300 bg-orange-100 text-orange-700",
+      ),
   },
   {
     key: "suspended-until",
     header: "Ditangguhkan Hingga",
-    render: (u) => text(formatUpdatedAt(u.suspended?.lifted_at?.local?.formatted)),
+    render: (u) =>
+      text(formatUpdatedAt(u.suspended?.lifted_at?.local?.formatted)),
   },
   ...subscriptionColumns,
   {
@@ -270,8 +365,20 @@ const ditangguhkanColumns = [
   },
   ...accountColumns,
   actionColumn([
-    { key: "restore", label: "Pulihkan Akun", Icon: Undo2, tone: "green", onSelect: (u, a) => a?.onUnsuspendAccount?.(u) },
-    { key: "delete", label: "Hapus Akun", Icon: Trash2, tone: "red", onSelect: (u, a) => a?.onDeleteAccount?.(u) },
+    {
+      key: "restore",
+      label: "Pulihkan Akun",
+      Icon: Undo2,
+      tone: "green",
+      onSelect: (u, a) => a?.onUnsuspendAccount?.(u),
+    },
+    {
+      key: "delete",
+      label: "Hapus Akun",
+      Icon: Trash2,
+      tone: "red",
+      onSelect: (u, a) => a?.onDeleteAccount?.(u),
+    },
   ]),
 ];
 
@@ -286,12 +393,25 @@ const dihapusColumns = [
   {
     key: "delete-at",
     header: "Akan Dihapus pada",
-    render: (u) => text(formatShortDate(u.deletion?.will_be_deleted_at?.local?.formatted)),
+    render: (u) =>
+      text(formatShortDate(u.deletion?.will_be_deleted_at?.local?.formatted)),
   },
   ...accountColumns,
   actionColumn([
-    { key: "restore", label: "Pulihkan Akun", Icon: Undo2, tone: "green", onSelect: (u, a) => a?.onCancelDeletion?.(u) },
-    { key: "delete-permanent", label: "Hapus Akun Selamanya", Icon: Trash2, tone: "red", onSelect: (u, a) => a?.onDeletePermanent?.(u) },
+    {
+      key: "restore",
+      label: "Pulihkan Akun",
+      Icon: Undo2,
+      tone: "green",
+      onSelect: (u, a) => a?.onCancelDeletion?.(u),
+    },
+    {
+      key: "delete-permanent",
+      label: "Hapus Akun Selamanya",
+      Icon: Trash2,
+      tone: "red",
+      onSelect: (u, a) => a?.onDeletePermanent?.(u),
+    },
   ]),
 ];
 
