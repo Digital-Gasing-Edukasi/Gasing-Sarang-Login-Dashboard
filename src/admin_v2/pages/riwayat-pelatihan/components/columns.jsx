@@ -7,7 +7,7 @@ const text = (value) => (
   <OverflowText value={value} className="text-sm text-foreground" />
 );
 
-export function getRiwayatPelatihanColumns({ onEdit, onDownload } = {}) {
+export function getRiwayatPelatihanColumns({ onEdit, onDownload, onViewParticipants } = {}) {
   return [
     {
       key: "name",
@@ -32,14 +32,15 @@ export function getRiwayatPelatihanColumns({ onEdit, onDownload } = {}) {
     },
     {
       key: "participants",
-      header: "Nama Peserta",
-      render: () => (
-        <a
-          href="#"
+      header: "Peserta",
+      render: (s) => (
+        <button
+          type="button"
+          onClick={() => onViewParticipants?.(s)}
           className="whitespace-nowrap text-sm font-medium text-blue-600 hover:underline"
         >
-          Lihat perserta
-        </a>
+          {s.participantCount} peserta terdaftar
+        </button>
       ),
     },
     {

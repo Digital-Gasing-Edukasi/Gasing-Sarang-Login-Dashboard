@@ -23,6 +23,13 @@ const mockSession = {
   },
 };
 
+const mockParticipant = {
+  id: "p-1",
+  name: "Ade Raharja",
+  email: "ade@gmail.com",
+  status: "active",
+};
+
 describe("RiwayatPelatihanPage", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
@@ -62,29 +69,17 @@ describe("RiwayatPelatihanPage", () => {
     ).toBeInTheDocument();
   });
 
-  it("submits training session creation and triggers upload flow if csv file provided", async () => {
+  it("opens SessionParticipantsDialog when 'Lihat peserta' is clicked", async () => {
     vi.spyOn(api, "fetchTrainingSessions").mockResolvedValue({
       data: [mockSession],
       meta: { page: 1, limit: 20, total: 100, last_page: 5 },
     });
-    vi.spyOn(api, "fetchProvinces").mockResolvedValue([
-      { id: "prov-1", name: "Jawa Barat" },
-    ]);
-
-    const createSpy = vi.spyOn(api, "createTrainingSession").mockResolvedValue({
-      id: "session-123",
-      name: "Pelatihan Baru",
-    });
-    const uploadSpy = vi.spyOn(api, "uploadTrainingHistoryImport").mockResolvedValue({
-      importId: "import-1",
-      trackId: "track-up-1",
-    });
-    const waitJobSpy = vi.spyOn(api, "waitQueueJob").mockResolvedValue({
-      status: "COMPLETED",
-    });
-    const pushSpy = vi.spyOn(api, "pushTrainingHistoryImport").mockResolvedValue({
-      trackId: "track-push-1",
-    });
+    const fetchParticipantsSpy = vi
+      .spyOn(api, "fetchSessionParticipants")
+      .mockResolvedValue({
+        data: [mockParticipant],
+        meta: { page: 1, limit: 20, total: 1, last_page: 1 },
+      });
 
     const client = new QueryClient({
       defaultOptions: { queries: { retry: false } },
@@ -97,13 +92,19 @@ describe("RiwayatPelatihanPage", () => {
     );
 
     const user = userEvent.setup();
-    await user.click(screen.getByRole("button", { name: /tambah pelatihan baru/i }));
+    const lihatBtn = await screen.findByRole("button", { name: /peserta terdaftar/i });
+    await user.click(lihatBtn);
 
-    // Fill name
-    await user.type(screen.getByPlaceholderText("Masukkan nama pelatihan"), "Pelatihan Bandung");
+    expect(await screen.findByRole("heading", { name: "Daftar Peserta Guru" })).toBeInTheDocument();
+    expect(screen.getByText("1 Peserta")).toBeInTheDocument();
+    expect(screen.getByText(/Pelatihan Garut · Kabupaten Garut · 17 Nov 2026/)).toBeInTheDocument();
+    expect(await screen.findByText("Ade Raharja")).toBeInTheDocument();
+    expect(screen.getByText("ade@gmail.com")).toBeInTheDocument();
+    expect(screen.getByText("Aktif")).toBeInTheDocument();
 
-    // Submit without dates/region triggers validation error
-    await user.click(screen.getByRole("button", { name: "Tambah Pelatihan Baru" }));
-    expect(await screen.findByText(/daerah pelatihan wajib dipilih/i)).toBeInTheDocument();
+    expect(fetchParticipantsSpy).toHaveBeenCalledWith(mockSession.id, {
+      page: 1,
+      limit: 20,
+    });
   });
 });

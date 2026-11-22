@@ -17,6 +17,7 @@ export function DataTable({
   emptyText,
   stickyFirst = true,
   stickyLast = true,
+  fixedWidth = true,
 }) {
   const lastIdx = columns.length - 1;
   const isEmpty = !loading && !error && rows.length === 0;
@@ -51,7 +52,8 @@ export function DataTable({
                 <th
                   key={col.key}
                   className={cn(
-                    "min-w-[180px] max-w-[280px] px-4 py-3 align-bottom font-semibold text-foreground",
+                    fixedWidth && "min-w-[180px] max-w-[280px]",
+                    "px-4 py-3 align-bottom font-semibold text-foreground",
                     col.className,
                     headSticky(idx),
                   )}
@@ -94,10 +96,12 @@ export function DataTable({
                       <td
                         key={col.key}
                         className={cn(
-                          "min-w-[180px] max-w-[280px] px-4 py-3 align-top",
+                          fixedWidth && "min-w-[180px] max-w-[280px]",
+                          "px-4 py-3 align-top",
                           col.wrap
                             ? "break-words [&_p]:line-clamp-2 [&_span]:line-clamp-2"
                             : "whitespace-nowrap",
+                          col.className,
                           bodySticky(idx),
                         )}
                       >

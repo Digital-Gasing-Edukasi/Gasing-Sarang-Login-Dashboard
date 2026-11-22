@@ -16,6 +16,7 @@ import { toast } from "../../components/ui/use-toast.js";
 import { DataTable, Pagination } from "../../components/index.js";
 import {
   AddPelatihanDialog,
+  SessionParticipantsDialog,
   getRiwayatPelatihanColumns,
 } from "./components/index.js";
 
@@ -36,6 +37,7 @@ export default function RiwayatPelatihanPage() {
   const [limit, setLimit] = useState(DEFAULT_LIMIT);
   const [keyword, setKeyword] = useState("");
   const [isAddOpen, setIsAddOpen] = useState(false);
+  const [participantsSession, setParticipantsSession] = useState(null);
   const debouncedKeyword = useDebouncedValue(keyword, 500);
 
   useEffect(() => {
@@ -113,6 +115,7 @@ export default function RiwayatPelatihanPage() {
       getRiwayatPelatihanColumns({
         onEdit: () => {},
         onDownload: () => {},
+        onViewParticipants: (session) => setParticipantsSession(session),
       }),
     [],
   );
@@ -178,6 +181,11 @@ export default function RiwayatPelatihanPage() {
         onClose={() => setIsAddOpen(false)}
         onSave={(payload) => addMutation.mutate(payload)}
         isPending={addMutation.isPending}
+      />
+
+      <SessionParticipantsDialog
+        session={participantsSession}
+        onClose={() => setParticipantsSession(null)}
       />
     </div>
   );

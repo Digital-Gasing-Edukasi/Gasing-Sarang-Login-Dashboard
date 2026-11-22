@@ -33,6 +33,16 @@ export async function waitQueueJob(trackId, { interval = 1000, tries = 60 } = {}
   throw new Error("Timeout menunggu proses server.");
 }
 
+// GET /admin/training-histories/sessions/:sessionId/participants?page&limit&sort[by]=createdAt&sort[order]=desc
+export function fetchSessionParticipants(sessionId, { page = 1, limit = 20, sortBy = "createdAt", sortOrder = "desc" } = {}) {
+  return apiGet(`/admin/training-histories/sessions/${sessionId}/participants`, {
+    page,
+    limit,
+    "sort[by]": sortBy,
+    "sort[order]": sortOrder,
+  });
+}
+
 export const trainingHistoryKeys = {
   all: ["admin_v2", "training-history"],
   byUser: (userId) => ["admin_v2", "training-history", userId],
@@ -40,6 +50,13 @@ export const trainingHistoryKeys = {
     "admin_v2",
     "training-history",
     userId,
+    { page, limit },
+  ],
+  participants: (sessionId, { page = 1, limit = 20 } = {}) => [
+    "admin_v2",
+    "training-history",
+    "participants",
+    sessionId,
     { page, limit },
   ],
 };

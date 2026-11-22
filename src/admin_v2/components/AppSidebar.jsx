@@ -21,7 +21,7 @@ export function AppSidebar({ user, onLogout }) {
           return (
             <Button
               key={menu.key}
-              variant={isActive ? "secondary" : "ghost"}
+              variant={isActive ? "default" : "ghost"}
               onClick={() => navigate(adminV2Path(menu))}
               className={cn(
                 "w-full justify-start gap-3 px-3",

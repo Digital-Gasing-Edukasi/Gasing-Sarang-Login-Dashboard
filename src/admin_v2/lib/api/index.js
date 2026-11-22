@@ -33,6 +33,7 @@ export {
 } from "./training-sessions.js";
 export {
   fetchTrainingHistory,
+  fetchSessionParticipants,
   uploadTrainingHistoryImport,
   pushTrainingHistoryImport,
   waitQueueJob,
