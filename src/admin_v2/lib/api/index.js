@@ -29,6 +29,7 @@ export {
 export {
   createTrainingSession,
   updateTrainingSession,
+  deleteTrainingSession,
   fetchTrainingSessions,
   trainingSessionsKeys,
 } from "./training-sessions.js";

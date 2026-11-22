@@ -3,6 +3,7 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tansta
 import { Download, Plus, Search } from "lucide-react";
 import {
   createTrainingSession,
+  deleteTrainingSession,
   fetchTrainingSessions,
   pushTrainingHistoryImport,
   trainingSessionsKeys,
@@ -17,6 +18,7 @@ import { toast } from "../../components/ui/use-toast.js";
 import { DataTable, Pagination } from "../../components/index.js";
 import {
   AddPelatihanDialog,
+  DeleteTrainingSessionDialog,
   SessionParticipantsDialog,
   getRiwayatPelatihanColumns,
 } from "./components/index.js";
@@ -39,6 +41,7 @@ export default function RiwayatPelatihanPage() {
   const [keyword, setKeyword] = useState("");
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [editingSession, setEditingSession] = useState(null);
+  const [deletingSession, setDeletingSession] = useState(null);
   const [participantsSession, setParticipantsSession] = useState(null);
   const debouncedKeyword = useDebouncedValue(keyword, 500);
 
@@ -159,6 +162,27 @@ export default function RiwayatPelatihanPage() {
     },
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: (session) => deleteTrainingSession(session.id),
+    onSuccess: (_, session) => {
+      queryClient.invalidateQueries({ queryKey: trainingSessionsKeys.all });
+      refetch();
+      toast({
+        title: "Pelatihan dihapus",
+        description: `Riwayat pelatihan ${session?.name || ""} berhasil dihapus.`,
+      });
+      setDeletingSession(null);
+      setEditingSession(null);
+    },
+    onError: (err) => {
+      toast({
+        title: "Gagal menghapus pelatihan",
+        description: err.message || "Terjadi kesalahan saat menghapus pelatihan.",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleLimit = (next) => {
     setLimit(next);
     setPage(1);
@@ -244,7 +268,16 @@ export default function RiwayatPelatihanPage() {
         onSave={(payload) =>
           updateMutation.mutate({ ...payload, id: editingSession.id })
         }
+        onDelete={(session) => setDeletingSession(session)}
         isPending={updateMutation.isPending}
+      />
+
+      <DeleteTrainingSessionDialog
+        session={deletingSession}
+        open={!!deletingSession}
+        onClose={() => setDeletingSession(null)}
+        onConfirm={(session) => deleteMutation.mutate(session)}
+        isPending={deleteMutation.isPending}
       />
 
       <SessionParticipantsDialog

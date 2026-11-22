@@ -60,6 +60,7 @@ export function AddPelatihanDialog({
   session,
   onClose,
   onSave,
+  onDelete,
   isPending = false,
 }) {
   const isEdit = !!session;
@@ -283,7 +284,19 @@ export function AddPelatihanDialog({
 
           {error && <p className="text-xs font-medium text-destructive">{error}</p>}
 
-          <DialogFooter className="pt-2">
+          <DialogFooter className="pt-2 flex items-center justify-between gap-2 sm:justify-between">
+            {isEdit ? (
+              <Button
+                type="button"
+                variant="destructive"
+                onClick={() => onDelete?.(session)}
+                disabled={isPending}
+              >
+                Hapus Riwayat
+              </Button>
+            ) : (
+              <div />
+            )}
             <Button type="submit" disabled={isPending}>
               {isPending
                 ? isEdit

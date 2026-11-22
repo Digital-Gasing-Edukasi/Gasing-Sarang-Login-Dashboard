@@ -1,4 +1,4 @@
-import { apiGet, apiPatch, apiPost } from "./client.js";
+import { apiGet, apiPatch, apiPost, apiDelete } from "./client.js";
 
 // GET /training-sessions?page&limit&keyword&regionId
 // Paginated `{ data, meta }` normally, but a bare array when regionId is
@@ -20,6 +20,10 @@ export async function createTrainingSession(data) {
 
 export async function updateTrainingSession(id, data) {
   return apiPatch(`/admin/training-sessions/${id}`, data);
+}
+
+export async function deleteTrainingSession(id) {
+  return apiDelete(`/admin/training-sessions/${id}`);
 }
 
 export const trainingSessionsKeys = {

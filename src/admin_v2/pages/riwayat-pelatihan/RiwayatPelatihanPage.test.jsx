@@ -128,6 +128,68 @@ describe("RiwayatPelatihanPage", () => {
     });
   });
 
+  it("opens delete confirmation modal when 'Hapus Riwayat' is clicked and deletes on typing DELETE", async () => {
+    vi.spyOn(api, "fetchTrainingSessions").mockResolvedValue({
+      data: [mockSession],
+      meta: { page: 1, limit: 20, total: 100, last_page: 5 },
+    });
+    vi.spyOn(api, "fetchProvinces").mockResolvedValue([
+      { id: "prov-1", name: "Jawa Barat" },
+    ]);
+    vi.spyOn(api, "fetchRegion").mockResolvedValue({
+      id: "reg-1",
+      parentId: "prov-1",
+      name: "Kabupaten Garut",
+    });
+    const deleteSpy = vi
+      .spyOn(api, "deleteTrainingSession")
+      .mockResolvedValue({ success: true });
+
+    const client = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+
+    render(
+      <QueryClientProvider client={client}>
+        <RiwayatPelatihanPage />
+      </QueryClientProvider>,
+    );
+
+    const user = userEvent.setup();
+    const editBtn = await screen.findByRole("button", { name: /^edit$/i });
+    await user.click(editBtn);
+
+    const hapusRiwayatBtn = await screen.findByRole("button", {
+      name: "Hapus Riwayat",
+    });
+    await user.click(hapusRiwayatBtn);
+
+    expect(
+      await screen.findByRole("heading", {
+        name: "Yakin Hapus Riwayat Pelatihan?",
+      }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/Kamu akan menghapus Pelatihan Garut/i),
+    ).toBeInTheDocument();
+
+    const deleteInput = screen.getByPlaceholderText("DELETE");
+    const confirmHapusBtn = screen.getByRole("button", { name: "Hapus" });
+    expect(confirmHapusBtn).toBeDisabled();
+
+    await user.type(deleteInput, "delete");
+    expect(confirmHapusBtn).toBeDisabled();
+
+    await user.clear(deleteInput);
+    await user.type(deleteInput, "DELETE");
+    expect(confirmHapusBtn).not.toBeDisabled();
+
+    await user.click(confirmHapusBtn);
+    await waitFor(() => {
+      expect(deleteSpy).toHaveBeenCalledWith(mockSession.id);
+    });
+  });
+
   it("opens SessionParticipantsDialog when 'Lihat peserta' is clicked", async () => {
     vi.spyOn(api, "fetchTrainingSessions").mockResolvedValue({
       data: [mockSession],
