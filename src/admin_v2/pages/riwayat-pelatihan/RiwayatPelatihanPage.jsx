@@ -6,6 +6,7 @@ import {
   fetchTrainingSessions,
   pushTrainingHistoryImport,
   trainingSessionsKeys,
+  updateTrainingSession,
   uploadTrainingHistoryImport,
   waitQueueJob,
 } from "../../lib/api/index.js";
@@ -37,6 +38,7 @@ export default function RiwayatPelatihanPage() {
   const [limit, setLimit] = useState(DEFAULT_LIMIT);
   const [keyword, setKeyword] = useState("");
   const [isAddOpen, setIsAddOpen] = useState(false);
+  const [editingSession, setEditingSession] = useState(null);
   const [participantsSession, setParticipantsSession] = useState(null);
   const debouncedKeyword = useDebouncedValue(keyword, 500);
 
@@ -105,6 +107,58 @@ export default function RiwayatPelatihanPage() {
     },
   });
 
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, name, regionId, startDate, endDate, pesertaFile }) => {
+      await updateTrainingSession(id, {
+        name,
+        regionId,
+        startDate,
+        endDate,
+      });
+
+      let pesertaWarn = "";
+      if (pesertaFile && id) {
+        try {
+          const up = await uploadTrainingHistoryImport(pesertaFile, id);
+          const upTrackId = up?.trackId ?? up?.data?.trackId;
+          const importId = up?.importId ?? up?.data?.importId;
+
+          if (upTrackId) {
+            await waitQueueJob(upTrackId);
+          }
+
+          if (importId) {
+            const pushRes = await pushTrainingHistoryImport(importId);
+            const pushTrackId = pushRes?.trackId ?? pushRes?.data?.trackId;
+            if (pushTrackId) {
+              await waitQueueJob(pushTrackId);
+            }
+          }
+        } catch (impErr) {
+          pesertaWarn = ` (import peserta gagal: ${impErr.message || "error"})`;
+        }
+      }
+
+      return { name, pesertaWarn };
+    },
+    onSuccess: ({ name, pesertaWarn }) => {
+      queryClient.invalidateQueries({ queryKey: trainingSessionsKeys.all });
+      refetch();
+      toast({
+        title: "Perubahan disimpan",
+        description: `Riwayat pelatihan ${name} berhasil diperbarui.${pesertaWarn}`,
+      });
+      setEditingSession(null);
+    },
+    onError: (err) => {
+      toast({
+        title: "Gagal menyimpan perubahan",
+        description: err.message || "Terjadi kesalahan saat memperbarui pelatihan.",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleLimit = (next) => {
     setLimit(next);
     setPage(1);
@@ -113,7 +167,7 @@ export default function RiwayatPelatihanPage() {
   const columns = useMemo(
     () =>
       getRiwayatPelatihanColumns({
-        onEdit: () => {},
+        onEdit: (session) => setEditingSession(session),
         onDownload: () => {},
         onViewParticipants: (session) => setParticipantsSession(session),
       }),
@@ -181,6 +235,16 @@ export default function RiwayatPelatihanPage() {
         onClose={() => setIsAddOpen(false)}
         onSave={(payload) => addMutation.mutate(payload)}
         isPending={addMutation.isPending}
+      />
+
+      <AddPelatihanDialog
+        open={!!editingSession}
+        session={editingSession}
+        onClose={() => setEditingSession(null)}
+        onSave={(payload) =>
+          updateMutation.mutate({ ...payload, id: editingSession.id })
+        }
+        isPending={updateMutation.isPending}
       />
 
       <SessionParticipantsDialog

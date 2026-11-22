@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { format } from "date-fns";
 import { id as idLocale } from "date-fns/locale";
 import { Calendar as CalendarIcon, FileSpreadsheet, Upload } from "lucide-react";
@@ -36,7 +36,33 @@ function downloadTemplate() {
   URL.revokeObjectURL(url);
 }
 
-export function AddPelatihanDialog({ open, onClose, onSave, isPending = false }) {
+function parseDate(dateVal) {
+  if (!dateVal) return undefined;
+  if (dateVal instanceof Date) return dateVal;
+  // If object from backend: startDate.local.iso or startDate.utc.raw or unix
+  if (typeof dateVal === "object") {
+    const str =
+      dateVal.local?.iso ||
+      dateVal.local?.raw ||
+      dateVal.utc?.iso ||
+      dateVal.utc?.raw;
+    if (str) return new Date(str.replace(" ", "T"));
+    if (dateVal.unix) return new Date(dateVal.unix * 1000);
+  }
+  if (typeof dateVal === "string") {
+    return new Date(dateVal.replace(" ", "T"));
+  }
+  return undefined;
+}
+
+export function AddPelatihanDialog({
+  open,
+  session,
+  onClose,
+  onSave,
+  isPending = false,
+}) {
+  const isEdit = !!session;
   const [name, setName] = useState("");
   const [regionId, setRegionId] = useState("");
   const [dateRange, setDateRange] = useState({ from: undefined, to: undefined });
@@ -44,6 +70,26 @@ export function AddPelatihanDialog({ open, onClose, onSave, isPending = false })
   const [dateOpen, setDateOpen] = useState(false);
   const [error, setError] = useState("");
   const fileInputRef = useRef(null);
+
+  useEffect(() => {
+    if (open) {
+      if (session) {
+        setName(session.name || "");
+        setRegionId(session.regionId || session.region?.id || "");
+        setDateRange({
+          from: parseDate(session.startDate),
+          to: parseDate(session.endDate),
+        });
+      } else {
+        setName("");
+        setRegionId("");
+        setDateRange({ from: undefined, to: undefined });
+      }
+      setPesertaFile(null);
+      setDateOpen(false);
+      setError("");
+    }
+  }, [open, session]);
 
   const resetForm = () => {
     setName("");
@@ -116,7 +162,9 @@ export function AddPelatihanDialog({ open, onClose, onSave, isPending = false })
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && handleClose()}>
       <DialogContent className="max-w-xl">
         <DialogHeader>
-          <DialogTitle>Tambah Pelatihan</DialogTitle>
+          <DialogTitle>
+            {isEdit ? "Perbarui Riwayat Pelatihan" : "Tambah Pelatihan"}
+          </DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -132,7 +180,11 @@ export function AddPelatihanDialog({ open, onClose, onSave, isPending = false })
 
           <div className="space-y-2">
             <Label>Daerah</Label>
-            <RegionSelect value={regionId} onValueChange={setRegionId} />
+            <RegionSelect
+              value={regionId}
+              initialLabel={session?.region?.name}
+              onValueChange={setRegionId}
+            />
           </div>
 
           <div className="space-y-2">
@@ -233,7 +285,13 @@ export function AddPelatihanDialog({ open, onClose, onSave, isPending = false })
 
           <DialogFooter className="pt-2">
             <Button type="submit" disabled={isPending}>
-              {isPending ? "Menambahkan…" : "Tambah Pelatihan Baru"}
+              {isPending
+                ? isEdit
+                  ? "Menyimpan…"
+                  : "Menambahkan…"
+                : isEdit
+                  ? "Simpan Perubahan"
+                  : "Tambah Pelatihan Baru"}
             </Button>
           </DialogFooter>
         </form>

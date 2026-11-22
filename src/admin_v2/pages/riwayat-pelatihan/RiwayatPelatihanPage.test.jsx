@@ -10,7 +10,14 @@ const mockSession = {
   name: "Pelatihan Garut",
   startDate: {
     local: {
+      raw: "2026-10-01T07:00:00.000+07:00",
       formatted: "01 October 2026 07:00:00",
+    },
+  },
+  endDate: {
+    local: {
+      raw: "2026-11-30T07:00:00.000+07:00",
+      formatted: "30 November 2026 07:00:00",
     },
   },
   updatedAt: {
@@ -18,7 +25,9 @@ const mockSession = {
       formatted: "17 November 2026 14:57:16",
     },
   },
+  regionId: "reg-1",
   region: {
+    id: "reg-1",
     name: "Kabupaten Garut",
   },
 };
@@ -67,6 +76,56 @@ describe("RiwayatPelatihanPage", () => {
     expect(
       screen.getByText(/Tarik file \.CSV ke sini atau/i),
     ).toBeInTheDocument();
+  });
+
+  it("opens edit dialog with populated data and submits PATCH", async () => {
+    vi.spyOn(api, "fetchTrainingSessions").mockResolvedValue({
+      data: [mockSession],
+      meta: { page: 1, limit: 20, total: 100, last_page: 5 },
+    });
+    vi.spyOn(api, "fetchProvinces").mockResolvedValue([
+      { id: "prov-1", name: "Jawa Barat" },
+    ]);
+    vi.spyOn(api, "fetchRegion").mockResolvedValue({
+      id: "reg-1",
+      parentId: "prov-1",
+      name: "Kabupaten Garut",
+    });
+    const updateSpy = vi
+      .spyOn(api, "updateTrainingSession")
+      .mockResolvedValue({ id: mockSession.id });
+
+    const client = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+
+    render(
+      <QueryClientProvider client={client}>
+        <RiwayatPelatihanPage />
+      </QueryClientProvider>,
+    );
+
+    const user = userEvent.setup();
+    const editBtn = await screen.findByRole("button", { name: /^edit$/i });
+    await user.click(editBtn);
+
+    expect(
+      await screen.findByRole("heading", { name: "Perbarui Riwayat Pelatihan" }),
+    ).toBeInTheDocument();
+    const input = screen.getByPlaceholderText("Masukkan nama pelatihan");
+    expect(input).toHaveValue("Pelatihan Garut");
+
+    const submitBtn = screen.getByRole("button", { name: "Simpan Perubahan" });
+    await user.click(submitBtn);
+
+    await waitFor(() => {
+      expect(updateSpy).toHaveBeenCalledWith(mockSession.id, {
+        name: "Pelatihan Garut",
+        regionId: "reg-1",
+        startDate: "2026-10-01",
+        endDate: "2026-11-30",
+      });
+    });
   });
 
   it("opens SessionParticipantsDialog when 'Lihat peserta' is clicked", async () => {
