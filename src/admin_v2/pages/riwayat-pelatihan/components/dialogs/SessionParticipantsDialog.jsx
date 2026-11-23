@@ -139,7 +139,7 @@ export function SessionParticipantsDialog({ session, onClose }) {
 
   return (
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && handleClose()}>
-      <DialogContent className="max-w-[60%]">
+      <DialogContent className="grid-rows-[auto_minmax(0,1fr)] max-h-[calc(100vh-2rem)] max-w-[60%] overflow-hidden">
         <DialogHeader className="space-y-1">
           <div className="flex items-center gap-2">
             <DialogTitle className="text-lg font-bold text-foreground">
@@ -152,7 +152,7 @@ export function SessionParticipantsDialog({ session, onClose }) {
           <p className="text-xs text-muted-foreground">{subtitle}</p>
         </DialogHeader>
 
-        <div className="space-y-3">
+        <div className="min-h-0 flex flex-col gap-3">
           <DataTable
             columns={columns}
             rows={rows}
@@ -164,6 +164,8 @@ export function SessionParticipantsDialog({ session, onClose }) {
             fixedWidth={false}
             stickyFirst={false}
             stickyLast={false}
+            stickyHeader
+            scrollable
           />
 
           {!isLoading && !isError && (

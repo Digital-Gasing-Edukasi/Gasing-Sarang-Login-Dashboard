@@ -39,7 +39,7 @@ export function getRiwayatPelatihanColumns({ onEdit, onDownload, onViewParticipa
           onClick={() => onViewParticipants?.(s)}
           className="whitespace-nowrap text-sm font-medium text-blue-600 hover:underline"
         >
-          {s.participantCount} peserta terdaftar
+          {s.participantCount?.registered} / {s.participantCount?.total} peserta terdaftar
         </button>
       ),
     },

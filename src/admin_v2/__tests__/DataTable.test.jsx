@@ -37,4 +37,19 @@ describe("DataTable empty state", () => {
     expect(container.querySelector("tbody")).not.toBeNull();
     expect(screen.getByText("1")).toBeInTheDocument();
   });
+
+  it("supports a vertically scrollable table with a sticky header", () => {
+    const { container } = render(
+      <DataTable
+        columns={columns}
+        rows={[{ a: "1", b: "2" }]}
+        keyOf={(r) => r.a}
+        scrollable
+        stickyHeader
+      />,
+    );
+
+    expect(container.querySelector(".overflow-auto")).toHaveClass("flex-1");
+    expect(screen.getByText("Kolom A").closest("th")).toHaveClass("sticky", "top-0");
+  });
 });

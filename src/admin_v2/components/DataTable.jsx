@@ -17,6 +17,8 @@ export function DataTable({
   emptyText,
   stickyFirst = true,
   stickyLast = true,
+  stickyHeader = false,
+  scrollable = false,
   fixedWidth = true,
 }) {
   const lastIdx = columns.length - 1;
@@ -44,7 +46,12 @@ export function DataTable({
 
   return (
     <>
-      <div className="overflow-x-auto rounded-md border">
+      <div
+        className={cn(
+          "overflow-x-auto rounded-md border",
+          scrollable && "min-h-0 flex-1 overflow-auto",
+        )}
+      >
         <table className="w-full text-left text-sm">
           <thead>
             <tr className="border-b bg-muted">
@@ -56,6 +63,7 @@ export function DataTable({
                     "px-4 py-3 align-bottom font-semibold text-foreground",
                     col.className,
                     headSticky(idx),
+                    stickyHeader && "sticky top-0 z-30 bg-muted",
                   )}
                 >
                   {col.sub && (
