@@ -110,6 +110,25 @@ describe("useDownloads", () => {
     expect(fetchExportJob.mock.calls.length).toBe(calls);
   });
 
+  it("starts a session-specific export with its label in download history", async () => {
+    requestExport.mockResolvedValue("t-session");
+    fetchExportJob.mockResolvedValue({ status: "ACTIVE" });
+
+    await store().startExport("training_session_history", {
+      sessionId: "session-1",
+      label: "Pelatihan A — Detail Peserta",
+    });
+
+    expect(requestExport).toHaveBeenCalledWith("training_session_history", {
+      sessionId: "session-1",
+      label: "Pelatihan A — Detail Peserta",
+    });
+    expect(store().jobs["t-session"]).toMatchObject({
+      scope: "training_session_history",
+      label: "Pelatihan A — Detail Peserta",
+    });
+  });
+
   it("hydrate resumes unfinished jobs from storage", async () => {
     localStorage.setItem(
       DOWNLOAD_STORAGE_KEY,

@@ -67,6 +67,33 @@ describe("requestExport", () => {
     await expect(requestExport("dihapus")).resolves.toBe("t-5");
     expect(apiPost).toHaveBeenCalledWith("/admin/users/export/dihapus");
   });
+
+  it("POSTs the training-session list export endpoint", async () => {
+    apiPost.mockResolvedValue({ trackId: "t-training" });
+
+    await expect(requestExport("training_sessions")).resolves.toBe("t-training");
+    expect(apiPost).toHaveBeenCalledWith("/admin/training-sessions/export");
+  });
+
+  it("POSTs a session-history export with the required sort", async () => {
+    apiPost.mockResolvedValue({ data: { trackId: "t-history" } });
+
+    await expect(
+      requestExport("training_session_history", { sessionId: "session 1" }),
+    ).resolves.toBe("t-history");
+    expect(apiPost).toHaveBeenCalledWith(
+      "/admin/training-histories/sessions/session%201/export",
+      undefined,
+      { "sort[by]": "createdAt", "sort[order]": "desc" },
+    );
+  });
+
+  it("requires a session ID for a session-history export", async () => {
+    await expect(requestExport("training_session_history")).rejects.toThrow(
+      "Session ID is required for this export.",
+    );
+    expect(apiPost).not.toHaveBeenCalled();
+  });
 });
 
 describe("fetchExportJob", () => {
@@ -89,6 +116,8 @@ describe("export categories", () => {
     expect(exportCategoryOf("ditolak")).toBe("manajemen-akun");
     expect(exportCategoryOf("ditangguhkan")).toBe("manajemen-akun");
     expect(exportCategoryOf("dihapus")).toBe("manajemen-akun");
+    expect(exportCategoryOf("training_sessions")).toBe("riwayat-pelatihan");
+    expect(exportCategoryOf("training_session_history")).toBe("riwayat-pelatihan");
     expect(exportCategoryOf("whatever")).toBe("lainnya");
   });
 
@@ -96,6 +125,7 @@ describe("export categories", () => {
     expect(exportCategoryTitle("verifikasi-akun")).toBe("Verifikasi Akun");
     expect(exportCategoryTitle("verifikasi-pembayaran")).toBe("Verifikasi Pembayaran");
     expect(exportCategoryTitle("manajemen-akun")).toBe("Manajemen Akun");
+    expect(exportCategoryTitle("riwayat-pelatihan")).toBe("Riwayat Pelatihan");
     expect(exportCategoryTitle("lainnya")).toBe("Lainnya");
     expect(exportCategoryTitle("whatever")).toBe("Lainnya");
   });

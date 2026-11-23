@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Download, Plus, Search } from "lucide-react";
+import { Plus, Search } from "lucide-react";
 import {
   createTrainingSession,
   deleteTrainingSession,
@@ -16,6 +16,8 @@ import { Button } from "../../components/ui/button.jsx";
 import { Input } from "../../components/ui/input.jsx";
 import { toast } from "../../components/ui/use-toast.js";
 import { DataTable, Pagination } from "../../components/index.js";
+import { ExportButton } from "../../components/downloads/index.js";
+import { useDownloads } from "../../stores/useDownloads.js";
 import {
   AddPelatihanDialog,
   DeleteTrainingSessionDialog,
@@ -36,6 +38,7 @@ function useTrainingSessionsList(page, limit, keyword) {
 
 export default function RiwayatPelatihanPage() {
   const queryClient = useQueryClient();
+  const startExport = useDownloads((s) => s.startExport);
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(DEFAULT_LIMIT);
   const [keyword, setKeyword] = useState("");
@@ -192,10 +195,16 @@ export default function RiwayatPelatihanPage() {
     () =>
       getRiwayatPelatihanColumns({
         onEdit: (session) => setEditingSession(session),
-        onDownload: () => {},
+        onDownload: (session) =>
+          startExport("training_session_history", {
+            sessionId: session.id,
+            label: session.name
+              ? `${session.name} — Detail Peserta`
+              : "Detail Riwayat Pelatihan",
+          }),
         onViewParticipants: (session) => setParticipantsSession(session),
       }),
-    [],
+    [startExport],
   );
 
   const rows = data?.data ?? [];
@@ -220,10 +229,7 @@ export default function RiwayatPelatihanPage() {
               className="pl-9"
             />
           </div>
-          <Button type="button" onClick={() => {}}>
-            <Download size={16} />
-            <span>Export</span>
-          </Button>
+          <ExportButton scope="training_sessions" />
         </div>
       </div>
 

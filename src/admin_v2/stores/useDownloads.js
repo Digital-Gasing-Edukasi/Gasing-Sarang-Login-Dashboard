@@ -141,16 +141,16 @@ export const useDownloads = create((set, get) => ({
   starting: false,
   hasNew: false,
 
-  startExport: async (filter) => {
+  startExport: async (filter, options = {}) => {
     if (get().starting) return null;
     set({ starting: true });
     try {
-      const trackId = await requestExport(filter);
+      const trackId = await requestExport(filter, options);
       if (!trackId) throw new Error("Backend tidak mengembalikan trackId.");
       const job = {
         trackId,
         scope: filter,
-        label: EXPORT_LABELS[filter] ?? filter,
+        label: options.label ?? EXPORT_LABELS[filter] ?? filter,
         status: "PENDING",
         progress: 0,
         currentAction: null,
