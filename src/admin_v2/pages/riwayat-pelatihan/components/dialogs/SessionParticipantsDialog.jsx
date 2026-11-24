@@ -131,6 +131,7 @@ export function SessionParticipantsDialog({ session, onClose }) {
         header: "Langganan",
         render: (p) => <SubscriptionBadge status={p.status} />,
       },
+/* 
       {
         key: "action",
         header: "Action",
@@ -171,6 +172,7 @@ export function SessionParticipantsDialog({ session, onClose }) {
           </div>
         ),
       },
+       */
     ],
     [deleteParticipant, updateEmail],
   );
@@ -199,7 +201,7 @@ export function SessionParticipantsDialog({ session, onClose }) {
 
   return (
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && handleClose()}>
-      <DialogContent className="grid-rows-[auto_minmax(0,1fr)] max-h-[calc(100vh-2rem)] max-w-[60%] overflow-hidden">
+      <DialogContent className="grid-rows-[auto_minmax(0,1fr)] max-h-[calc(100vh-2rem)] max-w-4xl overflow-hidden">
         <DialogHeader className="space-y-1">
           <div className="flex items-center gap-2">
             <DialogTitle className="text-lg font-bold text-foreground">
