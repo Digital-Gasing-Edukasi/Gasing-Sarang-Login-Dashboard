@@ -1,4 +1,4 @@
-import { apiGet, apiPost, apiPostMultipart } from "./client.js";
+import { apiDelete, apiGet, apiPatch, apiPost, apiPostMultipart } from "./client.js";
 
 // GET /admin/users/training-history/:userId?page&limit
 // → { data: [{ name, region, startDate, endDate }], meta: { current_page, last_page, ... } }
@@ -43,6 +43,25 @@ export function fetchSessionParticipants(sessionId, { page = 1, limit = 20, sort
   });
 }
 
+export function updateTrainingHistoryImportRow(sessionId, rowId, data) {
+  console.log({
+    sessionId,
+    rowId,
+    data
+  });
+  
+  return apiPatch(
+    `/admin/training-histories/imports/${encodeURIComponent(sessionId)}/rows/${encodeURIComponent(rowId)}`,
+    data,
+  );
+}
+
+export function deleteTrainingHistoryImportRow(sessionId, rowId) {
+  return apiDelete(
+    `/admin/training-histories/imports/${encodeURIComponent(sessionId)}/rows/${encodeURIComponent(rowId)}`,
+  );
+}
+
 export const trainingHistoryKeys = {
   all: ["admin_v2", "training-history"],
   byUser: (userId) => ["admin_v2", "training-history", userId],
@@ -58,5 +77,11 @@ export const trainingHistoryKeys = {
     "participants",
     sessionId,
     { page, limit },
+  ],
+  participantPages: (sessionId) => [
+    "admin_v2",
+    "training-history",
+    "participants",
+    sessionId,
   ],
 };

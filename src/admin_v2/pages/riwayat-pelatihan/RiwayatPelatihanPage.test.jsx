@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { describe, expect, it, vi, beforeEach } from "vitest";
@@ -226,6 +226,94 @@ describe("RiwayatPelatihanPage", () => {
     expect(fetchParticipantsSpy).toHaveBeenCalledWith(mockSession.id, {
       page: 1,
       limit: 20,
+    });
+  });
+
+  it("edits email only for unregistered participants", async () => {
+    const unregisteredParticipant = {
+      ...mockParticipant,
+      id: "p-unreg",
+      status: "unreg",
+    };
+    vi.spyOn(api, "fetchTrainingSessions").mockResolvedValue({
+      data: [mockSession],
+      meta: { page: 1, limit: 20, total: 1, last_page: 1 },
+    });
+    vi.spyOn(api, "fetchSessionParticipants").mockResolvedValue({
+      data: [unregisteredParticipant],
+      meta: { page: 1, limit: 20, total: 1, last_page: 1 },
+    });
+    const updateSpy = vi
+      .spyOn(api, "updateTrainingHistoryImportRow")
+      .mockResolvedValue({ success: true });
+
+    const client = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    render(
+      <QueryClientProvider client={client}>
+        <RiwayatPelatihanPage />
+      </QueryClientProvider>,
+    );
+
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole("button", { name: /peserta terdaftar/i }));
+    const participantsDialog = await screen.findByRole("dialog");
+    await within(participantsDialog).findByText("Ade Raharja");
+    await user.click(within(participantsDialog).getByRole("button", { name: "Edit" }));
+
+    const emailInput = await screen.findByRole("textbox", { name: "Email" });
+    expect(emailInput).toHaveValue("ade@gmail.com");
+    await user.clear(emailInput);
+    await user.type(emailInput, "corrected@email.com");
+    await user.click(screen.getByRole("button", { name: "Simpan" }));
+
+    await waitFor(() => {
+      expect(updateSpy).toHaveBeenCalledWith(
+        mockSession.id,
+        "p-unreg",
+        { email: "corrected@email.com" },
+      );
+    });
+  });
+
+  it("does not offer edit for registered participants and confirms deletion", async () => {
+    vi.spyOn(api, "fetchTrainingSessions").mockResolvedValue({
+      data: [mockSession],
+      meta: { page: 1, limit: 20, total: 1, last_page: 1 },
+    });
+    vi.spyOn(api, "fetchSessionParticipants").mockResolvedValue({
+      data: [mockParticipant],
+      meta: { page: 1, limit: 20, total: 1, last_page: 1 },
+    });
+    const deleteSpy = vi
+      .spyOn(api, "deleteTrainingHistoryImportRow")
+      .mockResolvedValue({ success: true });
+
+    const client = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    render(
+      <QueryClientProvider client={client}>
+        <RiwayatPelatihanPage />
+      </QueryClientProvider>,
+    );
+
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole("button", { name: /peserta terdaftar/i }));
+    const participantsDialog = await screen.findByRole("dialog");
+    await within(participantsDialog).findByText("Ade Raharja");
+    expect(
+      within(participantsDialog).queryByRole("button", { name: "Edit" }),
+    ).not.toBeInTheDocument();
+
+    await user.click(within(participantsDialog).getByRole("button", { name: "Hapus" }));
+    expect(await screen.findByRole("heading", { name: "Hapus Peserta?" })).toBeInTheDocument();
+    expect(screen.getByText(/Data peserta Ade Raharja akan dihapus/)).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Hapus" }));
+
+    await waitFor(() => {
+      expect(deleteSpy).toHaveBeenCalledWith(mockSession.id, mockParticipant.id);
     });
   });
 });

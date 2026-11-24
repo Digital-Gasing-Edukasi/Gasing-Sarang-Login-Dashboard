@@ -1,19 +1,25 @@
 import { useMemo, useState } from "react";
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Pencil, Trash2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "../../../../components/ui/dialog.jsx";
 import { Button } from "../../../../components/ui/button.jsx";
+import { Input } from "../../../../components/ui/input.jsx";
+import { Label } from "../../../../components/ui/label.jsx";
+import { toast } from "../../../../components/ui/use-toast.js";
 import { DataTable } from "../../../../components/DataTable.jsx";
 import { Pagination } from "../../../../components/Pagination.jsx";
 import { OverflowText } from "../../../../components/OverflowText.jsx";
 import { formatShortDate } from "../../../../lib/format.js";
 import {
   fetchSessionParticipants,
+  updateTrainingHistoryImportRow,
+  deleteTrainingHistoryImportRow,
   trainingHistoryKeys,
 } from "../../../../lib/api/index.js";
 
@@ -43,8 +49,12 @@ function SubscriptionBadge({ status }) {
 }
 
 export function SessionParticipantsDialog({ session, onClose }) {
+  const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(DEFAULT_LIMIT);
+  const [editingParticipant, setEditingParticipant] = useState(null);
+  const [deletingParticipant, setDeletingParticipant] = useState(null);
+  const [email, setEmail] = useState("");
   const open = !!session;
 
   const sessionId = session?.id;
@@ -55,6 +65,44 @@ export function SessionParticipantsDialog({ session, onClose }) {
     enabled: open && !!sessionId,
     staleTime: 30_000,
     placeholderData: keepPreviousData,
+  });
+
+  const invalidateParticipants = () =>
+    queryClient.invalidateQueries({
+      queryKey: trainingHistoryKeys.participantPages(sessionId),
+    });
+
+  const updateEmail = useMutation({
+    mutationFn: ({ rowId, email: nextEmail }) =>
+      updateTrainingHistoryImportRow(sessionId, rowId, { email: nextEmail }),
+    onSuccess: () => {
+      setEditingParticipant(null);
+      toast({ title: "Email peserta diperbarui" });
+      invalidateParticipants();
+    },
+    onError: (err) => {
+      toast({
+        title: "Gagal memperbarui email peserta",
+        description: err.message || "Terjadi kesalahan saat memperbarui email.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deleteParticipant = useMutation({
+    mutationFn: (rowId) => deleteTrainingHistoryImportRow(sessionId, rowId),
+    onSuccess: () => {
+      setDeletingParticipant(null);
+      toast({ title: "Peserta dihapus" });
+      invalidateParticipants();
+    },
+    onError: (err) => {
+      toast({
+        title: "Gagal menghapus peserta",
+        description: err.message || "Terjadi kesalahan saat menghapus peserta.",
+        variant: "destructive",
+      });
+    },
   });
 
   const columns = useMemo(
@@ -87,25 +135,34 @@ export function SessionParticipantsDialog({ session, onClose }) {
         key: "action",
         header: "Action",
         className: "text-center",
-        render: () => (
+        render: (p) => (
           <div className="flex items-center justify-center gap-1">
+            {p.status === "unreg" && (
+              <Button
+                variant="ghost"
+                size="icon"
+                type="button"
+                className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                onClick={() => {
+                  setEmail(p.email || "");
+                  setEditingParticipant(p);
+                  updateEmail.reset();
+                }}
+                title="Edit"
+              >
+                <Pencil className="h-4 w-4" />
+                <span className="sr-only">Edit</span>
+              </Button>
+            )}
             <Button
               variant="ghost"
               size="icon"
               type="button"
               className="h-8 w-8 text-muted-foreground hover:text-foreground"
-              onClick={() => {}}
-              title="Edit"
-            >
-              <Pencil className="h-4 w-4" />
-              <span className="sr-only">Edit</span>
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              type="button"
-              className="h-8 w-8 text-muted-foreground hover:text-foreground"
-              onClick={() => {}}
+              onClick={() => {
+                setDeletingParticipant(p);
+                deleteParticipant.reset();
+              }}
               title="Hapus"
             >
               <Trash2 className="h-4 w-4" />
@@ -115,7 +172,7 @@ export function SessionParticipantsDialog({ session, onClose }) {
         ),
       },
     ],
-    [],
+    [deleteParticipant, updateEmail],
   );
 
   const rows = data?.data ?? [];
@@ -123,6 +180,9 @@ export function SessionParticipantsDialog({ session, onClose }) {
 
   const handleClose = () => {
     setPage(1);
+    setEditingParticipant(null);
+    setDeletingParticipant(null);
+    setEmail("");
     onClose?.();
   };
 
@@ -178,6 +238,87 @@ export function SessionParticipantsDialog({ session, onClose }) {
           )}
         </div>
       </DialogContent>
+
+      <Dialog
+        open={!!editingParticipant}
+        onOpenChange={(isOpen) => !isOpen && setEditingParticipant(null)}
+      >
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Edit Email Peserta</DialogTitle>
+          </DialogHeader>
+          <form
+            className="space-y-4"
+            onSubmit={(event) => {
+              event.preventDefault();
+              updateEmail.mutate({
+                rowId: editingParticipant.id,
+                email: email.trim(),
+              });
+            }}
+          >
+            <div className="space-y-2">
+              <Label htmlFor="participant-email">Email</Label>
+              <Input
+                id="participant-email"
+                type="email"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                required
+                disabled={updateEmail.isPending}
+              />
+            </div>
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setEditingParticipant(null)}
+                disabled={updateEmail.isPending}
+              >
+                Batalkan
+              </Button>
+              <Button
+                type="submit"
+                disabled={!email.trim() || updateEmail.isPending}
+              >
+                {updateEmail.isPending ? "Menyimpan…" : "Simpan"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={!!deletingParticipant}
+        onOpenChange={(isOpen) => !isOpen && setDeletingParticipant(null)}
+      >
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Hapus Peserta?</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-foreground">
+            Data peserta {deletingParticipant?.name || deletingParticipant?.email} akan dihapus.
+          </p>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setDeletingParticipant(null)}
+              disabled={deleteParticipant.isPending}
+            >
+              Batalkan
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={() => deleteParticipant.mutate(deletingParticipant.id)}
+              disabled={deleteParticipant.isPending}
+            >
+              {deleteParticipant.isPending ? "Menghapus…" : "Hapus"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Dialog>
   );
 }

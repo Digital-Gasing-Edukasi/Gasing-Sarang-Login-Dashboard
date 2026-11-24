@@ -36,6 +36,8 @@ export {
 export {
   fetchTrainingHistory,
   fetchSessionParticipants,
+  updateTrainingHistoryImportRow,
+  deleteTrainingHistoryImportRow,
   uploadTrainingHistoryImport,
   pushTrainingHistoryImport,
   waitQueueJob,
