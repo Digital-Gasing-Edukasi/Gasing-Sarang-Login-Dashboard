@@ -1,6 +1,31 @@
 import { cn } from "../lib/utils.js";
 import { Button } from "./ui/button.jsx";
 
+const THREE_DAYS_MS = 3 * 24 * 60 * 60 * 1000;
+
+function timestampFrom(value) {
+  if (typeof value === "number") {
+    return value < 1e12 ? value * 1000 : value;
+  }
+  if (typeof value === "string") {
+    const numeric = Number(value);
+    if (Number.isFinite(numeric)) return numeric < 1e12 ? numeric * 1000 : numeric;
+    return Date.parse(value);
+  }
+  if (value && typeof value === "object") {
+    return timestampFrom(
+      value.unix ?? value.local?.raw ?? value.utc?.raw ?? value.raw,
+    );
+  }
+  return Number.NaN;
+}
+
+function isRecentlyUpdated(row) {
+  const updatedAt = timestampFrom(row.updated_at ?? row.updatedAt);
+  const age = Date.now() - updatedAt;
+  return Number.isFinite(updatedAt) && age >= 0 && age < THREE_DAYS_MS;
+}
+
 // Generic table. First + last columns are frozen (sticky) on horizontal
 // scroll — these tables are wide with little room. Sticky cells carry their
 // own opaque background + an edge divider so scrolled content slides under.
@@ -113,7 +138,16 @@ export function DataTable({
                           bodySticky(idx),
                         )}
                       >
-                        {col.render(row)}
+                        {idx === 0 && isRecentlyUpdated(row) ? (
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0 flex-1">{col.render(row)}</div>
+                            <span className="inline-flex shrink-0 items-center rounded-full bg-blue-600 px-2.5 py-0.5 text-xs font-semibold text-white">
+                              new
+                            </span>
+                          </div>
+                        ) : (
+                          col.render(row)
+                        )}
                       </td>
                     ))}
                   </tr>

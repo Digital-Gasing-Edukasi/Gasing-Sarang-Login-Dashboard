@@ -38,6 +38,44 @@ describe("DataTable empty state", () => {
     expect(screen.getByText("1")).toBeInTheDocument();
   });
 
+  it("shows a new badge for rows updated within the last three days", () => {
+    render(
+      <DataTable
+        columns={columns}
+        rows={[
+          {
+            a: "recent",
+            b: "value",
+            updated_at: { unix: Math.floor(Date.now() / 1000) - 60 },
+          },
+        ]}
+        keyOf={(r) => r.a}
+      />,
+    );
+
+    expect(screen.getByText("new")).toHaveClass("rounded-full", "bg-blue-600", "text-white");
+  });
+
+  it("does not show a new badge for rows updated three or more days ago", () => {
+    render(
+      <DataTable
+        columns={columns}
+        rows={[
+          {
+            a: "old",
+            b: "value",
+            updatedAt: {
+              unix: Math.floor(Date.now() / 1000) - 3 * 24 * 60 * 60,
+            },
+          },
+        ]}
+        keyOf={(r) => r.a}
+      />,
+    );
+
+    expect(screen.queryByText("new")).not.toBeInTheDocument();
+  });
+
   it("supports a vertically scrollable table with a sticky header", () => {
     const { container } = render(
       <DataTable
